@@ -1,0 +1,39 @@
+{
+  "schema_version": "acceptance-traceability-v1",
+  "source": "docs/测试设计-骨架数据库自治生产平台.html",
+  "suites": {
+    "CTL": ["AUTO","AUTO","AUTO","AUTO","AUTO","AUTO","AUTO","AUTO"],
+    "ART": ["AUTO","FAULT","AUTO","AUTO","FAULT","AUTO","AUTO","AUTO"],
+    "EVT": ["AUTO","AUTO","FAULT","AUTO","AUTO","AUTO","AUTO","AUTO"],
+    "CAP": ["AUTO","FAULT","AUTO","AUTO","FAULT","AUTO","AUTO","AUTO"],
+    "WF": ["AUTO","FAULT","FAULT","AUTO","FAULT","AUTO","AUTO","AUTO"],
+    "AGT": ["FAULT","FAULT","FAULT","FAULT","FAULT","EVAL","EVAL","AUTO"],
+    "GRF": ["GATE","FAULT","FAULT","AUTO","FAULT","AUTO","AUTO","AUTO"],
+    "WIKI": ["HISTORY","HISTORY","FAULT","FAULT","FAULT","FAULT","AUTO","FAULT"],
+    "XLC": ["FAULT","FAULT","HISTORY","FAULT","FAULT","AUTO","AUTO","AUTO"],
+    "BOM": ["AUTO","FAULT","AUTO","FAULT","AUTO","AUTO","FAULT","AUTO"],
+    "REL": ["FAULT","FAULT","FAULT","AUTO","AUTO","FAULT","SEC","AUTO"],
+    "E2E": ["REPLAY","FAULT","FAULT","SHADOW","CANARY","FAULT","AUTO","MANUAL"]
+  },
+  "non_automated_contracts": {
+    "AGT-006": {"runner": "offline-eval-harness", "evidence": "frozen adjudicated corpus; publish only SLO report artifact"},
+    "AGT-007": {"runner": "offline-eval-harness", "evidence": "repeat set + neighbour-trap scorecard"},
+    "E2E-004": {"runner": "shadow-runner", "evidence": "no-production-write attestation and comparison report"},
+    "E2E-005": {"runner": "canary-controller", "evidence": "allowlist, draft-only release record and reviewed hash"},
+    "E2E-008": {"runner": "human-expert", "evidence": "signed policy-conflict exception packet"}
+  },
+  "implemented_by": {
+    "CTL": "tests/test_control_artifacts_events.py",
+    "ART": "tests/test_control_artifacts_events.py",
+    "EVT": "tests/test_control_artifacts_events.py",
+    "CAP": "tests/test_execution_workflow_release.py",
+    "WF": "tests/test_execution_workflow_release.py",
+    "AGT": "tests/test_domains_and_acceptance.py",
+    "GRF": "tests/test_domains_and_acceptance.py",
+    "WIKI": "tests/test_domains_and_acceptance.py",
+    "XLC": "tests/test_domains_and_acceptance.py",
+    "BOM": "tests/test_domains_and_acceptance.py",
+    "REL": "tests/test_execution_workflow_release.py",
+    "E2E": "tests/test_domains_and_acceptance.py"
+  }
+}

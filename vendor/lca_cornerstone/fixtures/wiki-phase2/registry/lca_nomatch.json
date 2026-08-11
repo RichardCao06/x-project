@@ -1,0 +1,1140 @@
+{
+ "entries": [
+  {
+   "node_id": "A007",
+   "name": "硝酸·尿素合成, 硝酸铵合成 | 无机盐, 硝酸铵, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "All 8 candidates are wrong substance. The node targets ammonium nitrate (硝酸铵, NH4NO3) solid inorganic salt. Candidates 1-2 are nitric acid (HNO3) — an intermedi",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A021",
+   "name": "硝酸·尿素合成, 磷酸二氢铵/磷酸氢二铵合成 | 无机盐, 磷酸氢二铵, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — all three candidates are for phosphoric acid (磷酸/H3PO4) production or market, not diammonium phosphate (磷酸氢二铵/DAP). The node substance is (NH4)2",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A054",
+   "name": "专用化学品配制, EMC配制 | 电子化学品, 环氧塑封料, 固态, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: A054 是固态环氧塑封料(EMC)配制工序，EMC 是半导体封装专用复合料（环氧树脂+高比例SiO2填料+固化剂+阻燃剂等预混造粒），与所有候选均不同质——候选仅有液态环氧树脂生产/市场、绝缘子用环氧灌封料及乙烯基酯树脂，均非已配制固态EMC化合物，无任何候选可代表该专用电子化学品。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A057",
+   "name": "中间体合成, 磷酸铁合成 | 无机盐, 磷酸铁, 固态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为磷酸铁(FePO4, iron phosphate)，是磷酸铁锂正极的中间前驱体；全部候选均为磷酸铁锂(LiFePO4, lithium iron phosphate)或其下游产品（电解液、正极浆料、电池包、退役拆解）。物质根本不符，无任何同物质候选可选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A076",
+   "name": "专用化学品配制, 涂料配制 | 涂料胶粘剂, 涂料(配制), 液态, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点 A076 为涂料配制(paint/coating formulation)活动,候选全为单一化学品生产(氟乙烷、二甲基环戊烷、二氯丙烯、丁二醇、甲氧基丙醇、甲基环丙烯、萘乙酸、丙醇),物质类别与涂料配制工序无一相符,无可匹配候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A081",
+   "name": "催化重整与芳烃抽提, 石脑油重整 | 芳烃, 苯, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 候选均与节点物质不符：候选1/2为萘磺酸（naphthalene sulfonic acid），与芳烃/苯物质不同；候选3/4/5为石脑油分离副产匿名馏分（fraction N from naphtha separation）桥接到通用有机化学品市场，既非催化重整（catalytic r",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A103",
+   "name": "专用化学品配制, na_route_agnostic | 涂料胶粘剂, 汽车水性底漆(中涂), 液态(配制液)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为汽车水性底漆(中涂)，属专用涂料配制品；全部候选均为无关物质（重水D2O、MOX核燃料元件、水基木材防腐剂），无同物质候选可选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A104",
+   "name": "专用化学品配制, na_route_agnostic | 涂料胶粘剂, 汽车水性面漆(色漆+清漆), 液态(配制液)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 候选全为重水(heavy water)、MOX核燃料、水性木材防腐剂，与节点物质\"汽车水性面漆(色漆+清漆)\"毫无关联；无任何候选涉及汽车涂料/水性面漆配制，判无匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A105",
+   "name": "专用化学品配制, na_route_agnostic | 涂料胶粘剂, 粉末涂料(热固环氧-聚酯), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点代表热固性环氧-聚酯粉末涂料(固态)的配制工序；所有候选均为液态环氧树脂生产/市场或乙烯基酯树脂，物质不符（液态树脂原料 ≠ 固态粉末涂料配制品），无同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A106",
+   "name": "专用化学品配制, na_route_agnostic | 涂料胶粘剂, 结构胶(双组分环氧), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点为双组分环氧结构胶的配制工序(foreground formulation),产品是调配好的胶粘剂成品,而所有候选均为环氧树脂聚合物本体生产(epoxy resin production)或绝缘体/市场混合,无任何候选代表结构胶(adhesive/sealant)配制活动;物质层已不对",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A107",
+   "name": "专用化学品配制, na_route_agnostic | 涂料胶粘剂, 结构胶(单组分聚氨酯), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A108",
+   "name": "专用化学品配制, na_route_agnostic | 涂料胶粘剂, 密封胶(硅酮, RTV), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点为硅酮/RTV密封胶、涂料胶粘剂的专用化学品配制活动，8条候选均为无关的单一化学品生产工序（氟乙烷、二甲基环戊烷、丁二醇、丙醇等），与本节点物质及活动类型完全不符，无同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A109",
+   "name": "专用化学品配制, na_route_agnostic | 涂料胶粘剂, 密封胶(MS改性硅烷), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: A109 is MS-modified silane sealant/adhesive compounding. All 8 candidates are silicon production datasets (multi-Si, electronics-grade, solar-gra",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A111",
+   "name": "专用化学品配制, na_route_agnostic | 催化剂添加剂, 工业催化剂(加氢脱硫催化剂, Co-Mo/Al2O3), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — A111 所需物质为 Co-Mo/Al2O3 加氢脱硫催化剂(固态工业催化剂),候选集全部为氢系小分子(硫化氢、氟化氢、过氧化氢、氰化氢及其 market 活动),物质完全不符,无可选项。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A113",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 抗氧剂(受阻酚, Irganox型), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点为受阻酚型抗氧剂(Irganox型)的中间体合成，属于高度专用精细化学品；cands 8条均为无关物质（氟乙烷、丁二醇、萘乙酸、丙醇等），无任何受阻酚/多元酚抗氧剂相关数据集，无法匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A115",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 增塑剂(DINP/DIDP邻苯二甲酸酯), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 所有候选均为苯系中间体（乙苯、枯烯、间苯二酚、顺丁烯二酸酐、热解气），与节点物质 DINP/DIDP 邻苯二甲酸酯增塑剂（高分子量苯二甲酸二异壬/癸酯）物质不符，无同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A116",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 增塑剂(DOTP对苯二甲酸酯, 非邻苯), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点物质为 DOTP（对苯二甲酸二(2-乙基己)酯，增塑剂酯类产品），两个候选均为 PTA（精对苯二甲酸）——即 DOTP 的原料前体，物质根本不符。无同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A118",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 硅烷偶联剂(γ-APTES/GPTMS), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 所有候选均为元素硅(elemental silicon / multi-Si / solar-grade / electronics-grade)生产数据集，与节点物质硅烷偶联剂(γ-APTES / GPTMS，有机硅烷专用助剂)完全不同物质，物质不符，一律不选。ecoinvent 及 ",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A119",
+   "name": "中间体合成, na_route_agnostic | 中间体, 硅氧烷单体(二甲基二氯硅烷), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为二甲基二氯硅烷（dimethyldichlorosilane，有机氯硅烷中间体），所有候选均为氯气/二氧化氯或单质硅，无一对应该有机氯硅烷单体，无法匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A126",
+   "name": "中间体合成, na_route_agnostic | 中间体, 对苯二甲酸二辛酯原料(2-乙基己醇), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "节点物质为 2-乙基己醇（2-ethylhexanol），是合成 DOTP 的原料醇；两个候选均为精对苯二甲酸（PTA/purified terephthalic acid），与节点物质不一致，违反规则①，不可选。specialty_gap。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A128",
+   "name": "专用化学品配制, na_route_agnostic | 功能油液, 矿物基础油(API Ⅱ/Ⅲ, 加氢裂化), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点物质为矿物基础油(API II/III, 加氢裂化工艺)功能油液配制, 全部候选均为与基础油无关的氢化合物(硫化氢、氟化氢、过氧化氢、氰化氢)及有机溶剂, 无任何同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A134",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 缓蚀剂(有机胺/苯并三氮唑体系), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点为有机胺/苯并三氮唑体系缓蚀剂(液态)合成前景工序。eco候选(乙苯/异丙苯/间苯二酚/顺丁烯二酸酐/热裂解气BTX)均为苯衍生物或芳烃产品，物质完全不符。两个hiq候选虽为缓蚀剂类,但体系不同:ac75a5f7为氨基酸型缓蚀剂市场数据集,eaa200c7为软水系统复配缓蚀剂市场数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A135",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 极压抗磨剂(ZDDP, 二烷基二硫代磷酸锌), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: A135节点物质为ZDDP(二烷基二硫代磷酸锌),是含锌、硫、碳、磷的有机金属润滑添加剂。全部三条候选均为磷酸(H3PO4)数据集(dihydrate生产工序/化肥级市场/湿法提纯),与ZDDP物质不符——磷酸是无机酸,无锌无硫,不能代表ZDDP合成工序。无同物质候选,判NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A136",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 分散剂(聚异丁烯丁二酰亚胺PIBSI), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点为润滑油/燃油添加剂分散剂 PIBSI（聚异丁烯丁二酰亚胺），与 hiq 候选\"分散剂,复配化学药剂\"物质不符——后者是工业冷却水/循环水系统用阻垢分散剂，为水处理化学品，非润滑剂添加剂；其余 eco 候选均为无关化合物（含氟烷、丙二醇醚、萘乙酸等）。无同物质候选，判 NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A144",
+   "name": "专用化学品配制, curing_agent_amine_anhydride合成 | 催化剂添加剂, 固化剂(胺/酸酐), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: A144节点物质为专用固化剂(胺/酸酐型,液态),属于专用化学品配制活动。8个候选均为无关有机化学品(1,1-二氟乙烷、丁二醇、1-丙醇等),无任何候选与固化剂/胺类固化剂/酸酐固化剂在物质上匹配,判 NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A150",
+   "name": "专用化学品配制, stearic_acid制 | 催化剂添加剂, 硬脂酸(活性剂), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为硬脂酸(stearic acid)催化剂添加剂/活性剂,8条候选无一涉及硬脂酸:hiq候选为清洗剂/白油,eco候选均为1,1-difluoroethane/dimethylcyclopentane/dichloropropene/butanediol/methoxy-prop",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A151",
+   "name": "专用化学品配制, zinc_oxide_activator制 | 催化剂添加剂, 活性剂氧化锌, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — A151 是橡胶硫化用活性剂氧化锌的专用配制工序(zinc oxide activator formulation),属专用助剂。候选仅涵盖 zinc oxide production 和 market for zinc oxide(以及 ZnS/ZnSO4 异物质),均无法表征\"活性剂",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A152",
+   "name": "专用化学品配制, surfactant_emulsifier制 | 催化剂添加剂, 乳化剂/表面活性剂, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点产出物为\"乳化剂/表面活性剂(催化剂添加剂用,液态)\"。hiq候选\"清洗剂,白油、表面活性剂\"是清洗剂产品(以表面活性剂为原料之一),与本节点产出的表面活性剂/乳化剂本身不同物质;eco候选均为具体有机化学品(1,1-二氟乙烷/丁二醇/甲氧基丙醇等),与乳化剂/表面活性剂无物质对应。无",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A153",
+   "name": "专用化学品配制, polymerization_modifier制 | 催化剂添加剂, 终止剂/调节剂, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — A153 是聚合物反应助剂配制(终止剂/调节剂,液态);所有候选均与该物质不符:hiq唯一候选为锅炉给水PH调节剂(水处理药剂,非聚合助剂),eco候选为各类有机小分子生产工序(1,1-difluoroethane/1,4-butanediol/1-methoxy-2-propanol等",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A160",
+   "name": "专用化学品配制, ultrapure_water制 | 电子化学品, 超纯水(UPW), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为超纯水(UPW, H2O高纯化),6条候选均非同物质:heavy water(D2O重水)是氘代水,与UPW物质不同;MOX fuel element和wood preservative与超纯水毫无关系。无同物质候选,判NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A164",
+   "name": "单体合成, isobutylene制 | 烯烃, 异丁烯, 气态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 候选列表中无任何异丁烯(isobutylene, C4H8)相关数据集;8条候选均为其他化学品(含氟乙烷、二甲基环戊烷、二氯丙烯、丁二醇、甲氧基丙醇、甲基环丙烯、萘乙酸、丙醇),物质完全不符,无法匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P009",
+   "name": "无机酸碱, 硫酸, 液态, 发烟",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点物质为\"发烟硫酸\"(oleum/fuming sulfuric acid，含溶解 SO3)，与普通硫酸(H2SO4)是不同物质。所有候选均代表常规硫酸(98% H2SO4 或市场混合)，无一涵盖 oleum/发烟硫酸，物质不符，无法选取。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P033",
+   "name": "无机盐, 氯酸钠, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为氯酸钠(NaClO3),所有候选均非同物质:hiq候选为次氯酸钠(NaOCl,不同物质);eco候选全为液氯(Cl2)、二氧化氯(ClO2)或1,1-二氟乙烷,无一是氯酸钠。物质不符,无法选取。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P034",
+   "name": "无机盐, 高氯酸钠, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 所有候选均为氯气(chlorine, liquid)或二氧化氯(chlorine dioxide),与节点物质高氯酸钠(sodium perchlorate, NaClO4)完全不同;无同物质候选,无法匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P035",
+   "name": "无机盐, 碳酸氢铵, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 候选全部为含氢化合物(硫化氢、氟化氢、过氧化氢、氰化氢),与节点物质碳酸氢铵(NH4HCO3)完全不同物质,无一匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P040",
+   "name": "原盐/卤水, 背景",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — all 6 candidates are unrelated substances (heavy water/D2O, MOX nuclear fuel, water-based wood preservative); none match 原盐/卤水 (raw salt / brine",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P044",
+   "name": "外购电力, 背景",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点为\"外购电力\"（electricity），但两条候选均为泡沫玻璃生产工序（foam glass production），物质不符，无同物质候选，判 NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P068",
+   "name": "乙烷(裂解原料), 气态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 候选中无一是乙烷(ethane, C2H6)本身：hiq候选物质分别为三甘醇(triethylene glycol)、乙烯(ethylene)、环氧乙烷(ethylene oxide)，eco候选为1,1-二氟乙烷/二甲基环戊烷/二氯丙烯，均与乙烷物质不符，无法匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P070",
+   "name": "原盐/盐水(氯碱原料), 固态/溶液",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为原盐/盐水(氯碱工业原料),6条候选全为 chlorine / chlorine dioxide(氯气/二氧化氯),属于氯碱流程的下游产出,与节点物质不符,无同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P073",
+   "name": "盐湖卤水(锂提取原料), 溶液",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点为盐湖卤水(锂提取原料),属锂盐湖直接开采的含锂卤水原料,6条候选均与该物质无关(重水D2O×2、MOX核燃料×2、木材防腐剂×2),无同物质候选,判NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P074",
+   "name": "外购电力(工业用电), 电力",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "两条候选均为\"foam glass production\"(泡沫玻璃生产活动数据集),物质类别与节点\"外购电力(工业用电)\"完全不符——前者是玻璃制品生产工序,后者是电力产品。规则①:物质不符一律不选。specialty_gap",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P077",
+   "name": "无机盐, 氯化钠(副产), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点为氯化钠(NaCl, sodium chloride, 副产固态), 全部候选均为氯气(Cl₂)、二氧化氯(ClO₂)、二氟乙烷、二甲基环戊烷等完全不同物质, 无一与氯化钠(NaCl)同物质, 判 NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P098",
+   "name": "电子化学品, 电镀液(硫酸铜系), 溶液, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — P098是电镀液(硫酸铜系)配制溶液，是铜电镀槽液专用助剂；两条候选均为硫酸(sulfuric acid)生产或市场数据集，物质根本不符。硫酸虽为电镀液原料之一，但节点代表的是已配制完成的整体槽液，非硫酸本身，无同物质候选可选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P113",
+   "name": "无机矿物, 盐湖卤水(含锂), 液态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 所有6个候选均与节点物质无关:heavy water(重水/D2O)、MOX fuel element(核燃料)、wood preservative(木材防腐剂),无一是盐湖卤水(含锂)或锂矿原料,物质不符,无可选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P114",
+   "name": "无机矿物, 镍钴锰混合矿精矿, 固态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点物质为\"镍钴锰混合矿精矿\"(NCM mixed ore concentrate,原矿石/精矿),唯一候选 nickel sulfate production(eco)是硫酸镍(NiSO4)精制化学品,物质类别根本不同(矿石精矿 vs 精制盐),不符合物质一致性要求,判 NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P116",
+   "name": "外购电力(中压), 电力, na, na",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点为\"外购电力(中压)\"(电力产品), 两个候选均为泡沫玻璃生产工序(foam glass production), 物质完全不符, 无同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P149",
+   "name": "乙烷(外购原料)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 所有候选均非乙烷(ethane, C2H6)本身。候选1\"三甘醇,EEG,乙烷\"是三甘醇(triethylene glycol)而非乙烷;候选2是乙烯(ethylene);候选3-5是环氧乙烷(ethylene oxide);eco候选均为含氟/含氯衍生物或有机溶剂,无一与乙烷物质相符。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P155",
+   "name": "外购电力",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "两条候选均为泡沫玻璃生产工序数据集（foam glass production），物质为玻璃制品，与节点\"外购电力\"（electricity）完全不同；无同物质候选，判 specialty_gap。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P162",
+   "name": "中间体, 乙苯, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点为乙苯(ethylbenzene)液态中间体，候选中无任何乙苯数据集。候选1\"苯乙烯,乙苯脱氢技术\"的产品是苯乙烯(styrene)而非乙苯本身；其余eco候选均为完全不同的化学品(二氟乙烷/二甲基环戊烷/二氯丙烯/丁二醇等)。无同物质候选可选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P188",
+   "name": "油气原料, 乙烷, 气态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 无候选与节点物质「乙烷(ethane, C2H6)气态原料」一致。候选1\"三甘醇,EEG,乙烷\"实为三甘醇(triethylene glycol),名称中\"乙烷\"是工艺编码后缀而非物质;候选2\"乙烯,天然气基乙烷制\"是乙烯(ethylene)产品而非乙烷本身;其余候选均为环氧乙烷或有机氟/",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P193",
+   "name": "油气原料, 重整进料/直馏石脑油, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 所有候选均与节点物质不符。候选 1-2 是萘磺酸(naphthalene sulfonic acid),与直馏石脑油(naphtha)完全不同物质;候选 3-5 是石脑油分离后的副产品馏分(fraction from naphtha separation),属下游化工产品,并非作为重整进",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P195",
+   "name": "外购氢气(背景)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "全部6个候选均为含氢化合物(硫化氢H2S、氟化氢HF、双氧水H2O2、氰化氢HCN),无一是氢气(H2)本身,物质不符,一律不选。specialty_gap",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P233",
+   "name": "背景, 外购聚酯树脂(粉末涂料用), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 粉末涂料用聚酯树脂是热固性专用树脂(羧基/羟基官能化固态聚酯,控制酸值),与候选的 PET 瓶级/非晶颗粒料(热塑性 PET)物质不同;全部候选均为 PET 颗粒料,无同物质匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P234",
+   "name": "背景, 外购丙烯酸树脂(水性涂料基料), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为丙烯酸树脂(acrylic resin，水性涂料聚合物基料)，候选中 acrylic acid 系丙烯酸单体（非树脂），heavy water / MOX fuel / wood preservative 均与本物质无关；无任何候选匹配丙烯酸树脂。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P235",
+   "name": "背景, 外购聚氨酯树脂(PU胶粘剂基料), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为聚氨酯树脂(PU胶粘剂基料),三条候选均为氨(ammonia)生产或市场数据集,物质完全不符,无任何同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P238",
+   "name": "背景, 外购γ-氧化铝载体(催化剂载体), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点为 γ-氧化铝载体(催化剂载体，高比表面积 γ 相),唯一候选为\"aluminium oxide, non-metallurgical ... refractory material\"(耐火材料级，通常为 α 相/刚玉，用途/晶相/比表面积均与催化剂载体不同),物质功能不符,无可用候",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P241",
+   "name": "背景, 外购电力, na",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "两条候选均为\"foam glass production\"（泡沫玻璃生产工序），描述的是以可再生电力为能源来生产泡沫玻璃的工艺数据集，并非电力供应/发电数据集。节点 P241 需要的是\"外购电力\"（electricity supply/market）背景数据集，物质根本不符，故判 NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P243",
+   "name": "单体, 偏氟乙烯(VDF单体)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 全部6条候选均为乙烯系化学品(ethylene bromide / carbonate / dichloride / glycol dimethyl ether / diamine),与节点物质偏氟乙烯(VDF, CH2=CF2)完全不同;ecoinvent/hiqlcd 候选列表中无 ",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P244",
+   "name": "工业气体, 一氧化碳(CO), 气态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 候选集中无任何一氧化碳(CO)数据集：HIQ候选为单晶硅光伏电池片(TOPCon)，ECO候选均为有机化学品(1,1-二氟乙烷/1,4-丁二醇等)，物质完全不符，无法匹配。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P245",
+   "name": "工业气体, 三氟化氮(NF3)/六氟化硫(SF6)前驱体",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点为 NF3/SF6 前驱体工业气体(氟化物专用助剂)。候选中无任何 NF3、SF6、氟化氮、六氟化硫或其直接前驱体(如 F2、HF 工业制法)的数据集;液氮(market for nitrogen, liquid / venting)物质不符；1,1-difluoroethane 为含",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P249",
+   "name": "无机盐, 二氧化硅磨粒(高纯SiO2胶体)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为高纯SiO2胶体磨粒(二氧化硅),全部候选均为元素硅(Si)生产工序(multi-Si铸锭、电子级Si、太阳能级Si、Czochralski单晶Si)或碳化硅(SiC),与SiO2物质根本不符,无可选条目。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P250",
+   "name": "无机盐, 四甲基氢氧化铵(TMAH水溶液)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 所有候选均为含氢无机化合物（硫化氢、氟化氢、过氧化氢、氰化氢、重水），与节点物质四甲基氢氧化铵(TMAH)完全不同物质，无同物质候选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P251",
+   "name": "无机盐, 氨水(络合剂NH3)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "节点物质为\"氨水\"(aqueous ammonia solution, NH3·H2O),而所有氨相关候选(steam reforming/partial oxidation/market)均为液态无水氨(anhydrous liquid NH3, 100%),物质形态不符;其余候选(氟乙烷/二甲环戊烷/二氯丙烯/丁二",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P252",
+   "name": "无机盐, 硫酸亚铁(FeSO4·7H2O)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点为硫酸亚铁 FeSO4·7H2O（铁(II)盐），候选中最相关的两条（sulfuric acid production、market for sulfuric acid）均为硫酸 H2SO4，与目标物质不同；其余候选为有机化合物，与无机铁盐完全不符。候选中无任何 ferrous su",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P253",
+   "name": "无机矿物, 熔融硅微粉(SiO2填料)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点物质为 SiO2（熔融硅微粉/石英粉填料），全部候选均为单晶/多晶/太阳能级元素硅(Si)生产或碳化硅(SiC)生产，物质不符，无可选条目。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P261",
+   "name": "醇与含氧物, 有机溶剂(丙二醇甲醚乙酸酯PGMEA等)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 所有候选均与节点物质不符。节点为丙二醇甲醚乙酸酯(PGMEA)等含氧有机溶剂类；候选涵盖乙酸(acetic acid)、苯乙酸(phenyl acetic acid)、乙酸酐(acetic anhydride)、1,1-二氟乙烷、1,1-二甲基环戊烷及底漆稀释剂(S-100/环己酮/丁醇)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P264",
+   "name": "镍盐/钴盐/锰盐溶液(外购)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 节点定义为镍盐+钴盐+锰盐三元混合溶液(NCM前驱体原料),cands 中无任何候选涵盖此复合物质;仅有单独的锰化合物(MnO2、MnSO4、Mn2O3)和硫酸镍,均不与节点物质定义一致。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P036",
+   "name": "无机盐, 磷酸二氢铵, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — 三条候选均为磷酸(phosphoric acid)的生产或市场数据集，与节点物质磷酸二氢铵(monoammonium phosphate, MAP, NH4H2PO4)不是同一物质；磷酸是MAP的中间体，不可替代。无同物质候选，判NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P037",
+   "name": "无机酸碱, 氟硅酸, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点为氟硅酸(H2SiF6,无机酸),所有候选均为硅单质或碳化硅的生产工序(silicon production / silicon carbide production),物质完全不符,无任何候选与氟硅酸同物质。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P050",
+   "name": "共生, 裂解汽油, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 节点物质为裂解汽油(pyrolysis gasoline/pygas),是蒸汽裂解制乙烯的共生副产品。候选中无任何裂解汽油数据集——hiq候选\"苯,催化重整和裂解汽油加氢\"是对裂解汽油进行加氢精制后提取的下游产品苯,物质不符;其余eco候选均为无关化学品。物质不一致,判 NONE。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P121",
+   "name": "共生, 废蚀刻液(含铜), 溶液, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap — P121 是\"废蚀刻液(含铜)\"，即PCB/电子制造蚀刻工序产生的含铜废液共生物，物质为混合溶液废流，非纯铜化合物。所有候选均为铜化合物生产工序(copper oxide/sulfate/carbonate production)或其市场数据集，物质与节点完全不符，无可选。",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P020",
+   "name": "共生, 副产CO2, 气态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "coproduct_cutoff: 回收/副产,cut_off 下负担归主产品(burden-free)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P022",
+   "name": "共生, 磷石膏, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "coproduct_cutoff: 回收/副产,cut_off 下负担归主产品(burden-free)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P042",
+   "name": "磷矿石, 背景",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P049",
+   "name": "共生, 裂解C4/C5混合段, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "coproduct_cutoff: 回收/副产,cut_off 下负担归主产品(burden-free)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P072",
+   "name": "锂辉石精矿, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P084",
+   "name": "醇与含氧物, 碳酸甲乙酯, 液态, 电池级",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P086",
+   "name": "电池化学品, NMP溶剂, 液态, 电池级",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P094",
+   "name": "工业气体, 高纯电子特气(氮氧化物·特种), 气态, 电子级高纯",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P106",
+   "name": "无机气体, 五氟化磷, 气态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P111",
+   "name": "电子化学品, 阻焊油墨, 溶液, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P112",
+   "name": "无机矿物, 锂辉石精矿, 固态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P115",
+   "name": "无机矿物, 磷矿石, 固态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P118",
+   "name": "外购树脂(环氧基料), 聚合物树脂, 固态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P143",
+   "name": "电子化学品, CMP研磨液, 液态, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P146",
+   "name": "催化剂添加剂, 工业催化剂, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P147",
+   "name": "共生, C4混合馏分, 气态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "coproduct_cutoff: 回收/副产,cut_off 下负担归主产品(burden-free)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P151",
+   "name": "原盐/卤水(外购矿物)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P153",
+   "name": "磷矿石(外购矿物)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P154",
+   "name": "锂矿/锂精矿(外购矿物)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P156",
+   "name": "外购树脂载体(涂料/EMC用)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P157",
+   "name": "共生, 裂解C4/C5混段, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "coproduct_cutoff: 回收/副产,cut_off 下负担归主产品(burden-free)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P172",
+   "name": "醇与含氧物, 2-乙基己醇(2-EH), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P190",
+   "name": "油气原料, LPG/丙烷, 气态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P229",
+   "name": "催化剂添加剂, 黏度指数改进剂(OCP乙丙共聚物), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P236",
+   "name": "背景, 外购矿物基础油馏分(原料), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P237",
+   "name": "背景, 外购铂族金属(Pt/Pd/Rh盐溶液), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P242",
+   "name": "冶炼SO2废气(外部共生流)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "coproduct_cutoff: 回收/副产,cut_off 下负担归主产品(burden-free)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P265",
+   "name": "生物基糖(发酵原料), 背景",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A036",
+   "name": "单体合成, 路线无关 | 中间体, 己内酰胺, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A045",
+   "name": "专用化学品配制, PVDF配制 | 电池化学品, PVDF粘结剂, 固态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A046",
+   "name": "前驱体合成, NCM共沉淀 | 电池化学品, NCM三元前驱体, 固态, 标准",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A048",
+   "name": "专用化学品配制, 光刻胶配制 | 电子化学品, 光刻胶, 溶液, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A049",
+   "name": "专用化学品配制, 显影液配制 | 电子化学品, 显影液, 溶液, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A050",
+   "name": "专用化学品配制, 蚀刻液配制 | 电子化学品, 蚀刻液, 溶液, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A051",
+   "name": "专用化学品配制, 高纯氟气分离提纯 | 工业气体, 高纯电子特气(氟类), 气态, 电子级高纯",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A052",
+   "name": "专用化学品配制, 高纯氯气精制 | 工业气体, 高纯电子特气(氯类), 气态, 电子级高纯",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A053",
+   "name": "专用化学品配制, CMP浆料配制 | 电子化学品, CMP抛光浆料, 溶液, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A068",
+   "name": "单体合成, 己内酰胺合成 | 单体, 己内酰胺, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A072",
+   "name": "前驱体合成, NCM前驱体共沉淀 | 电池化学品, NCM前驱体, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A074",
+   "name": "专用化学品配制, 光刻胶配制 | 电子化学品, 光刻胶, 液态, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A075",
+   "name": "专用化学品配制, 超净高纯试剂精制 | 电子化学品, 超净高纯试剂, 液态, 电子级",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A077",
+   "name": "专用化学品配制, 胶粘剂配制 | 涂料胶粘剂, 胶粘剂, 液态, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A088",
+   "name": "中间体合成, 己内酰胺合成 | 中间体, 己内酰胺, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A102",
+   "name": "专用化学品配制, na_route_agnostic | 涂料胶粘剂, 电泳漆(阴极), 液态(配制液)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A110",
+   "name": "前驱体合成, na_route_agnostic | 催化剂添加剂, 三元催化前体(Pt/Pd/Rh浸渍载体), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A112",
+   "name": "专用化学品配制, na_route_agnostic | 催化剂添加剂, 工业催化剂(选择性催化还原SCR, V2O5-WO3/TiO2), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A114",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 光稳定剂(HALS, 受阻胺), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A117",
+   "name": "中间体合成, na_route_agnostic | 催化剂添加剂, 硫化剂(硫黄/促进剂CBS体系), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A125",
+   "name": "中间体合成, na_route_agnostic | 中间体, DINP/DIDP前体(异壬醇/异癸醇), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A127",
+   "name": "中间体合成, na_route_agnostic | 中间体, 1-癸烯(PAO原料齐聚单体), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A129",
+   "name": "中间体合成, na_route_agnostic | 功能油液, PAO合成基础油(聚α烯烃), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "cross_industry: 外购矿物/原料,应跨行 resolves_to(mining/agriculture),非 chemicals 数据集",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A130",
+   "name": "专用化学品配制, na_route_agnostic | 功能油液, 发动机冷却液(乙二醇-水混合, 含缓蚀剂), 液态(配制液)",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A132",
+   "name": "专用化学品配制, na_route_agnostic | 功能油液, 燃油添加剂(清净剂/分散剂复合包), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A133",
+   "name": "专用化学品配制, na_route_agnostic | 功能油液, 润滑油添加剂复合包(黏指改进/分散/抗氧), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A138",
+   "name": "单体合成, polyether_polyol合成 | 单体, 聚醚多元醇, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A142",
+   "name": "单体合成, lactide合成 | 单体, 丙交酯(PLA单体), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A143",
+   "name": "单体合成, hydroxyalkanoate_monomer合成 | 单体, 羟基烷酸单体(PHA单体), 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A145",
+   "name": "专用化学品配制, pigment合成 | 催化剂添加剂, 颜料/色粉, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A146",
+   "name": "专用化学品配制, flame_retardant合成 | 催化剂添加剂, 阻燃剂, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A147",
+   "name": "专用化学品配制, blowing_agent合成 | 催化剂添加剂, 发泡剂, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A148",
+   "name": "专用化学品配制, crosslinker_peroxide合成 | 催化剂添加剂, 交联剂(过氧化物/DCP), 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A149",
+   "name": "专用化学品配制, antioxidant_rubber制 | 催化剂添加剂, 防老剂, 固态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A158",
+   "name": "专用化学品配制, flux_cleaner制 | 电子化学品, 助焊剂及清洗剂, 液态, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A159",
+   "name": "专用化学品配制, thermal_interface_material制 | 电子化学品, 导热界面材料(TIM), 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A161",
+   "name": "专用化学品配制, surface_treatment_chemical制 | 电子化学品, 表面处理化学品, 溶液, 已配制",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A162",
+   "name": "专用化学品配制, high_purity_process_gas制 | 电子化学品, 高纯工艺气体, 气态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 多组分配制/专用助剂,库内无同物质工序",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "A163",
+   "name": "单体合成, isoprene制 | 单体, 异戊二烯, 液态",
+   "industry": "chemicals",
+   "reason": "specialty_gap",
+   "note": "specialty_gap: 库内无同物质数据集(niche/specialty)",
+   "source": "lca-judge"
+  },
+  {
+   "node_id": "P001",
+   "name": "电力, 高压",
+   "industry": "power",
+   "reason": "no_direct_binding_after_verification",
+   "note": "P001 是母线侧高压电力产品身份。已保留 HiQLCD 区域生产混合 C1 与 USLCI 中国电网 C0 知识关联，但两者均不是可直接绑定的 P001 同边界数据集；待目标地域、时期、技术组合、计量点和生产活动 LCI 明确后再建立项目绑定。",
+   "source": "node-wiki-provenance-2026-07-31"
+  },
+  {
+   "node_id": "A001",
+   "name": "发电, 燃煤亚临界 | 电力(高压)",
+   "industry": "power",
+   "reason": "wrong_route_binding_removed",
+   "note": "原绑定为风力发电数据集，与燃煤亚临界路线矛盾，已撤销；当前公开检索尚未形成满足活动技术路线、地域、时期、功能单位和边界硬门的过程级绑定。",
+   "source": "node-wiki-provenance-2026-07-31"
+  },
+  {
+   "node_id": "P013",
+   "name": "粉煤灰, 干粉",
+   "industry": "power",
+   "reason": "stale_via_removed_allocation_required",
+   "note": "原 lca_via 快照继承 A001 的错误风电数据集，已撤销。粉煤灰为多产出发电活动的共产品/副产物流，须在取得正确生产活动数据及分配规则后重新裁决，不能沿用错误快照。",
+   "source": "node-wiki-provenance-2026-07-31"
+  },
+  {
+   "node_id": "P015",
+   "name": "底渣, 粒状渣",
+   "industry": "power",
+   "reason": "stale_via_removed_allocation_required",
+   "note": "原 lca_via 快照继承 A001 的错误风电数据集，已撤销。底渣为多产出发电活动的共产品/副产物流，须在取得正确生产活动数据及分配规则后重新裁决，不能沿用错误快照。",
+   "source": "node-wiki-provenance-2026-07-31"
+  }
+ ]
+}

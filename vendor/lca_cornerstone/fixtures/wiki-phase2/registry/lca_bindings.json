@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "schema_version": "lca-bindings-v2-deprecated-empty",
+    "scope": "ICT multi-source batch matching",
+    "checked_at": "2026-07-30",
+    "note": "Deprecated compatibility snapshot. Project selections belong in model_dataset_bindings.json or model_proxy_bindings.json.",
+    "grade_scale": {
+      "C0": "外部对照关联：完整产品、行业聚合或边界大于节点，只能比较，不能替代。",
+      "C1": "弱关联：记录属于相关产品族或相邻过程，可进入代理筛选，但身份、功能、配置或封装仍不充分。",
+      "C2": "候选关联：活动/产品身份达到候选门，尚需完整 I/O、功能单位、过程边界或目标地域/时间校准。",
+      "C3": "强代理关联：核心身份与边界通过，只剩明确、可审计的代理维度；仍需项目级 P 裁决。",
+      "C4": "精确语义关联：身份、活动、路线、边界、单位、地域与时间通过；仍需具体项目选择后才形成模型绑定。"
+    },
+    "grade_counts": {
+      "C3": 0,
+      "C4": 0
+    }
+  },
+  "bindings": []
+}

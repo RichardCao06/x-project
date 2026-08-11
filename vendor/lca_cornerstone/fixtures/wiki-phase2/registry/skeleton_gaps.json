@@ -1,0 +1,1550 @@
+{
+  "schema": "skeleton-gaps-v1",
+  "purpose": "左腿(BOM→骨架)完整性探针的缺口台账。每个 probe = 对一条声明前沿、用真实产品 BOM 映射找到的洞 + 记分卡 + 饱和判据。方法见 docs/骨架完整性校验方法.md。与右腿 registry/lca_nomatch.json 并列。",
+  "probes": [
+    {
+      "domain": "半导体(electronics 域 + 跨行 chemicals/copper/aluminium/nonferrous/plastics/glass/magnesium/mining)",
+      "date": "2026-06-17",
+      "frontier": {
+        "scope": "半导体器件全谱(逻辑/存储/Si功率/SiC/GaN/光学传感/MEMS/模拟/RF/光子)的晶圆制造前道 + 封装后道 + 模块级被动/连接/外壳材料",
+        "resolution": "材料 × 形态 × 工艺(LCA相关轴:牌号/纯度级/工艺/原生再生/地区)",
+        "boundary": "截断于:范围外行业的外购成品件 · 原矿开采上游 · 公用工程(电/水/大宗气走跨行 resolves_to)"
+      },
+      "basket": [
+        {
+          "id": "P1",
+          "name": "逻辑SoC(7nm CMOS, FCBGA)",
+          "items": 21,
+          "family": "CMOS逻辑"
+        },
+        {
+          "id": "P2",
+          "name": "DRAM(DDR, FBGA)",
+          "items": 12,
+          "family": "CMOS存储"
+        },
+        {
+          "id": "P3",
+          "name": "SiC功率MOSFET(1200V, TO-247)",
+          "items": 12,
+          "family": "宽禁带功率"
+        },
+        {
+          "id": "P4",
+          "name": "GaN快充(65W USB-C, 模块级)",
+          "items": 14,
+          "family": "GaN功率/模块"
+        },
+        {
+          "id": "P5",
+          "name": "CMOS图像传感器(BSI堆叠)",
+          "items": 11,
+          "family": "光学传感"
+        },
+        {
+          "id": "P6",
+          "name": "MEMS惯性传感器(6轴IMU)",
+          "items": 10,
+          "family": "MEMS微机械"
+        },
+        {
+          "id": "P7",
+          "name": "PMIC电源管理IC(模拟/BCD)",
+          "items": 10,
+          "family": "模拟(CMOS派生)"
+        },
+        {
+          "id": "P8",
+          "name": "RF前端模块(GaAs PA+声学滤波+开关)",
+          "items": 9,
+          "family": "RF/III-V/压电"
+        },
+        {
+          "id": "P9",
+          "name": "光通信收发模块(硅光+InP激光)",
+          "items": 9,
+          "family": "光子/III-V"
+        }
+      ],
+      "scorecard": {
+        "items_total": 108,
+        "items_in_scope": 99,
+        "hit_rate": "66% (65/99)",
+        "true_gap_rate": "34% (34/99)",
+        "cross_industry_rate": "26% (26/99)",
+        "resolution_adequate_rate": "13% (13/99, 仅 hit_exact;其余命中多为单一牌号/背景占位)",
+        "verdict": "有材料骨架(66%命中)且组件/器件层不错(electronics 有 MEMS/GaN/模拟/逻辑die + MLCC/电阻等节点),但分辨率普遍不足(仅13%达LCA可用),真洞34%且压在 die内材料层 + 异种物理衬底。"
+      },
+      "saturation": {
+        "new_gap_classes_by_product": {
+          "P1": 5,
+          "P2": 0,
+          "P3": 1,
+          "P4": 1,
+          "P5": 4,
+          "P6": 3,
+          "P7": 1,
+          "P8": 3,
+          "P9": 4
+        },
+        "sequence": [
+          5,
+          0,
+          1,
+          1,
+          4,
+          3,
+          1,
+          3,
+          4
+        ],
+        "cumulative_gap_classes": 22,
+        "mean_new_per_product": 2.4,
+        "verdict": "决定性未饱和。新洞率无下降趋势(9产品均值2.4/产品)。饱和是 per-physics-family:**CMOS派生族快速收敛**(存储P2+0、模拟P7+1,与逻辑共享fab材料世界),但**每个异种物理族持续开新族**(CIS光学+4、MEMS微机械+3、RF的III-V/压电/SOI+3、光子的Ge/光纤/磁光/热电+4)。⟹ 篮子须按**器件物理**遍历而非加同类;9产品远未覆盖物理空间。",
+        "implication": "骨架是『主流硅电子』调校的:Si/SiC/GaN + 大宗金属/玻璃覆盖好;凡偏离主流硅的物理(III-V化合物、压电、SOI、Ge外延、光纤、磁光、热电、MEMS微机械)都是洞。要宣称半导体完整,须每个物理族至少1-2产品探到收敛。"
+      },
+      "gaps": [
+        {
+          "id": "G01",
+          "cat": "A 片上薄膜金属",
+          "class": "难熔/阻挡薄膜金属 Ta·Ti·W",
+          "found_in": [
+            "P1",
+            "P2",
+            "P5",
+            "P7"
+          ],
+          "confidence": "高",
+          "verdict": "true_gap",
+          "disposition": "建电子薄膜金属族(Ta/W/Ti+溅射靶/CVD形态)",
+          "status": "closed",
+          "closed_by": [
+            "P134",
+            "P135",
+            "P136"
+          ]
+        },
+        {
+          "id": "G04",
+          "cat": "A 片上薄膜金属",
+          "class": "薄膜/溅射高纯金属形态(5N铝/背金/片上厚金属)",
+          "found_in": [
+            "P3",
+            "P6",
+            "P7"
+          ],
+          "confidence": "中",
+          "verdict": "resolution_gap",
+          "disposition": "升格form/纯度刻面 或 加溅射靶/薄膜金属化节点"
+        },
+        {
+          "id": "G14",
+          "cat": "A 片上薄膜金属",
+          "class": "吸气剂getter薄膜 Ti/Zr",
+          "found_in": [
+            "P6"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建getter薄膜节点(Zr亦缺)"
+        },
+        {
+          "id": "G02",
+          "cat": "B 片上介质/前驱体",
+          "class": "介质前驱体 high-k/low-k(HfO2/ZrO2/TEOS/SiCOH)",
+          "found_in": [
+            "P1",
+            "P2",
+            "P5"
+          ],
+          "confidence": "高",
+          "verdict": "true_gap",
+          "disposition": "建金属有机ALD/CVD前驱体族",
+          "status": "closed",
+          "closed_by": [
+            "P137",
+            "P138"
+          ]
+        },
+        {
+          "id": "G15",
+          "cat": "B 片上介质/前驱体",
+          "class": "片上MIM电容介质(Si3N4/HfO2+金属极板)",
+          "found_in": [
+            "P7"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建片上MIM结构节点(现有电容节点都是分立MLCC器件)"
+        },
+        {
+          "id": "G12",
+          "cat": "B 片上介质/前驱体",
+          "class": "多晶硅(片上沉积:结构层/电阻/栅)",
+          "found_in": [
+            "P3",
+            "P6",
+            "P7"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建片上多晶硅沉积层节点(P092硅片是单晶锭、非同物)"
+        },
+        {
+          "id": "G03",
+          "cat": "C 专用气",
+          "class": "注入掺杂气(arsine/phosphine/diborane/BF3)",
+          "found_in": [
+            "P1"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建专用电子掺杂气节点"
+        },
+        {
+          "id": "G06",
+          "cat": "C 专用气",
+          "class": "氦气 He",
+          "found_in": [
+            "P1"
+          ],
+          "confidence": "低",
+          "verdict": "true_gap",
+          "disposition": "工业气体补He(N2/Ar/O2/H2已有)"
+        },
+        {
+          "id": "G16",
+          "cat": "D 化合物半导体/异质衬底",
+          "class": "III-V化合物半导体(GaAs/InP/InGaP/AlGaAs)",
+          "found_in": [
+            "P8",
+            "P9"
+          ],
+          "confidence": "高",
+          "verdict": "true_gap",
+          "disposition": "建III-V化合物半导体衬底/外延族(SiC/GaN已有、GaAs/InP缺;nonferrous仅有单质Ga/In锭)",
+          "status": "closed",
+          "closed_by": [
+            "P130",
+            "P131",
+            "P132",
+            "P133"
+          ]
+        },
+        {
+          "id": "G18",
+          "cat": "D 化合物半导体/异质衬底",
+          "class": "SOI绝缘体上硅(+硅光子波导/调制器)",
+          "found_in": [
+            "P8",
+            "P9"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建SOI衬底类型(现仅bulk硅P092)+ 硅光子器件"
+        },
+        {
+          "id": "G19",
+          "cat": "D 化合物半导体/异质衬底",
+          "class": "Ge锗外延器件(Si上Ge探测器)",
+          "found_in": [
+            "P9"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建Ge外延器件节点(nonferrous仅锗锭/GeO2原料)"
+        },
+        {
+          "id": "G17",
+          "cat": "E 功能晶体/光学",
+          "class": "压电声学材料 LiNbO3/LiTaO3/AlN(SAW/BAW)",
+          "found_in": [
+            "P8"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建压电单晶/声学器件族"
+        },
+        {
+          "id": "G10",
+          "cat": "E 功能晶体/光学",
+          "class": "成形光学玻璃 / IR截止介质滤光片",
+          "found_in": [
+            "P5",
+            "P9"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "glass加成形光学元件+镀膜滤光片(现仅熔体)"
+        },
+        {
+          "id": "G20",
+          "cat": "E 功能晶体/光学",
+          "class": "石英电信光纤(预制棒/拉丝)",
+          "found_in": [
+            "P9"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建石英光纤节点(glass仅e_glass增强玻纤、材料用途不同)"
+        },
+        {
+          "id": "G21",
+          "cat": "E 功能晶体/光学",
+          "class": "磁光晶体/光学隔离器(石榴石)",
+          "found_in": [
+            "P9"
+          ],
+          "confidence": "低",
+          "verdict": "true_gap",
+          "disposition": "建磁光晶体节点"
+        },
+        {
+          "id": "G22",
+          "cat": "E 功能晶体/光学",
+          "class": "热电半导体 Bi2Te3(TEC)",
+          "found_in": [
+            "P9"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建热电半导体节点(碲Te全图缺)"
+        },
+        {
+          "id": "G08",
+          "cat": "F 传感器有机层",
+          "class": "彩色滤光片阵列CFA(有机染料/颜料光刻胶)",
+          "found_in": [
+            "P5"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建CFA配方节点(非通用颜料/光刻胶)"
+        },
+        {
+          "id": "G09",
+          "cat": "F 传感器有机层",
+          "class": "微透镜聚合物",
+          "found_in": [
+            "P5"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建成形微透镜材料节点"
+        },
+        {
+          "id": "G05",
+          "cat": "G 封装/键合",
+          "class": "有机IC封装基板(ABF积层/BT芯)",
+          "found_in": [
+            "P1"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建有机IC载板节点(现仅陶瓷/FR4/铝基)"
+        },
+        {
+          "id": "G07",
+          "cat": "G 封装/键合",
+          "class": "铁氧体/软磁磁芯(变压器/电感)",
+          "found_in": [
+            "P4"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建软磁铁氧体节点(被动元件磁芯材料层)"
+        },
+        {
+          "id": "G11",
+          "cat": "G 封装/键合",
+          "class": "先进封装 TSV/铜-铜混合键合",
+          "found_in": [
+            "P5"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建先进封装工艺节点(现仅引线键合/倒装)"
+        },
+        {
+          "id": "G13",
+          "cat": "G 封装/键合",
+          "class": "晶圆级键合材料(Au-Sn共晶/玻璃frit/阳极)",
+          "found_in": [
+            "P6"
+          ],
+          "confidence": "中",
+          "verdict": "true_gap",
+          "disposition": "建晶圆键合材料节点(现有焊料均Sn基SAC/含铅,非Au-Sn共晶)"
+        }
+      ],
+      "resolution_gaps_summary": "26 个 hit_coarse:硅片无纯度/CZ-FZ/外延区分 · 各类die(模拟/MEMS-cap)借用逻辑die或通用硅、无工艺路线 · 焊料单一『锡,焊料』无SnAg/SAC成分 · 电容无电解/薄膜子型 · 键合丝金/银/铜混一节点 · 连接器无USB-C型 · 引线框架/EMC/锡膏/陶瓷基板为无刻面背景占位 · LTCC落到通用陶瓷基。统一裁定 resolution_gap → 升格刻面或细化背景。",
+      "notes": "BOM 由人据公开拆解/工艺知识独立构造(非骨架自展开),故能抓骨架不知道自己缺的『未知未知』(钽/钨/砷烷/铁氧体/GaAs/InP/压电/光纤/Bi2Te3)——内部展开(整车模型报『0缺口』)结构性看不到。9产品映射由隔离 agent 判别,只用真实节点 id、不硬塞。正面发现:electronics 的器件/组件层(MEMS-die P007、GaN-die P006、模拟-die P003、MLCC P128…)覆盖不错,洞集中在 die内材料层 + 异种物理衬底。",
+      "closure_validation": {
+        "date": "2026-06-17",
+        "families_closed": [
+          "G16 III-V衬底族(GaAs/InP)",
+          "G01 难熔薄膜金属(Ta/Ti/W)",
+          "G02 介质前驱体(high-k/TEOS)"
+        ],
+        "built_into": "electronics-name-graph.json",
+        "new_nodes": "P130-138(2衬底+2 die+3薄膜金属+2前驱体) + A076/A077(III-V晶圆制造) + 词表扩 substrate_process[gaas,inp]/technology_route[gaas/inp_device]/reference_product_anchor",
+        "gate": "闭合 A–E 11/11(加节点后仍绿)",
+        "re_probe": "独立agent复验:8/8 曾gap项现命中(7 exact+1 coarse)",
+        "leverage": "关闭3族(22族中)→ 12/34 gap-item命中(35%);命中66%→78%、真洞34%→22%、分辨率充分13%→24%",
+        "note": "验证了完整性闭环:probe找洞→台账裁定→建节点→gate绿→re-probe确认关闭。收敛核心洞高杠杆(3族修复覆盖多产品)。未建:SOI/Ge/压电/光纤/Bi2Te3/CFA等异种物理族(各待按物理遍历)。"
+      }
+    },
+    {
+      "domain": "电池(battery 域 + 跨行 chemicals/copper/aluminium/steel/plastics)",
+      "date": "2026-06-17",
+      "frontier": {
+        "scope": "二次电池电芯(锂离子/钠离子/固态)的正负极/电解质/隔膜/集流体/封装材料",
+        "resolution": "材料×形态×工艺(化学体系/牌号/纯度)",
+        "boundary": "范围外外购成品/原矿上游/公用工程跨行"
+      },
+      "basket": [
+        {
+          "id": "B1",
+          "name": "NMC811锂离子电芯",
+          "items": 11,
+          "chemistry": "Li-ion NMC"
+        },
+        {
+          "id": "B2",
+          "name": "LFP磷酸铁锂电芯",
+          "items": 7,
+          "chemistry": "Li-ion LFP"
+        },
+        {
+          "id": "B3",
+          "name": "固态电池电芯",
+          "items": 7,
+          "chemistry": "Solid-state"
+        },
+        {
+          "id": "B4",
+          "name": "钠离子电池电芯",
+          "items": 7,
+          "chemistry": "Na-ion"
+        }
+      ],
+      "scorecard": {
+        "items_total": 32,
+        "items_in_scope": 32,
+        "hit_rate": "75% (24/32)",
+        "true_gap_rate": "25% (8/32)",
+        "cross_industry_rate": "38% (12/32)",
+        "resolution_adequate_rate": "19% (6/32)",
+        "verdict": "比半导体覆盖更好(命中75% vs 66%)。化学无关外围(集流体箔/隔膜/导电剂粘结剂/壳)经跨行精确覆盖;真洞集中在新化学体系的身份核心(正极/负极/电解质)。"
+      },
+      "saturation": {
+        "new_gap_classes_by_product": {
+          "B1": 3,
+          "B2": 0,
+          "B3": 4,
+          "B4": 3
+        },
+        "sequence": [
+          3,
+          0,
+          4,
+          3
+        ],
+        "cumulative_gap_classes": 10,
+        "verdict": "复现半导体的 per-family 饱和:族内快收敛(Li-ion NMC→LFP B2+0),新化学体系各开一簇新洞(固态+4:固态电解质/锂金属/界面层/PTFE;钠离子+3:钠正极/硬碳/NaPF6)。饱和单位是『技术/化学族』,跨域通用——电池按化学体系遍历(Li-ion变体/固态/钠/锂硫/液流),半导体按器件物理遍历。"
+      },
+      "gaps": [
+        {
+          "id": "BG01",
+          "class": "成膜添加剂 VC/FEC",
+          "found_in": [
+            "B1"
+          ],
+          "cat": "Li-ion辅料",
+          "verdict": "true_gap",
+          "disposition": "chemicals电池化学品补成膜添加剂"
+        },
+        {
+          "id": "BG02",
+          "class": "碳纳米管 CNT(导电剂)",
+          "found_in": [
+            "B1",
+            "B2"
+          ],
+          "cat": "Li-ion辅料",
+          "verdict": "true_gap",
+          "disposition": "chemicals补CNT(现仅炭黑)"
+        },
+        {
+          "id": "BG03",
+          "class": "镍极耳/带形态(Ni tab)",
+          "found_in": [
+            "B1",
+            "B4"
+          ],
+          "cat": "Li-ion辅料",
+          "verdict": "resolution_gap",
+          "disposition": "nonferrous补镍带/箔形态+极耳节点"
+        },
+        {
+          "id": "BG04",
+          "class": "固态电解质(硫化物Li6PS5Cl/氧化物LLZO)",
+          "found_in": [
+            "B3"
+          ],
+          "cat": "固态新族",
+          "verdict": "true_gap",
+          "disposition": "建固态电解质族(现electrolyte仅液态)"
+        },
+        {
+          "id": "BG05",
+          "class": "锂金属负极(Li metal foil)",
+          "found_in": [
+            "B3"
+          ],
+          "cat": "固态新族",
+          "verdict": "true_gap",
+          "disposition": "建锂金属负极(现仅石墨/硅碳)"
+        },
+        {
+          "id": "BG06",
+          "class": "SSB界面缓冲层/包覆剂",
+          "found_in": [
+            "B3"
+          ],
+          "cat": "固态新族",
+          "verdict": "true_gap",
+          "disposition": "建固态界面材料节点"
+        },
+        {
+          "id": "BG07",
+          "class": "PTFE干法电极粘结剂",
+          "found_in": [
+            "B3"
+          ],
+          "cat": "固态新族",
+          "verdict": "true_gap",
+          "disposition": "建PTFE干法粘结剂(现仅PVDF/SBR-CMC)"
+        },
+        {
+          "id": "BG08",
+          "class": "钠正极(层状氧化物NaTMO2/普鲁士蓝)",
+          "found_in": [
+            "B4"
+          ],
+          "cat": "钠离子新族",
+          "verdict": "true_gap",
+          "disposition": "建钠正极族+前驱体(现仅锂正极)"
+        },
+        {
+          "id": "BG09",
+          "class": "硬碳负极(hard carbon)",
+          "found_in": [
+            "B4"
+          ],
+          "cat": "钠离子新族",
+          "verdict": "true_gap",
+          "disposition": "建硬碳负极+前驱体(现仅石墨/硅碳)"
+        },
+        {
+          "id": "BG10",
+          "class": "NaPF6钠电解液",
+          "found_in": [
+            "B4"
+          ],
+          "cat": "钠离子新族",
+          "verdict": "true_gap",
+          "disposition": "建NaPF6盐+钠电解液(现仅LiPF6)"
+        }
+      ],
+      "notes": "化学无关外围(集流体铝箔aluminium P047/铜箔copper P012、隔膜plastics、导电剂粘结剂battery P073-75/chemicals、壳battery P078-80)精确覆盖,体现M:N:M跨行架构按设计工作;真洞全在新化学体系的身份核心。BOM人工独立构造、4隔离agent映射不硬塞(钠正极≠锂正极、硬碳≠石墨、NaPF6≠LiPF6均诚实判gap)。"
+    },
+    {
+      "domain": "battery — 真实外部 BOM(Ellingsen et al. 2014 NMC 车用电池包)",
+      "date": "2026-06-17",
+      "probe_type": "real_external_bom + impact_weighted (V2)",
+      "provenance": "Ellingsen, L.A.-W. et al. (2014). Life Cycle Assessment of a Lithium-Ion Battery Vehicle Pack. J. Industrial Ecology 18(1):113-124. Table 1=49项清单 · Table 2=整包GWP 4580 kgCO2e(LBV,~253kg/26.6kWh) · Figure 2=组件影响贡献。全部转录自PDF,非LLM构造。",
+      "significance": "框架此前缺的两块同时补上:① 真实拆解BOM(替掉LLM构造,去循环之半);② 影响加权完整性实测(把'%件'量成'%影响')。这是 C1 影响加权论点的首个外部锚定证据。",
+      "frontier": {
+        "scope": "NMC车用电池包:活性材料→前驱体→硫酸盐→集流体→电极→电芯→电解液→隔膜→石墨 + 电芯级BoP(BMS/热管理)",
+        "resolution": "材料×形态×工艺",
+        "boundary": "包机械结构外壳/电气分配/模组结构=电化学边界之外,跨行业可制造件(递归模型经GPID可达)"
+      },
+      "basket": [
+        {
+          "id": "E-pack",
+          "name": "One battery pack (NMC111, 253kg, 26.6kWh)",
+          "items": 49
+        }
+      ],
+      "scorecard": {
+        "items_total": 49,
+        "count_coverage_Cn": "44.9% (22/49 有骨架身份)",
+        "impact_coverage_CE": "~96% (区间 94-97%)",
+        "verdict_distribution": {
+          "exact": 17,
+          "coarse": 4,
+          "below_res": 1,
+          "cross": 27
+        },
+        "verdict": "计数覆盖(45%)严重低估骨架真实覆盖;影响覆盖(~96%)才是实情——27个计数缺口全是低影响机械/结构/电气件,22个已覆盖件承载~96%的cradle-to-gate GWP。承载影响的电化学活性质量≈全覆盖。"
+      },
+      "v2_impact_weighting": {
+        "method": "C_E = Σ(已覆盖Figure2桶的GWP贡献)/Σ(全部)。桶权重:电芯制造51%(p15硬锚)/冷却5%(p24硬锚)/其余读图估计±2-3pp。",
+        "buckets_covered": [
+          "Manufacture of battery cells (51%)",
+          "Positive electrode paste (~12%)",
+          "Negative current collector Cu (~11%)",
+          "Positive current collector Al (~5%)",
+          "Negative electrode paste (~4%)",
+          "Other cell components (~4%)",
+          "BMS (~2%)",
+          "Cooling (5%)",
+          "Battery assembly (~2%)"
+        ],
+        "buckets_uncovered": [
+          "Packaging (~4%) — 包机械外壳,跨行业可制造,唯一未覆盖桶"
+        ],
+        "finding": "唯一未覆盖影响桶=Packaging(~4% GWP)。最大单一贡献(电芯制造能耗51%)+顶级材料链(电极浆料/集流体~30%)全部覆盖。"
+      },
+      "gaps": [
+        {
+          "id": "E-G01",
+          "class": "包机械外壳(托盘/固定/盖/密封/扩散板)",
+          "found_in": [
+            "#2,6-13"
+          ],
+          "cat": "Packaging桶",
+          "verdict": "cross_industry_boundary",
+          "disposition": "aluminium/steel/plastics可制造件;声明为跨行业依赖,非待建电化学身份(~4% GWP)"
+        },
+        {
+          "id": "E-G02",
+          "class": "电气分配(低压/高压系统/IBIS/母排/极耳)",
+          "found_in": [
+            "#14-15,17,27-29,40-41"
+          ],
+          "cat": "跨电气",
+          "verdict": "cross_industry_boundary",
+          "disposition": "electronics/copper/aluminium可制造互连"
+        },
+        {
+          "id": "E-G03",
+          "class": "模组结构(模组封装/框架/盖/紧固件)",
+          "found_in": [
+            "#16,23-26,30"
+          ],
+          "cat": "模组结构",
+          "verdict": "cross_industry_boundary",
+          "disposition": "可制造金属;装配工序本身已由pack/module装配活动覆盖"
+        },
+        {
+          "id": "E-G04",
+          "class": "冷却管路单件(歧管/卡箍/管接头/导热垫)",
+          "found_in": [
+            "#19-22"
+          ],
+          "cat": "Cooling桶",
+          "verdict": "subsumed",
+          "disposition": "冷却系统(P081)系统级已覆盖;单件管路件粒度之下"
+        }
+      ],
+      "true_electrochemical_holes": 0,
+      "notes": "真电化学洞=0:电化学主线全部命中(粗匹配仅化学变体NMC111 vs NMC811/ternary)。诚实剩余循环:49→骨架映射仍是LLM判定→待V1人工金标准独立复核。Go/No-Go阈值C_E≥95%:本case在电化学前沿内达标(~96%);计数口径不达标(45%)正是'计数≠影响'论点所在。",
+      "result_html": "docs/v2-ellingsen-result.html",
+      "script": "scripts/v2_ellingsen.py",
+      "binding_correctness_caveat": "⚠ checker probe#4(2026-06-18)证伪本probe隐含的『绑定正确』假设:battery右腿 F-gate exit1(15 F1未绑)+老bind_lca垃圾(正极合成绑到maneb杀菌剂)。故本probe C_E≈96% 仅 claim①(身份存在、覆盖96%影响),NOT claim②(影响被绑对)。影响-绑定正确性须 battery 右腿重判后才有意义。"
+    },
+    {
+      "domain": "battery — 骨架节点完整性·完整检测(checker workflow,6-agent)",
+      "date": "2026-06-18",
+      "probe_type": "node_completeness_full_check",
+      "run": "workflow wf_5aa72519-c5c(1 baseline + 4 并行探针 + 1 opus 整合,均 agentType:checker)",
+      "verified_by": "主会话独立复跑:validate_graph/validate_lca_match 退出码 + jq 逐条证实下列图可证缺口(checker 未幻觉)",
+      "verdict": "🔴 不可信(发布阻断):闭合层🟢自洽,但 (a) F-gate exit 1(15 F1)确定性发布闸 + (b) jq 图可证 7 个整族/拓扑硬缺口。🟢仅指闭合层,不构成覆盖外部有效。",
+      "frontier": {
+        "scope": "_meta.title=『动力电池 traction battery / Li-ion + 铅酸SLI』——钠离子/固态是否在 scope 为待裁定(scope 边界问题)",
+        "resolution": "材料×形态×工艺",
+        "boundary": "范围外成品/原矿上游/公用工程跨行"
+      },
+      "gate_results": {
+        "validate_graph": "exit 0 · 11/11(A孤儿0/B参考产出0/C悬空0/D键0碰撞/E刻面0越界)· 产品96·活动48·边275",
+        "validate_lca_match": "exit 1 · F1=15违反(背景叶无数据集且不在台账,e.g. P056/P061/P062)· F2/F3/F4✓ · 3/4",
+        "cross_link_lint": "GPID覆盖/确定✓ · 单母行业2冲突(electronics::semiconductor_die gaas/inp,跨行非battery自身)· battery解析27/36·占位9"
+      },
+      "scorecard": {
+        "closure_P1": "🟢 established:exit 0,11/11,结构自洽完整",
+        "binding_Fgate": "🔴 15 F1 阻断",
+        "classification_P2": "覆盖薄:HS8506仅chapter占位·8506.50锂原电池=0·external_mapping对8507.20/50陈旧误报",
+        "real_bom_P3": "锂离子主线命中高;4整类图可证缺失;极耳质量分数/Si掺量待真实BOM",
+        "family_saturation_P4_5": "10族8族实质缺口;饱和序列[3,0,4,3]算法对",
+        "activity_route": "B不变量0违反;dead-end图可证;干法电极/NMC固相/NMC-CTP/LFP直接再生路线缺"
+      },
+      "key_finding": "★闭合≠完整,当场证实:gate 11/11全绿,却同时有4整族缺失+4个dead-end。因闭合A只查『输入有无来源』,不查『产品有无去处』→ NMC622活性材料被产出却无人消耗,gate照过。把battery当『已完成行业(11/11)』是闭合完整,非覆盖完整。",
+      "gaps": [
+        {
+          "id": "H1",
+          "dim": "chemistry族",
+          "item": "钠离子整族",
+          "type": "true_gap(待scope裁定)",
+          "scale": "整类缺失",
+          "hard_graph_provable": true,
+          "leverage": "high",
+          "evidence": "chemistry facet 无 sodium;名搜 钠/sodium=0;conventions 连『钠』都未声明;仅 P031 兜底。钠电2025已商业出货"
+        },
+        {
+          "id": "H2",
+          "dim": "chemistry族",
+          "item": "固态电解质整族",
+          "type": "true_gap(待scope裁定)",
+          "scale": "整类缺失",
+          "hard_graph_provable": true,
+          "leverage": "high",
+          "evidence": "无 solid_state chemistry 节点;名搜 固态/LLZO/LGPS=0;上游(硫化物/氧化物)与液态完全异构"
+        },
+        {
+          "id": "H3",
+          "dim": "pack部件",
+          "item": "电气连接系统(母排/HV·LV线束/接触器/熔断器)",
+          "type": "true_gap",
+          "scale": "整类缺失",
+          "hard_graph_provable": true,
+          "leverage": "high",
+          "evidence": "名搜 母排/busbar/harness=0;pack装配仅CONSUMES{模组,BMS,热管理,壳,电力}。母排是高GWP密度件,直接漏计包级足迹",
+          "status": "closed",
+          "closed_by": "closure_validation 2026-06-18"
+        },
+        {
+          "id": "H4",
+          "dim": "活动路线",
+          "item": "干法电极(dry electrode)",
+          "type": "true_gap",
+          "scale": "整类缺失",
+          "hard_graph_provable": true,
+          "leverage": "med",
+          "evidence": "4条涂布全 mixing_coating_calendering(湿法);technology_route枚举无干法;dry_cell_assembly_line=原电池≠干法电极",
+          "status": "closed",
+          "closed_by": "closure_validation 2026-06-18"
+        },
+        {
+          "id": "H5",
+          "dim": "拓扑断路",
+          "item": "Si-C负极 P008",
+          "type": "true_gap",
+          "scale": "叶级断路",
+          "hard_graph_provable": true,
+          "leverage": "med",
+          "evidence": "P008被A008产出,但无任何活动CONSUMES它=dead-end前景产品",
+          "status": "partial(deadend闭,cell级延后)",
+          "closed_by": "closure_validation 2026-06-18"
+        },
+        {
+          "id": "H6",
+          "dim": "拓扑死端",
+          "item": "NMC622/532/LMO(P002/P003/P006)",
+          "type": "true_gap或未声明截断",
+          "scale": "整族下游缺",
+          "hard_graph_provable": true,
+          "leverage": "med",
+          "evidence": "三者consumed_by全空;NCA(P004)有下游链[A011]→不对称(建了活性材料、没建电极/电芯);confidence=core却无下游、无明文截断理由",
+          "status": "closed",
+          "closed_by": "closure_validation 2026-06-18"
+        },
+        {
+          "id": "H7",
+          "dim": "词表-节点断裂",
+          "item": "LTO钛酸锂",
+          "type": "true_gap",
+          "scale": "整族缺失",
+          "hard_graph_provable": true,
+          "leverage": "low",
+          "evidence": "conventions声明『钛酸锂/lto』但 chemistry facet 0节点=词表声明零落实",
+          "status": "partial(deadend闭,cell级延后)",
+          "closed_by": "closure_validation 2026-06-18"
+        },
+        {
+          "id": "M1",
+          "dim": "活动路线",
+          "item": "LFP电极中段(浆料/涂布箔/辊压极片)",
+          "type": "true_gap·台账未记录(盲区)",
+          "scale": "叶级跳空",
+          "hard_graph_provable": true,
+          "leverage": "med",
+          "evidence": "NMC811有7步链,LFP从CAM直跳slit极片;任何gap台账未记录=盲区",
+          "status": "closed",
+          "closed_by": "closure_validation 2026-06-18"
+        },
+        {
+          "id": "M2",
+          "dim": "活动路线粒度",
+          "item": "NCA/LFP圆柱化成 A017/A018",
+          "type": "设计不一致",
+          "scale": "粒度不对称",
+          "hard_graph_provable": true,
+          "leverage": "low",
+          "evidence": "A017/018装配+化成合并出formed_cell,NMC811是bare→formed两步;化成电耗不可独立计量"
+        },
+        {
+          "id": "M3",
+          "dim": "分类·文档",
+          "item": "external_mapping陈旧 8507.20/8507.50",
+          "type": "文档bug",
+          "scale": "—",
+          "hard_graph_provable": true,
+          "leverage": "low",
+          "evidence": "P037/P030已覆盖,external_mapping.gaps仍列缺口→污染覆盖率统计"
+        },
+        {
+          "id": "M4",
+          "dim": "活动路线",
+          "item": "NMC固相/NMC-CTP/LFP直接再生",
+          "type": "true_gap",
+          "scale": "叶级路线缺",
+          "hard_graph_provable": true,
+          "leverage": "low",
+          "evidence": "technology_route枚举无NMC固相、无NMC-CTP(仅LFP有CTP)、无LFP直接再生(A042仅NMC三元)"
+        }
+      ],
+      "established_vs_external": {
+        "checker_established_graph_provable": [
+          "闭合🟢 11/11 exit0",
+          "绑定🔴 F1×15 发布阻断",
+          "H1-H7+M1-M4 整族/拓扑硬缺口(jq直接证伪,非语义推断)"
+        ],
+        "needs_external_marked_pending": [
+          "真实拆解BOM(P3):极耳质量分数/NCA-18650 Si掺量/母排铜占比 → BatPaC v4 / Ellingsen 2014·2022 / 拆解报告。LLM构造BOM不构成外部有效",
+          "scope边界裁定(H1/H2/H7):钠离子/固态/LTO 是 true_gap 还是有据截断 → 须外部审定分辨率要求(_meta.title 仅Li-ion+铅酸)",
+          "库内代表性 Q2:无 HIQ_DB_DSN,未跑 audit_db_coverage → 待DSN/人工",
+          "跨行 disposition 落实:BG02(CNT→chemicals)/BG03(Ni tab→nonferrous)是否已在对应行业图真建节点并绑定 → 待cross_link_lint跨图核验"
+        ]
+      },
+      "internal_contradiction_resolved": "P2称『scorecard自报D=FAIL』vs P1/复跑得 gate D=0/exit0 → 根因:gate检物化后前景键(reconcile.py已派生product_subtype打散),scorecard是物化前自评,时点不同不矛盾。以gate exit0为准;降级为『待实现者验证reconcile物化』,非阻断。",
+      "high_leverage_top3": [
+        "①修F1×15(发布闸,确定性):15背景叶补lca或入lca_nomatch台账→F-gate 4/4",
+        "②scope裁定:钠离子(H1)/固态(H2)写进_meta前沿还是明文截断出(②类,须人/专家定)",
+        "③H3 pack电气连接整族(母排高GWP密度件)+ H6 NMC622/532/LMO补电极/电芯链或明文截断"
+      ],
+      "result_relation_to_probe3": "本probe证伪probe#3(Ellingsen V2)隐含的『绑定正确』假设:battery右腿 F1×15 未闭合 + 老bind_lca垃圾(A001正极合成→maneb杀菌剂)。⟹ probe#3 的 C_E≈96% 仅为 claim①(电化学身份存在、覆盖96%影响),非 claim②(影响被绑对)。",
+      "closure_validation": {
+        "date": "2026-06-18",
+        "method": "workflow wf_f2ed8ed2-ca3(4簇设计→opus整合patch→checker gate)+ 主会话确定性收口(修E括号/派生边/补A010中段)+ assign_gpid + checker独立复探(🟡)+ 按复探修身份错",
+        "built": "+38 产品(P097-P134)+16 活动(A049-A064);全 M0 草拟态、不绑 lca",
+        "gates": "validate_graph 11/11 exit0 · cross_link_lint 5/5 exit0(GPID覆盖/单母行业/解析有效全过)",
+        "per_gap": {
+          "H3 pack电气": "✅闭:母排铝/铜·高低压线束·接触器·熔断器 6叶建+接入pack装配(母排铝/铜/线束 linked到aluminium/copper;接触器/熔断器/TiO2/PTFE 诚实占位)",
+          "H4 干法电极": "✅闭:加干法-PTFE热压复合涂布活动(正极LFP+负极石墨),technology_route 多路线",
+          "H5 Si-C": "◐部分:原死端闭(P008现被A058消耗建电极链),但链终止于电极层(P118分切片无电芯装配消耗)——Si-C常作掺混,cell级延后",
+          "H6 NMC622/532/LMO": "✅闭:三族各建镜像NMC811的浆料→涂布箔→辊压→分切→裸电芯→电芯链,死端P002/P003/P006全消耗",
+          "H7 LTO": "◐部分:词表空转已闭(chemistry加lto+建LTO负极链),但终止于极片层(P123无LTO电芯装配)——cell级延后",
+          "M1 LFP中段": "✅闭:A010补浆料/涂布箔/辊压共生产出(镜像A009)"
+        },
+        "checker_reprobe": "🟡有保留:gate绿但抓出真语义错(gate查不出)——已修:P128粘结剂component_class→electrode·A059技术路线solid_state_lfp→solid_state_lto·A055-057 route_family→lmo-line·4个错配resolves_to(TiO2→SCR/PTFE→PVDF/接触器熔断器→连接器)→诚实占位。checker复探证实'gate绿≠语义对'(本role核心价值)。",
+        "still_pending_expert": [
+          "H5/H7 cell级延展(Si-C掺混 vs 独立电芯;LTO电芯可选)——建模判断,待方法学",
+          "Si-C 系列 chemistry=na(与既有P008一致,身份靠product_subtype区分)——词表是否升格 sic,待决策",
+          "多路线共用节点(P034 MTP+CTP·P016/P017 湿法+干法)——N路线合法但LCA边界待专家确认",
+          "P129-132 加工件 integration_level=na——分类合理性待专家"
+        ],
+        "m0_status": "全部新节点=M0草拟态(gate冻结但)未绑LCA、未经专家审。语义代表性 provisional,待 battery 右腿重判 + V1 人工金标准。gate绿=闭合冻结,非语义正确。"
+      }
+    },
+    {
+      "domain": "船舶(跨行 steel/copper/aluminium/chemicals/plastics/rubber/glass/nonferrous)",
+      "date": "2026-06-22",
+      "probe_label": "P3#5-ship-ULCS",
+      "frontier": {
+        "scope": "20000+TEU集装箱船/Capesize散货船整船BOM,系统→部件→材料",
+        "resolution": "材料×形态×工艺(牌号/成分/工艺)",
+        "boundary": "原矿上游/公用工程跨行/范围外行业外购总成"
+      },
+      "scorecard": {
+        "items_total": 38,
+        "items_in_scope": 38,
+        "hit_rate": "76% (29/38)",
+        "hit_exact_rate": "37% (14/38)",
+        "true_gap_rate": "16% (6/38)",
+        "architectural_gap_count": 3,
+        "high_impact_hit_exact": "32% (6/19)",
+        "verdict": "通用材料覆盖好,船舶特征件(防污漆/船级钢/殷瓦/NAB螺旋桨)是洞;缺机械装备层"
+      },
+      "gaps": [
+        "船级结构钢专项EH36/AH36/AM3 (resolution)",
+        "防污漆antifouling (true)",
+        "岩棉矿棉 (true)",
+        "陶瓷纤维 (true)",
+        "焊接消耗品 (true)",
+        "殷瓦钢Fe-36Ni (true,收敛族)",
+        "NAB镍铝青铜螺旋桨 (resolution)"
+      ],
+      "architectural_gaps": [
+        "低速二冲程主机",
+        "螺旋桨FPP总成",
+        "甲板机械(绞盘/锚机/舵机)"
+      ],
+      "closures": [
+        {
+          "gap": "殷瓦钢Fe-36Ni",
+          "closed_by": "steel P114(铸锭)/P115(冷轧带卷)",
+          "commit": "pending"
+        }
+      ]
+    },
+    {
+      "domain": "OLED电视(electronics/glass/plastics/chemicals + 结构件)",
+      "date": "2026-06-22",
+      "probe_label": "P3#6-OLED-TV",
+      "frontier": {
+        "scope": "65吋WOLED/QD-OLED整机BOM 系统→材料",
+        "resolution": "材料×形态×工艺",
+        "boundary": "原矿上游/公用工程/范围外外购件"
+      },
+      "scorecard": {
+        "items_total": 26,
+        "items_in_scope": 24,
+        "hit_rate": "81% (17/21)",
+        "periphery_vs_core": "外围100% (10/10) vs 显示核心38% (3/8)",
+        "true_gap_rate": "19% (4/21)",
+        "architectural_gap_count": 3,
+        "verdict": "外围结构/标准电子覆盖好,显示物理特有材料族(OLED发光/QD/IGZO/TFE)是洞"
+      },
+      "gaps": [
+        "OLED有机发光材料(P115仅placeholder空头) (true)",
+        "阴极Mg:Ag靶材 (true)",
+        "薄膜封装TFE (true)",
+        "量子点QD CdSe/InP (true)",
+        "IGZO靶材 (true)",
+        "偏光片成品(有TAC缺PVA成品) (resolution)"
+      ],
+      "architectural_gaps": [
+        "OLED面板模组总成",
+        "逻辑主板总成",
+        "SMPS电源板总成"
+      ],
+      "binding_bug": "ITO靶材(nonferrous P050)经A060绑到ecoinvent 'market for lead'(铅市场)tier=weak — 覆盖≠正确"
+    },
+    {
+      "domain": "EUV光刻机(资本装备;跨 electronics/steel/aluminium/copper/glass/chemicals/nonferrous)",
+      "date": "2026-06-22",
+      "probe_label": "P3#7-EUV-litho",
+      "frontier": {
+        "scope": "ASML NXE级整机BOM 系统→材料",
+        "resolution": "材料×形态×工艺",
+        "boundary": "原矿/公用工程/范围外外购件"
+      },
+      "scorecard": {
+        "items_total": 40,
+        "items_in_scope": 38,
+        "C_n_by_count": "44.7%",
+        "C_E_by_impact": "28.8%",
+        "resolution_adequate_rate": "10.5% (4/38)",
+        "true_gap": 5,
+        "architectural_gap": 16,
+        "total_gap_rate": "55.3%",
+        "verdict": "按件数45%/按影响仅29%;命中全在低影响大宗料;16个架构性缺口(42%)定义机器身份"
+      },
+      "gaps": [
+        "Mo/Si多层膜+Mo金属靶 (true,收敛族)",
+        "Ru帽层/铂族 (true,收敛族)",
+        "6N锡靶 (resolution)",
+        "Zerodur玻璃陶瓷镜坯 (resolution,glass缺glass_ceramic刻面)",
+        "氦He (true,收敛族)"
+      ],
+      "architectural_gaps": [
+        "EUV光源模组(LPP+CO2激光)",
+        "投影物镜PO BOX(Mo/Si镜)",
+        "双工件台+NdFeB+线性电机",
+        "EUV掩模+pellicle",
+        "真空系统+TMP",
+        "激光干涉仪计量"
+      ],
+      "closures": [
+        {
+          "gap": "氦He液/气",
+          "closed_by": "chemicals P296(气态)/P297(深冷液化液氦)",
+          "commit": "pending"
+        }
+      ]
+    },
+    {
+      "domain": "民航宽体客机(航空;跨 aluminium/nonferrous/steel/chemicals/plastics/electronics)",
+      "date": "2026-06-22",
+      "probe_label": "P3#8-aircraft",
+      "frontier": {
+        "scope": "787/A350级整机BOM 系统→材料",
+        "resolution": "材料×形态×工艺",
+        "boundary": "原矿/公用工程/范围外外购件"
+      },
+      "scorecard": {
+        "items_total": 42,
+        "items_in_scope": 41,
+        "C_n_by_count": "49% (exact+coarse 20/41)",
+        "C_n_exact": "29% (12/41)",
+        "C_E_by_impact": "9.6%",
+        "impact_gap_rate": "90.4%",
+        "architectural_gap": 3,
+        "verdict": "地板案例:按影响仅9.6%;定义飞机的5类核心材料(CFRP/钛/镍单晶/YSZ/Re-Hf)全缺"
+      },
+      "gaps": [
+        "连续碳纤维/CFRP预浸料 (true,收敛族复材)",
+        "航空铝2xxx/7xxx/Al-Li (resolution,aluminium缺alloy_series值)",
+        "钛冶金链Ti-6Al-4V (true,收敛族难熔轴)",
+        "镍基高温合金VIM/VAR (true,收敛族Ni超合金)",
+        "镍基单晶叶片+定向凝固铸造 (true)",
+        "YSZ热障涂层 (true)",
+        "MCrAlY粘结层 (true)",
+        "Re/Hf稀贵金属 (true,收敛族难熔轴)",
+        "光纤 (true,与半导体重叠)"
+      ],
+      "architectural_gaps": [
+        "涡扇发动机总成",
+        "APU",
+        "起落架总成"
+      ],
+      "closures": [
+        {
+          "gap": "航空铝2xxx/7xxx",
+          "closed_by": "aluminium P082(2xxx航空板)/P085(7xxx航空板)",
+          "commit": "pending"
+        }
+      ]
+    },
+    {
+      "domain": "海上直驱永磁风机(可再生装备;跨 steel/plastics/chemicals/copper/nonferrous/glass)",
+      "date": "2026-06-22",
+      "probe_label": "P3#9-wind-turbine",
+      "frontier": {
+        "scope": "8-15MW海上直驱风机整机+基础BOM 系统→材料",
+        "resolution": "材料×形态×工艺",
+        "boundary": "原矿/公用工程/范围外外购件"
+      },
+      "scorecard": {
+        "items_total": 38,
+        "items_in_scope": 38,
+        "C_n_by_count": "65.8% (含arch),75.8%(排除arch)",
+        "C_E_by_impact": "57.8%(含arch)",
+        "C_mass": "52.3%",
+        "true_gap": 8,
+        "architectural_gap": 5,
+        "verdict": "钢塔覆盖好但混凝土(40%质量)+稀土永磁链+碳纤主梁是洞;5个机械装备arch_gap"
+      },
+      "gaps": [
+        "NdFeB稀土永磁链(ore后4步) (true,收敛族,跨风电/光刻机/MRI/EV)",
+        "大型复合材料CFRP/GFRP叶片 (true,收敛族复材)",
+        "叶片芯材巴沙木/PET泡沫 (true)",
+        "水泥/混凝土(全图0节点) (true,收敛族)"
+      ],
+      "architectural_gaps": [
+        "直驱永磁发电机",
+        "主轴承",
+        "联轴器/制动",
+        "变桨轴承+驱动",
+        "偏航轴承+驱动"
+      ]
+    },
+    {
+      "domain": "3T超导MRI(医疗影像/超导装备;跨 steel/copper/nonferrous/chemicals/electronics/aluminium)",
+      "date": "2026-06-22",
+      "probe_label": "P3#10-MRI",
+      "frontier": {
+        "scope": "3.0T超导全身MRI整机BOM 系统→材料",
+        "resolution": "材料×形态×工艺",
+        "boundary": "原矿/公用工程/范围外外购件"
+      },
+      "scorecard": {
+        "items_total": 35,
+        "items_in_scope": 33,
+        "C_n_by_count": "69.7% (23/33)",
+        "C_E_by_impact": "61.5%",
+        "resolution_adequate_rate": "39.4%",
+        "true_gap": 7,
+        "architectural_gap": 3,
+        "verdict": "大宗钢铜铝覆盖尚可,但技术身份核心NbTi/Nb3Sn超导线+液氦+铌全缺"
+      },
+      "gaps": [
+        "液氦He (true,收敛族,与光刻机重叠)",
+        "超导线NbTi/Nb3Sn+铌Nb (true,并入难熔轴)",
+        "殷瓦钢Fe-36Ni (true,收敛族)",
+        "聚酰亚胺PI膜 (true,收敛族)",
+        "MLI多层隔热 (true,收敛族,与卫星重叠)",
+        "Pt100铂丝 (true,Pt并入难熔轴)"
+      ],
+      "architectural_gaps": [
+        "超导磁体总成",
+        "低温恒温器/冷头",
+        "压缩机"
+      ],
+      "closures": [
+        {
+          "gap": "液氦He",
+          "closed_by": "chemicals P296/P297",
+          "commit": "pending"
+        },
+        {
+          "gap": "超导线NbTi/Nb3Sn+铌Nb",
+          "closed_by": "nonferrous P144(NbTi锭)/P145(NbTi/Cu线)/P146(Nb3Sn/Cu线)",
+          "commit": "pending"
+        },
+        {
+          "gap": "殷瓦钢Fe-36Ni",
+          "closed_by": "steel P114/P115",
+          "commit": "pending"
+        },
+        {
+          "gap": "聚酰亚胺PI膜",
+          "closed_by": "plastics P214(PI/Kapton薄膜)",
+          "commit": "pending"
+        },
+        {
+          "gap": "MLI多层隔热",
+          "closed_by": "plastics P215(MLI多层隔热毯)",
+          "commit": "pending"
+        },
+        {
+          "gap": "Pt100铂丝",
+          "closed_by": "nonferrous P147(铂精密电阻丝Pt-100级)",
+          "commit": "pending"
+        }
+      ]
+    },
+    {
+      "domain": "生物制药生产装备(工艺装备;跨 steel/nonferrous/chemicals/plastics/glass/rubber)",
+      "date": "2026-06-22",
+      "probe_label": "P3#11-pharma",
+      "frontier": {
+        "scope": "2000L不锈钢生物反应器+下游纯化skid+一次性耗材BOM",
+        "resolution": "材料×形态×工艺",
+        "boundary": "原矿/公用工程/范围外外购件"
+      },
+      "scorecard": {
+        "items_total": 35,
+        "items_in_scope": 31,
+        "C_n_by_count": "77.4% (24/31)",
+        "C_n_exact": "48.4%",
+        "C_E_by_impact": "74.2%",
+        "C_mass": "94.9%(被通用SS撑高)",
+        "true_gap": 7,
+        "architectural_gap": 4,
+        "verdict": "通用金属塑料有覆盖,但药品级电抛光316L/Hastelloy/生物工艺膜/层析介质是洞或粗粒度"
+      },
+      "gaps": [
+        "Mo精炼金属 (true,收敛族难熔轴,Hastelloy关键)",
+        "Ti精炼金属 (true,收敛族)",
+        "Nb/Ta (true,收敛族)",
+        "生物工艺膜UF/MF中空纤维 (true,全新族)",
+        "层析介质琼脂糖/ProteinA (true,全新族)",
+        "Pt100铂 (true)",
+        "醋酸纤维素滤材 (true)",
+        "药品级电抛光316L/Hastelloy (resolution)"
+      ],
+      "architectural_gaps": [
+        "生物反应器总成",
+        "下游纯化skid",
+        "WFI制水系统",
+        "CIP/SIP系统"
+      ],
+      "closures": [
+        {
+          "gap": "层析介质Protein A",
+          "closed_by": "chemicals P301(Protein A亲和层析介质)",
+          "commit": "pending"
+        },
+        {
+          "gap": "生物工艺膜UF/MF中空纤维",
+          "closed_by": "plastics P217(PVDF UF)+P218(PES UF)",
+          "commit": "pending"
+        }
+      ]
+    },
+    {
+      "domain": "GEO通信卫星(航天;跨 aluminium/electronics/nonferrous/chemicals/plastics/battery/copper)",
+      "date": "2026-06-22",
+      "probe_label": "P3#12-satellite",
+      "frontier": {
+        "scope": "5吨级GEO通信卫星整星BOM 系统→材料",
+        "resolution": "材料×形态×工艺",
+        "boundary": "原矿/公用工程/范围外外购件"
+      },
+      "scorecard": {
+        "items_total": 32,
+        "items_in_scope": 23,
+        "C_n_by_count": "52.2%",
+        "C_E_by_impact": "43.5%",
+        "C_mass": "53.4%",
+        "resolution_adequate_rate": "36.4%",
+        "true_gap": 11,
+        "architectural_gap": 9,
+        "verdict": "通用铝铜锂电撑起质量覆盖,卫星特异热点(III-V太阳电池/氙/钛贮箱/TWTA/抗辐射IC)全缺"
+      },
+      "gaps": [
+        "III-V空间太阳电池GaAs/Ge(P131是RF die假命中,P130衬底占位) (true,收敛族III-V)",
+        "钛贮箱Ti-6Al-4V (true,收敛族难熔轴)",
+        "氙Xe工质 (true,新族)",
+        "肼/NTO推进剂 (true,新族)",
+        "抗辐射IC (true,新族)",
+        "铝蜂窝 (true,aluminium形态缺)",
+        "MLI多层隔热 (true,收敛族)",
+        "PI膜Kapton (true,收敛族)",
+        "OSR光学太阳反射镜 (true)"
+      ],
+      "architectural_gaps": [
+        "卫星平台总装",
+        "霍尔电推进系统",
+        "化学推进系统",
+        "TWTA行波管",
+        "波导/天线馈电",
+        "太阳翼展开机构",
+        "反力轮/CMG",
+        "通信载荷总成"
+      ],
+      "closures": [
+        {
+          "gap": "MLI多层隔热",
+          "closed_by": "plastics P215",
+          "commit": "pending"
+        },
+        {
+          "gap": "PI膜Kapton",
+          "closed_by": "plastics P214",
+          "commit": "pending"
+        },
+        {
+          "gap": "III-V空间太阳电池GaAs/Ge",
+          "closed_by": "electronics P140(GaInP2/GaAs/Ge多结太阳电池)+P139(Ge衬底)",
+          "commit": "pending"
+        },
+        {
+          "gap": "氙Xe工质",
+          "closed_by": "chemicals P298(氙气)",
+          "commit": "pending"
+        },
+        {
+          "gap": "肼/NTO推进剂",
+          "closed_by": "chemicals P299(肼N2H4)+P300(NTO N2O4)",
+          "commit": "pending"
+        }
+      ]
+    },
+    {
+      "domain": "PWR核电核岛(核工业;跨 steel/nonferrous/chemicals/mining/power/copper)",
+      "date": "2026-06-22",
+      "probe_label": "P3#13-nuclear-PWR",
+      "frontier": {
+        "scope": "1000MW PWR核岛BOM 系统→材料(核燃料不截断,浓缩/制芯块是高影响前景)",
+        "resolution": "材料×形态×工艺",
+        "boundary": "原矿/公用工程/范围外外购件"
+      },
+      "scorecard": {
+        "items_total": 36,
+        "items_in_scope": 34,
+        "C_n_by_count": "61.8% (21/34)",
+        "C_n_adjusted": "50%",
+        "C_E_by_impact": "~35-40%",
+        "resolution_adequate_rate": "19% (4/21)",
+        "true_gap": 11,
+        "architectural_gap": 1,
+        "cheque_bounce": "power P034/P035/P057核节点=background+placeholder+无lca空头",
+        "verdict": "按影响仅35-40%;最高影响4族(铀燃料循环/锆合金/Inconel690/硼酸)全图零覆盖;核节点是空头占位"
+      },
+      "gaps": [
+        "铀/核燃料循环 铀矿→UF6→UO2芯块 (true,全新族,power仅空头占位)",
+        "锆Zr/锆合金Zircaloy/M5 (true,并入难熔轴)",
+        "铪Hf (true,并入难熔轴,Zr共生)",
+        "Inconel690镍基高温合金SG传热管 (true,收敛族Ni超合金第3次)",
+        "B4C碳化硼 (true,核控制材料新族)",
+        "Ag-In-Cd控制棒合金 (resolution,三金属各有但无三元合金)",
+        "铪/硼酸H3BO3 (true,核级化学品新族)",
+        "预应力混凝土(40-50%质量) (true,收敛族水泥)",
+        "预应力钢绞线1860MPa (true,steel形态缺)"
+      ],
+      "architectural_gaps": [
+        "核岛设备总成(RPV/SG/CRDM)",
+        "核燃料组件总成"
+      ],
+      "closures": [
+        {
+          "gap": "B4C碳化硼",
+          "closed_by": "construction_materials P118(B₄C定形砖)+P119(B₄C颗粒料控制棒级)",
+          "commit": "pending"
+        },
+        {
+          "gap": "锆Zr/锆合金Zircaloy已关",
+          "closed_by": "nonferrous P115(Zircaloy包壳级)-已建",
+          "commit": "pending(prior)"
+        }
+      ]
+    },
+    {
+      "probe_id": "P14",
+      "label": "BEV驱动电机总成",
+      "domain": "汽车BEV(auto 域 A020 — 铜/硅钢/NdFeB/铝/电力跨行供链)",
+      "date": "2026-06-24",
+      "method": "P3骨架探针",
+      "status": "partial_gap",
+      "coverage": "4/5 输入有效绑定",
+      "findings": [
+        {
+          "gap_id": "G_P14_01",
+          "severity": "structural_semantic",
+          "description": "P079 resolves_to 指向速凝合金P134而非烧结永磁体P135，LCA少算磁体烧结GWP。",
+          "status": "fixed",
+          "fix": "resolves_to→nonferrous_metals::neodymium.magnet.na.sintered_magnet"
+        }
+      ],
+      "closures": [
+        "P079 resolves_to 修正(第3次)"
+      ]
+    },
+    {
+      "probe_id": "P15",
+      "label": "三元催化转化器",
+      "domain": "汽车ICE(auto 域 A045 — PGM/催化剂·mining行业·功能陶瓷跨链)",
+      "date": "2026-06-24",
+      "method": "P3骨架探针+深链PGM搜索",
+      "status": "open_gap",
+      "coverage": "3/4 直接输入有效绑定",
+      "findings": [
+        {
+          "gap_id": "G_P15_01",
+          "severity": "行业级缺口",
+          "description": "P082 PGM/陶瓷载体 home=mining placeholder。mining图无PGM节点；nonferrous缺Pd/Rh独立节点(仅有Pt)。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P15_02",
+          "severity": "功能材料空白",
+          "description": "蜂窝陶瓷载体(堇青石cordierite monolith)全系统17图无节点。",
+          "status": "open"
+        }
+      ],
+      "closures": []
+    },
+    {
+      "probe_id": "P16",
+      "label": "FCEV燃料电池整车",
+      "domain": "汽车FCEV(auto 域 A005 — 电堆/储氢FCEV-unique组件)",
+      "date": "2026-06-24",
+      "method": "P3骨架探针+ID冲突核查",
+      "status": "open_gap",
+      "coverage": "0/2 FCEV-unique核心组件覆盖",
+      "findings": [
+        {
+          "gap_id": "G_P16_01",
+          "severity": "structural_id_conflict",
+          "description": "auto P080(电堆,home=electronics)→electronics P080已被PCB废板占用。MEA/Nafion/铂碳/GDL/双极板全缺。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P16_02",
+          "severity": "structural_id_conflict",
+          "description": "auto P081(储氢瓶IV型CFRP,home=chemicals)→chemicals P081已被电解液占用。home归属存疑(物质主体CFRP→plastics)。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P16_03",
+          "severity": "n/a",
+          "description": "H₂来源(SMR/电解水): chemicals已完整覆盖(P003/P039)。",
+          "status": "covered"
+        }
+      ],
+      "closures": []
+    },
+    {
+      "probe_id": "P17",
+      "label": "BEV电力电子总成(逆变器)",
+      "domain": "汽车BEV(auto A021→electronics逆变器深链;SiC/IGBT/薄膜电容/铜母排)",
+      "date": "2026-06-24",
+      "method": "P3骨架探针+electronics逆变器活动A060追溯",
+      "status": "partial_gap",
+      "coverage": "6/8(75%含coarse);exact 4/8(50%)",
+      "findings": [
+        {
+          "gap_id": "G_P17_01",
+          "severity": "跨层硬缺口",
+          "description": "DC-link薄膜电容(BOPP):electronics/chemicals两图均无节点。逆变器直流母线侧关键无源件，质量占比5-8%，影响GWP。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P17_02",
+          "severity": "缺口",
+          "description": "铜母排(laminated busbar):auto/electronics/copper三图均无独立节点。可辩护归入宽边界P045。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P17_03",
+          "severity": "resolves_to偏粗",
+          "description": "P107铝散热器→原铝锭P006，跳过压铸/挤压工艺层，GWP低估。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P17_04",
+          "severity": "resolves_to缺失",
+          "description": "P109钢机壳 resolves_to=null，仅有weak LCA绑定。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P17_05",
+          "severity": "semantic错配",
+          "description": "P126连接器resolves_to board_to_board，逆变器语境应为high_voltage连接器。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P17_06",
+          "severity": "SiC衬底追溯断链",
+          "description": "P093 SiC衬底晶圆 placeholder无home，SiC单晶锭-切片-抛光供链不可追溯。",
+          "status": "open"
+        }
+      ],
+      "closures": []
+    },
+    {
+      "probe_id": "P18",
+      "label": "BEV电驱总成",
+      "domain": "汽车BEV(auto A019→A033减速器追溯;齿轮油/渗碳钢/ICE刻面错配)",
+      "date": "2026-06-24",
+      "method": "P3骨架探针+A033减速器追溯层",
+      "status": "partial_gap",
+      "coverage": "直接层6/6有定义;追溯层4个缺口",
+      "findings": [
+        {
+          "gap_id": "G_P18_01",
+          "severity": "刻面错配",
+          "description": "A033减速器机加装配的inputs含P021(powertrain=ice 曲轴/连杆)，BEV减速器不含ICE零件，刻面一致性违反。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P18_02",
+          "severity": "跨行业未绑定",
+          "description": "P059热轧卷(A035锻造消耗) home=steel,lca_via=null，F1违反在案。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P18_03",
+          "severity": "跨行业未绑定",
+          "description": "P063铝锭 被A029/A030/A033三活动消耗,lca_via=null，F1违反在案。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P18_04",
+          "severity": "节点缺失",
+          "description": "A033缺润滑油/e-axle fluid输入。chemicals有基础油P213/P214和添加剂P218，但缺齿轮油成品节点。",
+          "status": "open"
+        }
+      ],
+      "closures": []
+    },
+    {
+      "probe_id": "P19",
+      "label": "BEV电池包总成CTP",
+      "domain": "汽车BEV(auto A022→battery电芯+electronics BMS+chemicals TIM/结构胶)",
+      "date": "2026-06-24",
+      "method": "P3骨架探针+BMS语义质疑",
+      "status": "partial_gap",
+      "coverage": "5/6名义(P073实为未绑定cheque_bounce);TIM/结构胶inputs遗漏",
+      "findings": [
+        {
+          "gap_id": "G_P19_01",
+          "severity": "cheque_bounce+语义错误",
+          "description": "P073'控制器/逆变器'在auto图gpid=null(未绑定)；A022电池包上下文应为BMS非逆变器，electronics有P054 BMS节点。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P19_02",
+          "severity": "inputs遗漏",
+          "description": "A022缺TIM(导热界面材料)输入。chemicals P288 TIM节点已存在，质量可达数kg/包。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P19_03",
+          "severity": "inputs遗漏",
+          "description": "A022缺结构胶/密封胶输入。chemicals P200/P201/P202均已存在，CTP工艺大量使用。",
+          "status": "open"
+        }
+      ],
+      "closures": []
+    },
+    {
+      "probe_id": "P20",
+      "label": "电池包壳体高压压铸",
+      "domain": "汽车BEV(auto A025;铝压铸合金牌号/天然气/脱模剂)",
+      "date": "2026-06-24",
+      "method": "P3骨架探针+合金牌号核查",
+      "status": "partial_gap",
+      "coverage": "1/3正确绑定(电力✅;铝错绑;天然气空)",
+      "findings": [
+        {
+          "gap_id": "G_P20_01",
+          "severity": "resolves_to合金牌号错误",
+          "description": "P063→原铝锭(P006)，HPDC壳体实际用压铸铝合金ADC12/A380(cast_3xx)。aluminium P054压铸铸件节点存在但未绑定。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P20_02",
+          "severity": "coproduct疑误",
+          "description": "A025 coproduct标'冲压废料'，HPDC产的是铝废料/浇道余料非钢冲压废料，待人工审查。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P20_03",
+          "severity": "缺口",
+          "description": "脱模剂(水性die lubricant) chemicals图无节点，HPDC每次注射必用。",
+          "status": "open"
+        }
+      ],
+      "closures": [
+        "P078 home_industry: natural_gas→chemicals (行业不存在，改归chemicals图管辖)"
+      ]
+    },
+    {
+      "probe_id": "P21",
+      "label": "BEV热管理总成",
+      "domain": "汽车BEV(auto A059;P054错绑车灯/P088冷媒R1234yf缺失)",
+      "date": "2026-06-24",
+      "method": "P3骨架探针+cheque_bounce专项核查",
+      "status": "partial_gap",
+      "coverage": "5/7有效绑定(P054错配→已修为placeholder;P088 chemicals无R1234yf)",
+      "findings": [
+        {
+          "gap_id": "G_P21_01",
+          "severity": "cheque_bounce已修",
+          "description": "P054压缩机resolves_to错绑车灯automotive_lamp，已修正为placeholder。electronics无电动涡旋压缩机节点。",
+          "status": "fixed"
+        },
+        {
+          "gap_id": "G_P21_02",
+          "severity": "化学品空白",
+          "description": "P088 R1234yf冷媒 chemicals骨架完全无HFO/HFC制冷剂节点。HS 2903范围内已声明但族缺失。",
+          "status": "open"
+        },
+        {
+          "gap_id": "G_P21_03",
+          "severity": "home_industry字段矛盾已修",
+          "description": "P088 facets内chemicals vs 顶层unknown冲突，已统一为chemicals。",
+          "status": "fixed"
+        }
+      ],
+      "closures": [
+        "P054 home_status: linked→placeholder; resolves_to: 车灯→null (错配修正)",
+        "P088 home_industry: unknown→chemicals (字段矛盾修正)"
+      ]
+    }
+  ],
+  "cross_domain_finding": "11域探针(2组件半导体/电池 + 9端产品 船/电视/光刻机/飞机/风电/MRI/制药/卫星/核电)。规律:骨架=通用工业材料骨架,每个产品的『域核心』+『机械装备总成层』系统性缺失,洞质量小但影响大。影响加权是一条光谱(非双向):电池C_n45→C_E96(影响落已覆盖大宗商品)…飞机49→9.6(影响全在未覆盖特种料);⟹C_E~96%是最有利个案,框架须在多样篮子报整条光谱,不能单case撑分。收敛核心开始饱和(第9/10/11域多在复现已知族),域尾巴仍发散:难熔/活泼/稀土金属轴Ti·Zr·Hf·Nb·Ta·Mo·W·Re·REE+Pt=8/11域(头号杠杆)、复材CFRP/GFRP=4、PI膜/光纤=4、Ni高温合金Inconel/Hastelloy=3、殷瓦钢Fe-36Ni=3、NdFeB稀土永磁=3、水泥/MLI/He/III-V/Pt各2。空头占位(home_status=placeholder)是系统性cheque_bounce源(核电power核节点/电视OLED P115),完整性计数须穿透占位。 【Group-A收敛族补全2026-06-24:He液氦(chemicals P296/297)+殷瓦钢Fe-36Ni(steel P114/115)+PI膜/MLI毯(plastics P214/215)+NbTi/Nb3Sn超导线(nonferrous P144-146);MRI域洞5/6已关(剩Pt100铂丝);卫星域MLI+PI已关;船域殷瓦钢已关;光刻域He已关】 【Group-BC补全2026-06-24:Pt100铂丝(nonferrous P147)+Xe/肼/NTO推进剂+ProteinA层析(chemicals P298-301)+B₄C碳化硼(construction P118-119)+2xxx/7xxx航空铝板(aluminium P080-085)+Ge/GaInP2多结太阳电池(electronics P139-140)+PVDF/PES UF中空纤维膜(plastics P217-218);MRI域洞6/6全关;卫星域已关5/9;制药/核/飞机新洞有关闭】\n2026-06-24 汽车探针P14/P15/P16: P079已修; 三元催化开洞Pd/Rh缺+堇青石蜂窝陶瓷全系统空白; FCEV 0/2+ID冲突(P080/P081)。H₂覆盖完整。\n2026-06-24 NEV专项5探针P17-P21: 修P054错绑车灯+P078天然气归home+P088字段矛盾; 新发现: DC-link薄膜电容全系统空白/A033含ICE零件刻面错配/P073电池包BMS未绑定/A025铝合金牌号错/R1234yf冷媒缺失",
+  "closures": [
+    {
+      "date": "2026-06-23",
+      "by": "construction_materials name-graph (name-graph-sop workflow, gate 11/11)",
+      "closed_gaps": [
+        "水泥/混凝土(probe#9风电 40%质量 + probe#13核电安全壳) → construction_materials cement(OPC/PPC/PSC/复合/LC3/CAC/CSA P001-010) + ready_mix_concrete(低/中/高强 P011-013) + precast/AAC",
+        "岩棉/矿棉(probe#5船舶防火舱壁绝热) → construction_materials insulation_fiber_board stone_wool P037/P038 + 成纤活动A058",
+        "陶瓷纤维/硅酸铝纤维(probe#5船舶发动机舱绝热) → construction_materials ceramic_fiber P041/P108 + 活动A060/A086",
+        "石膏板/砂浆/石灰/砖瓦/陶瓷/耐火 等建材族一并建齐(117产品/107活动)"
+      ],
+      "note": "建材成第16个cross-linked行业(registry 1237 GPID,cross_link 5/5)。关闭方式=节点现已存在;其它图的石灰熔剂背景(steel/copper/aluminium)归属lime_minerals,未重指(单母行业)。",
+      "followups": [
+        "建材38背景全placeholder待bind(粉煤灰→power/矿渣→steel已建可解析)",
+        "沥青混合料范围外(诚实声明)",
+        "SiC不定形耐火/特种水泥细分 longtail"
+      ]
+    }
+  ]
+}

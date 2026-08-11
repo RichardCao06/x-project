@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "node_id", "heading", "paragraphs"],
+  "properties": {
+    "protocol": {"type": "string", "const": "wiki-content-section-v1"},
+    "node_id": {"type": "string"},
+    "heading": {"type": "string"},
+    "paragraphs": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["focus", "sentences"],
+        "properties": {
+          "focus": {"type": "string", "minLength": 8, "maxLength": 80},
+          "sentences": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["text", "claim_kind", "rhetorical_role", "evidence_claim_ids"],
+              "properties": {
+                "text": {"type": "string", "minLength": 10},
+                "claim_kind": {"type": "string", "enum": ["external_fact", "internal_graph_fact", "modeling_judgment", "evidence_gap"]},
+                "rhetorical_role": {"type": "string", "enum": ["thesis", "evidence", "explanation", "implication", "boundary", "application", "gap"]},
+                "evidence_claim_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true, "maxItems": 4}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

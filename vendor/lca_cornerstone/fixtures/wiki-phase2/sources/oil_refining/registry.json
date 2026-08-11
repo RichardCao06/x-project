@@ -1,0 +1,386 @@
+{
+  "_meta": {
+    "industry": "oil_refining",
+    "note": "P025/A003/A017/A018 及 A017 上游主路径的中国区 LCI 上下文试制。verified 仅表示所列断言与定位已经独立核对，不表示公开参考值可以代替中国工厂实测数据。",
+    "schema": "src-id -> {title,type,version,locator,authority,region,hash,ref_count,excerpt_seeds,status,verified_via}",
+    "count": 61
+  },
+  "sources": {
+    "ku-ref-bref-2015": {
+      "title": "Best Available Techniques Reference Document for the Refining of Mineral Oil and Gas",
+      "type": "BREF",
+      "version": "2015",
+      "locator": "https://bureau-industrial-transformation.jrc.ec.europa.eu/sites/default/files/2019-11/REF_BREF_2015.pdf；HF 烷基化见 §2.2、Tables 3.19–3.22、§4.2.1、BAT 19–20；原油脱盐见 §§2.9、3.9、Tables 3.52–3.53、BAT 33；常/减压蒸馏见 §§2.19、3.19、4.19、Tables 3.77–3.78、BAT 44–46",
+      "authority": "EU-JRC-regulatory-technical",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 20,
+      "excerpt_seeds": [
+        "The term alkylation is used for the reaction of olefins with isobutane, to form higher molecular-weight isoparaffins with a high octane number.",
+        "Table 3.19，HF alkylation，per tonne of alkylate produced：Electricity 20–65 kWh；Fuel 1 000–3 000 MJ；Steam 100–1 000 kg；Cooling water 62 m3；Fresh acid 1.15 kg；Caustic 0.57 kg as 100 % NaOH.",
+        "Table 3.19 的循环冷却水 62 m3/t 以温升 ΔT=11 °C 为条件。",
+        "Table 3.21：HF scrubber effluent 为 2–8 m3/h，含氟量处理前 1 000–10 000 ppm F、石灰处理后 10–40 ppm F；该表未提供对应装置产量，不能直接换算为 kg/t alkylate。",
+        "Table 3.22：HF 路线污泥量为每 kg used HF 产生 7–70 kg sludge，干固体含量 3–30 %；同时确认废分子筛、碳填料、酸溶性油、含 CaF2 中和污泥等固体残余物。",
+        "Section 4.2.1：碱液洗涤并经过酸泄放中和后，不可凝气流可达到低于 1 mg HF/Nm3；该浓度缺少废气量，不能直接换算为 kg/t alkylate。",
+        "The product is alkylate (a high-octane gasoline component) with some propane and butane liquids.",
+        "The products from the HVU are light vacuum gas oil, heavy vacuum gas oil and vacuum residue.",
+        "The unvaporised part of the feed forms the bottom product.",
+        "Primary distillation is the first and fundamental separation process in a refinery. Atmospheric distillation separates desalted crude oil by boiling range; atmospheric residue is subsequently sent to vacuum distillation.",
+        "Section 2.19：CDU 通常将脱盐原油加热至约 300–400 °C，并在约 30–50 块塔板中分馏；石脑油/轻组分、煤油、轻柴油、重柴油和常压渣油按沸点范围分出，多数馏分成为成品前仍需后续处理或调和。",
+        "Table 3.77，per tonne of atmospheric unit feed：Fuel 400–680 MJ；Electricity 4–6 kWh；Steam 25–30 kg；Cooling water 4.0 m3，温升 ΔT=17 °C。它们是进料基准的国际典型范围，不是每吨直馏石脑油或中国装置实测值。",
+        "Section 3.19：CDU 废水产生量为 0.08–0.75 m3/t crude；塔顶酸性水的 H2S 为 10–200 mg/L、NH3 为 10–300 mg/L。浓度是处理前水质，不能直接当作自然水体基本流。",
+        "Table 3.78 的 TOTAL Mitteldeutschland 案例仅给出限值，负荷和比排放由原文据限值计算；相应 SO2、NOx、CO、CO2 和颗粒物数值不是运行实测平均值。",
+        "Table 3.52：脱盐洗水率随原油密度变化，<825 kg/m3 为 3–4 vol%、825–875 kg/m3 为 4–7 vol%、>875 kg/m3 为 7–10 vol%；对应温度分别为 115–125 °C、125–140 °C、140–150 °C。",
+        "Section 3.9：脱盐破乳剂典型投加量 5–10 ppm，电力 0.075–0.15 kWh/t crude；脱盐废水 30–100 L/t feed。",
+        "Table 3.53：脱盐废水处理前典型浓度包括 suspended solids 50–100 mg/L、dissolved hydrocarbons 50–300 mg/L、phenols 5–30 mg/L、benzene 30–100 mg/L、COD 500–2000 mg/L、ammonia 50–100 mg/L、N-Kj 15–20 mg/L、sulfides as H2S 10 mg/L。",
+        "BAT 33 要求通过水回用/优化、多级脱盐和油水/固水分离减少脱盐废水污染负荷；BAT 44–46 要求控制蒸馏相关废气并将酸性水送汽提等适当处理。这些是技术与采集/校验要求，不是 LCI 平均值。",
+        "Fluid catalytic cracking upgrades heavy hydrocarbons without added hydrogen. Typical feeds are heavy vacuum gas oil and, in some configurations, atmospheric residue; the process produces gasoline and olefin-rich C3/C4 streams suitable for alkylation.",
+        "The FCC unit comprises reactor-regenerator, fractionation and wet-gas/gas-plant sections. Coke deposited on the circulating zeolitic catalyst is burned during continuous catalyst regeneration.",
+        "Gas separation recovers C1 to C5-plus fractions from refinery off-gases by compression, absorption and distillation; products may include fuel gas, propane/butane LPG, C4 fractions and light gasoline.",
+        "Visbreaking is a non-catalytic thermal process applied to atmospheric or vacuum residues to reduce residue viscosity and form gas, naphtha, distillate and a visbroken residue."
+      ],
+      "status": "verified",
+      "verified_via": "主流程逐页核对官方 PDF，并由独立 verifier 复核 P025/A017，2026-07-23；主流程复核 CDU/脱盐章节、Tables 3.52–3.53、3.77–3.78 与相关 BAT，2026-07-30；独立 checker 逐表复核数值、分母、Table 3.78 限值换算性质与 bundle 呈现，2026-07-30"
+    },
+    "ku-cn-sinopec-c4-alkylation-balance-2022": {
+      "title": "碳四烷基化工艺的技术与经济比选分析",
+      "type": "peer-reviewed-engineering-design-balance-proxy",
+      "version": "2022-04",
+      "locator": "https://qikan.lpec.sinopec.com/lyjsygc/CN/article/downloadArticleFile.do?attachType=PDF&id=241；Table 1、Table 2，印刷页 61–62",
+      "authority": "《炼油技术与工程》；中国石化炼油事业部、中国石化工程建设有限公司",
+      "region": "CN-engineering-reference",
+      "hash": "",
+      "ref_count": 14,
+      "excerpt_seeds": [
+        "技术经济比较采用相同原料组成、相同装置规模和统一价格体系；设计规模30万吨/年，年开工8400小时。",
+        "Table 1 STRATCO硫酸法：进料烷烯摩尔比10:1、酸烃体积比1.1:1、反应温度4–10℃、反应压力0.38MPa、外排酸质量分数90%。",
+        "Table 1 STRATCO硫酸法：酸耗71.2kg/t烷基化油、综合能耗5378.55MJ/t烷基化油、烷基化油RON 96–97。",
+        "Table 1 其他硫酸法对照：CDAlky酸耗60–80kg/t、综合能耗5674.79MJ/t；SINOALKY酸耗60kg/t、综合能耗5373.76MJ/t。",
+        "HF方案物料输入为醚后碳四馏分326.3千吨/年、加氢裂化液化气84.0千吨/年、补充氢气0.2千吨/年；输出为烷基化油311.3千吨/年、液化气19.1千吨/年、正丁烷77.1千吨/年、燃料气2.6千吨/年、损失0.4千吨/年。",
+        "HF方案综合能耗为5555.88兆焦/吨烷基化油，酸耗为0.2至0.6千克/吨烷基化油；综合能耗未拆分为电力、蒸汽和燃料。",
+        "表中数值是统一设计条件下的工程比选数据，不是特定中国生产装置的运行实测平均值。"
+      ],
+      "status": "verified",
+      "verified_via": "主流程从中国石化期刊平台下载PDF，逐项目视核对Table 1与Table 2的表头、硫酸法/HF列、单位和物料合计，2026-07-23；2026-07-24复核STRATCO参数"
+    },
+    "ku-cn-shenghong-refinery-eia-2018": {
+      "title": "盛虹炼化（连云港）有限公司炼化一体化项目环境影响报告书—常减压与轻烃回收章节",
+      "type": "project-eia-engineering-design-proxy",
+      "version": "2018-11",
+      "locator": "https://www.mee.gov.cn/ywdt/gs/wqgs_1/201811/W020181102549894706389.pdf；§5.1.1、§5.1.2，Tables 5.1-1–5.1-24，印刷页5-1–5-17",
+      "authority": "中华人民共和国生态环境部公开环评；盛虹炼化（连云港）有限公司",
+      "region": "CN-JS-Lianyungang-engineering",
+      "hash": "",
+      "ref_count": 32,
+      "excerpt_seeds": [
+        "常减压蒸馏装置由换热、电脱盐、初馏、常压蒸馏和减压蒸馏部分组成；设计规模1600万吨/年，年开工8400小时。",
+        "常减压装置物料平衡以沙重原油和沙轻原油各800万吨/年为输入，输出三顶气、直馏石脑油、直馏煤油、直馏柴油、直馏蜡油、减压渣油、含硫污水和含盐污水。",
+        "常减压装置公用工程与平衡表分别列出电、燃料气、蒸汽、脱盐注水、除氧水、新鲜水、循环水及凝结水。",
+        "常减压装置废气来自常压炉和减压炉；含硫污水送酸性水汽提，含油污水和电脱盐含盐污水分别送全厂污水处理相应系列。",
+        "轻烃回收装置由轻烃回收和产品精制单元组成，设计规模400万吨/年，年开工8400小时。",
+        "轻烃回收原料来自常减压、预加氢、柴油加氢、加氢裂化、渣油加氢、烷基化和煤油加氢等装置；产品为净化干气、液化气和石脑油。",
+        "轻烃回收采用吸收—脱丁烷—脱乙烷三塔分馏流程；项目物料平衡列出361.1万吨/年输入和等量输出。",
+        "Table 5.1-20逐项输入为气体合计11.43万吨/年、HC粗液化气47.05万吨/年、直馏及煤油加氢石脑油302.66万吨/年；输出为干气6.94万吨/年、LPG 69.83万吨/年和石脑油284.36万吨/年。",
+        "轻烃回收正常公用工程包括电1666.3kW、4.0MPa蒸汽55t/h和循环水400t/h；这些是项目工程设计负荷，不是运行实测平均值。",
+        "轻烃回收正常生产时无直接工艺废气和废水；碱渣送相邻处理设施，废精脱硫剂由厂家回收，废瓷球送固危废设施。"
+      ],
+      "status": "verified",
+      "verified_via": "主流程逐页核对生态环境部公开PDF的§5.1.1与§5.1.2、原料产品表、物料/水汽/硫平衡、公用工程和产污去向，2026-07-24"
+    },
+    "ku-cn-yanshan-hf-eia-2025": {
+      "title": "中国石化北京燕山分公司油品升级改造配套新建烷基化装置环境影响报告书",
+      "type": "project-eia-existing-unit-measured-data",
+      "version": "2025-07",
+      "locator": "https://bypc.sinopec.com/bypc/csr/public_infor/Documents/20250707/doc_20250707_358317847831.pdf；§4.6.2、Table 4.6-2，印刷页 4-36；§4.8.2.1，印刷页 4-39",
+      "authority": "中国石化北京燕山分公司公开文件",
+      "region": "CN-BJ-site",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "6 万吨/年烷基化装置1988年建成；氢氟酸烷基化专利技术。",
+        "现有氢氟酸烷基化装置污染物排放量为实测值。",
+        "VOC 0.174；NOx 0.335；SO2 0.015；颗粒物 0.025；COD 0.36；危废 13。"
+      ],
+      "status": "verified",
+      "verified_via": "独立 verifier 核对官方 PDF 全文索引、表题、表注及换算，verdict=VERIFIED/QUALIFIED，2026-07-23"
+    },
+    "ku-cn-shuomo-eia-hf-proxy-2019": {
+      "title": "新疆朔漠石化科技有限公司20万吨/年液化石油气综合利用（一期）项目环境影响报告书",
+      "type": "project-eia-technology-comparison-proxy",
+      "version": "2019-05",
+      "locator": "https://sthjt.xinjiang.gov.cn/xjepd/hjyxpjsl/201905/5e49d889b4c6412096c718bae06a1bd3/files/%E5%BA%93%E8%BD%A6%E6%9C%94%E6%BC%A0%E6%B6%B2%E5%8C%96%E7%9F%B3%E6%B2%B9%E6%B0%94%E7%BB%BC%E5%90%88%E5%88%A9%E7%94%A8%E9%A1%B9%E7%9B%AE.pdf；工艺技术比选，印刷页 130–131",
+      "authority": "新疆维吾尔自治区生态环境厅公开环评；新疆化工设计研究院编制",
+      "region": "CN-engineering-reference",
+      "hash": "",
+      "ref_count": 3,
+      "excerpt_seeds": [
+        "氢氟酸烷基化酸耗为0.4kg/t～0.6kg/t工业异辛烷，HF沸点低，废酸在回收装置内再生。",
+        "氢氟酸烷基化反应进料烷烯比一般为（13～15）：1。",
+        "该数值位于硫酸法与氢氟酸法的工艺技术比选章节，不是本项目HF装置运行实测值。"
+      ],
+      "status": "verified",
+      "verified_via": "主流程下载生态环境厅公开PDF并核对印刷页130–131、章节语境和单位，2026-07-23"
+    },
+    "ku-cn-yanshan-permit-public-2018-2025": {
+      "title": "中国石油化工股份有限公司北京燕山分公司排污许可证及年度执行报告公开记录",
+      "type": "permit-public-report-audit",
+      "version": "2018–2025 annual reports；2025-09-30 permit version",
+      "locator": "https://permit.mee.gov.cn/perxxgkinfo/xkgkAction!xkgk.action?xkgk=getxxgkContent&dataid=59c3da0a902442a28af3b918241f9636；许可证编号 91110304802763501L001P；公开端执行报告 iframe 及 2018–2025 年年报逐年核对",
+      "authority": "生态环境部全国排污许可证管理信息平台公开端",
+      "region": "CN-BJ-site",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "单位名称：中国石油化工股份有限公司北京燕山分公司；许可证编号：91110304802763501L001P。",
+        "公开端逐年列出 2018 年至 2025 年年度执行报告。",
+        "公开阅读版展示实际排放情况、超标排放信息和污染治理设施异常运转情况；未展示可归属至既有 HF 烷基化装置的原料、HF 领用量、电耗及产品/副产品产量底表。"
+      ],
+      "status": "verified",
+      "verified_via": "主流程检索许可证公开记录、逐年调用公开端报告索引并核对年报公开阅读字段，2026-07-23"
+    },
+    "ku-cn-wuhan-hf-pump-energy-2019": {
+      "title": "国家工业节能技术应用指南与案例（2019）—中国石化武汉分公司循环水泵无刷双馈同步电动机节能改造项目",
+      "type": "government-energy-saving-case-site-component-measurement",
+      "version": "2019-11",
+      "locator": "http://gxj.wuhai.gov.cn/jxw/250995/jnyzhly/755656/2019121109390498913.pdf；印刷页94，PDF物理页100",
+      "authority": "中华人民共和国工业和信息化部；乌海市工业和信息化局政府站托管原文",
+      "region": "CN-HB-Wuhan-site-component",
+      "hash": "sha256:c3e724ee90829ba47738988228d3e440f622a1903e2a5d80443ed331237ebe2f",
+      "ref_count": 4,
+      "excerpt_seeds": [
+        "武汉石化6万吨/年HF烷基化装置水厂有2台循环水泵，16#循环水泵和15#循环水泵，1用1备。",
+        "改造前16#循环水泵Y450-6型三相异步电动机的泵机组效率为55.69%，平均每小时耗电量434.39kW。",
+        "第三方节能评估给出的年节电量为109.24万kW·h、折合标煤371.4tce/a；该数值是改造节能量，不是装置年度电力投入。",
+        "原文没有同周期产品产量、泵运行小时或整套装置总电耗，不能换算为kWh/t alkylate。"
+      ],
+      "status": "verified",
+      "verified_via": "主流程下载乌海市工业和信息化局政府站PDF，并与公开镜像逐字节比对一致；抽取物理页100并视觉核对装置、设备、功率、效率及节能量，2026-07-23"
+    },
+    "ku-hj853-2017": {
+      "title": "排污许可证申请与核发技术规范 石化工业（HJ 853—2017）",
+      "type": "regulatory-technical-standard",
+      "version": "HJ 853—2017",
+      "locator": "https://www.mee.gov.cn/ywgz/fgbz/bz/bzwb/pwxk/201708/W020170908533435499117.pdf；§4.3、§4.5、§5、§9",
+      "authority": "中国生态环境部",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "石化生产装置应分别填报生产装置名称、主要生产单元、生产设施及设施参数。",
+        "常减压装置产品包括减压瓦斯、减压蜡油、减压渣油和常压渣油。",
+        "实际排放量核算优先采用自动监测法和手工监测法。"
+      ],
+      "status": "verified",
+      "verified_via": "主流程直接核对生态环境部官方 PDF，2026-07-23"
+    },
+    "ku-hj880-2017": {
+      "title": "排污单位自行监测技术指南 石油炼制工业（HJ 880—2017）",
+      "type": "monitoring-standard",
+      "version": "HJ 880—2017",
+      "locator": "https://www.mee.gov.cn/ywgz/fgbz/bz/bzwb/jcffbz/201712/W020171228354419542371.pdf；§5.2–§5.4、Tables 1–3",
+      "authority": "中国生态环境部",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 7,
+      "excerpt_seeds": [
+        "废水总排放口监测项目包括流量、化学需氧量、氨氮、石油类、pH 值等。",
+        "有机废气处理设施进口和出口监测非甲烷总烃。",
+        "泵、压缩机、阀门、开口阀或开口管线、泄压设备等动静密封点开展挥发性有机物监测。"
+      ],
+      "status": "verified",
+      "verified_via": "主流程直接核对生态环境部官方 PDF，2026-07-23"
+    },
+    "ku-gb31570-2024": {
+      "title": "石油炼制工业污染物排放标准（GB 31570—2015，含 2024 年修改单）",
+      "type": "standard_emission_limit",
+      "version": "2015+2024修改单",
+      "locator": "https://www.mee.gov.cn/ywgz/fgbz/bz//bzwb/dqhjbh/dqgdwrywrwpfbz/201505/W020240612354021941968.pdf；§4 水污染物、§5 大气污染物、§6 监测要求",
+      "authority": "中国生态环境部",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 4,
+      "excerpt_seeds": [
+        "本标准规定了石油炼制工业企业水和大气污染物排放限值、监测和监督管理要求。",
+        "企业边界任何一小时大气污染物平均浓度执行相应限值。"
+      ],
+      "status": "verified",
+      "verified_via": "主流程直接核对生态环境部官方合并文本，2026-07-23"
+    },
+    "ku-cn-hw-list-2025": {
+      "title": "国家危险废物名录（2025 年版）",
+      "type": "regulatory-waste-classification",
+      "version": "2025",
+      "locator": "https://www.mee.gov.cn/gzk/gz/202411/P020241129561743755927.pdf；附表 pp.23–24，HW34 与 HW35",
+      "authority": "中国生态环境部等",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "251-014-34 石油炼制过程产生的废酸及酸泥。",
+        "251-015-35 石油炼制过程产生的废碱液和碱渣。"
+      ],
+      "status": "verified",
+      "verified_via": "独立 verifier 核对官方名录附表，verdict=CONFIRMED，2026-07-23"
+    },
+    "ku-f4fefa3ea2cd74ce": {
+      "title": "US EPA Hydrogen Fluoride Study Final Report",
+      "type": "web",
+      "version": "-",
+      "locator": "§5.4.1 HF Alkylation Processes",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Light olefins and isobutane are converted to alkylate in the alkylation process."
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-00; verdict=CONFIRMED",
+      "url": "https://archive.epa.gov/emergencies/docs/chem/web/pdf/hydro.pdf"
+    },
+    "ku-eec9a3b3dbef4896": {
+      "title": "US EPA Hydrogen Fluoride Study Final Report",
+      "type": "web",
+      "version": "-",
+      "locator": "§5.4.1 HF Alkylation Processes",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "HF serves as the reaction catalyst"
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-01; verdict=CONFIRMED",
+      "url": "https://archive.epa.gov/emergencies/docs/chem/web/pdf/hydro.pdf"
+    },
+    "ku-0274bd08c6af3ce7": {
+      "title": "US EPA Hydrogen Fluoride Study Final Report",
+      "type": "web",
+      "version": "-",
+      "locator": "§5.4.1 HF Alkylation Processes",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Light olefins and isobutane are converted to alkylate in the alkylation process. Thus, the alkylation process reduces light components from the gasoline pool.23As a result of gasoline reformulation requirements, refiners are increasingly reliant on alkylate as a gasoline blending component."
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-02; verdict=CONFIRMED",
+      "url": "https://archive.epa.gov/emergencies/docs/chem/web/pdf/hydro.pdf"
+    },
+    "ku-29cc130c4677925b": {
+      "title": "US EPA Hydrogen Fluoride Study Final Report",
+      "type": "web",
+      "version": "-",
+      "locator": "§5.4.1 HF Alkylation Processes",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Alkylate, byproduct propane, and byproduct butane are treated to remove fluorine compounds and/or residual HF before being sent to storage."
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-03; verdict=CONFIRMED",
+      "url": "https://archive.epa.gov/emergencies/docs/chem/web/pdf/hydro.pdf"
+    },
+    "ku-44f4e41d00a4820e": {
+      "title": "US EPA Hydrogen Fluoride Study Final Report",
+      "type": "web",
+      "version": "-",
+      "locator": "§5.4.1 HF Alkylation Processes",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Acid and unreacted isobutane are recycled to the reactor with fresh acid, isobutane, and olefin feed makeup as needed."
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-07; verdict=CONFIRMED",
+      "url": "https://archive.epa.gov/emergencies/docs/chem/web/pdf/hydro.pdf"
+    },
+    "ku-53a97c765fd1120b": {
+      "title": "European Commission Implementing Decision 2014/738/EU BAT Conclusions for Refining of Mineral Oil and Gas",
+      "type": "web",
+      "version": "-",
+      "locator": "§1.2.1 BAT 19 Hydrofluoric acid alkylation process",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "In order to prevent hydrofluoric acid (HF) emissions to air from the hydrofluoric acid alkylation process, BAT is to use wet scrubbing with alkaline solution to treat incondensable gas streams prior to venting to flare."
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-09; verdict=CONFIRMED",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32014D0738"
+    },
+    "ku-d9f8e84b0ca20382": {
+      "title": "European Commission Implementing Decision 2014/738/EU BAT Conclusions for Refining of Mineral Oil and Gas",
+      "type": "web",
+      "version": "-",
+      "locator": "§1.2.1 BAT 20 Hydrofluoric acid alkylation process",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "BAT 20. In order to reduce emissions to water from the hydrofluoric acid alkylation process, BAT is to use a combination of the techniques given below. Technique Description Applicability (i) Precipitation/Neutralisation step Precipitation (with, e.g. calcium or aluminium-based additives) or neutralisation (where the effluent is indirectly neutralised with potassium hydroxide (KOH)) Generally applicable. Safety requirements due to the hazardous nature of hydrofluoric acid (HF) are to be considered (ii) Separation step The insoluble compounds produced at the first step (e.g. CaF 2 or AlF 3 ) are separated in e.g. a settlement basin"
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-10; verdict=CONFIRMED",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32014D0738"
+    },
+    "ku-3d73d99668b2ca0f": {
+      "title": "US EPA Hydrogen Fluoride Study Final Report",
+      "type": "web",
+      "version": "-",
+      "locator": "§5.4.1 HF Alkylation Processes",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Alkylate, byproduct propane, and byproduct butane are treated to remove fluorine compounds and/or residual HF before being sent to storage."
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-05; verdict=CONFIRMED",
+      "url": "https://archive.epa.gov/emergencies/docs/chem/web/pdf/hydro.pdf"
+    },
+    "ku-fd3c175e1233bbab": {
+      "title": "US EPA Hydrogen Fluoride Study Final Report",
+      "type": "web",
+      "version": "-",
+      "locator": "§5.4.1 HF Alkylation Processes",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "The alkylation process incorporates three general steps: reaction, separation, and treatment. After the isobutane and olefins are reacted in a reactor in the presence of the acid catalyst, the alkylate product, byproduct propane and butanes, unreacted isobutane, and acid are then separated through settling and distillation."
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-04; verdict=CONFIRMED",
+      "url": "https://archive.epa.gov/emergencies/docs/chem/web/pdf/hydro.pdf"
+    },
+    "ku-4d4b49f14c83d396": {
+      "title": "European Commission Implementing Decision 2014/738/EU BAT Conclusions for Refining of Mineral Oil and Gas",
+      "type": "web",
+      "version": "-",
+      "locator": "§1.2.1 Hydrofluoric acid alkylation process; §1.2.2 Sulphuric acid alkylation process",
+      "authority": "claim-verified",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "1.2.1. Hydrofluoric acid alkylation process"
+      ],
+      "status": "verified",
+      "region": "UNSPECIFIED",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=A017-06; verdict=CONFIRMED",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32014D0738"
+    }
+  }
+}

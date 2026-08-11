@@ -1,0 +1,1 @@
+{"capability_id":"bom.probe","version":"1","executor":"python","entrypoint":"vendor/lca_cornerstone/scripts/build_product_model.py","input_schema":"bom-probe-input-v1","output_schema":"bom-probe-report-v1","side_effects":"none","idempotent":true,"timeout_seconds":900,"permissions":["filesystem:read"],"tags":["bom","probe"]}

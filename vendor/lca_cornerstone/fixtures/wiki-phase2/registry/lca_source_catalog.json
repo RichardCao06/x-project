@@ -1,0 +1,289 @@
+{
+  "_meta": {
+    "schema_version": "lca-source-catalog-v1",
+    "scope": "ICT multi-source dataset discovery and access audit",
+    "checked_at": "2026-07-30",
+    "rule": "A source-level existence statement, a record-level search, and a node-level binding verdict are separate claims.",
+    "identity_query_lenses": [
+      "whole ICT equipment",
+      "printed circuit board and SMT assembly",
+      "logic and memory semiconductors",
+      "power supplies, storage, connectors and solder",
+      "vendor product EPD/PCF"
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "ecoinvent-3.12-cutoff",
+      "provider": "ecoinvent Association",
+      "source_family": "commercial_lci_database",
+      "official_locator": "https://support.ecoinvent.org/hubfs/Knowledge%20Base/Database/Releases/3.12/Database%20Overview%20v3.12.xlsx",
+      "catalog_access_status": "official_catalog_accessible",
+      "record_level_search": "complete_catalog_traversal_for_all_132_ict_nodes",
+      "stable_id_support": true,
+      "license_scope": "public_metadata_only",
+      "checked_at": "2026-07-29",
+      "limitation": "LCI quantities require a database licence.",
+      "query_audit": {
+        "node_count": 132,
+        "catalog_record_count": 26533,
+        "per_node_results": "registry/lca_node_search_matrix.json"
+      },
+      "catalog_records_retained": 19
+    },
+    {
+      "source_id": "federal-lca-commons",
+      "provider": "US Federal LCA Commons / USDA NAL",
+      "source_family": "official_public_repository_network",
+      "official_locator": "https://www.lcacommons.gov/lca-commons-api-guide",
+      "catalog_access_status": "official_api_accessible_rate_limited",
+      "record_level_search": "partial_completed",
+      "stable_id_support": true,
+      "license_scope": "public_metadata_and_repository_records",
+      "checked_at": "2026-07-29",
+      "limitation": "DEMO_KEY rate limit interrupted four supplementary queries; completed queries are retained and incomplete queries are not treated as no-result.",
+      "query_audit": {
+        "query_terms": [
+          "printed circuit",
+          "integrated circuit",
+          "DRAM",
+          "power supply",
+          "server",
+          "NAND"
+        ],
+        "retained_process_records": 4,
+        "interrupted_terms": [
+          "hard disk",
+          "semiconductor",
+          "solder",
+          "connector",
+          "laptop"
+        ]
+      },
+      "catalog_records_retained": 4
+    },
+    {
+      "source_id": "unep-glad",
+      "provider": "UNEP Life Cycle Initiative",
+      "source_family": "federated_metadata_network",
+      "official_locator": "https://www.unep.org/explore-topics/resource-efficiency/what-we-do/life-cycle-initiative/global-lca-data-access-network",
+      "catalog_access_status": "network_scope_verified_no_public_query_endpoint",
+      "record_level_search": "not_executable",
+      "stable_id_support": false,
+      "license_scope": "metadata_network",
+      "checked_at": "2026-07-29",
+      "limitation": "The official page documents the network and metadata descriptors, but no current central public record-query endpoint was verified.",
+      "catalog_records_retained": 0
+    },
+    {
+      "source_id": "eplca-ef31",
+      "provider": "European Commission Joint Research Centre",
+      "source_family": "official_european_lci_catalog",
+      "official_locator": "https://eplca.jrc.ec.europa.eu/EF-node/processSearch.xhtml?stock=EF3_1_background_processes",
+      "catalog_access_status": "official_search_ui_accessible",
+      "record_level_search": "completed_for_ict_query_set_zero_results",
+      "stable_id_support": true,
+      "license_scope": "public_metadata_search",
+      "checked_at": "2026-07-29",
+      "limitation": "Computer, printed circuit, integrated circuit, semiconductor, server, DRAM and solder searches returned zero records in the EF 3.1 background stock.",
+      "query_audit": {
+        "query_terms": [
+          "computer",
+          "printed circuit",
+          "integrated circuit",
+          "semiconductor",
+          "server",
+          "DRAM",
+          "solder"
+        ],
+        "result_count_by_term": {
+          "computer": 0,
+          "printed circuit": 0,
+          "integrated circuit": 0,
+          "semiconductor": 0,
+          "server": 0,
+          "DRAM": 0,
+          "solder": 0
+        }
+      },
+      "catalog_records_retained": 0
+    },
+    {
+      "source_id": "eplca-elcd-ilcd",
+      "provider": "European Commission Joint Research Centre",
+      "source_family": "official_european_legacy_catalog",
+      "official_locator": "https://eplca.jrc.ec.europa.eu/LCDN/datasetListILCD.html",
+      "catalog_access_status": "official_catalog_page_accessible",
+      "record_level_search": "catalog_scope_reviewed_no_ict_binding",
+      "stable_id_support": true,
+      "license_scope": "public_metadata",
+      "checked_at": "2026-07-29",
+      "limitation": "Legacy ELCD/ILCD coverage did not yield a record passing current ICT node identity and boundary gates.",
+      "catalog_records_retained": 0
+    },
+    {
+      "source_id": "aist-idea-3.4-sample",
+      "provider": "AIST / SuMPO",
+      "source_family": "japanese_lci_database",
+      "official_locator": "https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx",
+      "catalog_access_status": "official_sample_metadata_accessible",
+      "record_level_search": "complete_public_sample_traversal_for_all_132_ict_nodes",
+      "stable_id_support": true,
+      "license_scope": "official_sample_metadata_only",
+      "checked_at": "2026-07-29",
+      "limitation": "The public v3.4 sample exposes codes and names; current IDEA v4 and full LCI data remain licensed. Sample LCI quantities are not copied.",
+      "query_audit": {
+        "node_count": 132,
+        "catalog_record_count": 9153,
+        "matched_public_codes": [
+          "232112000pGLO",
+          "232112000pJPN",
+          "281413000pGLO",
+          "281413000pJPN",
+          "281414000pGLO",
+          "281414000pJPN",
+          "281414200pGLO",
+          "281414200pJPN",
+          "282311000pGLO",
+          "282311000pJPN",
+          "282312000pGLO",
+          "282312000pJPN",
+          "284111000pGLO",
+          "284111000pJPN",
+          "284211000pGLO",
+          "284211000pJPN",
+          "285111000pGLO",
+          "285111000pJPN",
+          "303111000pGLO",
+          "303111000pJPN",
+          "303112000pGLO",
+          "303112000pJPN",
+          "303211000pGLO",
+          "303211000pJPN",
+          "303311000pGLO",
+          "303311000pJPN"
+        ],
+        "per_node_results": "registry/lca_node_search_matrix.json"
+      },
+      "catalog_records_retained": 26
+    },
+    {
+      "source_id": "milca",
+      "provider": "SuMPO",
+      "source_family": "japanese_lca_software_catalog",
+      "official_locator": "https://www.milca-milca.net/",
+      "catalog_access_status": "licensed_service_no_public_record_catalog",
+      "record_level_search": "not_executable",
+      "stable_id_support": false,
+      "license_scope": "licensed",
+      "checked_at": "2026-07-29",
+      "limitation": "The official service confirms AIST-IDEA and ecoinvent availability, but a complete public record-level catalog was not exposed.",
+      "catalog_records_retained": 0
+    },
+    {
+      "source_id": "clcd",
+      "provider": "IKE Environmental Technology",
+      "source_family": "chinese_lci_database",
+      "official_locator": "https://www.ike-global.com/",
+      "catalog_access_status": "provider_scope_verified_catalog_not_public",
+      "record_level_search": "not_executable",
+      "stable_id_support": false,
+      "license_scope": "provider_access_required",
+      "checked_at": "2026-07-29",
+      "limitation": "The provider confirms the Chinese Life Cycle Database, but no complete public ICT record catalog or stable record IDs were available for adjudication.",
+      "catalog_records_retained": 0
+    },
+    {
+      "source_id": "hiqlcd",
+      "provider": "HiQLCD",
+      "source_family": "chinese_lca_data_platform",
+      "official_locator": "https://www.hiqlcd.com/lab/search",
+      "catalog_access_status": "public_search_and_record_metadata_accessible",
+      "record_level_search": "curated_ict_identity_lenses_completed",
+      "stable_id_support": true,
+      "license_scope": "public_metadata; full inventory and LCIA require access",
+      "checked_at": "2026-07-30",
+      "limitation": "Public pages expose identity, unit, boundary, geography, time and process descriptions. Search is strongly fuzzy and must be semantically adjudicated; full exchanges remain access-controlled.",
+      "catalog_records_retained": 13,
+      "public_catalog_claim": "12w+ datasets across advertised versions",
+      "searched_release": "HiQLCD v1.5.0"
+    },
+    {
+      "source_id": "epd-international",
+      "provider": "EPD International AB",
+      "source_family": "official_epd_program",
+      "official_locator": "https://www.environdec.com/library",
+      "catalog_access_status": "official_public_library_accessible",
+      "record_level_search": "selected_family_search_only_node_query_pending",
+      "stable_id_support": true,
+      "license_scope": "public_epd_documents",
+      "checked_at": "2026-07-29",
+      "limitation": "EPDs are product declarations and normally external aggregate comparators, not interchangeable with unit-process datasets.",
+      "catalog_records_retained": 1
+    },
+    {
+      "source_id": "vendor-pcf",
+      "provider": "Lenovo, Dell, HPE and NVIDIA",
+      "source_family": "manufacturer_pcf_epd",
+      "official_locator": "https://lenovopress.lenovo.com/lp1855-lenovo-product-carbon-footprint-and-eco-declarations",
+      "catalog_access_status": "official_vendor_documents_accessible",
+      "record_level_search": "completed_for_selected_ict_product_families",
+      "stable_id_support": false,
+      "license_scope": "public_documents",
+      "checked_at": "2026-07-29",
+      "limitation": "Vendor PCFs provide whole-product aggregates; model configuration, use assumptions and lifecycle boundary must be checked before comparison.",
+      "catalog_records_retained": 5
+    },
+    {
+      "source_id": "sphera-mlc-2026.1",
+      "provider": "Sphera",
+      "source_family": "commercial_lci_database",
+      "official_locator": "https://lcadatabase.sphera.com/wp-content/uploads/2026/05/Sphera-MLC-Databases-Documentation-2026.1.zip",
+      "catalog_access_status": "official_catalog_accessible",
+      "record_level_search": "complete_catalog_traversal_for_all_132_ict_nodes",
+      "stable_id_support": true,
+      "license_scope": "public_metadata_only",
+      "checked_at": "2026-07-29",
+      "limitation": "Public metadata and per-record XML documentation were searched; LCI quantities require a Sphera licence.",
+      "query_audit": {
+        "node_count": 132,
+        "catalog_record_count": 19644,
+        "matched_public_guids": [
+          "15963b61-7678-4939-8774-962b7e7167ec",
+          "309288a5-19a4-4efc-9e62-e5cf173751cc",
+          "3ce14a7f-1285-46c5-8c76-68a8315931b1",
+          "4d2e49ed-edc5-4c4e-8d86-63a2a27d39d5",
+          "62a02998-bae3-4bb2-a955-e3b65fc6147b",
+          "723b2483-16a5-42d1-9f26-9412f7082c47",
+          "729f2a50-082d-4483-85eb-3548509197a1",
+          "90b4a586-259e-4b0b-a205-e17b318a4c51",
+          "b8e48556-451e-4441-99d1-a387f70de4f3",
+          "bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+          "cac21f56-3ba4-41a8-b273-a9502481cdf1",
+          "e398b1a0-46a1-4ea8-845e-77db5ffb98db"
+        ],
+        "per_node_results": "registry/lca_node_search_matrix.json"
+      },
+      "catalog_records_retained": 12
+    },
+    {
+      "source_id": "openlca-nexus",
+      "provider": "GreenDelta",
+      "source_family": "multi_provider_discovery_index",
+      "official_locator": "https://nexus.openlca.org/",
+      "catalog_access_status": "public_discovery_api_accessible",
+      "record_level_search": "per_node_discovery_queries_completed_original_provider_check_required",
+      "stable_id_support": true,
+      "license_scope": "provider_specific",
+      "checked_at": "2026-07-29",
+      "limitation": "Discovery only. A Nexus hit cannot create a formal binding until the original provider record is independently verified.",
+      "query_audit": {
+        "node_count": 132,
+        "deduplicated_identity_queries": "see registry/lca_node_search_matrix.json",
+        "per_node_results": "registry/lca_node_search_matrix.json",
+        "binding_effect": "none_without_original_provider_verification"
+      },
+      "catalog_records_retained": 0
+    }
+  ]
+}

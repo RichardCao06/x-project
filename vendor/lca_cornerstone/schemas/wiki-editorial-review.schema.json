@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "node_id", "verdict", "reviewed_sections", "checks", "issues"],
+  "properties": {
+    "protocol": {"type": "string", "const": "wiki-editorial-review-v1"},
+    "node_id": {"type": "string"},
+    "verdict": {"type": "string", "enum": ["GO", "NO_GO"]},
+    "reviewed_sections": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paragraph_focus", "adjacency_logic", "term_identity_consistency", "redundancy_control", "citation_readability", "overall_readability"],
+      "properties": {
+        "paragraph_focus": {"type": "boolean"},
+        "adjacency_logic": {"type": "boolean"},
+        "term_identity_consistency": {"type": "boolean"},
+        "redundancy_control": {"type": "boolean"},
+        "citation_readability": {"type": "boolean"},
+        "overall_readability": {"type": "boolean"}
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["section", "paragraph_index", "issue_type", "explanation", "repair_instruction"],
+        "properties": {
+          "section": {"type": "string"},
+          "paragraph_index": {"type": "integer", "minimum": 1},
+          "issue_type": {"type": "string", "enum": ["disconnected", "redundant", "identity_drift", "unsupported_fusion", "poor_transition", "claim_dump", "citation_intrusion", "other"]},
+          "explanation": {"type": "string", "minLength": 8},
+          "repair_instruction": {"type": "string", "minLength": 8}
+        }
+      }
+    }
+  }
+}

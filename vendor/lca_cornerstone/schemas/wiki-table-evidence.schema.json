@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wiki-table-evidence.schema.json",
+  "title": "Node Wiki table evidence collection",
+  "type": "object",
+  "required": ["protocol", "node_id", "reference_configuration", "thresholds", "sources", "tables"],
+  "properties": {
+    "protocol": {
+      "type": "object",
+      "required": ["version", "kind"],
+      "properties": {
+        "version": {"const": "wiki-table-evidence-v1"},
+        "kind": {"const": "node-table-collection"}
+      }
+    },
+    "node_id": {"pattern": "^[PA][0-9]{3}$"},
+    "reference_configuration": {
+      "type": "object",
+      "required": ["manufacturer", "model", "scope", "freeze_rule"]
+    },
+    "change_log": {
+      "type": "object",
+      "required": ["date", "title", "bullets"],
+      "properties": {
+        "date": {"type": "string"},
+        "title": {"type": "string"},
+        "bullets": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "required": ["props_populated", "params_int_populated", "quality_assessed"],
+      "properties": {
+        "props_populated": {"type": "integer", "minimum": 0},
+        "params_int_populated": {"type": "integer", "minimum": 0},
+        "params_cn_populated": {"type": "integer", "minimum": 0},
+        "quality_assessed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "sources": {"type": "array", "minItems": 1},
+    "tables": {
+      "type": "object",
+      "required": ["props", "params", "quality"],
+      "properties": {
+        "props": {"type": "array", "minItems": 1},
+        "params": {"type": "array", "minItems": 1},
+        "quality": {"type": "array", "minItems": 1}
+      }
+    }
+  }
+}

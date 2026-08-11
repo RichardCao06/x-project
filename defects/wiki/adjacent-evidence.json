@@ -1,0 +1,4 @@
+{
+  "source_payload": "A DRAM package stores data in an electronic system.",
+  "claim": {"claim_id": "c-adjacent", "verdict": "CONFIRMED", "node_alignment": "ADJACENT", "claim_kind": "external_fact", "excerpt": "stores data"}
+}

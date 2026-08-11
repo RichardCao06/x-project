@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wiki-proposal-v1",
+  "type": "object",
+  "required": ["schema_version", "node_identity", "frozen_input_hash", "agent_id", "attestation_receipt"],
+  "properties": {
+    "schema_version": {"const": "wiki-proposal-v1"},
+    "node_identity": {"type": "object", "required": ["node_id"], "properties": {"node_id": {"type": "string"}}},
+    "frozen_input_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "agent_id": {"type": "string", "minLength": 1},
+    "attestation": false,
+    "attestation_receipt": {"$ref": "wiki-attestation-v1#/$defs/proof_receipt"},
+    "outputs": {"type": "array"}
+  },
+  "additionalProperties": true
+}

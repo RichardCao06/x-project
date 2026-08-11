@@ -1,0 +1,294 @@
+{
+  "_meta": {
+    "schema_version": "formal-binding-audit-v1",
+    "scope": "ICT formal product-metadata C2 source-level adjudication",
+    "audited_at": "2026-07-30",
+    "rule": "Official existence and semantic similarity are insufficient for C3/C4. Complete source I/O, target boundary reconciliation, representativeness and licence access must pass before formal binding.",
+    "result": {
+      "records_audited": 7,
+      "retained_formal_bindings": 0,
+      "downgraded_to_C2": 7,
+      "calculation_permission_true": 0
+    }
+  },
+  "audits": [
+    {
+      "audit_id": "audit::ict_equipment::P044::hiqlcd::4c761a71-4215-4ae0-91af-e47a7580572e",
+      "node_ref": "ict_equipment::P044",
+      "dataset_key": "hiqlcd::1.5.0::cut_off::4c761a71-4215-4ae0-91af-e47a7580572e",
+      "prior_verdict": "new public metadata candidate",
+      "final_verdict": "C2 verified_candidate",
+      "calculation_permission": false,
+      "verified_fields": {
+        "reference_product": "电阻器，厚膜，片式",
+        "reference_unit": "kg",
+        "geography": "中国,黑龙江省",
+        "time": "2020–2026",
+        "model": "allocation_cutoff; consumption_mix; cradle_to_consumption",
+        "product_identity": "公开页面给出平均规格 1.25×0.65×0.35 mm、平均质量约 0.04 g，并列出印刷、烧结、激光调阻、镀膜、电镀和测试等工序。",
+        "stable_id": "4c761a71-4215-4ae0-91af-e47a7580572e"
+      },
+      "failed_or_unresolved_gates": {
+        "complete_source_io": "The public page does not expose complete technosphere, elementary-flow and waste exchanges.",
+        "target_geography": "The public record geography must be reconciled to the target ICT factory province and representative period.",
+        "target_boundary": "Target specifications, production/consumption mix choice and transport boundary remain project-specific.",
+        "licence": "Full inventory and LCIA access require login/purchase; public metadata grants no calculation permission."
+      },
+      "evidence": [
+        {
+          "kind": "official_public_record_page",
+          "locator": "https://www.hiqlcd.com/dataset/hiqlcd/1.5.0/cut_off/4c761a71-4215-4ae0-91af-e47a7580572e",
+          "record": "HiQLCD 1.5.0 allocation_cutoff UUID 4c761a71-4215-4ae0-91af-e47a7580572e",
+          "verified_at": "2026-07-30"
+        }
+      ],
+      "promotion_requirements": [
+        "Obtain authorised complete process exchanges.",
+        "Reconcile source and target functional unit, boundary and mix type.",
+        "Calibrate the target Chinese factory province, period and specifications.",
+        "Re-adjudicate licence scope and project calculation permission."
+      ]
+    },
+    {
+      "audit_id": "audit::ict_equipment::P062::sphera::729f2a50-082d-4483-85eb-3548509197a1",
+      "node_ref": "ict_equipment::P062",
+      "dataset_key": "sphera::MLC::2026.1::729f2a50-082d-4483-85eb-3548509197a1",
+      "prior_verdict": "C3 proxy_binding",
+      "final_verdict": "C2 verified_candidate",
+      "calculation_permission": false,
+      "verified_fields": {
+        "reference_product": "Solder paste SnAg3Cu0.5 (SAC-Lot)",
+        "reference_product_id": "ff2c7e23-8b56-4e45-9b2e-37550ebdef26",
+        "reference_exchange": "dataSetInternalID:0; output; meanAmount 1.0",
+        "reference_unit": "kg",
+        "geography": "GLO",
+        "time": "reference year 2025; valid until 2028",
+        "model": "attributional LCI result; aggregated cradle-to-gate",
+        "product_identity": "SAC305 solder paste before soldering; Sn 96.5%, Ag 3.0%, Cu 0.5%, with rosin/flux and fillers"
+      },
+      "failed_or_unresolved_gates": {
+        "complete_source_io": "Public process XML contains one reference-product exchange only.",
+        "geography": "GLO is not calibrated to a Chinese supplier or factory.",
+        "target_boundary": "Chinese formulation auxiliaries, manufacturing utilities, losses, packaging and wastes are unresolved.",
+        "licence": "ILCD access restrictions require a separate Sphera agreement; public files do not grant use of the full Managed LCA Content inventory."
+      },
+      "evidence": [
+        {
+          "kind": "official_workbook",
+          "locator": "https://lcadatabase.sphera.com/wp-content/uploads/2026/05/Sphera-MLC-Databases-Documentation-2026.1.zip",
+          "sha256": "b71f450cb80fa53d53185ff8511ff9990ad49648c163f403e10fef6153420861",
+          "record": "row 16169; GUID 729F2A50-082D-4483-85EB-3548509197A1"
+        },
+        {
+          "kind": "official_process_xml",
+          "locator": "https://lcadatabase.sphera.com/2026/xml-data/processes/729f2a50-082d-4483-85eb-3548509197a1.xml",
+          "sha256": "ac6c817264da9b7179a8f65910cc89729ccdef09cd5cb5c7356f227514c61c4c"
+        },
+        {
+          "kind": "official_flow_xml",
+          "locator": "https://lcadatabase.sphera.com/2026/xml-data/flows/ff2c7e23-8b56-4e45-9b2e-37550ebdef26.xml",
+          "sha256": "a96f6752119fc8cf616eb7fb8a708d39ab2ea119e14fdfaf0465a961b9ca2337"
+        }
+      ],
+      "promotion_requirements": [
+        "Obtain licensed complete process exchanges and reconcile them to the node boundary.",
+        "Calibrate Chinese supplier/factory composition, utilities, losses, packaging and waste.",
+        "Re-adjudicate licence scope and calculation permission."
+      ]
+    },
+    {
+      "audit_id": "audit::ict_equipment::P065::ecoinvent::e45b56e4-029f-55ba-bc24-eb19aa4bded4",
+      "node_ref": "ict_equipment::P065",
+      "dataset_key": "ecoinvent::3.12::cutoff::e45b56e4-029f-55ba-bc24-eb19aa4bded4",
+      "prior_verdict": "C3 proxy_binding",
+      "final_verdict": "C2 verified_candidate",
+      "calculation_permission": false,
+      "verified_fields": {
+        "activity": "corrugated board box production",
+        "reference_product": "corrugated board box",
+        "reference_product_id": "ca213807-7c00-4537-ac8c-23d39d0f2bd5",
+        "reference_unit": "kg",
+        "geography": "RoW",
+        "time": "2008-2025",
+        "process_description": "Corrugated board is cut into sheets, printed, slotted, folded and glued."
+      },
+      "failed_or_unresolved_gates": {
+        "complete_source_io": "The public Database Overview does not expose the full technosphere and biosphere exchanges.",
+        "geography": "RoW is not calibrated to Chinese corrugated-box production.",
+        "target_specification": "Box style, flute, board grade, grammage, recycled content, box mass, printing and adhesive are unresolved.",
+        "time": "The target study period is not declared and the source period ends in 2025.",
+        "licence": "ecoinvent states that cumulative inventories and exchanges beyond guest metadata require a licence."
+      },
+      "evidence": [
+        {
+          "kind": "official_workbook",
+          "locator": "https://support.ecoinvent.org/hubfs/Knowledge%20Base/Database/Releases/3.12/Database%20Overview%20v3.12.xlsx",
+          "sha256": "93b9f045833316560b92c6560f338d4766b08c5f54fd8ac03ee87de03a88098c",
+          "record": "Cut-Off AO row 2411; activity UUID e45b56e4-029f-55ba-bc24-eb19aa4bded4"
+        },
+        {
+          "kind": "official_dataset_page",
+          "locator": "https://ecoquery.ecoinvent.org/3.12/cutoff/dataset/9509/documentation"
+        }
+      ],
+      "promotion_requirements": [
+        "Obtain licensed complete exchanges and reconcile converting and upstream board boundaries.",
+        "Calibrate the Chinese box specification, mass, printing, adhesive, waste and representative period.",
+        "Re-adjudicate licence scope and calculation permission."
+      ]
+    },
+    {
+      "audit_id": "audit::ict_equipment::P066::ecoinvent::64d70fe5-a32d-52a9-8901-3b52f9e4ab4e",
+      "node_ref": "ict_equipment::P066",
+      "dataset_key": "ecoinvent::3.12::cutoff::64d70fe5-a32d-52a9-8901-3b52f9e4ab4e",
+      "prior_verdict": "C4 exact_binding; calculation_permission=true",
+      "final_verdict": "C2 verified_candidate",
+      "calculation_permission": false,
+      "verified_fields": {
+        "activity": "market group for electricity, medium voltage",
+        "reference_product": "electricity, medium voltage",
+        "reference_product_id": "759b89bd-3aa6-42ad-b767-5bb9ef5d331d",
+        "reference_unit": "kWh",
+        "geography": "CN",
+        "time": "2015-2025",
+        "market_scope": "Includes transmission infrastructure, country-specific losses and transformation losses; medium voltage is 1-24 kV."
+      },
+      "failed_or_unresolved_gates": {
+        "complete_source_io": "The public Database Overview does not expose the supplier mix or complete exchanges.",
+        "target_geography": "China is matched only at national market-group level; target province and factory supply contract are unresolved.",
+        "time": "The target study period is not declared and the source period ends in 2025.",
+        "licence": "The catalog record is metadata_only; no licensed LCI values were imported.",
+        "prior_permission_error": "Semantic identity was incorrectly treated as permission to calculate."
+      },
+      "evidence": [
+        {
+          "kind": "official_workbook",
+          "locator": "https://support.ecoinvent.org/hubfs/Knowledge%20Base/Database/Releases/3.12/Database%20Overview%20v3.12.xlsx",
+          "sha256": "93b9f045833316560b92c6560f338d4766b08c5f54fd8ac03ee87de03a88098c",
+          "record": "Cut-Off AO row 17276; activity UUID 64d70fe5-a32d-52a9-8901-3b52f9e4ab4e"
+        },
+        {
+          "kind": "official_dataset_page",
+          "locator": "https://ecoquery.ecoinvent.org/3.12/cutoff/dataset/13571/documentation"
+        }
+      ],
+      "promotion_requirements": [
+        "Obtain licensed market-group exchanges and supplier composition.",
+        "Declare target province, factory electricity boundary and reference period.",
+        "Account for onsite generation, green-power contracts, voltage transformation and losses.",
+        "Re-adjudicate licence scope and calculation permission."
+      ]
+    },
+    {
+      "audit_id": "audit::ict_equipment::P066::hiqlcd::d9e16909-406e-447f-9f7d-9ede92248ac1",
+      "node_ref": "ict_equipment::P066",
+      "dataset_key": "hiqlcd::1.5.0::cut_off::d9e16909-406e-447f-9f7d-9ede92248ac1",
+      "prior_verdict": "new public metadata candidate",
+      "final_verdict": "C2 verified_candidate",
+      "calculation_permission": false,
+      "verified_fields": {
+        "reference_product": "电力，中压",
+        "reference_unit": "kWh",
+        "geography": "中国,宁夏回族自治区",
+        "time": "2023–2026",
+        "model": "allocation_cutoff; consumption_mix; cradle_to_gate",
+        "product_identity": "公开页面说明 1–35 kV 中压消费电力，包含供电基础设施、排放和线路损失（该记录列示 0.99%）；完整交换清单需登录/授权。",
+        "stable_id": "d9e16909-406e-447f-9f7d-9ede92248ac1"
+      },
+      "failed_or_unresolved_gates": {
+        "complete_source_io": "The public page does not expose complete technosphere, elementary-flow and waste exchanges.",
+        "target_geography": "The public record geography must be reconciled to the target ICT factory province and representative period.",
+        "target_boundary": "Target specifications, production/consumption mix choice and transport boundary remain project-specific.",
+        "licence": "Full inventory and LCIA access require login/purchase; public metadata grants no calculation permission."
+      },
+      "evidence": [
+        {
+          "kind": "official_public_record_page",
+          "locator": "https://www.hiqlcd.com/dataset/hiqlcd/1.5.0/cut_off/d9e16909-406e-447f-9f7d-9ede92248ac1",
+          "record": "HiQLCD 1.5.0 allocation_cutoff UUID d9e16909-406e-447f-9f7d-9ede92248ac1",
+          "verified_at": "2026-07-30"
+        }
+      ],
+      "promotion_requirements": [
+        "Obtain authorised complete process exchanges.",
+        "Reconcile source and target functional unit, boundary and mix type.",
+        "Calibrate the target Chinese factory province, period and specifications.",
+        "Re-adjudicate licence scope and project calculation permission."
+      ]
+    },
+    {
+      "audit_id": "audit::ict_equipment::P080::hiqlcd::cc2a562b-fa56-4043-9fbc-f38886db503a",
+      "node_ref": "ict_equipment::P080",
+      "dataset_key": "hiqlcd::1.5.0::cut_off::cc2a562b-fa56-4043-9fbc-f38886db503a",
+      "prior_verdict": "new public metadata candidate",
+      "final_verdict": "C2 verified_candidate",
+      "calculation_permission": false,
+      "verified_fields": {
+        "reference_product": "陶瓷电容器，MLCC，贴片式",
+        "reference_unit": "kg",
+        "geography": "中国,甘肃省",
+        "time": "2019–2026",
+        "model": "allocation_cutoff; consumption_mix; cradle_to_consumption",
+        "product_identity": "公开页面给出约 0.007 g/件，并列出流延、内电极印制、叠膜、等静压、切割、排粘、烧成、封端、电镀和测试筛选等工序。",
+        "stable_id": "cc2a562b-fa56-4043-9fbc-f38886db503a"
+      },
+      "failed_or_unresolved_gates": {
+        "complete_source_io": "The public page does not expose complete technosphere, elementary-flow and waste exchanges.",
+        "target_geography": "The public record geography must be reconciled to the target ICT factory province and representative period.",
+        "target_boundary": "Target specifications, production/consumption mix choice and transport boundary remain project-specific.",
+        "licence": "Full inventory and LCIA access require login/purchase; public metadata grants no calculation permission."
+      },
+      "evidence": [
+        {
+          "kind": "official_public_record_page",
+          "locator": "https://www.hiqlcd.com/dataset/hiqlcd/1.5.0/cut_off/cc2a562b-fa56-4043-9fbc-f38886db503a",
+          "record": "HiQLCD 1.5.0 allocation_cutoff UUID cc2a562b-fa56-4043-9fbc-f38886db503a",
+          "verified_at": "2026-07-30"
+        }
+      ],
+      "promotion_requirements": [
+        "Obtain authorised complete process exchanges.",
+        "Reconcile source and target functional unit, boundary and mix type.",
+        "Calibrate the target Chinese factory province, period and specifications.",
+        "Re-adjudicate licence scope and project calculation permission."
+      ]
+    },
+    {
+      "audit_id": "audit::ict_equipment::P085::hiqlcd::07e88c20-3b1d-4ab2-af1b-22184701826d",
+      "node_ref": "ict_equipment::P085",
+      "dataset_key": "hiqlcd::1.5.0::cut_off::07e88c20-3b1d-4ab2-af1b-22184701826d",
+      "prior_verdict": "new public metadata candidate",
+      "final_verdict": "C2 verified_candidate",
+      "calculation_permission": false,
+      "verified_fields": {
+        "reference_product": "工业托盘，木质",
+        "reference_unit": "kg",
+        "geography": "中国,广东省",
+        "time": "2022–2026",
+        "model": "allocation_cutoff; consumption_mix; cradle_to_consumption",
+        "product_identity": "公开页面确认木质工业托盘及板材准备、干燥定型、切割精整、组装、防脱、防滑和封蜡工序。",
+        "stable_id": "07e88c20-3b1d-4ab2-af1b-22184701826d"
+      },
+      "failed_or_unresolved_gates": {
+        "complete_source_io": "The public page does not expose complete technosphere, elementary-flow and waste exchanges.",
+        "target_geography": "The public record geography must be reconciled to the target ICT factory province and representative period.",
+        "target_boundary": "Target specifications, production/consumption mix choice and transport boundary remain project-specific.",
+        "licence": "Full inventory and LCIA access require login/purchase; public metadata grants no calculation permission."
+      },
+      "evidence": [
+        {
+          "kind": "official_public_record_page",
+          "locator": "https://www.hiqlcd.com/dataset/hiqlcd/1.5.0/cut_off/07e88c20-3b1d-4ab2-af1b-22184701826d",
+          "record": "HiQLCD 1.5.0 allocation_cutoff UUID 07e88c20-3b1d-4ab2-af1b-22184701826d",
+          "verified_at": "2026-07-30"
+        }
+      ],
+      "promotion_requirements": [
+        "Obtain authorised complete process exchanges.",
+        "Reconcile source and target functional unit, boundary and mix type.",
+        "Calibrate the target Chinese factory province, period and specifications.",
+        "Re-adjudicate licence scope and project calculation permission."
+      ]
+    }
+  ]
+}

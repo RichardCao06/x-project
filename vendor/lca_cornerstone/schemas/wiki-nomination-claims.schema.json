@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["protocol", "claims"],
+  "properties": {
+    "protocol": {
+      "type": "object",
+      "required": ["version", "mode"],
+      "properties": {
+        "version": {"type": "string", "const": "wiki-ku-nomination-v2"},
+        "mode": {"type": "string", "const": "extract"}
+      },
+      "additionalProperties": false
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 56,
+      "items": {
+        "type": "object",
+        "required": ["requirement_id", "section", "claim_text", "claim_kind", "believed_source", "believed_locator", "attribution_confidence", "node_id", "industry", "node_identity", "claim_id"],
+        "properties": {
+          "requirement_id": {"type": "string"},
+          "section": {"type": "string"},
+          "claim_text": {"type": "string"},
+          "claim_kind": {"type": "string", "enum": ["external_fact", "internal_graph_fact", "modeling_judgment", "evidence_gap"]},
+          "believed_source": {"type": "string"},
+          "believed_locator": {"type": "string"},
+          "attribution_confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+          "node_id": {"type": "string", "const": "A015"},
+          "industry": {"type": "string", "const": "oil_refining"},
+          "node_identity": {
+            "type": "object",
+            "required": ["display_name", "node_type", "facets", "boundary"],
+            "properties": {
+              "display_name": {"type": "string"},
+              "node_type": {"type": "string"},
+              "facets": {
+                "type": "object",
+                "required": ["transformation_verb", "technology_route", "reference_product_anchor"],
+                "properties": {
+                  "transformation_verb": {"type": "string"},
+                  "technology_route": {"type": "string"},
+                  "reference_product_anchor": {"type": "string"}
+                },
+                "additionalProperties": false
+              },
+              "boundary": {"type": "string"}
+            },
+            "additionalProperties": false
+          },
+          "claim_id": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

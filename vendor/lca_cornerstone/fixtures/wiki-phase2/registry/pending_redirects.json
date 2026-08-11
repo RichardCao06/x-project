@@ -1,0 +1,936 @@
+{
+ "_meta": {
+  "date": "2026-06-30",
+  "note": "B1 fill 后 LLM 推荐的 redirect"
+ },
+ "redirects": [
+  {
+   "src_industry": "aluminium",
+   "src_id": "P058",
+   "src_name": "铝土矿, 矿石",
+   "from_home": "mining",
+   "to_home": "mining::P004",
+   "reason": "铝土矿原矿即 mining::P004(铝土矿, 原矿, 固态);aluminium 行业地基节点应绑定到 mining 已有节点"
+  },
+  {
+   "src_industry": "auto",
+   "src_id": "P082",
+   "src_name": "材料, 催化剂, 三元催化(贵金属PGM/陶瓷载体)",
+   "from_home": "mining",
+   "to_home": "chemicals",
+   "reason": "三元催化剂是化工/催化剂制备产品,home 应为 chemicals 而非 mining;mining 产出的是铂族矿精矿(pgm_ore.concentrate.solid),不是成品催化剂"
+  },
+  {
+   "src_industry": "ceramics_refractories",
+   "src_id": "P087",
+   "src_name": "氧化锆粉(背景)",
+   "from_home": "mining",
+   "to_home": "ceramics_refractories",
+   "reason": "氧化锆粉是锆英砂精深加工产物(zirconia powder),生产发生在 ceramics_refractories/chemicals 而非 mining;home 应留在 ceramics_refractories 本行业"
+  },
+  {
+   "src_industry": "ceramics_refractories",
+   "src_id": "P091",
+   "src_name": "莫来石熟料(背景)",
+   "from_home": "mining",
+   "to_home": "ceramics_refractories",
+   "reason": "莫来石熟料是铝硅质矿物经高温烧结形成,属 ceramics_refractories 加工范畴,不是采矿产物"
+  },
+  {
+   "src_industry": "ceramics_refractories",
+   "src_id": "P095",
+   "src_name": "氧化锆粉(AZS熔铸用,背景)",
+   "from_home": "mining",
+   "to_home": "ceramics_refractories",
+   "reason": "AZS用氧化锆粉与 P087 同性质,是精深加工产物;home 应留在 ceramics_refractories"
+  },
+  {
+   "src_industry": "chemicals",
+   "src_id": "P237",
+   "src_name": "背景, 外购铂族金属(Pt/Pd/Rh盐溶液), 液态",
+   "from_home": "mining",
+   "to_home": "nonferrous_metals",
+   "reason": "铂族金属盐溶液是 PGM 精炼后化工处理产物,home 应为 nonferrous_metals(PGM精炼段)"
+  },
+  {
+   "src_industry": "construction_materials",
+   "src_id": "P056",
+   "src_name": "天然火山灰, 散装",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "天然火山灰/浮石是采矿/采石产物,本次已在 mining 新增(天然火山灰/浮石, 原矿, 固态)"
+  },
+  {
+   "src_industry": "construction_materials",
+   "src_id": "P057",
+   "src_name": "骨料(碎石/砂), 散装",
+   "from_home": "mining",
+   "to_home": "mining::P100",
+   "reason": "碎石/骨料是采石场产物,本次已在 mining 新增(碎石/骨料, 初级品, 固态)"
+  },
+  {
+   "src_industry": "construction_materials",
+   "src_id": "P065",
+   "src_name": "玄武岩与辉绿岩原料, 矿石",
+   "from_home": "mining",
+   "to_home": "mining::P101",
+   "reason": "玄武岩/辉绿岩是采石场产物,本次已在 mining 新增"
+  },
+  {
+   "src_industry": "construction_materials",
+   "src_id": "P089",
+   "src_name": "珍珠岩原矿, 矿石",
+   "from_home": "mining",
+   "to_home": "mining::P102",
+   "reason": "珍珠岩是火山矿物采矿产物,本次已在 mining 新增"
+  },
+  {
+   "src_industry": "construction_materials",
+   "src_id": "P090",
+   "src_name": "蛭石原矿, 矿石",
+   "from_home": "mining",
+   "to_home": "mining::P103",
+   "reason": "蛭石是工业矿物采矿产物,本次已在 mining 新增"
+  },
+  {
+   "src_industry": "ferroalloy",
+   "src_id": "P090",
+   "src_name": "钽矿, 精矿, 固态",
+   "from_home": "mining",
+   "to_home": "mining::P107",
+   "reason": "钽矿精矿是采矿/选矿产物,本次已在 mining 新增(钽矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "glass",
+   "src_id": "P043",
+   "src_name": "硅砂",
+   "from_home": "mining",
+   "to_home": "mining::P031",
+   "reason": "硅砂精矿即 mining::P031(硅砂, 精矿, 固态)"
+  },
+  {
+   "src_industry": "glass",
+   "src_id": "P045",
+   "src_name": "石灰石/白云石",
+   "from_home": "mining",
+   "to_home": "mining::P033",
+   "reason": "石灰石/白云石原矿即 mining::P033"
+  },
+  {
+   "src_industry": "glass",
+   "src_id": "P047",
+   "src_name": "长石/霞石正长岩",
+   "from_home": "mining",
+   "to_home": "mining::P038",
+   "reason": "长石/霞石正长岩原矿即 mining::P038"
+  },
+  {
+   "src_industry": "glass",
+   "src_id": "P048",
+   "src_name": "氧化铝/长石",
+   "from_home": "mining",
+   "to_home": "aluminium",
+   "reason": "氧化铝是铝行业 Bayer 法产物,不属 mining;长石部分可绑 mining::P038,但此节点混合表述应由 glass 行业拆分或绑 aluminium 氧化铝节点"
+  },
+  {
+   "src_industry": "glass",
+   "src_id": "P056",
+   "src_name": "锡(锡锭/锡液)",
+   "from_home": "mining",
+   "to_home": "mining::P024",
+   "reason": "锡初级品(固态)即 mining::P024(锡, 初级品, 固态)"
+  },
+  {
+   "src_industry": "magnesium",
+   "src_id": "P018",
+   "src_name": "白云石",
+   "from_home": "mining",
+   "to_home": "mining::P033",
+   "reason": "白云石是石灰石/白云石矿的原矿,即 mining::P033(石灰石/白云石, 原矿, 固态)"
+  },
+  {
+   "src_industry": "magnesium",
+   "src_id": "P019",
+   "src_name": "菱镁矿",
+   "from_home": "mining",
+   "to_home": "mining::P079",
+   "reason": "菱镁矿即 mining::P079(菱镁矿, 原矿, 固态)"
+  },
+  {
+   "src_industry": "magnesium",
+   "src_id": "P020",
+   "src_name": "光卤石",
+   "from_home": "mining",
+   "to_home": "mining::P076",
+   "reason": "光卤石(carnallite)是钾盐矿的原矿形态,对应 mining::P076(钾矿石, 原矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P072",
+   "src_name": "锌精矿",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "锌精矿是采选产物,home 应为 mining;本次已新增(锌矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P073",
+   "src_name": "铅精矿",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "铅精矿是采选产物,home 应为 mining;本次已新增(铅矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P074",
+   "src_name": "锡精矿",
+   "from_home": "mining",
+   "to_home": "mining::P023",
+   "reason": "锡精矿即 mining::P023(锡矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P075",
+   "src_name": "镍精矿",
+   "from_home": "mining",
+   "to_home": "mining::P012",
+   "reason": "镍精矿即 mining::P012(镍精矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P076",
+   "src_name": "镍红土矿",
+   "from_home": "mining",
+   "to_home": "mining::P011",
+   "reason": "镍红土矿是镍矿原矿(laterite),即 mining::P011(镍矿, 原矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P077",
+   "src_name": "辉锑矿精矿",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "辉锑矿精矿是采选产物,home 应为 mining;本次已新增辉锑矿精矿节点"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P078",
+   "src_name": "钴精矿",
+   "from_home": "mining",
+   "to_home": "mining::P014",
+   "reason": "钴精矿即 mining::P014(钴精矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P079",
+   "src_name": "铋精矿",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "铋精矿是采选产物,home 应为 mining;本次已新增铋矿精矿节点"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P100",
+   "src_name": "银(外购,焊料投入)",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "银精矿/银矿是采矿产物,home 应为 mining;本次已新增银矿精矿节点"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P116",
+   "src_name": "钛精矿(金红石/钛铁矿)",
+   "from_home": "mining",
+   "to_home": "mining::P072",
+   "reason": "钛精矿即 mining::P072(钛矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P117",
+   "src_name": "锆英砂精矿",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "锆英砂精矿是采矿/重选产物,home 应为 mining;本次已新增锆英砂精矿节点"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P118",
+   "src_name": "铪原料(锆铪分离副产)",
+   "from_home": "mining",
+   "to_home": "nonferrous_metals",
+   "reason": "铪是锆精炼过程中锆铪分离的副产物,来源于 nonferrous_metals 加工段;home 应留 nonferrous_metals"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P119",
+   "src_name": "铌精矿(烧绿石/铌铁矿)",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "铌精矿是采选产物,home 应为 mining;本次已新增铌矿精矿节点"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P120",
+   "src_name": "钽精矿(钽铁矿)",
+   "from_home": "mining",
+   "to_home": "mining::P107",
+   "reason": "钽精矿是采选产物,home 应为 mining;本次已新增钽矿精矿节点"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P121",
+   "src_name": "钼精矿(辉钼矿)",
+   "from_home": "mining",
+   "to_home": "mining::P017",
+   "reason": "钼精矿即 mining::P017(钼精矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P122",
+   "src_name": "钨精矿(黑钨/白钨)",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "钨精矿是采选产物,home 应为 mining;本次已新增钨矿精矿节点"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P123",
+   "src_name": "铼回收料(钼焙烧烟尘)",
+   "from_home": "mining",
+   "to_home": "nonferrous_metals",
+   "reason": "铼是钼矿焙烧烟尘中回收的副产物,来源于 nonferrous_metals 加工段;home 应留 nonferrous_metals"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P124",
+   "src_name": "铂族精矿(PGM)",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "铂族矿精矿是采选产物,home 应为 mining;本次已新增铂族矿精矿节点"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P125",
+   "src_name": "稀土精矿(混合)",
+   "from_home": "mining",
+   "to_home": "mining::P053",
+   "reason": "稀土精矿即 mining::P053(稀土矿, 精矿, 固态)"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P127",
+   "src_name": "钌料(PGM精炼副产)",
+   "from_home": "mining",
+   "to_home": "nonferrous_metals",
+   "reason": "钌是 PGM 精炼的副产物,来源于 nonferrous_metals 加工段;home 应留 nonferrous_metals"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P143",
+   "src_name": "铬铁矿(chromite)精矿",
+   "from_home": "mining",
+   "to_home": "mining::P099",
+   "reason": "铬铁矿精矿是采选产物,home 应为 mining;本次已新增铬矿精矿节点"
+  },
+  {
+   "src_industry": "paper_pulp",
+   "src_id": "P091",
+   "src_name": "GCC 研磨碳酸钙 (涂布/填料颜料)",
+   "from_home": "mining",
+   "to_home": "mining::P035",
+   "reason": "GCC 研磨碳酸钙以石灰石研磨制得,起点是 mining::P035(石灰石/白云石, 初级品, 固态);若视为深加工产物则 home 为 chemicals/paper_pulp 本行业"
+  },
+  {
+   "src_industry": "steel",
+   "src_id": "P095",
+   "src_name": "铁矿石",
+   "from_home": "mining",
+   "to_home": "mining::P001",
+   "reason": "铁矿石原矿即 mining::P001(铁矿石, 原矿, 固态)"
+  },
+  {
+   "src_industry": "instruments",
+   "src_id": "P116",
+   "src_name": "slip ring electrical contact, mechanical",
+   "from_home": "electrical_equipment",
+   "to_home": "electrical_equipment::slip_ring",
+   "reason": "home_industry=electrical_equipment; instruments图该节点使用了instrument_class/precision_grade等instruments专属刻面,但实体是C27电气接触件(ISIC 2712)。本patch新增'滑环电气接触组件(slip "
+  },
+  {
+   "src_industry": "medical_imaging",
+   "src_id": "P055",
+   "src_name": "滑环电气接触组件",
+   "from_home": "electrical_equipment",
+   "to_home": "electrical_equipment::slip_ring",
+   "reason": "home_industry=electrical_equipment; 滑环是C27 ISIC 2712电气接触件,medical_imaging图用了na刻面但home正确。本patch新增slip ring节点可承接两个来源图的cross-link绑定。"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P051",
+   "src_name": "电网变压器/换流站",
+   "from_home": "electrical_equipment",
+   "to_home": "electrical_equipment::P010",
+   "reason": "home_status=placeholder; electrical_equipment已有P010(电网变压器整机, 铜, hv_above_36kv, large)和P041(HVDC换流变压器整机, 铜, hv_above_36kv, large)。power侧应更新resolves_to指"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P052",
+   "src_name": "输电线路",
+   "from_home": "electrical_equipment",
+   "to_home": "electrical_equipment::transmission_line_cable",
+   "reason": "home_status=placeholder; 导线/电缆部分由本次新增'输电线路电缆总成(架空/地下), hv_above_36kv'覆盖。杆塔/土建不属C27制造,是power行业建设活动边界投入。power侧应拆分:导线部分resolves_to本节点,杆塔保留power侧基建投入。"
+  },
+  {
+   "src_industry": "agriculture",
+   "src_id": "P051",
+   "src_name": "种子/种苗",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P054",
+   "reason": "P051 是通用背景占位节点,应被新建的具名节点 P054(种子/种苗, 田间原料(通用作物种苗))替代; 原 P051 home_status=placeholder 可废弃或合并"
+  },
+  {
+   "src_industry": "agriculture",
+   "src_id": "P052",
+   "src_name": "橡胶树种苗",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P055",
+   "reason": "P052 背景占位节点缺 reference_product_anchor=rubber_seedling 的受控值; 新建 P055(天然橡胶, 田间原料(橡胶树种苗))完整填充刻面并有配套育苗活动,P052 可替换为 P055"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P001",
+   "src_name": "针叶原木, SPF (云杉/松/冷杉)",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P029",
+   "reason": "SPF针叶原木与 agriculture P029(林木, 田间原料(原木), forestry_wood×raw_crop×pulpwood_roundwood)身份一致; agriculture约定树种不进产品身份(粒度规则:品种/产地是属性),redirect到P029"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P002",
+   "src_name": "针叶原木, 美国南方黄松SYP",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P029",
+   "reason": "SYP原木与P029同身份(forestry_wood×raw_crop×pulpwood_roundwood); 树种是属性,redirect到P029"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P003",
+   "src_name": "针叶原木, 花旗松/落叶松 (DF-L)",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P029",
+   "reason": "DF-L原木与P029同身份; 树种属性不进身份,redirect到P029"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P004",
+   "src_name": "阔叶原木, 桦木/杨木",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P029",
+   "reason": "阔叶原木在agriculture约定下与针叶原木同归 forestry_wood×raw_crop; 针/阔叶区分是wood_materials内加工阶段属性,不分产品身份,redirect到P029"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P005",
+   "src_name": "阔叶原木, 橡木/白蜡木/山毛榉",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P029",
+   "reason": "阔叶硬木原木与P029同身份,树种是属性,redirect到P029"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P006",
+   "src_name": "阔叶原木, 热带硬木 (柚木/桃花心木/菠萝格)",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P029",
+   "reason": "热带硬木原木与P029同身份(forestry_wood×raw_crop); 产地/树种是属性不进身份,redirect到P029"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P007",
+   "src_name": "竹材, 毛竹/楠竹原竹",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P029",
+   "reason": "竹材原竹在农林LCA边界内与林木原木同归 forestry_wood×raw_crop; agriculture P029 commodity_class=forestry_wood已足以承接竹材; 竹材后道加工在wood_materials内处理,redirect到P029"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P008",
+   "src_name": "木片原料, 针叶削片(背景外购)",
+   "from_home": "agriculture",
+   "to_home": "agriculture::P031",
+   "reason": "针叶削片与 agriculture P031(林木, 木片/浆材(木片), forestry_wood×wood_chip_pulpwood×wood_chip)身份一致; 树种(针叶)是属性; 节点名含'背景外购'即指引agriculture产出,直接链接P031"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P028",
+   "src_name": "原煤/硬煤",
+   "from_home": "coal_mining",
+   "to_home": "coal_mining::P001",
+   "reason": "coal_mining P001 '硬煤, 原矿, 固态' 精确覆盖原煤/硬煤(hard_coal run_of_mine_ore);power 图中该节点是 placeholder,应重定向至 coal_mining P001"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P029",
+   "src_name": "褐煤",
+   "from_home": "coal_mining",
+   "to_home": "coal_mining::P010",
+   "reason": "coal_mining P010 '褐煤, 原矿, 固态' 精确覆盖褐煤(lignite run_of_mine_ore);power 图中该节点是 placeholder,应重定向至 coal_mining P010"
+  },
+  {
+   "src_industry": "steel",
+   "src_id": "P097",
+   "src_name": "炼焦煤",
+   "from_home": "coal_mining",
+   "to_home": "coal_mining::P004",
+   "reason": "coal_mining P004 '炼焦煤, 精矿, 固态' 覆盖钢铁高炉入料的洗精炼焦煤;steel 图中该节点是 placeholder,应重定向至 coal_mining P004(若为原矿入炉则 P003)"
+  },
+  {
+   "src_industry": "steel",
+   "src_id": "P112",
+   "src_name": "喷吹煤粉",
+   "from_home": "coal_mining",
+   "to_home": "coal_mining::P006",
+   "reason": "coal_mining P006 '喷吹煤粉, 初级品, 固态' 精确覆盖高炉喷吹用煤粉(pci_coal primary_product);steel 图中该节点是 placeholder,应重定向至 coal_mining P006"
+  },
+  {
+   "src_industry": "construction_materials",
+   "src_id": "P079",
+   "src_name": "焦炭(冶金焦/工业焦), 散装",
+   "from_home": "coal_mining",
+   "to_home": "steel::P001",
+   "reason": "冶金焦炭由炼焦炉工序产出(ISIC 1910/HS 2704),属钢铁行业(steel P001 '焦炭, 块状');coal_mining 只采出炼焦原煤、不生产焦炭;construction_materials 中此节点 home_industry 应改为 steel"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P087",
+   "src_name": "含锗粉煤灰/含锗煤焦油",
+   "from_home": "coal_mining",
+   "to_home": "power::placeholder",
+   "reason": "含锗粉煤灰来自燃煤电厂燃烧(power 行业副产);含锗煤焦油来自炼焦工序(steel/chemicals 行业);两者均不产自煤矿采选,coal_mining 前景范围不含燃烧或炼焦产物;此节点在 nonferrous_metals 作为 background longtail 留存合理,无需在 "
+  },
+  {
+   "src_industry": "industrial_gases",
+   "src_id": "P042",
+   "src_name": "steel_cylinder, primary_product, solid",
+   "from_home": "steel",
+   "to_home": "mechanical_parts",
+   "reason": "高压钢瓶(HS 7311)由无缝管/钢板深加工制成(ISIC 2599金属制品制造), 主转化在钢铁厂边界外; steel已有上游无缝管节点(P082/A075), 成品气瓶应归mechanical_parts行业新建节点"
+  },
+  {
+   "src_industry": "machinery",
+   "src_id": "P150",
+   "src_name": "废钢(回炉料) (外购)",
+   "from_home": "steel",
+   "to_home": "steel::P096",
+   "reason": "机械行业回炉废钢与steel::P096(废钢, HS 7204)身份完全一致; 名称差异仅在使用场景; redirect到steel::P096消除重复"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P026",
+   "src_name": "钢带/钢箍 (包装材料)",
+   "from_home": "steel",
+   "to_home": "steel::P081",
+   "reason": "包装钢带/钢箍(HS 7217)是碳钢线材/窄带, steel已有P081(carbon_steel, unalloyed, wire_tube_pipe, HS 7217); 该名称仅为下游使用场景称谓, 物料身份与P081一致"
+  },
+  {
+   "src_industry": "electronics",
+   "src_id": "P102",
+   "src_name": "引线框架, 铜",
+   "from_home": "electronics",
+   "to_home": "copper::",
+   "reason": "引线框架(铜合金冲压件)是铜深加工产品，属铜行业范畴(ecoinvent 'lead frame production' 归 ISIC 2420 铜加工)；electronics图中已标 home_industry=copper placeholder，但copper图尚无对应节点——建议coppe"
+  },
+  {
+   "src_industry": "electronics",
+   "src_id": "P120",
+   "src_name": "LED封装支架",
+   "from_home": "electronics",
+   "to_home": "copper::",
+   "reason": "LED封装铜支架/铜引线框架支架是铜合金冲压件，属铜行业深加工产品（copper P025 板带,黄铜下游）；electronics图中已标 home_industry=copper placeholder——建议copper行业补充LED封装铜支架节点"
+  },
+  {
+   "src_industry": "instruments",
+   "src_id": "P155",
+   "src_name": "electron multiplier Faraday cup detector, MS",
+   "from_home": "electronics",
+   "to_home": "electronics::P145",
+   "reason": "电子倍增器/法拉第杯 MS探测器已被electronics::P145 '光电探测器模组, 闪烁体/PMT' 覆盖 (P145 provenance 明确引用 instruments P155 作为建节点依据)；无需新建，直接绑定到 P145"
+  },
+  {
+   "src_industry": "rail_equipment",
+   "src_id": "P127",
+   "src_name": "氢燃料电池系统 [background]",
+   "from_home": "electronics",
+   "to_home": "battery::",
+   "reason": "氢燃料电池系统(PEMFC)是电化学能量转换装置，与电池行业同属电化学器件体系；home_industry=electronics 错误——应归 battery 行业(若battery图新增PEMFC电堆节点)或 power 行业(作为分布式发电设施)"
+  },
+  {
+   "src_industry": "instruments",
+   "src_id": "P098",
+   "src_name": "FTIR beamsplitter KBr ZnSe, optical",
+   "from_home": "glass",
+   "to_home": "photonics::P034",
+   "reason": "KBr/ZnSe beamsplitters are infrared optical crystal components, not glass. They are fabricated by precision optical/photonics manufacturers via crysta"
+  },
+  {
+   "src_industry": "instruments",
+   "src_id": "P102",
+   "src_name": "HPLC UHPLC column, analytical",
+   "from_home": "glass",
+   "to_home": "chemicals",
+   "reason": "HPLC/UHPLC columns are analytical consumables made of stainless steel bodies packed with silica or bonded-phase packing material. They are a chemicals"
+  },
+  {
+   "src_industry": "instruments",
+   "src_id": "P105",
+   "src_name": "CaF2 optical crystal, photonics",
+   "from_home": "glass",
+   "to_home": "photonics::P004",
+   "reason": "CaF2 (calcium fluoride) is a fluoride crystal, not glass. It is classified under HS 252922 (calcium fluoride/fluorspar) not any glass HS chapter. phot"
+  },
+  {
+   "src_industry": "semiconductor",
+   "src_id": "P029",
+   "src_name": "石英坩埚/管",
+   "from_home": "glass",
+   "to_home": "glass::P071",
+   "reason": "Quartz crucibles and quartz tubes (fused silica) ARE products of the glass industry — specifically technical/specialty glass manufacturing using tube-"
+  },
+  {
+   "src_industry": "semiconductor",
+   "src_id": "P030",
+   "src_name": "划片刀/研磨膜",
+   "from_home": "glass",
+   "to_home": "mechanical_parts::P094",
+   "reason": "Dicing blades and lapping films are bonded abrasive tools (diamond/CBN), NOT glass products. HS 680421 = grinding wheels and similar abrasive articles"
+  },
+  {
+   "src_industry": "magnesium",
+   "src_id": "P023",
+   "src_name": "废镁",
+   "from_home": "scrap_recycling",
+   "to_home": "scrap_recycling::P122",
+   "reason": "废镁 placeholder in magnesium industry is the run-of-mine scrap form; exact match already exists as P122 '废镁, 原矿, 固态' in scrap_recycling"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P082",
+   "src_name": "废锡/焊料废料",
+   "from_home": "scrap_recycling",
+   "to_home": "scrap_recycling::P124",
+   "reason": "废锡/焊料废料 placeholder in nonferrous_metals is the run-of-mine scrap form; exact match already exists as P124 '废锡/焊料废料, 原矿, 固态' in scrap_recycling"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P084",
+   "src_name": "废镍镉电池/含镉废料",
+   "from_home": "scrap_recycling",
+   "to_home": "scrap_recycling::P126",
+   "reason": "废镍镉电池/含镉废料 placeholder in nonferrous_metals is the run-of-mine scrap form; exact match already exists as P126 '废镍镉电池/含镉废料, 原矿, 固态' in scrap_recycling"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P085",
+   "src_name": "废锑/含锑废料",
+   "from_home": "scrap_recycling",
+   "to_home": "scrap_recycling::P128",
+   "reason": "废锑/含锑废料 placeholder in nonferrous_metals is the run-of-mine scrap form; exact match already exists as P128 '废锑/含锑废料, 原矿, 固态' in scrap_recycling"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P086",
+   "src_name": "含铅锌烟尘(再生原料)",
+   "from_home": "scrap_recycling",
+   "to_home": "scrap_recycling::P130",
+   "reason": "含铅锌烟尘(再生原料) placeholder in nonferrous_metals is the run-of-mine dust form; exact match already exists as P130 '含铅锌烟尘(再生原料), 原矿, 固态' in scrap_recycling"
+  },
+  {
+   "src_industry": "aluminium",
+   "src_id": "P070",
+   "src_name": "耐火材料/炉衬 (外购)",
+   "from_home": "minerals",
+   "to_home": "minerals::P036",
+   "reason": "aluminium P070 是购入的耐火炉衬占位符(home_industry=minerals, placeholder); minerals 图已有 P036 耐火炉衬, 初级品, 固态(cpc=3711 hs=6902.90), 完全覆盖该语义。"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P059",
+   "src_name": "脱硫石灰石",
+   "from_home": "minerals",
+   "to_home": "minerals::P004",
+   "reason": "power P059 是电厂湿法脱硫用石灰石占位符(home_industry=minerals, placeholder); minerals 图 P004 '脱硫石灰石, 初级品, 固态'(material_type=limestone_desulf) 精确对应, 固态干粉形态正是湿法脱硫进料主"
+  },
+  {
+   "src_industry": "steel",
+   "src_id": "P103",
+   "src_name": "石灰石",
+   "from_home": "minerals",
+   "to_home": "minerals::P003",
+   "reason": "steel P103 是炼铁/炼钢用熔剂石灰石占位符(home_industry=minerals, placeholder); minerals 图 P003 '冶金级石灰石, 初级品, 固态'(material_type=limestone_metallurgical) 专门刻画冶金级规格, 比"
+  },
+  {
+   "src_industry": "steel",
+   "src_id": "P109",
+   "src_name": "膨润土",
+   "from_home": "minerals",
+   "to_home": "minerals::P009",
+   "reason": "steel P109 是球团矿粘结剂膨润土占位符(home_industry=minerals, placeholder); minerals 图 P009 '膨润土, 初级品, 固态'(material_type=bentonite, processing_state=primary_produc"
+  },
+  {
+   "src_industry": "aluminium",
+   "src_id": "P073",
+   "src_name": "重油/燃料油 (外购)",
+   "from_home": "oil_refining",
+   "to_home": "oil_refining::P006",
+   "reason": "oil_refining 已有 P006(重油, 初级品, 液态, material_type=heavy_fuel_oil),与 aluminium P073 语义完全对应(CPC 33370/HS 2710,home_status=placeholder);直接绑定 P006 即可,无需新增前景"
+  },
+  {
+   "src_industry": "carbon_materials",
+   "src_id": "P054",
+   "src_name": "芳烃油/煤系芳油 (外购)",
+   "from_home": "oil_refining",
+   "to_home": "carbon_materials::P054",
+   "reason": "HS 2707 = 煤焦油高温蒸馏油及其他产品(非石油);名称含'煤系',provenance='炭黑炉法主原料';为煤焦油衍生物,不属于石油炼制范畴;home_industry 误标为 oil_refining,应保留在 carbon_materials 自身(自指)"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P033",
+   "src_name": "燃油/柴油",
+   "from_home": "oil_refining",
+   "to_home": "oil_refining::P006",
+   "reason": "power P033 CPC=33370(重质燃料油口径)/HS=2710,home_status=placeholder;oil_refining P006(重油, material_type=heavy_fuel_oil)为最准确匹配;若下游语境明确为柴油发电机可改绑 P007(diesel)"
+  },
+  {
+   "src_industry": "magnesium",
+   "src_id": "P032",
+   "src_name": "卤水/苦卤",
+   "from_home": "water_supply",
+   "to_home": "minerals::P021",
+   "reason": "卤水/苦卤是天然矿物盐水(地质来源),home_industry 误标 water_supply。minerals 图已有 P021「卤水, 原矿, 水溶液」完全匹配。water_supply 只产出经工程处理的工业用水,不产采矿卤水。"
+  },
+  {
+   "src_industry": "minerals",
+   "src_id": "P114",
+   "src_name": "铝酸钙水泥(CA-50结合剂)",
+   "from_home": "water_supply",
+   "to_home": "construction_materials::P007",
+   "reason": "铝酸钙水泥是特种建筑胶凝材料,home_industry 误标 water_supply。construction_materials 图已有 P007「水泥 · 铝酸盐CAC, 散装粉」匹配 CA-50 产品身份。"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P094",
+   "src_name": "工艺水",
+   "from_home": "water_supply",
+   "to_home": "water_supply::P007",
+   "reason": "water_supply 图已有 P007「工艺水, 初级品, 液态」与此完全重合,home_industry=water_supply 正确,应绑定到已有节点而非新增。"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P061",
+   "src_name": "冷却/工艺水",
+   "from_home": "water_supply",
+   "to_home": "water_supply::P007",
+   "reason": "「冷却/工艺水」是电力行业对工艺水/冷却补充水的合并占位,water_supply 图已有 P007「工艺水, 初级品, 液态」作为通用工艺水节点,冷却用途亦可经 P008/P009 覆盖。P007 是最通用的接口节点。"
+  },
+  {
+   "src_industry": "aluminium",
+   "src_id": "P069",
+   "src_name": "晶粒细化剂/铝钛硼中间合金 AlTiB (外购)",
+   "from_home": "nonferrous_metals",
+   "to_home": "nonferrous_metals::P149",
+   "reason": "nonferrous_metals 已有 P149「晶粒细化剂, 铝钛硼中间合金(AlTiB)」(cpc=41432 hs=7601 core foreground),aluminium P069 是 placeholder 且同 CPC/HS,直接绑 nonferrous_metals::P149"
+  },
+  {
+   "src_industry": "ceramics_refractories",
+   "src_id": "P106",
+   "src_name": "金属硅(Si浸渗用,背景)",
+   "from_home": "nonferrous_metals",
+   "to_home": "nonferrous_metals::P150",
+   "reason": "nonferrous_metals 已有 P150「硅, 金属硅(冶金级MG-Si)」(cpc=42110 hs=280461 core),与 ceramics P106 同 CPC/HS 同物质;陶瓷行业的「Si浸渗」用途是应用差异而非产品身份差异,应 resolves_to nonferrous"
+  },
+  {
+   "src_industry": "aluminium",
+   "src_id": "P072",
+   "src_name": "天然气 (外购)",
+   "from_home": "oil_gas",
+   "to_home": "oil_gas::P005",
+   "reason": "P072 是铝行业天然气燃料外购占位符(home_industry=oil_gas, home_status=placeholder)。oil_gas 已有 P005「管道天然气, 初级品, 气态」(pipeline_natural_gas|primary_product|gas)，正是下游工业外购"
+  },
+  {
+   "src_industry": "glass",
+   "src_id": "P051",
+   "src_name": "天然气",
+   "from_home": "oil_gas",
+   "to_home": "oil_gas::P005",
+   "reason": "P051 是玻璃行业窑炉燃料天然气占位符(home_industry=oil_gas, home_status=placeholder)。oil_gas 已有 P005「管道天然气, 初级品, 气态」，CPC 1120 / HS 271121 精确对应工业管道天然气，直接 redirect，无需建新"
+  },
+  {
+   "src_industry": "nonferrous_metals",
+   "src_id": "P093",
+   "src_name": "天然气/重油燃料",
+   "from_home": "oil_gas",
+   "to_home": "oil_gas::P005",
+   "reason": "P093 是有色金属行业合并燃料占位符，混合天然气和重油两类能源(home_industry=oil_gas, home_status=placeholder)。天然气分量 → oil_gas P005「管道天然气, 初级品, 气态」；重油燃料分量属 oil_refining 行业(oil_refi"
+  },
+  {
+   "src_industry": "precision_instruments",
+   "src_id": "P238",
+   "src_name": "carbon fiber table top, medical",
+   "from_home": "carbon_materials",
+   "to_home": "plastics::P211",
+   "reason": "碳纤维台面板(HS 6815.10)是CFRP层合板制成的CT床板，基材属碳纤维增强复合材料，plastics已有P211(碳纤维增强复合材料层合板,CFRP,环氧基)覆盖该材料体系；instruments图P179和medical_imaging图P057均已将同类节点home_industry指"
+  },
+  {
+   "src_industry": "water_supply",
+   "src_id": "P039",
+   "src_name": "活性炭(颗粒活性炭,GAC), 初级品, 固态",
+   "from_home": "carbon_materials",
+   "to_home": "carbon_materials::P067",
+   "reason": "carbon_materials已有P067(活性炭, 初级品, 固态, HS 380210, material_type=activated_carbon)与water_supply P039完全对应——同为颗粒活性炭(GAC)，同HS 3802.10，同home_industry=carbon_"
+  },
+  {
+   "src_industry": "mechanical_parts",
+   "src_id": "P107",
+   "src_name": "natural gas (heat treatment)",
+   "from_home": "power",
+   "to_home": "natural_gas::P006",
+   "reason": "heat treatment furnace fuel is plain fuel-grade natural gas. natural_gas::P006 '燃料天然气(外购)' (gpid=natural_gas::natural_gas_fuel.primary_product.gas, CP"
+  },
+  {
+   "src_industry": "textiles",
+   "src_id": "P112",
+   "src_name": "工业用水/废水处理",
+   "from_home": "power",
+   "to_home": "water_supply::P007",
+   "reason": "industrial water supply and wastewater treatment in dyeing/finishing belongs to water_supply industry (ISIC 3600/3700). water_supply::P007 '工艺水' (proc"
+  },
+  {
+   "src_industry": "wood_materials",
+   "src_id": "P025",
+   "src_name": "天然气 (直燃窑/锅炉燃料)",
+   "from_home": "power",
+   "to_home": "natural_gas::P006",
+   "reason": "kiln/boiler fuel natural gas is fuel-grade natural gas. natural_gas::P006 '燃料天然气(外购)' is the canonical home node (CPC 120, HS 2711.21). power::P031 ca"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P031",
+   "src_name": "天然气",
+   "from_home": "natural_gas",
+   "to_home": "natural_gas::P006",
+   "reason": "power::P031 是 home_status=placeholder 的背景节点(boundary=background),natural_gas 已有 P006 '燃料天然气(外购), 初级品, 气态'(material_type=natural_gas_fuel),语义完全匹配。发电侧消耗"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P032",
+   "src_name": "天然气, 液化(LNG), 液态",
+   "from_home": "natural_gas",
+   "to_home": "natural_gas::P004",
+   "reason": "power::P032 是 home_status=placeholder 的 LNG 背景节点,natural_gas 已有 P004 '液化天然气(LNG), 初级品, 液态'(material_type=lng, form_state=liquid),相态/名称/CPC/HS 完全吻合。"
+  },
+  {
+   "src_industry": "steel",
+   "src_id": "P100",
+   "src_name": "天然气",
+   "from_home": "natural_gas",
+   "to_home": "natural_gas::P006",
+   "reason": "steel::P100 是 home_status=placeholder 的背景能源节点(energy_carrier=natural_gas, form_state=gas),钢铁工序(高炉/加热炉)消耗的是管道/燃料天然气,对应 natural_gas::P006 '燃料天然气(外购), 初级"
+  },
+  {
+   "src_industry": "ambient",
+   "src_id": "P001",
+   "src_name": "大气, 自然基本流, 气态",
+   "from_home": "ambient",
+   "to_home": "ambient::P001",
+   "reason": "P001 已在 ambient 图内作为背景基本流存在(ambient_air.elementary_flow.gas),被 A001 CONSUMES。节点齐全,仅缺 home_status 字段。应将 P001.home_status 设为 'internal' 以消除跨行业闭合哑名警告;无需新"
+  },
+  {
+   "src_industry": "ambient",
+   "src_id": "P003",
+   "src_name": "环境水, 自然基本流, 液态",
+   "from_home": "ambient",
+   "to_home": "ambient::P003",
+   "reason": "P003 已在 ambient 图内作为背景基本流存在(ambient_water.elementary_flow.liquid),被 A005 CONSUMES。节点齐全,仅缺 home_status 字段。应将 P003.home_status 设为 'internal' 以消除跨行业闭合哑名警"
+  },
+  {
+   "src_industry": "plastics",
+   "src_id": "P216",
+   "src_name": "铝蒸镀层材料(镀铝薄层, 背景)",
+   "from_home": "aluminium",
+   "to_home": "aluminium::P006",
+   "reason": "真空镀铝(PVD/真空蒸发)的铝原料本质是高纯原铝(99.99% Al)锭/粒。aluminium图已有P006(原铝, 未合金化, 锭, foreground)覆盖标准商品原铝供应;plastics P216是占位符(home_status=placeholder)、无cpc/hs, 直接绑定P0"
+  },
+  {
+   "src_industry": "instruments",
+   "src_id": "P108",
+   "src_name": "precision granite base, metrology",
+   "from_home": "ceramics_refractories",
+   "to_home": "minerals",
+   "reason": "Precision granite surface plate is worked natural igneous stone (HS 6802.93) — quarried, sawn, and lapped to sub-micron flatness. It is NOT a fired/si"
+  },
+  {
+   "src_industry": "battery",
+   "src_id": "P080",
+   "src_name": "铝塑膜, 软包封装",
+   "from_home": "battery",
+   "to_home": "plastics::P129",
+   "reason": "铝塑膜(ONy/Al箔/CPP三层复合层压薄膜)的主增值在塑料薄膜多层共挤与金属化复合加工工序(ISIC 2220),属 plastics 行业。battery::P080 的 home_industry='battery' 是自引用错误——该材料是电池行业的外购背景投入,不在电池行业内生产。pla"
+  },
+  {
+   "src_industry": "power",
+   "src_id": "P045",
+   "src_name": "锂电池组",
+   "from_home": "battery",
+   "to_home": "battery::P035",
+   "reason": "battery 行业图已有完整电池包节点:P034(NMC811整包)、P035(LFP整包)、P152(NCA整包)。power::P045 是电力侧储能电池组的泛化占位符(home_status=placeholder),无需在 battery 新建节点。电网侧储能主流化学体系为 LFP,建议将"
+  },
+  {
+   "src_industry": "scrap_recycling",
+   "src_id": "P113",
+   "src_name": "分选线, 光学/磁选, 固态",
+   "from_home": "mechanical_parts",
+   "to_home": "precision_instruments",
+   "reason": "光学+磁选分选线是工业过程装备(HS 8479.89 / ISIC C2899),不是通用金属机械零部件(ISIC C280)。mechanical_parts 覆盖轴承/齿轮/泵/阀/紧固件/弹簧/电机,不含工业分选系统。precision_instruments 有 industrial_mea"
+  },
+  {
+   "src_industry": "scrap_recycling",
+   "src_id": "P114",
+   "src_name": "光学分选机, NIR, 固态",
+   "from_home": "mechanical_parts",
+   "to_home": "precision_instruments",
+   "reason": "NIR近红外光学分选机基于近红外光谱做物料识别,属过程分析/工业检测仪器(HS 8479.89)。mechanical_parts(ISIC C280)无此类别。precision_instruments 有 analytical/industrial_measurement 类(如 P134 in"
+  },
+  {
+   "src_industry": "instruments",
+   "src_id": "P117",
+   "src_name": "precision linear stage, analytical",
+   "from_home": "instruments",
+   "to_home": "machinery::P051",
+   "reason": "precision linear stage (HS 8482.80, ball/roller screw drive) is manufactured by precision motion control companies (PI, Newport, Aerotech) classified "
+  },
+  {
+   "src_industry": "rail",
+   "src_id": "P094",
+   "src_name": "rubber brake pad/block, organic composite | component | rubber [material]",
+   "from_home": "rubber",
+   "to_home": "plastics::any",
+   "reason": "HS 6813 有机合成制动闸块主体为酚醛树脂基摩擦复合材料(酚醛树脂+摩擦改进剂+填料);橡胶仅作微量粘结助剂,非主相。rubber 图 product_form 控制值无 friction_material 类别,且闸块不属于 raw_rubber/compound/tire/belt/hose"
+  },
+  {
+   "src_industry": "steel",
+   "src_id": "P102",
+   "src_name": "生石灰",
+   "from_home": "lime_minerals",
+   "to_home": "lime_minerals::P001",
+   "reason": "lime_minerals 已有 P001 'quicklime, primary_product, solid' (HS 252210 / CPC 21410),与 steel P102 '生石灰'(CaO,块状固态初级品)为同一物质。gap 来源是 steel 用中文俗名占位、home_stat"
+  },
+  {
+   "src_industry": "textiles",
+   "src_id": "P085",
+   "src_name": "芳纶纤维",
+   "from_home": "plastics",
+   "to_home": "plastics::P219",
+   "reason": "textiles P085 已声明 home_industry=plastics、home_status=placeholder。plastics 图已建 P219「高性能工程塑料(芳纶PPTA/PMIA), 合成纤维(工业丝/高强丝)」(high_perf_engineering.fiber.ar"
+  }
+ ]
+}

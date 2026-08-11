@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>钢铁节点 Wiki</title>
+<script src="steel-wiki-data.js"></script>
+<style>
+:root{--bg:#070f1c;--panel:#0f2138;--panel2:#13263f;--line:#1d3954;--ink:#cfe3f7;--dim:#7f9bbd;
+ --faint:#5a7596;--cyan:#52d4f5;--cyan2:#2a9fc7;--green:#56d6a0;--amber:#f0b35b;--violet:#b18cf0;--pink:#e06bbf;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+ background:var(--bg);color:var(--ink);line-height:1.7;font-size:14.5px;
+ background-image:linear-gradient(rgba(82,212,245,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(82,212,245,.03) 1px,transparent 1px);background-size:28px 28px;}
+.mono{font-family:"SF Mono",ui-monospace,Menlo,monospace}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:920px;margin:0 auto;padding:22px 26px 90px}
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.topbar .back{font-size:12.5px;color:var(--dim)}
+.kick{font:600 10.5px/1 "SF Mono",monospace;letter-spacing:.28em;color:var(--cyan2);text-transform:uppercase}
+h1.nm{font-size:23px;margin:8px 0 4px;color:#eaf6ff;line-height:1.3}
+.idline{color:var(--faint);font-size:12.5px;margin-bottom:12px}
+.badge{font:600 10px/1 "SF Mono",monospace;padding:3px 8px;border-radius:5px;margin-right:6px;display:inline-block}
+.b-fg{background:rgba(86,214,160,.14);color:var(--green);border:1px solid rgba(86,214,160,.3)}
+.b-bg{background:rgba(240,179,91,.13);color:var(--amber);border:1px solid rgba(240,179,91,.3)}
+.b-core{background:rgba(82,212,245,.12);color:var(--cyan);border:1px solid rgba(82,212,245,.3)}
+.b-long{background:rgba(177,140,240,.13);color:var(--violet);border:1px solid rgba(177,140,240,.3)}
+.b-draft{background:rgba(127,155,189,.13);color:var(--dim);border:1px solid var(--line)}
+.b-blocked{background:rgba(255,93,115,.12);color:#ff8798;border:1px solid rgba(255,93,115,.35)}
+.b-ready{background:rgba(95,224,200,.12);color:var(--cyan2);border:1px solid rgba(95,224,200,.35)}
+.b-published{background:rgba(86,214,160,.16);color:var(--green);border:1px solid rgba(86,214,160,.5);box-shadow:0 0 0 1px rgba(86,214,160,.08) inset}
+.preview-banner{margin:0 0 14px;padding:11px 14px;border:1px solid rgba(240,179,91,.5);border-radius:9px;
+ background:rgba(240,179,91,.1);color:var(--amber);font-size:13px;font-weight:650}
+.preview-banner small{display:block;margin-top:3px;color:var(--dim);font-weight:400}
+.draft-warning{margin:12px 0 16px;padding:10px 13px;border-left:3px solid var(--amber);border-radius:0 8px 8px 0;
+ background:rgba(240,179,91,.08);color:var(--dim);font-size:12.5px}
+.draft-warning b{color:var(--amber)}
+.facets{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.fk{font:600 11px/1 "SF Mono",monospace;background:var(--panel2);border:1px solid var(--line);color:var(--dim);padding:5px 8px;border-radius:6px}
+.fk b{color:var(--cyan)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 22px 16px;margin:16px 0}
+.body h3{font-size:16px;color:var(--cyan);margin:20px 0 6px;padding-top:10px;border-top:1px solid var(--line)}
+.body h3:first-child{border-top:none;padding-top:0}
+.body h4{font-size:14px;color:var(--cyan2);margin:14px 0 4px}
+.body p{margin:7px 0}
+.body ul{margin:7px 0;padding-left:22px}.body li{margin:5px 0}
+.body code{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12.5px;color:var(--amber)}
+.body strong{color:#eaf6ff}
+.judg{color:var(--violet);font-size:12.5px;font-weight:600}
+.fnref{font-size:.62em;line-height:0;vertical-align:super;white-space:nowrap}.fnref a{color:var(--cyan2);background:rgba(82,212,245,.08);border-radius:3px;padding:1px 4px;margin:0 2px;text-decoration:none}
+.nid{cursor:pointer;color:var(--pink);font-family:"SF Mono",monospace;font-size:12.5px;border-bottom:1px dotted var(--pink)}
+.nid:hover{background:rgba(224,107,191,.12)}
+.foots{margin-top:18px;border-top:1px solid var(--line);padding-top:6px}
+.foots h3{font-size:14px;color:var(--faint);border:none}
+.foots dl{font-size:12px;color:var(--faint);margin:6px 0}
+.foots dt{color:var(--cyan2);font-family:"SF Mono",monospace;font-weight:600;margin-top:6px}
+.foots dd{margin:0 0 4px 0;padding-left:14px}
+.sources{padding:16px 20px}.sources h2{font-size:16px;color:var(--cyan);margin:0 0 10px}
+.source-card{scroll-margin-top:16px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin:9px 0}
+.source-head{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.source-title{color:#eaf6ff;font-weight:650}.source-id{font:11px "SF Mono",monospace;color:var(--cyan2)}
+.source-meta,.source-locator,.source-verify{font-size:12px;color:var(--faint);margin-top:5px}
+.source-locator{overflow-wrap:anywhere}.source-open{font-size:12px;white-space:nowrap}
+.source-excerpts{margin:8px 0 0;padding-left:18px;color:var(--dim);font-size:12.5px}
+.source-excerpts li{margin:4px 0}.source-ok{color:var(--green)}.source-seed{color:var(--amber)}
+.source-claim{scroll-margin-top:18px;margin-top:10px;padding:9px 10px;border-top:1px solid var(--line);border-radius:6px}
+.source-claim:target{background:rgba(82,212,245,.08);box-shadow:0 0 0 1px rgba(82,212,245,.32) inset}
+.source-claim-head{font:600 10.5px "SF Mono",monospace;color:var(--cyan2)}
+.change-log{margin-top:18px;border-color:rgba(177,140,240,.38);background:linear-gradient(180deg,rgba(177,140,240,.07),var(--panel))}
+.change-log h3{color:var(--violet);font-size:16px;margin:10px 0 6px}
+.change-log h4{color:#c7aaf6;font-size:14px;margin:14px 0 5px}
+.change-log p,.change-log li{color:var(--dim);font-size:13px}
+.change-log strong{color:#e6d9fb}
+.diagram{background:#07131f;border:1px solid #18324a;border-radius:10px;padding:14px;margin:10px 0;overflow:auto}
+.diagram pre{margin:0;color:#9ad0b0;font-size:12px;white-space:pre-wrap}
+.qty{background:var(--panel2);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:10px 14px;color:var(--dim);font-size:13px}
+.sec-h{font-size:16px;color:var(--cyan);margin:22px 0 4px}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:24px;font-size:13px}
+.nav a{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 13px}
+.notfound{color:var(--amber);padding:40px 0}
+.embed .topbar .back{display:none}
+.embed .wrap{padding-top:14px}
+.emblem{float:right;width:74px;height:74px;margin:2px 0 10px 18px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
+.emblem svg{width:74px;height:74px;display:block}
+.diagram svg{display:block}
+.diagram .nbcard{transition:opacity .12s}
+.diagram .nbcard:hover{opacity:1!important}
+.diagram .nbcard:hover>rect:first-of-type{stroke:#7fd4ff;stroke-width:2.2}
+.diagram .nbexternal:hover>rect:first-of-type{stroke:#a0ffdc;filter:drop-shadow(0 0 5px rgba(101,230,180,.32))}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"><div class="notfound">加载中…</div></div>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({startOnLoad:false, theme:'dark', securityLevel:'loose',
+  themeVariables:{fontFamily:'-apple-system,PingFang SC,sans-serif', fontSize:'13px'}});
+
+const DATA = window.STEEL_WIKI || {};
+const PREVIEW_MODE = Object.values(DATA).some(n=>n&&n.bundle_mode==='preview');
+const ORDER = Object.keys(DATA).sort((a,b)=>{
+  const ta=a[0],tb=b[0]; if(ta!==tb) return ta<tb?-1:1; return (+a.slice(1))-(+b.slice(1));
+});
+const qp = new URLSearchParams(location.search);
+const EMBED = qp.get('embed')==='1';
+if(EMBED) document.body.classList.add('embed');
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function neighborsOf(n){
+  if(n.type==='activity') return {ins:n.consumes||[], outs:n.produces||[]};
+  return {by:n.produced_by||[], to:n.consumed_by||[]};
+}
+
+function sourceCards(n){
+  const refs=n.source_refs||[];
+  if(!refs.length) return '';
+  // KU remains claim-granular in the evidence ledger, while the reader groups
+  // records that resolve to the same original document.  This matches the
+  // Golden reader pattern without sacrificing per-claim anchors or locators.
+  const groups=[];
+  const bySource=new Map();
+  refs.forEach(s=>{
+    const key=s.url?`url:${s.url}`:`id:${s.id}`;
+    let group=bySource.get(key);
+    if(!group){group={primary:s,refs:[]};bySource.set(key,group);groups.push(group);}
+    group.refs.push(s);
+  });
+  const cards=groups.map(group=>{
+    const s=group.primary;
+    const open=s.url?`<a class="source-open" href="${esc(s.url)}" target="_blank" rel="noopener">打开官方原文 ↗</a>`:'';
+    const st=s.status==='verified'?'source-ok':'source-seed';
+    const count=group.refs.length;
+    const records=group.refs.map((r,index)=>{
+      const excerpts=(r.excerpt_seeds||[]).map(x=>`<li>“${esc(x)}”</li>`).join('');
+      return `<div class="source-claim" id="source-${esc(r.id)}">
+        <div class="source-claim-head">${count>1?`引用 ${index+1}/${count}`:esc(r.id)}</div>
+        <div class="source-locator"><b>定位：</b>${esc(r.locator)}</div>
+        ${excerpts?`<ul class="source-excerpts">${excerpts}</ul>`:''}
+        ${r.verified_via?`<div class="source-verify"><b>核验：</b>${esc(r.verified_via)}</div>`:''}
+      </div>`;
+    }).join('');
+    return `<article class="source-card" data-source-count="${count}">
+      <div class="source-head"><div><div class="source-id">${count>1?`${count} 条断言引用`:esc(s.id)}</div><div class="source-title">${esc(s.title)}</div></div>${open}</div>
+      <div class="source-meta"><span class="${st}">${esc(s.status)}</span> · ${esc(s.region)} · ${esc(s.type)} · ${esc(s.version)} · ${esc(s.authority)}</div>
+      ${records}
+    </article>`;
+  }).join('');
+  return `<section class="panel sources"><h2>引用原文与核验记录</h2>${cards}</section>`;
+}
+
+function publicationState(n){
+  const releaseReady=(n.body_status==='reviewed'
+    && n.schema_version==='wiki-v2'
+    && n.structure_status==='conformant'
+    && n.provenance_status==='claim_verified'
+    && n.claim_verification_status==='complete');
+  if(!PREVIEW_MODE && releaseReady){
+    return {label:'正式发布', cls:'b-published',
+      detail:'已满足 Wiki-v2、断言核验与 reviewed 发布条件。'};
+  }
+  if(PREVIEW_MODE){
+    return {label:'草稿预览', cls:'b-draft',
+      detail:'预览内容仅供审阅；不代表通过发布 gate 或正式发布。'};
+  }
+  return {label:'草稿 · 未正式发布', cls:'b-draft',
+    detail:'尚未同时满足正式发布所需的 Wiki-v2、结构、溯源与完整断言核验条件。'};
+}
+
+async function render(id){
+  const n=DATA[id];
+  const root=document.getElementById('root');
+  if(!n){ root.innerHTML=`<div class="notfound">未找到节点 ${esc(id)}。<br><a href="steel-name-graph.html">← 返回名称图</a></div>`; return; }
+  const bd={foreground:['前景','b-fg'],background:['背景','b-bg']}[n.boundary]||[n.boundary,'b-fg'];
+  const cf={core:['core','b-core'],longtail:['longtail','b-long']}[n.confidence]||[n.confidence,'b-core'];
+  const publication=publicationState(n);
+  const EXT=['isic','bref','cpc','hs'];
+  const fac=Object.entries(n.facets||{}).filter(([k])=>!EXT.includes(k)).map(([k,v])=>`<span class="fk">${esc(k.replace(/_/g,' '))}: <b>${esc(v)}</b></span>`).join('');
+  const ext=Object.entries(n.external||{}).map(([k,v])=>`<span class="fk">${esc(k.toUpperCase())}: <b>${esc(v)}</b></span>`).join('');
+  const ref=n.type==='activity'&&n.reference_product?`<div class="fk" style="margin-top:8px">★ 参考产品: <b>${esc(n.reference_product)}</b></div>`:'';
+  const stateSpecs=[
+    ['Schema',n.schema_version,n.schema_version==='wiki-v2'?'b-ready':'b-draft'],
+    ['结构',n.structure_status,n.structure_status==='conformant'?'b-ready':'b-draft'],
+    ['溯源',n.provenance_status,n.provenance_status==='claim_verified'?'b-ready':n.provenance_status==='source_verified'?'b-core':'b-draft'],
+    ['断言',n.claim_verification_status,n.claim_verification_status==='complete'?'b-ready':'b-draft'],
+    ['数量',n.quantity_status,n.quantity_status==='populated'?'b-ready':'b-draft'],
+  ];
+  const states=stateSpecs.filter(([,v])=>v).map(([label,v,cls])=>`<span class="badge ${cls}">${label} ${esc(v)}</span>`).join('');
+  const previewBanner=PREVIEW_MODE?`<div class="preview-banner">草稿预览 · 非正式发布
+    <small>此查看器读取独立 preview bundle；正文可供提前审阅，但不会改变 reviewed 状态，也不代表已通过发布 gate。</small></div>`:'';
+  const draftWarning=publication.label!=='正式发布'?`<div class="draft-warning"><b>${esc(publication.label)}：</b>
+    ${esc(publication.detail)} 当前 Wiki ${esc(n.body_status||'draft')} · 断言核验 ${esc(n.claim_verification_status||'未完成')}。</div>`:'';
+  const idx=ORDER.indexOf(id);
+  const prev=idx>0?ORDER[idx-1]:null, next=idx<ORDER.length-1?ORDER[idx+1]:null;
+  root.innerHTML=`
+   ${previewBanner}
+   <div class="topbar"><span class="back"><a href="steel-name-graph.html">← 名称图</a> · <a href="../wiki/steel/index.md">index</a></span>
+     <span class="kick">${n.type==='activity'?'Activity 单元过程':'Product 产品'} Wiki</span></div>
+   <div class="emblem" title="节点 sigil（= g(身份键)）">${n.sigil||''}</div>
+   <h1 class="nm">${esc(n.name)}</h1>
+   <div class="idline mono">${esc(id)} &nbsp;
+     <span class="badge ${bd[1]}">${bd[0]}</span>
+     <span class="badge ${cf[1]}">${cf[0]}</span>
+     <span class="badge ${publication.cls}">${publication.label}</span>
+     <span class="badge ${n.body_status==='reviewed'?'b-ready':'b-draft'}">Wiki ${esc(n.body_status||'')}</span>
+     ${states}
+     ${n.dataset_readiness?`<span class="badge ${n.dataset_readiness.startsWith('blocked')?'b-blocked':'b-ready'}">LCI ${esc(n.dataset_readiness)}</span>`:''}</div>
+   <div class="facets">${fac}${ext}</div>${ref}${draftWarning}
+   <div class="panel"><div class="body">${n.body_html||'<p style="color:var(--faint)">（正文待充实）</p>'}</div></div>
+   ${sourceCards(n)}
+   ${n.change_log_html?`<section class="panel change-log">${n.change_log_html}</section>`:''}
+   <div class="nav">
+     <span>${prev?`<a href="?id=${prev}${EMBED?'&embed=1':''}" data-nav="${prev}">← ${esc(DATA[prev].name)}</a>`:''}</span>
+     <span>${next?`<a href="?id=${next}${EMBED?'&embed=1':''}" data-nav="${next}">${esc(DATA[next].name)} →</a>`:''}</span>
+   </div>`;
+  // mermaid 渲染（失败则保留文本）
+  try{ const el=root.querySelector('.mermaid'); if(el){ el.removeAttribute('data-processed'); await mermaid.run({nodes:[el]}); } }catch(e){}
+  // 节点 id 跳转
+  root.querySelectorAll('.nid').forEach(s=>s.addEventListener('click',()=>{const g=s.getAttribute('data-goto'); if(DATA[g]) go(g);}));
+  root.querySelectorAll('.diagram [data-goto]').forEach(g=>g.addEventListener('click',()=>{const t=g.getAttribute('data-goto'); if(DATA[t]) go(t);}));
+  root.querySelectorAll('.diagram [data-href]').forEach(g=>g.addEventListener('click',()=>{
+    const raw=g.getAttribute('data-href'); if(!raw)return;
+    const u=new URL(raw,location.href); if(EMBED)u.searchParams.set('embed','1');
+    location.href=u;
+  }));
+  root.querySelectorAll('[data-nav]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault(); go(a.getAttribute('data-nav'));}));
+  document.title=`${n.name} · 钢铁节点 Wiki`;
+}
+function go(id){
+  const u=new URL(location); u.searchParams.set('id',id); if(EMBED)u.searchParams.set('embed','1');
+  history.replaceState(null,'',u); render(id);
+  if(window.parent!==window){ try{window.parent.postMessage({wikiNav:id},'*');}catch(e){} }
+  window.scrollTo(0,0);
+}
+const start = qp.get('id') || ORDER[0];
+// Keep the viewer's resolved entry node stable. Hash-only citation navigation
+// may emit popstate in some browsers; falling back to ORDER[0] there would
+// silently replace a dedicated P003 page with the first node in the bundle.
+const defaultNode = start;
+render(start);
+window.addEventListener('popstate',()=>render(new URLSearchParams(location.search).get('id')||defaultNode));
+</script>
+</body>
+</html>

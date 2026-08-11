@@ -1,0 +1,824 @@
+{
+  "_meta": {
+    "title": "石油炼制(petroleum refining: fuel oil, refined products) · 产品/活动名称图",
+    "industry": "石油炼制(petroleum refining: fuel oil, refined products)",
+    "scope": "名称与拓扑层(基座骨架);外购投入=带home_industry的背景节点;不含数量。",
+    "method": "六阶段SOP workflow 产出,从 journal 确定性物化(materialize.py)。",
+    "generated": "2026-07-24",
+    "counts": {
+      "products": 54,
+      "products_foreground": 38,
+      "products_background": 16,
+      "activities": 30,
+      "edges": 223,
+      "edges_produces": 84,
+      "edges_consumes": 139
+    },
+    "closure_check": {
+      "invariant_A_orphans": 0,
+      "invariant_C_dangling": 0,
+      "activities_without_reference": 0,
+      "outputs_to_missing_product": 0,
+      "note": "物化后由 validate_graph.py 复核;此处占位,通过后即0"
+    },
+    "disclaimer": "命名/拓扑为可辩护成果;数值未挂;上游多为占位待建(见 home_industry)。",
+    "reconciliation": {
+      "reconcile_py": "通用对账(reconcile.py):identity_scope+升格表外刻面+派生product_subtype/reference_output+扩词表。"
+    }
+  },
+  "conventions": {
+    "boundary": {
+      "foreground_rule": "前景 = 石油炼制行业自身的【一次提取与初级加工】活动及其产物。具体包括:原油常压蒸馏(CDU)、减压蒸馏(VDU)、催化裂化(FCC)、加氢裂化(HCK)、加氢处理/脱硫(HDT/HDS)、催化重整、烷基化、异构化、延迟焦化、沥青吹制、润滑油基础油生产(溶剂精制/加氢异构脱蜡)、气体分馏(LPG分离)、硫回收(Claus)等炼厂内部工艺,以及它们直接产出的精炼石油产品(LPG、汽油、煤油/航煤、柴油、燃料油/重油、石脑油、石油焦、沥青、润滑油基础油、副产硫磺等)。前景产品 home_industry 必为 petroleum_refining。",
+      "background_rule": "背景 = 炼厂外部投入,给名不展开,每个 background 产品必须带 home_industry 用于跨行业解析。包括:(a) 上游原料原油与天然气凝液(home_industry=oil_gas);(b) 外购能源 —— 电力(power)、工业蒸汽与热(power 或 industrial_heat)、自用燃气/燃料(natural_gas);(c) 工艺试剂与催化剂 —— 外购氢气(industrial_gases)、氢氟酸/硫酸烷基化试剂、加氢/重整/FCC 催化剂、溶剂(MEK/糠醛/NMP)、添加剂,均来自 chemicals;(d) 工业气体氧气/氮气(industrial_gases);(e) 水(water_supply);(f) 设备与基础设施 —— 反应塔/换热器/压缩机/催化剂载体/管线(machinery / electrical_equipment / construction_materials),给名不展开;(g) 废水处理与污染控制服务(waste_treatment)。",
+      "examples": [
+        "原油进料 → background, home_industry=oil_gas(炼厂的上游输入)",
+        "炼厂外购电网电力 → background, home_industry=power",
+        "加氢脱硫用氢气(外购管输) → background, home_industry=industrial_gases;若炼厂蒸汽重整自产则提升为前景",
+        "FCC 催化剂(沸石微球) → background, home_industry=chemicals",
+        "常减压蒸馏装置(CDU/VDU 塔器) → background, home_industry=machinery(基础设施,给名不展开)",
+        "硫磺(Claus 装置回收) → foreground 副产, home_industry=petroleum_refining",
+        "外购重油作为炼厂自用燃料 → background, home_industry=petroleum_refining(循环回购视为背景给名)"
+      ]
+    },
+    "product_facets": [
+      {
+        "name": "material_type",
+        "description": "精炼石油产品的物质种类,身份核心维度,锁定产品在 LCA 数据库与下游 BOM 中的化学/能源载体类别。",
+        "controlled_values": [
+          "crude_oil_feed",
+          "lpg",
+          "naphtha",
+          "gasoline",
+          "kerosene_jet_fuel",
+          "diesel",
+          "heavy_fuel_oil",
+          "marine_bunker_fuel",
+          "petroleum_coke",
+          "bitumen",
+          "lubricant_base_oil",
+          "wax_paraffin",
+          "solvent_white_spirit",
+          "refinery_gas",
+          "refinery_dry_gas",
+          "crude_lpg",
+          "refinery_ethane_rich_gas",
+          "propane",
+          "hydrogen_refinery",
+          "sulfur_recovered",
+          "asphalt_residue",
+          "atmospheric_residue",
+          "vacuum_gas_oil",
+          "vacuum_residue",
+          "avgas",
+          "benzene",
+          "coker_gas_oil",
+          "coker_naphtha",
+          "ethylene",
+          "heavy_naphtha",
+          "hydrogen_sulfide",
+          "industrial_steam",
+          "microcrystalline_wax",
+          "mixed_c4_fraction",
+          "mtbe",
+          "needle_coke",
+          "propylene",
+          "reformate",
+          "visbreaker_residue",
+          "waste_lubricant_oil",
+          "straight_run_naphtha",
+          "hydrotreated_kerosene_naphtha",
+          "alkylate"
+        ],
+        "rationale": "炼厂以馏分/物性切分产品(沸点段+用途),下游 SU7 等 BOM 按物质种类直接索取(如'重油/燃料油');不同馏分的 GWP/能量密度差异巨大,必须进身份。"
+      },
+      {
+        "name": "processing_state",
+        "description": "在初级加工链上的位置,区分原料、初级产品、副产。地基行业通用四态。",
+        "controlled_values": [
+          "run_of_mine_ore",
+          "concentrate",
+          "primary_product",
+          "by_product"
+        ],
+        "rationale": "炼厂主流出为 primary_product(汽柴煤航),硫磺/石油焦/沥青残渣为 by_product;原油本身视为外部输入而不在炼厂前景产品身份内重复。保持与其他地基行业一致的四态词表便于跨行业 GPID 对齐。"
+      },
+      {
+        "name": "form_state",
+        "description": "常温常压下的物态,影响存储/运输/排放建模。",
+        "controlled_values": [
+          "solid",
+          "liquid",
+          "gas",
+          "aqueous"
+        ],
+        "rationale": "石油焦/沥青/蜡=solid,LPG/炼厂气/H2=gas,汽柴煤航/重油/润滑油=liquid;同 material_type 可因物态差异需要不同存储/燃烧模型,故进身份。"
+      }
+    ],
+    "activity_facets": [
+      {
+        "name": "transformation_verb",
+        "description": "本行业适用的提取/加工动词,锁定活动语义类别。",
+        "controlled_values": [
+          "extraction",
+          "distillation",
+          "cracking",
+          "hydrotreating",
+          "reforming",
+          "alkylation",
+          "isomerization",
+          "coking",
+          "blending",
+          "separation",
+          "sulfur_recovery",
+          "refining",
+          "calcination",
+          "processing"
+        ],
+        "rationale": "石油炼制由动词刻画活动主语义(蒸馏 vs 裂化 vs 加氢 vs 焦化是完全不同的转化),提供与 mining/oil_gas 等地基行业一致的动词受控词表。"
+      },
+      {
+        "name": "technology_route",
+        "description": "承载全部提取/加工技术细节(装置/工艺/催化体系),不进产品身份只进活动身份。",
+        "controlled_values": [
+          "atmospheric_distillation_CDU",
+          "vacuum_distillation_VDU",
+          "fluid_catalytic_cracking_FCC",
+          "hydrocracking_HCK",
+          "hydrotreating_HDT",
+          "hydrodesulfurization_HDS",
+          "catalytic_reforming_CCR",
+          "delayed_coking",
+          "fluid_coking",
+          "visbreaking",
+          "alkylation_HF",
+          "alkylation_H2SO4",
+          "isomerization_C5C6",
+          "solvent_dewaxing",
+          "hydroisomerization_dewaxing",
+          "claus_sulfur_recovery",
+          "gas_fractionation",
+          "wet_gas_recovery_absorption_stabilization",
+          "blending_pool",
+          "bitumen_oxidation",
+          "aromatic_extraction_BTX",
+          "crude_blending_pretreatment",
+          "etherification_MTBE",
+          "merox_sweetening",
+          "propylene_recovery_C3_splitter",
+          "steam_methane_reforming_SMR",
+          "wax_hydrofinishing"
+        ],
+        "rationale": "同一 material_type(如 diesel)可由 CDU 直馏、HCK 转化或加氢精制得到,工艺差异属于活动维度,放 technology_route;避免技术耦合进产品身份导致名称图爆炸。"
+      },
+      {
+        "name": "reference_product_anchor",
+        "description": "锚定该活动的参考产品(产品节点 id),保证活动-产品语义可解析。",
+        "controlled_values": [
+          "MTBE/汽油调和组分, 初级品, 液态",
+          "丙烯, 副产, 气态",
+          "减粘裂化渣油, 副产, 液态",
+          "原油, 原矿, 液态",
+          "柴油, 初级品, 液态",
+          "汽油, 初级品, 液态",
+          "沥青, 副产, 固态",
+          "润滑油基础油, 初级品, 液态",
+          "液化石油气, 初级品, 气态",
+          "溶剂油/白油, 初级品, 液态",
+          "炼厂氢, 初级品, 气态",
+          "焦化石脑油, 副产, 液态",
+          "煤油/航煤, 初级品, 液态",
+          "石油焦, 副产, 固态",
+          "石脑油, 初级品, 液态",
+          "硫磺, 副产, 固态",
+          "船用燃料油, 初级品, 液态",
+          "苯, 副产, 液态",
+          "蜡/石蜡, 副产, 固态",
+          "重整生成油(高辛烷值调和组分), 初级品, 液态",
+          "重油, 初级品, 液态",
+          "P001",
+          "P011",
+          "P055",
+          "P006",
+          "P008",
+          "P027",
+          "P007",
+          "P035",
+          "P010",
+          "P024",
+          "P025",
+          "重整生成油_高辛烷值调和组分_初级品_液态",
+          "P021",
+          "P014",
+          "P033",
+          "P019",
+          "P017",
+          "P022",
+          "P013",
+          "P030",
+          "P036",
+          "P016",
+          "P018",
+          "P057",
+          "烷基化油, 初级品, 液态"
+        ],
+        "rationale": "炼厂活动多联产(一塔出 LPG+石脑油+煤油+柴油+渣油),必须显式锚定一个 reference 产品,其余以 by-product 边表达。"
+      }
+    ],
+    "non_identity_facets": [
+      {
+        "name": "geography",
+        "note": "炼厂地理(国家/区域/具体炼厂)是派生坐标,不进身份;同一 material_type×technology_route 在不同地理下是同节点的不同实例化。"
+      },
+      {
+        "name": "refinery_site",
+        "note": "具体炼厂(如镇海/茂名/Jamnagar)是元数据,不进身份。"
+      },
+      {
+        "name": "crude_slate",
+        "note": "原油配比(轻/重/酸/甜)影响产率但不改变产品身份;作为活动属性元数据。"
+      },
+      {
+        "name": "reference_year",
+        "note": "年份用于版本/时效追溯,不进身份。"
+      },
+      {
+        "name": "system_model",
+        "note": "cut-off/APOS/consequential 是 LCA 建模选择,不进产品/活动名称图身份。"
+      },
+      {
+        "name": "sulfur_spec",
+        "note": "硫含量规格(如 ULSD 10ppm vs 50ppm)是质量等级属性,作为产品属性元数据;若下游建模需严格区分可升格进 material_type 子类,目前不进身份。"
+      },
+      {
+        "name": "octane_grade",
+        "note": "汽油辛烷值(92/95/98)为质量等级,不进身份,作为属性。"
+      }
+    ],
+    "synonym_table": [
+      {
+        "canonical": "heavy_fuel_oil",
+        "aliases": [
+          "重油",
+          "燃料油",
+          "渣油燃料油",
+          "HFO",
+          "residual fuel oil",
+          "bunker C",
+          "重质燃料油"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "diesel",
+        "aliases": [
+          "柴油",
+          "车用柴油",
+          "ULSD",
+          "gas oil",
+          "automotive diesel",
+          "0号柴油"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "gasoline",
+        "aliases": [
+          "汽油",
+          "车用汽油",
+          "petrol",
+          "motor gasoline",
+          "92号汽油",
+          "95号汽油"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "kerosene_jet_fuel",
+        "aliases": [
+          "煤油",
+          "航空煤油",
+          "航煤",
+          "Jet A-1",
+          "Jet A",
+          "kerosene"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "naphtha",
+        "aliases": [
+          "石脑油",
+          "轻油",
+          "粗汽油",
+          "light naphtha",
+          "heavy naphtha"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "lpg",
+        "aliases": [
+          "液化石油气",
+          "液化气",
+          "丙丁烷混合",
+          "propane-butane",
+          "LPG"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "petroleum_coke",
+        "aliases": [
+          "石油焦",
+          "petcoke",
+          "煅后焦",
+          "生焦",
+          "calcined coke"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "bitumen",
+        "aliases": [
+          "沥青",
+          "道路沥青",
+          "asphalt",
+          "改性沥青"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "lubricant_base_oil",
+        "aliases": [
+          "润滑油基础油",
+          "基础油",
+          "lube base oil",
+          "API Group I/II/III"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "marine_bunker_fuel",
+        "aliases": [
+          "船用燃料油",
+          "船用重油",
+          "VLSFO",
+          "MGO",
+          "船燃"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "sulfur_recovered",
+        "aliases": [
+          "硫磺",
+          "回收硫",
+          "Claus硫",
+          "elemental sulfur"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "refinery_gas",
+        "aliases": [
+          "炼厂气",
+          "炼厂干气",
+          "fuel gas",
+          "still gas"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "hydrogen_refinery",
+        "aliases": [
+          "炼厂氢",
+          "工业氢",
+          "重整副产氢",
+          "SMR氢"
+        ],
+        "facet": "material_type"
+      },
+      {
+        "canonical": "atmospheric_distillation_CDU",
+        "aliases": [
+          "常压蒸馏",
+          "常减压常压塔",
+          "CDU",
+          "atmospheric tower"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "vacuum_distillation_VDU",
+        "aliases": [
+          "减压蒸馏",
+          "减压塔",
+          "VDU",
+          "vacuum tower"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "fluid_catalytic_cracking_FCC",
+        "aliases": [
+          "催化裂化",
+          "流化催化裂化",
+          "FCC",
+          "重油催化"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "hydrocracking_HCK",
+        "aliases": [
+          "加氢裂化",
+          "HCK",
+          "hydrocracker"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "hydrotreating_HDT",
+        "aliases": [
+          "加氢精制",
+          "加氢处理",
+          "HDT",
+          "hydrotreater"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "hydrodesulfurization_HDS",
+        "aliases": [
+          "加氢脱硫",
+          "HDS",
+          "脱硫"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "catalytic_reforming_CCR",
+        "aliases": [
+          "催化重整",
+          "连续重整",
+          "CCR",
+          "reformer"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "delayed_coking",
+        "aliases": [
+          "延迟焦化",
+          "焦化",
+          "delayed coker"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "claus_sulfur_recovery",
+        "aliases": [
+          "硫回收",
+          "克劳斯",
+          "Claus装置",
+          "SRU"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "alkylation_HF",
+        "aliases": [
+          "氢氟酸烷基化",
+          "HF烷基化"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "alkylation_H2SO4",
+        "aliases": [
+          "硫酸烷基化",
+          "H2SO4烷基化"
+        ],
+        "facet": "technology_route"
+      },
+      {
+        "canonical": "primary_product",
+        "aliases": [
+          "初级品",
+          "主产品",
+          "primary"
+        ],
+        "facet": "processing_state"
+      },
+      {
+        "canonical": "by_product",
+        "aliases": [
+          "副产",
+          "副产品",
+          "联产品"
+        ],
+        "facet": "processing_state"
+      },
+      {
+        "canonical": "concentrate",
+        "aliases": [
+          "精矿",
+          "精制品"
+        ],
+        "facet": "processing_state"
+      },
+      {
+        "canonical": "liquid",
+        "aliases": [
+          "液态",
+          "液体"
+        ],
+        "facet": "form_state"
+      },
+      {
+        "canonical": "gas",
+        "aliases": [
+          "气态",
+          "气体"
+        ],
+        "facet": "form_state"
+      },
+      {
+        "canonical": "solid",
+        "aliases": [
+          "固态",
+          "固体"
+        ],
+        "facet": "form_state"
+      }
+    ],
+    "product_naming_template": "{material_type_zh}, {processing_state_zh}, {form_state_zh}  例:'柴油, 初级品, 液态' / '石油焦, 副产, 固态' / '硫磺, 副产, 固态' / '重油, 初级品, 液态' / '炼厂氢, 初级品, 气态'",
+    "activity_naming_template": "{transformation_verb_zh}, {technology_route_zh} | {reference_product_zh}  例:'蒸馏, 常压蒸馏CDU | 直馏石脑油' / '裂化, 流化催化裂化FCC | 汽油' / '加氢, 加氢脱硫HDS | 柴油' / '焦化, 延迟焦化 | 石油焦' / '硫回收, 克劳斯 | 硫磺'",
+    "entity_schema": {
+      "product_fields": [
+        "id",
+        "name",
+        "kind=Product",
+        "home_industry",
+        "material_type",
+        "processing_state",
+        "form_state",
+        "gpid",
+        "aliases",
+        "unit",
+        "attributes(sulfur_spec, octane_grade, density, lhv, api_gravity)",
+        "provenance(sources, reviewers)",
+        "notes"
+      ],
+      "activity_fields": [
+        "id",
+        "name",
+        "kind=Activity",
+        "home_industry",
+        "transformation_verb",
+        "technology_route",
+        "reference_product_anchor",
+        "co_products",
+        "attributes(geography, reference_year, system_model, crude_slate, capacity)",
+        "provenance(sources, reviewers)",
+        "notes"
+      ],
+      "edge_types": [
+        "PRODUCES (Activity -> Product, with role=reference|by_product, allocation_hint)",
+        "CONSUMES (Activity -> Product, with role=feedstock|energy|reagent|catalyst|infrastructure, background_flag)"
+      ]
+    },
+    "identity_scope": {
+      "rule": "键唯一⇒名唯一与刻面受控仅作用于 boundary=foreground;background 引用节点给名不展开、名为键、豁免 D/E(各带 home_industry,见跨行业关联规约)。",
+      "rationale": "外购材料/部件是上游占位,不塞前景刻面。",
+      "applies_invariants": "D/E前景域;A/B/C全图。"
+    }
+  },
+  "products": [
+    {
+      "name": "液化石油气, 初级品, 气态",
+      "facets": {
+        "material_type": "lpg",
+        "processing_state": "primary_product",
+        "form_state": "gas"
+      },
+      "boundary": "foreground",
+      "home_industry": "petroleum_refining",
+      "cpc": "3340",
+      "hs": "271112",
+      "provenance": [
+        "ecoinvent 3.x: 'liquefied petroleum gas production, at refinery'",
+        "GaBi: 'LPG'",
+        "CPC §3340; HS §2711.12~14",
+        "炼油工程·气体加工:CDU塔顶气经气体分馏得丙丁烷混合"
+      ],
+      "confidence": "core",
+      "id": "P013",
+      "gpid": "oil_refining::lpg.primary_product.gas"
+    },
+    {
+      "name": "炼厂气, 副产, 气态",
+      "facets": {
+        "material_type": "refinery_gas",
+        "processing_state": "by_product",
+        "form_state": "gas"
+      },
+      "boundary": "foreground",
+      "home_industry": "petroleum_refining",
+      "cpc": "3380",
+      "hs": "271129",
+      "provenance": [
+        "ecoinvent 3.x: 'refinery gas' / 'fuel gas, at refinery'",
+        "GaBi: 'Refinery Gas (Still Gas)'",
+        "CPC §3380; HS §2711.29",
+        "炼油工程·气体加工:各裂化/加氢装置产生C1-C4不凝气"
+      ],
+      "confidence": "core",
+      "id": "P020",
+      "gpid": "oil_refining::refinery_gas.by_product.gas"
+    },
+    {
+      "name": "混合C4馏分, 副产, 气态",
+      "facets": {
+        "material_type": "mixed_c4_fraction",
+        "processing_state": "by_product",
+        "form_state": "gas"
+      },
+      "boundary": "foreground",
+      "home_industry": "petroleum_refining",
+      "cpc": "34140",
+      "hs": "290124",
+      "provenance": [
+        "critics_missing: FCC/烷基化进料 C4 fraction"
+      ],
+      "confidence": "core",
+      "id": "P029",
+      "gpid": "oil_refining::mixed_c4_fraction.by_product.gas"
+    },
+    {
+      "name": "电力(中压), 初级品, 气态",
+      "facets": {
+        "material_type": "electricity_medium_voltage",
+        "processing_state": "primary_product",
+        "form_state": "gas"
+      },
+      "boundary": "background",
+      "home_industry": "power",
+      "cpc": "1710",
+      "hs": "2716",
+      "provenance": [
+        "ecoinvent 3.x: 'electricity, medium voltage'",
+        "GaBi: 'Electricity grid mix'",
+        "CPC §1710; HS §2716"
+      ],
+      "confidence": "core",
+      "id": "P038",
+      "home_status": "linked",
+      "resolves_to": "power::electricity.medium_voltage.distribution_grid.na_electricity",
+      "cross_link_verdict": "Exact"
+    },
+    {
+      "name": "氢气(外购), 初级品, 气态",
+      "facets": {
+        "material_type": "hydrogen_external",
+        "processing_state": "primary_product",
+        "form_state": "gas"
+      },
+      "boundary": "background",
+      "home_industry": "industrial_gases",
+      "cpc": "34210",
+      "hs": "280410",
+      "provenance": [
+        "ecoinvent 3.x: 'hydrogen, gaseous, 350 bar'",
+        "UN CPC 2.1 §34210; HS §2804.10",
+        "炼油工程·加氢:外购工业氢补充加氢装置耗氢"
+      ],
+      "confidence": "core",
+      "id": "P040",
+      "home_status": "linked",
+      "cross_link_verdict": "Exact",
+      "resolves_to": "industrial_gases::hydrogen.primary_product.gas"
+    },
+    {
+      "name": "氟化氢(无水，工业级), 初级品, 液态",
+      "facets": {
+        "material_type": "hydrogen_fluoride_anhydrous",
+        "processing_state": "primary_product",
+        "form_state": "liquid"
+      },
+      "boundary": "background",
+      "home_industry": "chemicals",
+      "cpc": "34231",
+      "hs": "281111",
+      "provenance": [
+        "independent_verification_2026-07-24: HF alkylation uses anhydrous hydrogen fluoride; HS 2811.11 / UN CPC 34231"
+      ],
+      "confidence": "longtail",
+      "id": "P046",
+      "home_status": "placeholder"
+    },
+    {
+      "name": "烷基化油, 初级品, 液态",
+      "facets": {
+        "material_type": "alkylate",
+        "processing_state": "primary_product",
+        "form_state": "liquid"
+      },
+      "boundary": "foreground",
+      "home_industry": "petroleum_refining",
+      "cpc": "3311",
+      "hs": "271012",
+      "provenance": [
+        "EU JRC REF BREF 2015: alkylate is the high-octane gasoline component produced by alkylation",
+        "identity refinement: separated from finished gasoline blending pool"
+      ],
+      "confidence": "core",
+      "id": "P057",
+      "gpid": "oil_refining::alkylate.primary_product.liquid"
+    }
+  ],
+  "activities": [
+    {
+      "name": "烷基化, 氢氟酸烷基化 | 烷基化油",
+      "facets": {
+        "transformation_verb": "alkylation",
+        "technology_route": "alkylation_HF",
+        "reference_product_anchor": "P057"
+      },
+      "isic": "1920",
+      "inputs": [
+        "液化石油气, 初级品, 气态",
+        "混合C4馏分, 副产, 气态",
+        "氢气(外购), 初级品, 气态",
+        "氟化氢(无水，工业级), 初级品, 液态",
+        "电力(中压), 初级品, 气态"
+      ],
+      "outputs": [
+        {
+          "product": "烷基化油, 初级品, 液态",
+          "role": "reference"
+        },
+        {
+          "product": "液化石油气, 初级品, 气态",
+          "role": "coproduct"
+        },
+        {
+          "product": "炼厂气, 副产, 气态",
+          "role": "coproduct"
+        }
+      ],
+      "provenance": [
+        "ecoinvent v3 'alkylate production, HF alkylation'",
+        "GaBi: 'HF Alkylation Unit'",
+        "炼油工程·烷基化:C4烯烃+异丁烷HF催化产高辛烷值汽油"
+      ],
+      "confidence": "core",
+      "id": "A017"
+    }
+  ],
+  "edges": [
+    {
+      "from": "A017",
+      "to": "P057",
+      "type": "PRODUCES",
+      "role": "reference"
+    },
+    {
+      "from": "A017",
+      "to": "P013",
+      "type": "PRODUCES",
+      "role": "coproduct"
+    },
+    {
+      "from": "A017",
+      "to": "P013",
+      "type": "CONSUMES"
+    },
+    {
+      "from": "A017",
+      "to": "P029",
+      "type": "CONSUMES"
+    },
+    {
+      "from": "A017",
+      "to": "P046",
+      "type": "CONSUMES"
+    },
+    {
+      "from": "A017",
+      "to": "P038",
+      "type": "CONSUMES"
+    },
+    {
+      "from": "A017",
+      "to": "P040",
+      "type": "CONSUMES"
+    },
+    {
+      "from": "A017",
+      "to": "P020",
+      "type": "PRODUCES",
+      "role": "coproduct"
+    }
+  ]
+}

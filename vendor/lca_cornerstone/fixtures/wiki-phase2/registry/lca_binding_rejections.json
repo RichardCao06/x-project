@@ -1,0 +1,584 @@
+{
+  "_meta": {
+    "schema_version": "lca-binding-rejections-v1",
+    "scope": "ICT multi-source batch matching",
+    "checked_at": "2026-07-30",
+    "note": "Rejections prevent repeated false binding and remain audit-only.",
+    "rejection_count": 39
+  },
+  "rejections": [
+    {
+      "rejection_id": "reject::ict_equipment::A001::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A001",
+      "node_spine_hash": "dadca68d566b",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A002::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A002",
+      "node_spine_hash": "934d15637c39",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A003::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A003",
+      "node_spine_hash": "2548a09d818b",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A004::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A004",
+      "node_spine_hash": "2908c47405c6",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A005::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A005",
+      "node_spine_hash": "101e56584e17",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A006::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A006",
+      "node_spine_hash": "d53133ac6272",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A007::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A007",
+      "node_spine_hash": "aa290679e4fc",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A008::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A008",
+      "node_spine_hash": "7aef29840364",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A009::ecoinvent::600fa501-f676-5956-a027-f0464d58803a",
+      "node_ref": "ict_equipment::A009",
+      "node_spine_hash": "b16b3c4fab6b",
+      "dataset_key": "ecoinvent::3.12::cutoff::600fa501-f676-5956-a027-f0464d58803a",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "equipment_class",
+        "unit_process_boundary",
+        "configuration"
+      ],
+      "reason": "台式机完整生产过程不等于服务器 chassis-integration 增量活动，且设备类别和配置均不匹配。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A010::ecoinvent::600fa501-f676-5956-a027-f0464d58803a",
+      "node_ref": "ict_equipment::A010",
+      "node_spine_hash": "a7374d9cc2ec",
+      "dataset_key": "ecoinvent::3.12::cutoff::600fa501-f676-5956-a027-f0464d58803a",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "equipment_class",
+        "unit_process_boundary",
+        "configuration"
+      ],
+      "reason": "台式机完整生产过程不等于服务器 chassis-integration 增量活动，且设备类别和配置均不匹配。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A011::ecoinvent::600fa501-f676-5956-a027-f0464d58803a",
+      "node_ref": "ict_equipment::A011",
+      "node_spine_hash": "325f2b767db3",
+      "dataset_key": "ecoinvent::3.12::cutoff::600fa501-f676-5956-a027-f0464d58803a",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "equipment_class",
+        "unit_process_boundary",
+        "configuration"
+      ],
+      "reason": "台式机完整生产过程不等于服务器 chassis-integration 增量活动，且设备类别和配置均不匹配。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A012::ecoinvent::600fa501-f676-5956-a027-f0464d58803a",
+      "node_ref": "ict_equipment::A012",
+      "node_spine_hash": "497313b7b5ad",
+      "dataset_key": "ecoinvent::3.12::cutoff::600fa501-f676-5956-a027-f0464d58803a",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "equipment_class",
+        "unit_process_boundary",
+        "configuration"
+      ],
+      "reason": "台式机完整生产过程不等于服务器 chassis-integration 增量活动，且设备类别和配置均不匹配。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A024::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A024",
+      "node_spine_hash": "421cc49dc369",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A029::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A029",
+      "node_spine_hash": "a17c31d866c8",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A030::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A030",
+      "node_spine_hash": "0be04d3c8eb0",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A031::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A031",
+      "node_spine_hash": "634407fc73a8",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A039::ecoinvent::600fa501-f676-5956-a027-f0464d58803a",
+      "node_ref": "ict_equipment::A039",
+      "node_spine_hash": "5c7023ff07da",
+      "dataset_key": "ecoinvent::3.12::cutoff::600fa501-f676-5956-a027-f0464d58803a",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "equipment_class",
+        "unit_process_boundary",
+        "configuration"
+      ],
+      "reason": "台式机完整生产过程不等于服务器 chassis-integration 增量活动，且设备类别和配置均不匹配。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A040::ecoinvent::9c4659ce-51ab-5928-93f1-f3f60678ee6e",
+      "node_ref": "ict_equipment::A040",
+      "node_spine_hash": "9cac7cbdb793",
+      "dataset_key": "ecoinvent::3.12::cutoff::9c4659ce-51ab-5928-93f1-f3f60678ee6e",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "unit_process_boundary"
+      ],
+      "reason": "笔记本完整生产过程不是 A040 的整机总装增量活动；绑定会与图内上游部件重复。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::A041::federal-lca-commons-3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "node_ref": "ict_equipment::A041",
+      "node_spine_hash": "50c913043e37",
+      "dataset_key": "federal-lca-commons::3a63e93b-6a85-46d0-9149-ce2cf72e07c4",
+      "relationship_kind": "activity_process",
+      "existence_status": "official_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "bridge_process",
+        "unit_process_boundary"
+      ],
+      "reason": "该记录明确是 USLCI 到 USEEIO 的 bridge，不是表面贴装制造单元过程。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P029::sphera-MLC-2026.1-e398b1a0-46a1-4ea8-845e-77db5ffb98db",
+      "node_ref": "ict_equipment::P029",
+      "node_spine_hash": "c3a4c5c4716a",
+      "dataset_key": "sphera::MLC::2026.1::e398b1a0-46a1-4ea8-845e-77db5ffb98db",
+      "relationship_kind": "reference_product_of",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "power_class",
+        "application",
+        "product_boundary"
+      ],
+      "reason": "50–100 W外置电源与PSU板级总成或服务器成品PSU在功率等级、应用、热设计和结构上不匹配。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P045::ecoinvent::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "node_ref": "ict_equipment::P045",
+      "node_spine_hash": "5738d0dd74c2",
+      "dataset_key": "ecoinvent::3.12::cutoff::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI 总线连接器与该节点的板对板、DIMM、存储、显示 I/O、电源或线束连接器身份不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P045::sphera-MLC-2026.1-b8e48556-451e-4441-99d1-a387f70de4f3",
+      "node_ref": "ict_equipment::P045",
+      "node_spine_hash": "5738d0dd74c2",
+      "dataset_key": "sphera::MLC::2026.1::b8e48556-451e-4441-99d1-a387f70de4f3",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "SATA连接器与该节点的板对板、显示I/O、PCIe、板载电源、DIMM或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P045::sphera-MLC-2026.1-bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "node_ref": "ict_equipment::P045",
+      "node_spine_hash": "5738d0dd74c2",
+      "dataset_key": "sphera::MLC::2026.1::bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI连接器与该节点的板对板、显示I/O、板载电源、DIMM、SATA/SAS/U.2或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P053::sphera-MLC-2026.1-e398b1a0-46a1-4ea8-845e-77db5ffb98db",
+      "node_ref": "ict_equipment::P053",
+      "node_spine_hash": "b278fba97534",
+      "dataset_key": "sphera::MLC::2026.1::e398b1a0-46a1-4ea8-845e-77db5ffb98db",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "power_class",
+        "application",
+        "product_boundary"
+      ],
+      "reason": "50–100 W外置电源与PSU板级总成或服务器成品PSU在功率等级、应用、热设计和结构上不匹配。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P079::ecoinvent::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "node_ref": "ict_equipment::P079",
+      "node_spine_hash": "c93e744a0426",
+      "dataset_key": "ecoinvent::3.12::cutoff::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI 总线连接器与该节点的板对板、DIMM、存储、显示 I/O、电源或线束连接器身份不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P079::sphera-MLC-2026.1-b8e48556-451e-4441-99d1-a387f70de4f3",
+      "node_ref": "ict_equipment::P079",
+      "node_spine_hash": "c93e744a0426",
+      "dataset_key": "sphera::MLC::2026.1::b8e48556-451e-4441-99d1-a387f70de4f3",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "SATA连接器与该节点的板对板、显示I/O、PCIe、板载电源、DIMM或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P079::sphera-MLC-2026.1-bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "node_ref": "ict_equipment::P079",
+      "node_spine_hash": "c93e744a0426",
+      "dataset_key": "sphera::MLC::2026.1::bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI连接器与该节点的板对板、显示I/O、板载电源、DIMM、SATA/SAS/U.2或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P082::sphera-MLC-2026.1-b8e48556-451e-4441-99d1-a387f70de4f3",
+      "node_ref": "ict_equipment::P082",
+      "node_spine_hash": "29bfc22845a5",
+      "dataset_key": "sphera::MLC::2026.1::b8e48556-451e-4441-99d1-a387f70de4f3",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "SATA连接器与该节点的板对板、显示I/O、PCIe、板载电源、DIMM或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P083::ecoinvent::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "node_ref": "ict_equipment::P083",
+      "node_spine_hash": "041eebd318d3",
+      "dataset_key": "ecoinvent::3.12::cutoff::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI 总线连接器与该节点的板对板、DIMM、存储、显示 I/O、电源或线束连接器身份不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P083::sphera-MLC-2026.1-b8e48556-451e-4441-99d1-a387f70de4f3",
+      "node_ref": "ict_equipment::P083",
+      "node_spine_hash": "041eebd318d3",
+      "dataset_key": "sphera::MLC::2026.1::b8e48556-451e-4441-99d1-a387f70de4f3",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "SATA连接器与该节点的板对板、显示I/O、PCIe、板载电源、DIMM或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P083::sphera-MLC-2026.1-bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "node_ref": "ict_equipment::P083",
+      "node_spine_hash": "041eebd318d3",
+      "dataset_key": "sphera::MLC::2026.1::bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI连接器与该节点的板对板、显示I/O、板载电源、DIMM、SATA/SAS/U.2或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P086::ecoinvent::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "node_ref": "ict_equipment::P086",
+      "node_spine_hash": "3aa3677bc3e2",
+      "dataset_key": "ecoinvent::3.12::cutoff::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI 总线连接器与该节点的板对板、DIMM、存储、显示 I/O、电源或线束连接器身份不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P086::sphera-MLC-2026.1-b8e48556-451e-4441-99d1-a387f70de4f3",
+      "node_ref": "ict_equipment::P086",
+      "node_spine_hash": "3aa3677bc3e2",
+      "dataset_key": "sphera::MLC::2026.1::b8e48556-451e-4441-99d1-a387f70de4f3",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "SATA连接器与该节点的板对板、显示I/O、PCIe、板载电源、DIMM或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P086::sphera-MLC-2026.1-bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "node_ref": "ict_equipment::P086",
+      "node_spine_hash": "3aa3677bc3e2",
+      "dataset_key": "sphera::MLC::2026.1::bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI连接器与该节点的板对板、显示I/O、板载电源、DIMM、SATA/SAS/U.2或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P087::ecoinvent::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "node_ref": "ict_equipment::P087",
+      "node_spine_hash": "646e67d14c11",
+      "dataset_key": "ecoinvent::3.12::cutoff::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI 总线连接器与该节点的板对板、DIMM、存储、显示 I/O、电源或线束连接器身份不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P087::sphera-MLC-2026.1-bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "node_ref": "ict_equipment::P087",
+      "node_spine_hash": "646e67d14c11",
+      "dataset_key": "sphera::MLC::2026.1::bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI连接器与该节点的板对板、显示I/O、板载电源、DIMM、SATA/SAS/U.2或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P088::ecoinvent::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "node_ref": "ict_equipment::P088",
+      "node_spine_hash": "4834f6519c36",
+      "dataset_key": "ecoinvent::3.12::cutoff::90bb8cf6-8bd4-5212-aa56-39cc6142d589",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI 总线连接器与该节点的板对板、DIMM、存储、显示 I/O、电源或线束连接器身份不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P088::sphera-MLC-2026.1-b8e48556-451e-4441-99d1-a387f70de4f3",
+      "node_ref": "ict_equipment::P088",
+      "node_spine_hash": "4834f6519c36",
+      "dataset_key": "sphera::MLC::2026.1::b8e48556-451e-4441-99d1-a387f70de4f3",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "SATA连接器与该节点的板对板、显示I/O、PCIe、板载电源、DIMM或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    },
+    {
+      "rejection_id": "reject::ict_equipment::P088::sphera-MLC-2026.1-bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "node_ref": "ict_equipment::P088",
+      "node_spine_hash": "4834f6519c36",
+      "dataset_key": "sphera::MLC::2026.1::bbfe14ab-94d2-4aa0-bcca-7d0678fc0a2b",
+      "relationship_kind": "background_cradle_to_gate",
+      "existence_status": "official_catalog_verified",
+      "match_status": "rejected_mismatch",
+      "failed_gates": [
+        "connector_subtype"
+      ],
+      "reason": "PCI连接器与该节点的板对板、显示I/O、板载电源、DIMM、SATA/SAS/U.2或线束连接器子型不同。",
+      "checked_at": "2026-07-29"
+    }
+  ]
+}

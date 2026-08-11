@@ -1,0 +1,9 @@
+{
+  "industry": "ict_equipment",
+  "nodes": {
+    "A017": {"body_schema_status": "current", "recommended_mode": "audit", "prepare": {"repair_claims_full": 39}},
+    "P031": {"body_schema_status": "current", "recommended_mode": "audit", "prepare": {"repair_claims_full": 31}},
+    "P003": {"body_schema_status": "legacy", "recommended_mode": "rebuild", "prepare": {"nomination_workflows": 1}}
+  },
+  "validated": true
+}

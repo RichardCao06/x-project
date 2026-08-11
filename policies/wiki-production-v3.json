@@ -1,0 +1,6 @@
+{
+  "policy_id": "wiki-production", "version": "wiki-production-v3",
+  "invariants": ["agent_proposes_only", "frozen_node_identity", "exact_alignment_required_for_confirmed", "draft_gate_before_apply", "hash_locked_reviewed_apply", "publish_requires_quality_gates"],
+  "state_order": ["plan", "freeze", "research", "fetch", "verify", "distill", "draft_content_gate", "draft_apply", "preview", "quality_gate", "reviewed_apply", "publish"],
+  "forbidden": ["direct_page_write", "agent_self_review", "unverified_memory_as_evidence"]
+}

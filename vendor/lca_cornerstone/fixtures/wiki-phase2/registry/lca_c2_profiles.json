@@ -1,0 +1,3810 @@
+{
+  "_meta": {
+    "schema_version": "lca-c2-profiles-v1",
+    "scope": "ICT activity-process and product-metadata C2 calibration profiles",
+    "checked_at": "2026-07-30",
+    "profile_count": 33,
+    "shared_china_proxy_source": "ku-cn-smd-yfvs-eia-2019",
+    "note": "C2 is a visible reference association but never calculation-ready; project use requires a separate direct/proxy adjudication."
+  },
+  "profiles": [
+    {
+      "profile_id": "c2::cand::ict_equipment::A001::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A001::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A001",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "主板PCBA, 通用服务器用",
+        "provisional_basis": "1 piece 主板PCBA, 通用服务器用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "CPU封装器件, 服务器用",
+          "DRAM内存封装器件",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "电源管理IC封装器件",
+          "IC封装器件, NIC网络控制器",
+          "连接器, 板对板",
+          "卡槽连接器, PCIe用",
+          "卡槽连接器, DIMM内存用",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "主板PCBA, 通用服务器用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A001::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A001::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A001",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "主板PCBA, 通用服务器用",
+        "provisional_basis": "1 piece 主板PCBA, 通用服务器用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "CPU封装器件, 服务器用",
+          "DRAM内存封装器件",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "电源管理IC封装器件",
+          "IC封装器件, NIC网络控制器",
+          "连接器, 板对板",
+          "卡槽连接器, PCIe用",
+          "卡槽连接器, DIMM内存用",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "主板PCBA, 通用服务器用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A002::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A002::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A002",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "主板PCBA, AI训练GPU服务器用",
+        "provisional_basis": "1 piece 主板PCBA, AI训练GPU服务器用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "CPU封装器件, 服务器用",
+          "DRAM内存封装器件",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "HBM高带宽内存封装器件",
+          "电源管理IC封装器件",
+          "GPU封装器件, AI训练用",
+          "连接器, 板对板",
+          "卡槽连接器, PCIe用",
+          "卡槽连接器, DIMM内存用",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "主板PCBA, AI训练GPU服务器用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A002::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A002::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A002",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "主板PCBA, AI训练GPU服务器用",
+        "provisional_basis": "1 piece 主板PCBA, AI训练GPU服务器用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "CPU封装器件, 服务器用",
+          "DRAM内存封装器件",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "HBM高带宽内存封装器件",
+          "电源管理IC封装器件",
+          "GPU封装器件, AI训练用",
+          "连接器, 板对板",
+          "卡槽连接器, PCIe用",
+          "卡槽连接器, DIMM内存用",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "主板PCBA, AI训练GPU服务器用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A003::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A003::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A003",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "GPU加速卡, AI训练用",
+        "provisional_basis": "1 piece GPU加速卡, AI训练用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "GPU封装器件, AI训练用",
+          "HBM高带宽内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "CPU封装器件, 服务器用",
+          "电源管理IC封装器件",
+          "连接器, 板对板"
+        ],
+        "target_outputs": [
+          {
+            "product": "GPU加速卡, AI训练用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A003::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A003::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A003",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "GPU加速卡, AI训练用",
+        "provisional_basis": "1 piece GPU加速卡, AI训练用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "GPU封装器件, AI训练用",
+          "HBM高带宽内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "CPU封装器件, 服务器用",
+          "电源管理IC封装器件",
+          "连接器, 板对板"
+        ],
+        "target_outputs": [
+          {
+            "product": "GPU加速卡, AI训练用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A004::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A004::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A004",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "GPU加速卡, AI推理用",
+        "provisional_basis": "1 piece GPU加速卡, AI推理用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "GPU封装器件, AI训练用",
+          "DRAM内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "GPU封装器件, AI推理用",
+          "电源管理IC封装器件",
+          "连接器, 板对板"
+        ],
+        "target_outputs": [
+          {
+            "product": "GPU加速卡, AI推理用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A004::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A004::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A004",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "GPU加速卡, AI推理用",
+        "provisional_basis": "1 piece GPU加速卡, AI推理用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "GPU封装器件, AI训练用",
+          "DRAM内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "GPU封装器件, AI推理用",
+          "电源管理IC封装器件",
+          "连接器, 板对板"
+        ],
+        "target_outputs": [
+          {
+            "product": "GPU加速卡, AI推理用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A005::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A005::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A005",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "交换机主板PCBA, 100G/400G",
+        "provisional_basis": "1 piece 交换机主板PCBA, 100G/400G",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "交换ASIC封装器件, 100G/400G",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "逻辑IC封装器件, 网络PHY/SerDes",
+          "DRAM内存封装器件",
+          "电源管理IC封装器件",
+          "连接器, 板对板"
+        ],
+        "target_outputs": [
+          {
+            "product": "交换机主板PCBA, 100G/400G",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A005::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A005::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A005",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "交换机主板PCBA, 100G/400G",
+        "provisional_basis": "1 piece 交换机主板PCBA, 100G/400G",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "交换ASIC封装器件, 100G/400G",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "逻辑IC封装器件, 网络PHY/SerDes",
+          "DRAM内存封装器件",
+          "电源管理IC封装器件",
+          "连接器, 板对板"
+        ],
+        "target_outputs": [
+          {
+            "product": "交换机主板PCBA, 100G/400G",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A006::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A006::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A006",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "DIMM内存条",
+        "provisional_basis": "1 piece DIMM内存条",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "DRAM内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用"
+        ],
+        "target_outputs": [
+          {
+            "product": "DIMM内存条",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A006::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A006::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A006",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "DIMM内存条",
+        "provisional_basis": "1 piece DIMM内存条",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "DRAM内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用"
+        ],
+        "target_outputs": [
+          {
+            "product": "DIMM内存条",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A007::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A007::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A007",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "SSD模组",
+        "provisional_basis": "1 piece SSD模组",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "NAND闪存封装器件",
+          "交换ASIC封装器件, 100G/400G",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "ASIC封装器件, 存储/NVMe控制器",
+          "DRAM内存封装器件"
+        ],
+        "target_outputs": [
+          {
+            "product": "SSD模组",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A007::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A007::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A007",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "SSD模组",
+        "provisional_basis": "1 piece SSD模组",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "NAND闪存封装器件",
+          "交换ASIC封装器件, 100G/400G",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "ASIC封装器件, 存储/NVMe控制器",
+          "DRAM内存封装器件"
+        ],
+        "target_outputs": [
+          {
+            "product": "SSD模组",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A008::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A008::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A008",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "PSU电源模组",
+        "provisional_basis": "1 piece PSU电源模组",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "低压铜电缆线束, ICT设备电源用",
+          "电源管理IC封装器件",
+          "线束连接器, ICT设备电源用"
+        ],
+        "target_outputs": [
+          {
+            "product": "PSU电源模组",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A008::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A008::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A008",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "PSU电源模组",
+        "provisional_basis": "1 piece PSU电源模组",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "低压铜电缆线束, ICT设备电源用",
+          "电源管理IC封装器件",
+          "线束连接器, ICT设备电源用"
+        ],
+        "target_outputs": [
+          {
+            "product": "PSU电源模组",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A024::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A024::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A024",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "交换机主板PCBA, 800G",
+        "provisional_basis": "1 piece 交换机主板PCBA, 800G",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "交换ASIC封装器件, 100G/400G",
+          "逻辑IC封装器件, 网络PHY/SerDes",
+          "DRAM内存封装器件",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "交换ASIC封装器件, 800G",
+          "电源管理IC封装器件",
+          "连接器, 板对板"
+        ],
+        "target_outputs": [
+          {
+            "product": "交换机主板PCBA, 800G",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A024::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A024::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A024",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "交换机主板PCBA, 800G",
+        "provisional_basis": "1 piece 交换机主板PCBA, 800G",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "交换ASIC封装器件, 100G/400G",
+          "逻辑IC封装器件, 网络PHY/SerDes",
+          "DRAM内存封装器件",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "交换ASIC封装器件, 800G",
+          "电源管理IC封装器件",
+          "连接器, 板对板"
+        ],
+        "target_outputs": [
+          {
+            "product": "交换机主板PCBA, 800G",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A029::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A029::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A029",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "存储控制板PCBA, 全闪存阵列用",
+        "provisional_basis": "1 piece 存储控制板PCBA, 全闪存阵列用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "ASIC封装器件, 存储/NVMe控制器",
+          "DRAM内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "连接器, 板对板",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "存储控制板PCBA, 全闪存阵列用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A029::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A029::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A029",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "存储控制板PCBA, 全闪存阵列用",
+        "provisional_basis": "1 piece 存储控制板PCBA, 全闪存阵列用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "ASIC封装器件, 存储/NVMe控制器",
+          "DRAM内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "连接器, 板对板",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "存储控制板PCBA, 全闪存阵列用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A030::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A030::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A030",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "存储控制板PCBA, 机械硬盘阵列用",
+        "provisional_basis": "1 piece 存储控制板PCBA, 机械硬盘阵列用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "ASIC封装器件, 存储/NVMe控制器",
+          "DRAM内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "连接器, 板对板",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "存储控制板PCBA, 机械硬盘阵列用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A030::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A030::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A030",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "存储控制板PCBA, 机械硬盘阵列用",
+        "provisional_basis": "1 piece 存储控制板PCBA, 机械硬盘阵列用",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "ASIC封装器件, 存储/NVMe控制器",
+          "DRAM内存封装器件",
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "连接器, 板对板",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "存储控制板PCBA, 机械硬盘阵列用",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A031::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A031::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A031",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "存储背板子总成",
+        "provisional_basis": "1 piece 存储背板子总成",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "连接器, 板对板",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "存储背板子总成",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A031::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A031::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A031",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "存储背板子总成",
+        "provisional_basis": "1 piece 存储背板子总成",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "HDI PCB裸板, 服务器/交换机用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "连接器, 板对板",
+          "板载存储连接器, SATA/SAS/U.2用"
+        ],
+        "target_outputs": [
+          {
+            "product": "存储背板子总成",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A041::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "candidate_id": "cand::ict_equipment::A041::ecoinvent::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "node_ref": "ict_equipment::A041",
+      "dataset_key": "ecoinvent::3.12::cutoff::f7e74531-77f4-5b90-8ad9-8a596b82e141",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "消费级独立显卡PCBA",
+        "provisional_basis": "1 piece 消费级独立显卡PCBA",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "mounting, surface mount technology, Pb-free solder",
+        "source_reference_unit": "m2",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开说明明确表示贴装 1 m² 印制线路板的无铅 SMT mounting service。",
+        "unresolved_conversion_fields": [
+          "目标 PCBA 单件成品板面积（m²/片）",
+          "板面积口径是否按单面、双面或投影面积",
+          "拼板数、边料及良率",
+          "m² mounting service 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "GPU封装器件, 消费级图形",
+          "GDDR显存封装器件, 独立显卡用",
+          "HDI PCB裸板, 独立显卡用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "电源管理IC封装器件",
+          "功率MOSFET封装器件, 显卡VRM用",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "板载I/O连接器, 独立显卡显示输出用",
+          "板载电源连接器, 独立显卡外接电源用"
+        ],
+        "target_outputs": [
+          {
+            "product": "消费级独立显卡PCBA",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "表面贴装元器件到印制线路板的 mounting service",
+            "无铅焊膏路线",
+            "参考产品说明以 1 m² 印制线路板为服务基准"
+          ],
+          "unresolved_before_promotion": [
+            "许可清单中的全部技术系统输入、排放和废物",
+            "是否包含锡膏印刷、SPI、AOI、返修和公用工程",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::A041::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "candidate_id": "cand::ict_equipment::A041::sphera-MLC-2026.1-309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "node_ref": "ict_equipment::A041",
+      "dataset_key": "sphera::MLC::2026.1::309288a5-19a4-4efc-9e62-e5cf173751cc",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "消费级独立显卡PCBA",
+        "provisional_basis": "1 piece 消费级独立显卡PCBA",
+        "basis_status": "provisional_method_choice",
+        "note": "正式数据集必须在 piece、kg 或 m² 中钉死参考单位，并保存无损换算参数。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "官方公开目录给出 kg 参考单位和 open-input-PCB 的参数化 SMD 产线名称；公开元数据未说明 kg 对应输入裸板还是装联输出。",
+        "unresolved_conversion_fields": [
+          "取得许可文档确认 kg 参考流的物理含义",
+          "目标 PCBA 单件质量（kg/片）",
+          "拼板、边料及良率",
+          "kg SMD-line reference flow 与每片目标 PCBA 的换算"
+        ]
+      },
+      "process_boundary": {
+        "target_inputs": [
+          "GPU封装器件, 消费级图形",
+          "GDDR显存封装器件, 独立显卡用",
+          "HDI PCB裸板, 独立显卡用",
+          "被动元件, 电阻(片式)",
+          "被动元件, 电容(MLCC)",
+          "被动元件, 电感(片式)",
+          "电源管理IC封装器件",
+          "功率MOSFET封装器件, 显卡VRM用",
+          "无铅焊料锡膏, SAC305",
+          "中压电力, ICT制造用",
+          "板载I/O连接器, 独立显卡显示输出用",
+          "板载电源连接器, 独立显卡外接电源用"
+        ],
+        "target_outputs": [
+          {
+            "product": "消费级独立显卡PCBA",
+            "role": "reference"
+          },
+          {
+            "product": "共生焊料浮渣",
+            "role": "coproduct"
+          },
+          {
+            "product": "共生报废PCBA",
+            "role": "coproduct"
+          }
+        ],
+        "source": {
+          "known_from_public_metadata": [
+            "参数化 SMD 装配线",
+            "open input printed circuit board",
+            "设备组合 1SP、2CS、1CP、1R、1Rf，目录吞吐量 300/h",
+            "partly aggregated process"
+          ],
+          "unresolved_before_promotion": [
+            "聚合层内包含的设备、公用工程和辅助材料",
+            "元器件和焊膏是否为开放输入",
+            "报废 PCBA、焊料浮渣和边料的分项及分配"
+          ]
+        },
+        "alignment_status": "partial"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-cn-smd-yfvs-eia-2019",
+        "value_tag": "proxy",
+        "representativeness": "中国汽车仪表 SMD 项目公开环评；可证明中国项目的工序、设备、年产能和项目级物料/能源数量，但不是服务器、交换机、存储或显卡 PCBA，且电力含生产与生活。",
+        "calculation_permission": false,
+        "display_summary": "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）",
+        "observed_route": [
+          "锡膏印刷",
+          "SPI",
+          "贴片",
+          "回流焊",
+          "AOI",
+          "线路板测试",
+          "裁板",
+          "组装与包装"
+        ],
+        "equipment_configuration": {
+          "solder_paste_printer": "1 台",
+          "spi": "1 台",
+          "pick_and_place": "2 台",
+          "aoi": "1 台",
+          "circuit_board_tester": "1 台",
+          "board_cutter": "1 台",
+          "reflow_oven": "1 台"
+        },
+        "annual_observations": {
+          "pcb_input": "36 万片/年",
+          "surface_mount_components": "10 t/年",
+          "lead_free_solder_paste": "1 t/年",
+          "flux": "0.2 t/年",
+          "cleaning_agent": "0.2 t/年",
+          "electricity": "50 万 kWh/年（生产、生活合计）",
+          "waste_pcb": "0.5 t/年",
+          "waste_cleaning_liquid": "0.2 t/年",
+          "waste_flux": "0.1 t/年"
+        },
+        "derived_indicators": {
+          "solder_paste": "2.78 g/片（项目代理）",
+          "surface_mount_components": "27.78 g/片（项目代理）",
+          "project_electricity": "1.39 kWh/片（含生产、生活，不得作 SMT 单元过程值）",
+          "waste_pcb": "1.39 g/片（含裁板边料，不等同报废 PCBA）"
+        },
+        "operating_schedule": "300 d/年；2 班/d；8 h/班",
+        "unresolved_target_factory_fields": [
+          "目标中国工厂、厂址和代表期",
+          "服务器/交换机/存储/显卡 PCBA 的实际板面积、质量和拼板方式",
+          "分表计量的 SMT 线电力、氮气、压缩空气和空调能耗",
+          "目标产品的锡膏量、元器件质量、一次通过率和返修率",
+          "焊料浮渣、报废 PCBA、边料和清洗废物的分项实测量",
+          "生产、测试、组装、包装及厂务公摊的切分规则"
+        ]
+      },
+      "promotion_requirements": [
+        "钉死目标参考流和功能单位并完成 m²/kg/piece 换算",
+        "取得源数据集完整过程边界，逐项与图内输入输出对账",
+        "取得目标中国工厂代表期的分表计量和物料平衡",
+        "明确废物、共产品、返修和厂务公摊规则",
+        "独立复核后才能由 C2 升级为 C3 或 C4"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::P044::hiqlcd::4c761a71-4215-4ae0-91af-e47a7580572e",
+      "candidate_id": "cand::ict_equipment::P044::hiqlcd::4c761a71-4215-4ae0-91af-e47a7580572e",
+      "node_ref": "ict_equipment::P044",
+      "dataset_key": "hiqlcd::1.5.0::cut_off::4c761a71-4215-4ae0-91af-e47a7580572e",
+      "profile_kind": "product_metadata_candidate",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "被动元件, 电阻(片式)",
+        "provisional_basis": "1 kg 被动元件, 电阻(片式)",
+        "basis_status": "source_unit_aligned_but_target_dataset_not_calibrated",
+        "note": "参考产品与单位已对齐；正式使用仍需目标规格和完整 I/O 对账。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "电阻器，厚膜，片式",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开页面给出平均规格 1.25×0.65×0.35 mm、平均质量约 0.04 g，并列出印刷、烧结、激光调阻、镀膜、电镀和测试等工序。",
+        "unresolved_conversion_fields": [
+          "目标片式电阻的尺寸、阻值、精度、厚膜/薄膜路线和单件质量",
+          "目标中国供应商、工厂、省份和代表期",
+          "生产混合与消费混合的选择、运输边界和完整交换清单",
+          "成品率、电镀/烧结能源、废浆料和不合格品处理"
+        ]
+      },
+      "process_boundary": {
+        "target_node_boundary": "background",
+        "source": {
+          "known_from_public_metadata": [
+            "参考产品：电阻器，厚膜，片式",
+            "参考单位：kg",
+            "公开活动类型/边界：consumption_mix / cradle_to_consumption",
+            "地域与时间：中国,黑龙江省；2020–2026",
+            "公开页面给出平均规格 1.25×0.65×0.35 mm、平均质量约 0.04 g，并列出印刷、烧结、激光调阻、镀膜、电镀和测试等工序。",
+            "公开页面未暴露完整交换清单和可计算 LCIA 结果"
+          ],
+          "unresolved_before_promotion": [
+            "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+            "确认目标研究的代表期并与源数据集时间范围对账",
+            "取得目标中国供应情景或工厂的代表性参数",
+            "完成独立复核后才能形成正式 C3/C4 绑定"
+          ]
+        },
+        "alignment_status": "identity_aligned_boundary_unverified"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-hiqlcd-public-ict-2026",
+        "value_tag": "proxy",
+        "proxy_availability": "no_calculation_value_selected",
+        "calculation_permission": false,
+        "display_summary": "HiQLCD 中国记录（中国,黑龙江省，2020–2026）；产品和单位已核验，完整 I/O 与目标工厂参数仍待许可内校准",
+        "unresolved_target_factory_fields": [
+          "目标片式电阻的尺寸、阻值、精度、厚膜/薄膜路线和单件质量",
+          "目标中国供应商、工厂、省份和代表期",
+          "生产混合与消费混合的选择、运输边界和完整交换清单",
+          "成品率、电镀/烧结能源、废浆料和不合格品处理"
+        ]
+      },
+      "promotion_requirements": [
+        "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+        "确认目标研究的代表期并与源数据集时间范围对账",
+        "取得目标中国供应情景或工厂的代表性参数",
+        "完成独立复核后才能形成正式 C3/C4 绑定"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::P062::sphera::729f2a50-082d-4483-85eb-3548509197a1",
+      "candidate_id": "cand::ict_equipment::P062::sphera::729f2a50-082d-4483-85eb-3548509197a1",
+      "node_ref": "ict_equipment::P062",
+      "dataset_key": "sphera::MLC::2026.1::729f2a50-082d-4483-85eb-3548509197a1",
+      "profile_kind": "product_metadata_candidate",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "无铅焊料锡膏, SAC305",
+        "provisional_basis": "1 kg 无铅焊料锡膏, SAC305",
+        "basis_status": "source_unit_aligned_but_target_dataset_not_calibrated",
+        "note": "参考产品与单位已对齐；正式使用仍需目标规格和完整 I/O 对账。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "Solder paste SnAg3Cu0.5 (SAC-Lot)",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "SAC305 solder paste before soldering; Sn 96.5%, Ag 3.0%, Cu 0.5%, with rosin/flux and fillers. Public process XML describes a global attributional cradle-to-gate LCI result but exposes only the reference-product exchange.",
+        "unresolved_conversion_fields": [
+          "中国锡膏供应商、工厂和代表期",
+          "SAC305 金属粉、助焊剂、树脂及填料的质量组成",
+          "雾化制粉、混膏、冷却、压缩空气和氩气的分项消耗",
+          "包装、损耗、废膏、清洗残液及回收边界"
+        ]
+      },
+      "process_boundary": {
+        "target_node_boundary": "background",
+        "source": {
+          "known_from_public_metadata": [
+            "参考产品为焊前 Sn96.5Ag3.0Cu0.5 锡膏",
+            "kg 质量参考单位",
+            "全球 2025 年、有效至 2028 年的 attributional cradle-to-gate 聚合过程",
+            "公开 XML 仅暴露 1 个参考产品交换，不含完整 LCI 清单"
+          ],
+          "unresolved_before_promotion": [
+            "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+            "确认目标研究的代表期并与源数据集时间范围对账",
+            "取得目标中国供应情景或工厂的代表性参数",
+            "完成独立复核后才能形成正式 C3/C4 绑定"
+          ]
+        },
+        "alignment_status": "identity_aligned_boundary_unverified"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-sphera-mlc-2026-catalog",
+        "value_tag": "proxy",
+        "proxy_availability": "no_calculation_value_selected",
+        "calculation_permission": false,
+        "display_summary": "全球锡膏过程；中国供应商、配方辅料及制造能耗尚未校准",
+        "unresolved_target_factory_fields": [
+          "中国锡膏供应商、工厂和代表期",
+          "SAC305 金属粉、助焊剂、树脂及填料的质量组成",
+          "雾化制粉、混膏、冷却、压缩空气和氩气的分项消耗",
+          "包装、损耗、废膏、清洗残液及回收边界"
+        ]
+      },
+      "promotion_requirements": [
+        "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+        "确认目标研究的代表期并与源数据集时间范围对账",
+        "取得目标中国供应情景或工厂的代表性参数",
+        "完成独立复核后才能形成正式 C3/C4 绑定"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::P065::ecoinvent::e45b56e4-029f-55ba-bc24-eb19aa4bded4",
+      "candidate_id": "cand::ict_equipment::P065::ecoinvent::e45b56e4-029f-55ba-bc24-eb19aa4bded4",
+      "node_ref": "ict_equipment::P065",
+      "dataset_key": "ecoinvent::3.12::cutoff::e45b56e4-029f-55ba-bc24-eb19aa4bded4",
+      "profile_kind": "product_metadata_candidate",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "瓦楞纸箱, ICT设备包装用",
+        "provisional_basis": "1 kg 瓦楞纸箱, ICT设备包装用",
+        "basis_status": "source_unit_aligned_but_target_dataset_not_calibrated",
+        "note": "参考产品与单位已对齐；正式使用仍需目标规格和完整 I/O 对账。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "corrugated board box",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "The product 'corrugated board box' represents a box made of corrugated board. Corrugated board consist of different types of containerboards, namely linerboard and fluting medium. Linerboard is a flat layer of board, which can be further distinguished in kraftliner and testliner, depending on whether it is of virgin or recycled origin, respectively. Fluting medium is the corrugated middle layer between a top and bottom layer of linerboard. Together all three layers constitute corrugated board. To produce corrugated board boxes, the corrugated board is cut into sheets, printed, slotted, folded, and glued. Corrugated board boxes are used for the packaging of products for protection and transportation.",
+        "unresolved_conversion_fields": [
+          "中国纸箱供应商、工厂和代表期",
+          "箱型、楞型、面纸/芯纸克重与再生纤维比例",
+          "单箱质量、展开面积、印刷覆盖率、油墨和粘合剂",
+          "裁切边料、废箱、不合格率及回收边界"
+        ]
+      },
+      "process_boundary": {
+        "target_node_boundary": "background",
+        "source": {
+          "known_from_public_metadata": [
+            "参考产品为成品 corrugated board box",
+            "kg 质量参考单位",
+            "公开说明包含裁切、印刷、开槽、折叠和粘合",
+            "RoW、2008–2025；完整交换清单受 ecoinvent 许可限制"
+          ],
+          "unresolved_before_promotion": [
+            "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+            "确认目标研究的代表期并与源数据集时间范围对账",
+            "取得目标中国供应情景或工厂的代表性参数",
+            "完成独立复核后才能形成正式 C3/C4 绑定"
+          ]
+        },
+        "alignment_status": "identity_aligned_boundary_unverified"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-ecoinvent-v312-overview-ict",
+        "value_tag": "proxy",
+        "proxy_availability": "no_calculation_value_selected",
+        "calculation_permission": false,
+        "display_summary": "RoW 成箱过程；中国箱型、克重、再生纤维和印刷转换参数尚未校准",
+        "unresolved_target_factory_fields": [
+          "中国纸箱供应商、工厂和代表期",
+          "箱型、楞型、面纸/芯纸克重与再生纤维比例",
+          "单箱质量、展开面积、印刷覆盖率、油墨和粘合剂",
+          "裁切边料、废箱、不合格率及回收边界"
+        ]
+      },
+      "promotion_requirements": [
+        "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+        "确认目标研究的代表期并与源数据集时间范围对账",
+        "取得目标中国供应情景或工厂的代表性参数",
+        "完成独立复核后才能形成正式 C3/C4 绑定"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::P066::ecoinvent::64d70fe5-a32d-52a9-8901-3b52f9e4ab4e",
+      "candidate_id": "cand::ict_equipment::P066::ecoinvent::64d70fe5-a32d-52a9-8901-3b52f9e4ab4e",
+      "node_ref": "ict_equipment::P066",
+      "dataset_key": "ecoinvent::3.12::cutoff::64d70fe5-a32d-52a9-8901-3b52f9e4ab4e",
+      "profile_kind": "product_metadata_candidate",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "中压电力, ICT制造用",
+        "provisional_basis": "1 kWh 中压电力, ICT制造用",
+        "basis_status": "source_unit_aligned_but_target_dataset_not_calibrated",
+        "note": "参考产品与单位已对齐；正式使用仍需目标规格和完整 I/O 对账。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "electricity, medium voltage",
+        "source_reference_unit": "kWh",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "This product represents electrical energy measured in kWh. If electricity is taken from a market for electricity, the transmission infrastructure, country-specific losses and transformation losses (for markets for medium and low voltage) are included. Covers voltages between 1kV and 24 kV.",
+        "unresolved_conversion_fields": [
+          "目标工厂所在省级电网、代表年份和购电合同边界",
+          "中压交接点、电压等级、厂内变压与线路损耗",
+          "自备电源、绿电交易、分布式光伏和余电处理",
+          "持证数据库中的供应组合、基础设施与完整交换清单"
+        ]
+      },
+      "process_boundary": {
+        "target_node_boundary": "background",
+        "source": {
+          "known_from_public_metadata": [
+            "参考产品为 1–24 kV 中压电力",
+            "kWh 能量参考单位",
+            "中国 market group，包含输电基础设施、国别损耗和电压转换损耗",
+            "2015–2025；公开目录不提供供应组合和完整交换清单"
+          ],
+          "unresolved_before_promotion": [
+            "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+            "确认目标研究的代表期并与源数据集时间范围对账",
+            "取得目标中国供应情景或工厂的代表性参数",
+            "完成独立复核后才能形成正式 C3/C4 绑定"
+          ]
+        },
+        "alignment_status": "identity_aligned_boundary_unverified"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-ecoinvent-v312-overview-ict",
+        "value_tag": "proxy",
+        "proxy_availability": "no_calculation_value_selected",
+        "calculation_permission": false,
+        "display_summary": "中国中压市场地域已匹配；目标省份/年份、供电组合与持证交换清单尚未钉死",
+        "unresolved_target_factory_fields": [
+          "目标工厂所在省级电网、代表年份和购电合同边界",
+          "中压交接点、电压等级、厂内变压与线路损耗",
+          "自备电源、绿电交易、分布式光伏和余电处理",
+          "持证数据库中的供应组合、基础设施与完整交换清单"
+        ]
+      },
+      "promotion_requirements": [
+        "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+        "确认目标研究的代表期并与源数据集时间范围对账",
+        "取得目标中国供应情景或工厂的代表性参数",
+        "完成独立复核后才能形成正式 C3/C4 绑定"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::P066::hiqlcd::d9e16909-406e-447f-9f7d-9ede92248ac1",
+      "candidate_id": "cand::ict_equipment::P066::hiqlcd::d9e16909-406e-447f-9f7d-9ede92248ac1",
+      "node_ref": "ict_equipment::P066",
+      "dataset_key": "hiqlcd::1.5.0::cut_off::d9e16909-406e-447f-9f7d-9ede92248ac1",
+      "profile_kind": "product_metadata_candidate",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "中压电力, ICT制造用",
+        "provisional_basis": "1 kWh 中压电力, ICT制造用",
+        "basis_status": "source_unit_aligned_but_target_dataset_not_calibrated",
+        "note": "参考产品与单位已对齐；正式使用仍需目标规格和完整 I/O 对账。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "电力，中压",
+        "source_reference_unit": "kWh",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开页面说明 1–35 kV 中压消费电力，包含供电基础设施、排放和线路损失（该记录列示 0.99%）；完整交换清单需登录/授权。",
+        "unresolved_conversion_fields": [
+          "目标 ICT 工厂所在省级电网、代表年份和购电合同边界",
+          "中压交接点、电压等级、厂内变压与线路损耗",
+          "自备电源、绿电交易、分布式光伏和余电处理",
+          "持证数据库中的供应组合、基础设施与完整交换清单"
+        ]
+      },
+      "process_boundary": {
+        "target_node_boundary": "background",
+        "source": {
+          "known_from_public_metadata": [
+            "参考产品：电力，中压",
+            "参考单位：kWh",
+            "公开活动类型/边界：consumption_mix / cradle_to_gate",
+            "地域与时间：中国,宁夏回族自治区；2023–2026",
+            "公开页面说明 1–35 kV 中压消费电力，包含供电基础设施、排放和线路损失（该记录列示 0.99%）；完整交换清单需登录/授权。",
+            "公开页面未暴露完整交换清单和可计算 LCIA 结果"
+          ],
+          "unresolved_before_promotion": [
+            "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+            "确认目标研究的代表期并与源数据集时间范围对账",
+            "取得目标中国供应情景或工厂的代表性参数",
+            "完成独立复核后才能形成正式 C3/C4 绑定"
+          ]
+        },
+        "alignment_status": "identity_aligned_boundary_unverified"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-hiqlcd-public-ict-2026",
+        "value_tag": "proxy",
+        "proxy_availability": "no_calculation_value_selected",
+        "calculation_permission": false,
+        "display_summary": "HiQLCD 中国记录（中国,宁夏回族自治区，2023–2026）；产品和单位已核验，完整 I/O 与目标工厂参数仍待许可内校准",
+        "unresolved_target_factory_fields": [
+          "目标 ICT 工厂所在省级电网、代表年份和购电合同边界",
+          "中压交接点、电压等级、厂内变压与线路损耗",
+          "自备电源、绿电交易、分布式光伏和余电处理",
+          "持证数据库中的供应组合、基础设施与完整交换清单"
+        ]
+      },
+      "promotion_requirements": [
+        "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+        "确认目标研究的代表期并与源数据集时间范围对账",
+        "取得目标中国供应情景或工厂的代表性参数",
+        "完成独立复核后才能形成正式 C3/C4 绑定"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::P080::hiqlcd::cc2a562b-fa56-4043-9fbc-f38886db503a",
+      "candidate_id": "cand::ict_equipment::P080::hiqlcd::cc2a562b-fa56-4043-9fbc-f38886db503a",
+      "node_ref": "ict_equipment::P080",
+      "dataset_key": "hiqlcd::1.5.0::cut_off::cc2a562b-fa56-4043-9fbc-f38886db503a",
+      "profile_kind": "product_metadata_candidate",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "被动元件, 电容(MLCC)",
+        "provisional_basis": "1 kg 被动元件, 电容(MLCC)",
+        "basis_status": "source_unit_aligned_but_target_dataset_not_calibrated",
+        "note": "参考产品与单位已对齐；正式使用仍需目标规格和完整 I/O 对账。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "陶瓷电容器，MLCC，贴片式",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开页面给出约 0.007 g/件，并列出流延、内电极印制、叠膜、等静压、切割、排粘、烧成、封端、电镀和测试筛选等工序。",
+        "unresolved_conversion_fields": [
+          "目标 MLCC 的尺寸、容量、额定电压、介质类别和单件质量",
+          "目标中国供应商、工厂、省份和代表期",
+          "内外电极材料、烧成路线、成品率和完整交换清单",
+          "生产混合与消费混合的选择及运输边界"
+        ]
+      },
+      "process_boundary": {
+        "target_node_boundary": "background",
+        "source": {
+          "known_from_public_metadata": [
+            "参考产品：陶瓷电容器，MLCC，贴片式",
+            "参考单位：kg",
+            "公开活动类型/边界：consumption_mix / cradle_to_consumption",
+            "地域与时间：中国,甘肃省；2019–2026",
+            "公开页面给出约 0.007 g/件，并列出流延、内电极印制、叠膜、等静压、切割、排粘、烧成、封端、电镀和测试筛选等工序。",
+            "公开页面未暴露完整交换清单和可计算 LCIA 结果"
+          ],
+          "unresolved_before_promotion": [
+            "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+            "确认目标研究的代表期并与源数据集时间范围对账",
+            "取得目标中国供应情景或工厂的代表性参数",
+            "完成独立复核后才能形成正式 C3/C4 绑定"
+          ]
+        },
+        "alignment_status": "identity_aligned_boundary_unverified"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-hiqlcd-public-ict-2026",
+        "value_tag": "proxy",
+        "proxy_availability": "no_calculation_value_selected",
+        "calculation_permission": false,
+        "display_summary": "HiQLCD 中国记录（中国,甘肃省，2019–2026）；产品和单位已核验，完整 I/O 与目标工厂参数仍待许可内校准",
+        "unresolved_target_factory_fields": [
+          "目标 MLCC 的尺寸、容量、额定电压、介质类别和单件质量",
+          "目标中国供应商、工厂、省份和代表期",
+          "内外电极材料、烧成路线、成品率和完整交换清单",
+          "生产混合与消费混合的选择及运输边界"
+        ]
+      },
+      "promotion_requirements": [
+        "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+        "确认目标研究的代表期并与源数据集时间范围对账",
+        "取得目标中国供应情景或工厂的代表性参数",
+        "完成独立复核后才能形成正式 C3/C4 绑定"
+      ],
+      "checked_at": "2026-07-30"
+    },
+    {
+      "profile_id": "c2::cand::ict_equipment::P085::hiqlcd::07e88c20-3b1d-4ab2-af1b-22184701826d",
+      "candidate_id": "cand::ict_equipment::P085::hiqlcd::07e88c20-3b1d-4ab2-af1b-22184701826d",
+      "node_ref": "ict_equipment::P085",
+      "dataset_key": "hiqlcd::1.5.0::cut_off::07e88c20-3b1d-4ab2-af1b-22184701826d",
+      "profile_kind": "product_metadata_candidate",
+      "grade": "C2",
+      "calculation_permission": false,
+      "target_functional_unit": {
+        "reference_product": "木制托盘/包装箱, ICT设备包装用",
+        "provisional_basis": "1 kg 木制托盘/包装箱, ICT设备包装用",
+        "basis_status": "source_unit_aligned_but_target_dataset_not_calibrated",
+        "note": "参考产品与单位已对齐；正式使用仍需目标规格和完整 I/O 对账。"
+      },
+      "source_functional_unit": {
+        "source_reference_product": "工业托盘，木质",
+        "source_reference_unit": "kg",
+        "evidence_status": "official_metadata_verified",
+        "interpretation": "公开页面确认木质工业托盘及板材准备、干燥定型、切割精整、组装、防脱、防滑和封蜡工序。",
+        "unresolved_conversion_fields": [
+          "目标托盘尺寸、承载等级、单件质量和木材种类/来源",
+          "含水率、干燥能源、防护处理、复用次数与维修率",
+          "目标中国供应商、工厂、省份和代表期",
+          "生产混合与消费混合的选择、运输边界和完整交换清单"
+        ]
+      },
+      "process_boundary": {
+        "target_node_boundary": "background",
+        "source": {
+          "known_from_public_metadata": [
+            "参考产品：工业托盘，木质",
+            "参考单位：kg",
+            "公开活动类型/边界：consumption_mix / cradle_to_consumption",
+            "地域与时间：中国,广东省；2022–2026",
+            "公开页面确认木质工业托盘及板材准备、干燥定型、切割精整、组装、防脱、防滑和封蜡工序。",
+            "公开页面未暴露完整交换清单和可计算 LCIA 结果"
+          ],
+          "unresolved_before_promotion": [
+            "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+            "确认目标研究的代表期并与源数据集时间范围对账",
+            "取得目标中国供应情景或工厂的代表性参数",
+            "完成独立复核后才能形成正式 C3/C4 绑定"
+          ]
+        },
+        "alignment_status": "identity_aligned_boundary_unverified"
+      },
+      "china_factory_parameters": {
+        "evidence_ref": "ku-hiqlcd-public-ict-2026",
+        "value_tag": "proxy",
+        "proxy_availability": "no_calculation_value_selected",
+        "calculation_permission": false,
+        "display_summary": "HiQLCD 中国记录（中国,广东省，2022–2026）；产品和单位已核验，完整 I/O 与目标工厂参数仍待许可内校准",
+        "unresolved_target_factory_fields": [
+          "目标托盘尺寸、承载等级、单件质量和木材种类/来源",
+          "含水率、干燥能源、防护处理、复用次数与维修率",
+          "目标中国供应商、工厂、省份和代表期",
+          "生产混合与消费混合的选择、运输边界和完整交换清单"
+        ]
+      },
+      "promotion_requirements": [
+        "取得源数据集完整技术系统输入、基本流、废物与多功能处理信息",
+        "确认目标研究的代表期并与源数据集时间范围对账",
+        "取得目标中国供应情景或工厂的代表性参数",
+        "完成独立复核后才能形成正式 C3/C4 绑定"
+      ],
+      "checked_at": "2026-07-30"
+    }
+  ]
+}

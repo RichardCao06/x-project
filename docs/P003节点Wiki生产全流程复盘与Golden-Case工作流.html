@@ -1,0 +1,1526 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>P003 节点 Wiki 生产全流程复盘与 Golden Case 工作流</title>
+  <style>
+    :root {
+      --paper: #f4f0e7;
+      --paper-2: #ebe4d7;
+      --ink: #182323;
+      --muted: #61706c;
+      --line: #c9c1b3;
+      --signal: #e1512d;
+      --signal-soft: #f6d6c9;
+      --teal: #0b6f68;
+      --teal-soft: #cfe3de;
+      --navy: #102628;
+      --code: #142d2e;
+      --code-ink: #e4f0e9;
+      --shadow: 0 20px 60px rgba(24, 35, 35, .12);
+      --serif: "Iowan Old Style", "Songti SC", "STSong", "Noto Serif CJK SC", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 32px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(16, 38, 40, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 38, 40, .035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 32px 32px;
+      font: 16px/1.82 var(--sans);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0 auto 0 0;
+      width: 7px;
+      background: var(--signal);
+      z-index: 50;
+    }
+    #progress {
+      position: fixed;
+      inset: 0 0 auto 7px;
+      height: 4px;
+      transform-origin: left;
+      transform: scaleX(0);
+      background: var(--teal);
+      z-index: 60;
+    }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      min-height: 540px;
+      padding: 72px max(5vw, 32px) 58px;
+      color: #f6f0e5;
+      background: var(--navy);
+      border-bottom: 1px solid rgba(255,255,255,.15);
+    }
+    .hero::after {
+      content: "P003";
+      position: absolute;
+      right: -30px;
+      bottom: -130px;
+      color: rgba(255,255,255,.035);
+      font: 900 clamp(13rem, 27vw, 27rem)/1 var(--sans);
+      letter-spacing: -.09em;
+      pointer-events: none;
+    }
+    .eyebrow {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 36px;
+      color: #96c7bc;
+      font: 700 12px/1 var(--mono);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 42px; height: 2px; background: var(--signal); }
+    .hero-grid { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(310px, .55fr); gap: 8vw; align-items: end; }
+    .hero h1 {
+      max-width: 960px;
+      margin: 0;
+      font: 700 clamp(3rem, 6vw, 6.6rem)/.98 var(--serif);
+      letter-spacing: -.055em;
+    }
+    .hero h1 span { display: block; color: #f0926f; }
+    .hero p { max-width: 760px; margin: 34px 0 0; color: #bdcbc6; font-size: 18px; line-height: 1.8; }
+    .hero-meta { border-top: 1px solid rgba(255,255,255,.22); }
+    .meta-row { display: grid; grid-template-columns: 95px 1fr; gap: 18px; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,.15); }
+    .meta-row b { color: #829c96; font: 600 11px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .meta-row span { color: #f6f0e5; font-size: 14px; }
+    .metrics {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      max-width: 1180px;
+      margin: 54px 0 0;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.035);
+      backdrop-filter: blur(10px);
+    }
+    .metric { padding: 18px 22px; border-right: 1px solid rgba(255,255,255,.15); }
+    .metric:last-child { border: 0; }
+    .metric strong { display: block; color: #f6f0e5; font: 700 30px/1 var(--serif); }
+    .metric small { display: block; margin-top: 8px; color: #91aaa4; font: 600 10px/1.4 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+    .shell { display: grid; grid-template-columns: 310px minmax(0, 980px); gap: 64px; max-width: 1420px; margin: 0 auto; padding: 58px 44px 120px; align-items: start; }
+    aside { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow: auto; padding: 22px 18px 24px 0; scrollbar-width: thin; }
+    .tools { display: flex; gap: 8px; margin-bottom: 18px; }
+    button, input { font: inherit; }
+    .icon-btn {
+      border: 1px solid var(--line);
+      padding: 9px 11px;
+      color: var(--ink);
+      background: rgba(255,255,255,.28);
+      cursor: pointer;
+      font: 650 11px/1 var(--mono);
+      letter-spacing: .06em;
+    }
+    .icon-btn:hover { color: white; border-color: var(--teal); background: var(--teal); }
+    .search { position: relative; margin-bottom: 24px; }
+    .search input { width: 100%; border: 0; border-bottom: 2px solid var(--ink); padding: 11px 2px; color: var(--ink); background: transparent; outline: 0; }
+    .search input:focus { border-color: var(--signal); }
+    .toc-title { margin: 0 0 14px; color: var(--signal); font: 700 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; }
+    #toc { display: grid; gap: 2px; }
+    #toc a { display: block; padding: 7px 10px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 12px; line-height: 1.45; }
+    #toc a.level-3 { padding-left: 22px; font-size: 11px; }
+    #toc a:hover, #toc a.active { color: var(--ink); border-left-color: var(--signal); background: rgba(255,255,255,.34); }
+    main { min-width: 0; }
+    .notice {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 18px;
+      margin: 0 0 38px;
+      padding: 22px 24px;
+      border: 1px solid #b8cfc9;
+      border-left: 5px solid var(--teal);
+      background: rgba(207,227,222,.55);
+      box-shadow: var(--shadow);
+    }
+    .notice b { color: var(--teal); font: 800 12px/1.5 var(--mono); letter-spacing: .09em; }
+    .notice p { margin: 0; }
+    article {
+      padding: clamp(34px, 6vw, 78px);
+      border: 1px solid var(--line);
+      background: rgba(250,247,240,.92);
+      box-shadow: var(--shadow);
+    }
+    article > h1 { display: none; }
+    article h2 {
+      position: relative;
+      margin: 92px 0 30px;
+      padding: 18px 0 18px 64px;
+      border-top: 2px solid var(--ink);
+      border-bottom: 1px solid var(--line);
+      font: 700 clamp(1.8rem, 3vw, 3rem)/1.2 var(--serif);
+      letter-spacing: -.035em;
+    }
+    article h2::before {
+      content: attr(data-index);
+      position: absolute;
+      left: 0;
+      top: 23px;
+      color: var(--signal);
+      font: 800 14px/1 var(--mono);
+      letter-spacing: .08em;
+    }
+    article h2:first-of-type { margin-top: 0; }
+    article h3 { margin: 54px 0 20px; color: var(--teal); font: 700 1.45rem/1.35 var(--serif); }
+    article h4 { margin: 36px 0 12px; font: 750 1rem/1.5 var(--sans); letter-spacing: .02em; }
+    article p { margin: 0 0 18px; }
+    article strong { color: #0c524e; font-weight: 750; }
+    article a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    article a:hover { color: var(--signal); }
+    article hr { height: 1px; margin: 52px 0; border: 0; background: var(--line); }
+    article blockquote { margin: 32px 0; padding: 22px 26px; border: 0; border-left: 5px solid var(--signal); color: #563126; background: var(--signal-soft); font: 600 1.08rem/1.8 var(--serif); }
+    article ul, article ol { margin: 0 0 22px; padding-left: 1.4em; }
+    article li { margin: 7px 0; padding-left: .35em; }
+    article li::marker { color: var(--signal); font-weight: 800; }
+    code { padding: .14em .38em; border: 1px solid #d4cdc0; color: #87412b; background: #f2e5da; font: .86em/1.5 var(--mono); overflow-wrap: anywhere; }
+    pre { position: relative; overflow: auto; margin: 28px 0; padding: 24px 26px; border-left: 5px solid #3d8d83; color: var(--code-ink); background: var(--code); box-shadow: 0 14px 35px rgba(16,38,40,.18); }
+    pre code { padding: 0; border: 0; color: inherit; background: none; font-size: 12px; line-height: 1.75; }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 26px 0 34px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; font-size: 13px; line-height: 1.6; background: #fbf8f1; }
+    th { padding: 13px 14px; border-right: 1px solid #355053; color: white; background: var(--navy); text-align: left; font: 650 11px/1.35 var(--mono); letter-spacing: .045em; }
+    td { padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr:nth-child(even) td { background: #f1ece2; }
+    tr:hover td { background: #e5eee9; }
+    .search-hidden { display: none !important; }
+    mark { padding: 0 .12em; color: inherit; background: #ffd277; }
+    .footer { max-width: 1420px; margin: -72px auto 0; padding: 0 44px 60px 418px; color: var(--muted); font: 11px/1.7 var(--mono); }
+    @media (max-width: 1050px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-meta { max-width: 560px; }
+      .shell { grid-template-columns: 1fr; padding-inline: 24px; }
+      aside { position: static; max-height: none; padding: 0; }
+      #toc { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      #toc a.level-3 { display: none; }
+      .footer { margin: 0; padding: 0 24px 48px; }
+    }
+    @media (max-width: 680px) {
+      .hero { min-height: 0; padding: 56px 24px 42px; }
+      .hero h1 { font-size: 3rem; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.15); }
+      #toc { grid-template-columns: 1fr; }
+      article { padding: 28px 20px 48px; }
+      article h2 { padding-left: 42px; font-size: 1.75rem; }
+      article h2::before { top: 24px; }
+      .notice { grid-template-columns: 1fr; }
+    }
+    @media print {
+      :root { --paper: white; --ink: black; }
+      body { background: white; font-size: 10.5pt; }
+      body::before, #progress, aside, .tools, .footer { display: none; }
+      .hero { min-height: 0; padding: 48px; color: black; background: white; border-bottom: 3px solid black; }
+      .hero h1, .hero h1 span, .hero p, .meta-row span { color: black; }
+      .hero::after, .metrics { display: none; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-meta { margin-top: 30px; }
+      .meta-row { border-color: #aaa; }
+      .shell { display: block; max-width: none; padding: 24px 0; }
+      .notice { box-shadow: none; margin: 0 36px 24px; }
+      article { padding: 0 36px; border: 0; box-shadow: none; background: white; }
+      article h2 { break-after: avoid; margin-top: 38px; }
+      article h3, table, pre, blockquote { break-inside: avoid; }
+      table { font-size: 8pt; }
+    }
+  </style>
+</head>
+<body>
+  <div id="progress"></div>
+  <header class="hero">
+    <div class="eyebrow">Autonomous Wiki Production · Incident Dossier 2026</div>
+    <div class="hero-grid">
+      <div>
+        <h1>P003 节点 Wiki<span>生产全流程复盘</span></h1>
+        <p>从二十余个批次、十一轮编辑修复和四代质量目标中，还原一个节点如何从“证据安全”走向“内容深入、可读、可发布”，并把经验固化为整个骨架数据库可复用的 Golden Case。</p>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-row"><b>NODE</b><span>ict_equipment::P003</span></div>
+        <div class="meta-row"><b>IDENTITY</b><span>服务器 · 通用计算 · 刀片式</span></div>
+        <div class="meta-row"><b>SCOPE</b><span>v3–v30 / production artifacts</span></div>
+        <div class="meta-row"><b>RELEASE</b><span>Golden workflow design</span></div>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><strong>28</strong><small>traceable versions</small></div>
+      <div class="metric"><strong>17</strong><small>workflow stages</small></div>
+      <div class="metric"><strong>6</strong><small>execution layers</small></div>
+      <div class="metric"><strong>100</strong><small>tests at v30</small></div>
+    </div>
+  </header>
+
+  <div class="shell">
+    <aside aria-label="文档目录">
+      <div class="tools">
+        <button class="icon-btn" type="button" onclick="window.print()">打印 / PDF</button>
+        <button class="icon-btn" type="button" id="topBtn">回到顶部</button>
+      </div>
+      <label class="search">
+        <input id="search" type="search" placeholder="过滤章节，例如：Agent / v28 / Table" aria-label="过滤文档章节">
+      </label>
+      <p class="toc-title">Document Index</p>
+      <nav id="toc"></nav>
+    </aside>
+
+    <main>
+      <div class="notice">
+        <b>READING NOTE</b>
+        <p>版本号不等于正文改写次数。早期回合主要建立 Agent 证明、证据核验和发布事务；v27 以后才依次解决内容深度、文章连贯、读者界面、定量表格和中国地域数据。</p>
+      </div>
+      <article id="report"><h1>P003 节点 Wiki 生产全流程复盘与 Golden Case 工作流</h1>
+<p>日期：2026-08-11<br>复盘对象：<code>ict_equipment::P003</code>（服务器，通用计算，刀片式）<br>工程范围：<code>/Users/shujudagongren/Myspace/lca-project</code><br>主要批次：<code>wiki-production-20260810-v3</code> 至 <code>wiki-production-20260811-v30</code></p>
+<hr>
+<h2>1. 执行摘要</h2>
+<p>P003 并不是“同一篇正文写错了三十次”。从可追溯 Artifact 看，v3–v30 实际经历了五类不同的产品化问题：</p>
+<ol>
+<li><strong>Agent 运行与证据链能否被信任</strong>：模型输出协议、运行证明、禁网 Verify、节点身份对齐、证据原文和 hash 是否成立。</li>
+<li><strong>批次能否安全发布</strong>：Draft Gate、coverage、Go/No-Go、事务 Apply、完整行业快照、bundle 和 viewer 是否形成闭环。</li>
+<li><strong>内容是否达到 Golden 深度</strong>：早期 Gate 能证明页面“可靠、结构完整”，却不能证明内容深入、有解释力。</li>
+<li><strong>正文是否像一篇文章</strong>：扩写后出现 claim 拼接、标签泛滥、出处重复、链接失效和同源引用未合并，技术上通过但阅读体验不合格。</li>
+<li><strong>表格是否真有可用数据</strong>：表结构存在不等于数据已采集；国际参考、中国参考、实测、定义值、代理值和明确缺口需要分别治理。</li>
+</ol>
+<p>因此，轮次很多的根本原因不是单一 Agent 能力不足，而是<strong>完成定义被逐层发现</strong>：先定义“证据正确”，再定义“内容足够深”，再定义“可读”，最后才定义“表格有数据且地域语义正确”。每出现一类用户可见问题，系统才补上一层 Gate。换言之，早期流程优化的是“不要错”，用户真正需要的是“先达到内容价值，再在价值不退化的前提下保证不出错”。</p>
+<p>截至 v30，P003 已完成以下闭环：</p>
+<ul>
+<li>外部事实与节点身份逐 claim 核验；</li>
+<li>深度正文、段落级编辑和受控建模判断；</li>
+<li>正文隐藏内部审计标签，仅保留轻量引用入口；</li>
+<li>同源引用合并、来源卡片可跳转；</li>
+<li>物性、参数和数据质量表由来源绑定的数据填充；</li>
+<li>国际参考与中国参考分轨，中国参数覆盖 14/16；</li>
+<li>Graph 11/11、Wiki lint 31/31、100 项项目测试和项目 validate 通过。</li>
+</ul>
+<p>但仍不能把 v30 等同于“P003 已有完整 LCI”。v30 的中国数据是 H3C B5700 G6 的公开参考配置，其中中国值为定义值或代理值，<strong>实测值仍为 0</strong>；型号级 BOM、供应商矩阵、包装清单和共享机箱分配记录仍是明确缺口。</p>
+<hr>
+<h2>2. 复盘范围、证据与可信度</h2>
+<p>本报告依据以下持久化证据，而非仅依赖对话记忆：</p>
+<ul>
+<li>v3–v30 各工作区的 <code>journal.json</code>、<code>release-journal.json</code>；</li>
+<li><code>nomination-runtime/</code>、<code>verify-runtime/</code> 中的 invocation、events、stderr、result、usage；</li>
+<li><code>draft-content-gate.json</code>、<code>coverage.json</code>、<code>go-no-go.json</code>、<code>gate-report.json</code>、<code>quality-gate.json</code>；</li>
+<li><code>preview-report.json</code>、<code>publish-report.json</code>、<code>viewer-repair-report.json</code>；</li>
+<li>v26–v30 的正式 P003 Markdown、bundle 和 viewer；</li>
+<li><code>tests/wiki_phase2/</code> 中由事故固化的回归测试；</li>
+<li><code>workflows/wiki-node-production@5.json</code> 及当前生产脚本；</li>
+<li>Phase 2、Phase 3 和 v27 Golden 重跑验收报告。</li>
+</ul>
+<p>复盘采用两种证据等级：</p>
+<ul>
+<li><strong>已确认</strong>：journal 或 Gate 明确记录停止原因、指标或失败项。</li>
+<li><strong>仅能确认停止点</strong>：批次停在某状态，但旧 journal 没有记录调用失败原因。此类回合不推测具体错误；这本身也是“失败原因未结构化持久化”的工程缺陷。</li>
+</ul>
+<p>v1–v2 没有找到 P003 的独立生产批次；可追溯的 P003 尝试从 v3 开始。因此本文不会把平台搭建工作虚构成两轮 P003 内容生产。</p>
+<hr>
+<h2>3. 完整时间线：每轮发生了什么</h2>
+<h3>3.1 v3–v12：从 Agent 可运行到 Draft Gate 能阻止坏页面</h3>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>最终状态</th>
+<th>暴露问题</th>
+<th>处理与结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>v3</td>
+<td><code>prepared</code></td>
+<td>Nomination 运行多次超时并回退 HTTP，未形成 <code>nomination-result.json</code>。</td>
+<td>批次未进入研究阶段，没有写页面。</td>
+</tr>
+<tr>
+<td>v4</td>
+<td><code>prepared</code></td>
+<td>与 v3 相同，只有运行事件和 stderr，没有可验收结果。</td>
+<td>保持在 prepared，继续校准 launcher/runtime。</td>
+</tr>
+<tr>
+<td>v5</td>
+<td><code>prepared</code></td>
+<td>与 v3/v4 相同，模型调用完成性仍不稳定。</td>
+<td>未把不完整运行伪装成提名成功。</td>
+</tr>
+<tr>
+<td>v6</td>
+<td><code>prepared</code></td>
+<td>首次形成结果，但生成 31 条 claim，而合同目标是 30 个冻结 slot；旧 journal 没有记录后续命令失败详情。</td>
+<td>结果未晋级；下一版重新生成。</td>
+</tr>
+<tr>
+<td>v7</td>
+<td><code>blocked</code></td>
+<td>Verify 得到 27 条 <code>NOT_FOUND</code>、2 条 <code>UNRELATED/INSUFFICIENT</code>、1 条 <code>ADJACENT/INSUFFICIENT</code>，0 条外部 CONFIRMED；正文仅 1,863 字符、20 条断言、0 个外部来源。</td>
+<td>Draft Content Gate 在写入前阻断，正式页面不变。证明了“没有证据时不会硬写”。</td>
+</tr>
+<tr>
+<td>v8</td>
+<td><code>prepared</code></td>
+<td>重新提名并生成搜索证据，但 journal 只证明停在 prepared，未记录明确失败原因。</td>
+<td>被后续更完整批次取代。</td>
+</tr>
+<tr>
+<td>v9</td>
+<td><code>research_ready</code></td>
+<td>Verify runtime 只有 2 条 EXACT/CONFIRMED；6 条因机箱、模块或活动对象混淆被判 ADJACENT，另有 2 条证据不足。</td>
+<td>不接受 Verify，继续修改 claim 主语和来源路由。</td>
+</tr>
+<tr>
+<td>v10</td>
+<td><code>blocked</code></td>
+<td>一次 finalize 发现重复 extract result；语义上只有 4 条 CONFIRMED，3 条 ADJACENT，且“性质与形态”无合格外部证据。</td>
+<td>去重后仍被 Draft Gate 以核心章节未落证阻断。</td>
+</tr>
+<tr>
+<td>v11</td>
+<td><code>research_ready</code></td>
+<td>进步到 5 条 CONFIRMED，但仍有 2 条 ADJACENT、3 条 EXACT/INSUFFICIENT。</td>
+<td>继续收紧“成品刀片服务器”与“服务器刀片模块/机箱”的对象边界。</td>
+</tr>
+<tr>
+<td>v12</td>
+<td><code>frozen</code></td>
+<td>7 条 CONFIRMED、3 条 ADJACENT。Draft 内容本身通过，但 coverage 只有 90%，页面不可晋级；Preview 又发现隔离 fixture 缺行业页面和 16 个 sigil，Wiki lint 仅 28/30。</td>
+<td>没有 reviewed/publish。由此发现“单节点候选合格”与“行业发布快照完整”是两个独立条件。</td>
+</tr>
+</tbody></table>
+<p>这一阶段解决的是最基础的安全问题：Agent 只能提名，Search/Fetch 确定性执行，Verify 独立且禁网；只要存在 ADJACENT、证据不足或运行证明不完整，就不能把页面升级为 reviewed。</p>
+<h3>3.2 v13–v26：反复消除对象错位、来源单一和发布快照缺失</h3>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>最终状态</th>
+<th>暴露问题</th>
+<th>处理与结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>v13</td>
+<td><code>prepared</code></td>
+<td>30 条新提名已生成，但未形成持久化研究/核验结果；旧 journal 未记录中止原因。</td>
+<td>未晋级，被后续来源路由版本取代。</td>
+</tr>
+<tr>
+<td>v14</td>
+<td><code>prepared</code></td>
+<td>同样停在 prepared，只能确认该轮未进入 Verify。</td>
+<td>不纳入可发布证据链。</td>
+</tr>
+<tr>
+<td>v15</td>
+<td><code>research_ready</code></td>
+<td>Verify 为 7 CONFIRMED、3 ADJACENT；模块化计算模块仍被误当系统级成品。</td>
+<td>继续调整节点主题定位和 claim constraint。</td>
+</tr>
+<tr>
+<td>v16</td>
+<td><code>research_ready</code></td>
+<td>6 CONFIRMED、3 ADJACENT、1 EXACT/INSUFFICIENT；同一来源原文仍被过度外推。</td>
+<td>缩短断言，使 claim 不超过原文。</td>
+</tr>
+<tr>
+<td>v17</td>
+<td><code>research_ready</code></td>
+<td>提名再次出现 31 条；Verify 只有 5 CONFIRMED，4 条 EXACT 但证据不足、1 条 ADJACENT。</td>
+<td>放弃该候选，恢复严格 slot 基数。</td>
+</tr>
+<tr>
+<td>v18</td>
+<td><code>prepared</code></td>
+<td>形成 30 条提名，但未进入持久化 Verify。</td>
+<td>作为路由调整过渡版本，不参与发布。</td>
+</tr>
+<tr>
+<td>v19</td>
+<td><code>failed</code></td>
+<td>10 条外部事实已全部 EXACT/CONFIRMED，coverage 100%，但全部来自 <code>publications.europa.eu</code>；质量 Gate 的“两家独立 authority”失败。</td>
+<td>Gate 拒绝单一来源闭环，要求引入独立权威来源。</td>
+</tr>
+<tr>
+<td>v20</td>
+<td><code>frozen</code></td>
+<td>引入 IBM 后有两家 authority，但提名/冻结结果为 31 条；coverage 数字虽为 100%，页面仍不可 reviewed。</td>
+<td>说明“覆盖率 100%”不能掩盖 claim 集合基数漂移，批次未发布。</td>
+</tr>
+<tr>
+<td>v21</td>
+<td><code>blocked</code></td>
+<td>Verify 文件显示 30 条，但 post-apply coverage 变成 34 条，只覆盖 26 条，8 条进入 manual review；Go/No-Go 为 NO_GO。</td>
+<td>阻断 reviewed apply，暴露生成正文、KUs 和 coverage 集合守恒不足。</td>
+</tr>
+<tr>
+<td>v22</td>
+<td><code>research_ready</code></td>
+<td>达到 9 CONFIRMED，仅 1 条仍把紧凑计算模块当成成品而被判 ADJACENT。</td>
+<td>继续重写该 slot，限定原文对象必须是目标产品本体。</td>
+</tr>
+<tr>
+<td>v23</td>
+<td><code>prepared</code></td>
+<td>新提名形成但未进入持久化 Verify；无结构化失败原因。</td>
+<td>被下一版取代。</td>
+</tr>
+<tr>
+<td>v24</td>
+<td><code>research_ready</code></td>
+<td>8 CONFIRMED、1 ADJACENT、1 EXACT/INSUFFICIENT；IBM“模块化服务器系统”仍混合整机与服务器刀片模块。</td>
+<td>IBM 只保留能直接支持目标本体的同义/高密度描述，物理形态和共享资源边界改由欧盟法规原文支撑。</td>
+</tr>
+<tr>
+<td>v25</td>
+<td><code>frozen</code></td>
+<td>首次达到 10/10 EXACT/CONFIRMED、两家 authority，Draft Gate 通过；但 Preview 的完整性 lint 仍为 28/30：缺大量行业页面和 16 个 sigil。</td>
+<td>不在冻结批次内补文件；先扩充只读 vendor snapshot，再新建最终工作区。</td>
+</tr>
+<tr>
+<td>v26</td>
+<td><code>published</code></td>
+<td>30 条 claim、10 条外部事实全部 EXACT/CONFIRMED、coverage 100%，Graph 11/11、Wiki lint 31/31，正式发布成功。发布后又发现 publish 只构建 data bundle，漏掉 HTML viewer。</td>
+<td>补生成 viewer，并修改发布器：bundle 与 viewer 必须同时 PASS；加入隔离回归测试。</td>
+</tr>
+</tbody></table>
+<p>v26 是“真实证据到正式发布”的第一个闭环，但它只证明了<strong>可靠性和发布完整性</strong>，尚未证明达到用户期望的内容深度。</p>
+<h3>3.3 v27：可靠但浅，第一次把“内容价值”升为硬 Gate</h3>
+<p>用户阅读 v26 后指出与 Golden Case 差距很大。对比结果很清楚：v26 BODY 只有 4,453 字符、30 条断言，基本是一条 claim 对应一个单句段落；它满足证据和结构要求，却没有形成深入的建模说明。</p>
+<p>v27 引入 Content Blueprint 和 Content Architect：</p>
+<ul>
+<li>研究层仍冻结原来的 30 条 claim，不能借“扩写”偷偷增加外部事实；</li>
+<li>内容层允许增加受控 <code>modeling_judgment</code> 和 <code>evidence_gap</code>；</li>
+<li>冻结九个正文主题、正文长度、断言数、段落数、建模深度、必需术语、禁止短语和三张节点专属表；</li>
+<li>coverage 从只检查研究 claim，升级为研究 claim 与内容 claim 双向守恒。</li>
+</ul>
+<p>该轮内部又暴露了三类问题：</p>
+<ol>
+<li>首次 Nomination 生成了会随着核验状态变化而失真的缺口句；修复为只描述长期存在的型号 BOM、净质量、制造、运输、共享资源分配和代表性缺口。</li>
+<li>首次 Content 输出结构合格，但纯句子正文只有 5,462 字，低于 6,500 字阈值；Draft Gate 在 Apply 前拒绝。加入“对象—字段—适用条件—失效条件”和长度缓冲后达到 7,110 字。</li>
+<li>Preview 发现数据质量表词表不合法，lint 未全过；通过新的 hash-locked remediation 事务修复，而不是手改已冻结页面。</li>
+</ol>
+<p>最终 v27 达到 13,476 个 BODY 字符、135 条内容 claim、27 个多句段落、10 条外部 CONFIRMED，Graph 11/11、Wiki lint 31/31 并发布。</p>
+<p>但 v27 的新 Gate 也产生了副作用：为了达到“建模判断数量”和“断言数量”，正文出现 111 个可见 <code>〔建模判断〕</code> 标签、125 个 <code>internal-review</code> 引用。长度和计数变好了，读者体验反而变差。它说明<strong>可计数的深度代理指标可以防止过短，却不能单独代表写作质量</strong>。</p>
+<h3>3.4 v28：从“扩写成功”到“文章可读”</h3>
+<p>用户指出 v27 像拼凑：例如“刀片服务器至少包含一个处理器和系统内存。来源。刀片服务器是高密度独立服务器设备。”两句虽各自有证据，却没有论述关系。</p>
+<p>根因不是翻译，而是组装器的最小单元错误：</p>
+<ul>
+<li>Research 以 claim 为单位；</li>
+<li>Distill 也按 claim 逐句输出；</li>
+<li>引用在每句后机械注入；</li>
+<li>章节只规定“必须包含哪些 claim”，没有先规划段落主旨、句间关系和信息顺序；</li>
+<li>建模判断用于填充深度阈值，却没有作为解释事实、限定边界和说明失效条件的修辞角色；</li>
+<li>相同来源没有在表达层融合，导致同一原文被拆成多句重复陈述。</li>
+</ul>
+<p>v28 为此增加结构化段落和独立编辑审查，但正式批次本身仍经历多次自我阻断：</p>
+<ul>
+<li>Verify runtime 绑定了 v27 旧路径，而不是 v28 当前冻结 evidence；</li>
+<li>一次 Verify 输出缺 <code>result.protocol</code>；</li>
+<li>Content candidate 改写了 Verify 结果，违反“内容层不得改变证据裁决”；</li>
+<li>Draft Gate 连续两次阻断不合格候选；</li>
+<li>Go/No-Go 发现 confirmed 证明失效；</li>
+<li>release gate 一次失败后才通过。</li>
+</ul>
+<p>编辑过程中又出现 11 个 P003 专用修复轮次，依次处理：对象名称统一、独立功能与机箱依赖、产品本体与组件边界、BOM/附件/包装边界、制造与使用阶段共享资源分配、分类准入顺序、代表性与数据粒度的区分、可追溯不等于实测等语义问题。最终 BODY 收敛到 10,791 字符、48 个自然段，外部事实被融合成段落论点，建模判断用于解释边界和使用条件。</p>
+<p>同一阶段还修复了四个读者端问题：</p>
+<ul>
+<li>去掉正文中的 <code>〔建模判断〕</code>、<code>internal-review</code> 和“已核实”可见标签；</li>
+<li>删除与来源卡片重复的“出处/引用原文与核验记录”展示；</li>
+<li>来源卡片优先使用 registry 中的正式 URL，恢复原文跳转；</li>
+<li>按 source URL 合并同源 claim，一张来源卡片显示该来源支持的多条断言。</li>
+</ul>
+<p>此外，<code>file://...html?id=P003</code> 在本地查看器中不稳定。构建器新增 <code>--start-node P003</code>，生成真实文件 <code>ict_equipment-wiki-P003.html</code>，避免依赖 query 参数；viewer 还绑定 bundle 内容 hash，减少本地浏览器继续使用旧 JS 的情况。</p>
+<h3>3.5 v29：发现“有表结构”不等于“采集了表数据”</h3>
+<p>用户继续检查发现物性/常数表、规格/工艺参数表和数据质量与代表性表虽然有行名，但基本没有数据。原因是此前 Content Blueprint 只要求“表头、行数和字段标签完整”，没有要求：</p>
+<ul>
+<li>值必须来自冻结来源；</li>
+<li>国际值和中国值要分别达到最低覆盖；</li>
+<li>值必须标明实测、定义或代理；</li>
+<li>明确缺口不能被当成已填数据；</li>
+<li>参考配置必须说明型号、地域、年份和适用边界。</li>
+</ul>
+<p>v29 新增独立 Table Population 子流程，并冻结 Dell PowerEdge FC430 2019 PCF 最高销量配置作为国际参考。首次表格候选看似有 3 个中国值，但实际把国际参考或“缺口判断”放进中国值轨，还使用了不受控口径。下游 Wiki lint 抓到三类问题：口径值不受控、数值缺实测/代理/定义标签、国际/中国来源地域错轨。</p>
+<p>修复后：</p>
+<ul>
+<li>口径统一为受控词表，如 <code>standard_spec</code>、<code>proxy</code>、<code>reference</code>；</li>
+<li>所有数值显式标注 pedigree；</li>
+<li>中国轨没有中国来源时恢复为明确缺口，而不是拿国际参考冒充；</li>
+<li><code>缺口：...</code>、<code>未公开</code> 被统一识别为 null；</li>
+<li>viewer 不再把“缺口证据 10/10”显示成“中国值 10/10”。</li>
+</ul>
+<p>v29 最终为：物性 8 行、7 行有值；参数 12 行、国际值 10、真实中国值 0；质量 10 行全部有评估或明确缺口。Graph 11/11、Wiki lint 31/31、98 项测试通过。</p>
+<h3>3.6 v30：不是中国没有服务器，而是检索策略没有进入中国官方产品资料</h3>
+<p>用户质疑中国没有刀片服务器数据。事实不是“没有企业生产”，而是此前来源策略集中于欧盟法规、IBM 定义和国际厂商 PCF，且 Gate 只要求两个 authority，并未要求中国来源覆盖。</p>
+<p>v30 调整检索方向后，找到并冻结 H3C UniServer B5700 G6 的中国官方资料：</p>
+<ul>
+<li>官方产品碳足迹资料给出中国制造/使用场景、配置、寿命、功耗与产品碳足迹；</li>
+<li>官方用户指南给出尺寸、最大满配质量、处理器插槽、内存槽和 B16000 共享机箱关系；</li>
+<li>产品页用于确认产品身份和产品族定位。</li>
+</ul>
+<p>工程上新增 <code>params_cn_population_floor</code> 硬 Gate，防止未来页面在中国轨全空时仍以“表格完整”通过。最终 v30：</p>
+<ul>
+<li>物性表 11 行，10 行有值；</li>
+<li>参数表 16 行，国际值 12，中国值 14；</li>
+<li>中国值中 11 个定义值、3 个代理值、0 个实测值；</li>
+<li>数据质量表 10 行全部有评估或明确缺口；</li>
+<li>Graph 11/11、Wiki lint 31/31、100 项测试、项目 validate 和浏览器原文链接检查均通过。</li>
+</ul>
+<hr>
+<h2>4. 为什么会跑这么多轮</h2>
+<h3>4.1 一开始没有完整的 Golden 完成合同</h3>
+<p>最初的完成定义主要是：十节齐全、claim 有分类、引用可解析、两家来源、coverage 100%、Gate 全过。这个合同能生产“安全的知识卡片”，却不足以生产“内容深入、连贯、可直接阅读、表格有数据的专业 Wiki”。用户每次评审实际上都在补充缺失的验收标准。</p>
+<h3>4.2 Gate 按已知事故生长，无法拦截尚未定义的质量问题</h3>
+<p>v26 的 Gate 没有错，它准确验证了当时写进政策的内容；问题是政策没有定义内容深度。v27 定义了深度，却用断言数和标签数做代理，未定义阅读流畅度。v28 定义了段落编辑，却尚未要求表格人口。v29 要求表格人口，却没有中国覆盖下限。每层 Gate 都是后验补齐。</p>
+<h3>4.3 研究、写作、编辑和展示曾被同一个 claim 数据结构绑死</h3>
+<p>证据核验的最佳粒度是原子 claim；文章写作的最佳粒度是段落和论证；页面展示的最佳粒度是轻量引用和合并来源卡。早期系统让同一种 claim 结构同时服务三者，必然出现“证据正确但文章像数据库 dump”。</p>
+<h3>4.4 节点身份边界没有在检索前充分冻结</h3>
+<p>P003 最难的并不是找到“blade server”文本，而是区分：成品刀片服务器、服务器刀片模块、刀片机箱、模块化服务器系统、一般服务器、制造活动。早期先搜后判断，导致大量候选在 Verify 才被判 ADJACENT。标准流程应在搜索前生成正反例和排除词，把错误对象挡在候选阶段。</p>
+<h3>4.5 来源策略只追求权威性和独立性，没有覆盖维度矩阵</h3>
+<p>“两家独立 authority”能避免单源，但不能自动带来规格、PCF、中国地域或型号数据。来源计划必须按用途分槽：法规定义、厂商规格、PCF/EPD、PCR/标准、地域代表、中国官方资料，而不是只统计域名数量。</p>
+<h3>4.6 失败原因没有从一开始结构化持久化</h3>
+<p>多个版本只停在 prepared 或 research_ready，journal 没有记录触发命令、异常类别和候选摘要。结果是后来只能确认“停在哪里”，不能完全证明“为什么停”。一个自治系统如果不能给失败分类，就无法可靠选择重试、改 query、改 claim、回滚还是升级人工。</p>
+<h3>4.7 节点专用补丁替代了通用能力升级</h3>
+<p>当前仓库存在 <code>curate_p003_editorial_repair.py</code> 及 round2–round11。它们证明语义问题得到了认真修复，但也证明修复仍大量依赖 P003 的硬编码位置和句子。若直接跑新节点，这些经验不会自动迁移。正确做法是把每一类问题提升为：</p>
+<ul>
+<li>通用 Editorial Contract；</li>
+<li>可复用检查器或 reviewer rubric；</li>
+<li><code>defects/wiki/</code> 的最小失败样本；</li>
+<li>mutation test；</li>
+<li>对应的自动返工路由。</li>
+</ul>
+<h3>4.8 工程完成和用户感知完成混在同一个“PASS”里</h3>
+<p>v26 从工程证据看已发布，但 viewer 漏构建；v27 数据变了，用户却因浏览器缓存、query 文件路径和版面标签感知为“没变化”。正式发布必须同时交付数据正确性、页面可达性、内容差异摘要和浏览器 smoke test，不能只报告 journal 为 published。</p>
+<hr>
+<h2>5. 暴露的核心问题与工程化修复</h2>
+<table>
+<thead>
+<tr>
+<th>核心问题</th>
+<th>逃逸表现</th>
+<th>已有修复</th>
+<th>仍需平台化的修复</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Agent 输出不稳定</td>
+<td>超时、缺 protocol、31 条 claim、重复 result</td>
+<td>动态 schema、slot 基数、runtime attestation、resume</td>
+<td>所有异常写入统一 failure envelope；区分可重试与不可重试错误</td>
+</tr>
+<tr>
+<td>节点身份错位</td>
+<td>模块/机箱/活动被当成 P003</td>
+<td>冻结 <code>node_identity</code>，EXACT 才可 CONFIRMED</td>
+<td>搜索前生成正例、反例、排除词和邻接对象测试集</td>
+</tr>
+<tr>
+<td>原文与断言不等价</td>
+<td>原文只说模块，claim 扩写成整机事实</td>
+<td>supporting quote 必须是 excerpt 子串，独立 Verify</td>
+<td>增加 entailment mutation：删限定词、换主语、换层级必须失败</td>
+</tr>
+<tr>
+<td>内容可靠但浅</td>
+<td>v26 只有 30 个单句段</td>
+<td>Content Blueprint、深度阈值</td>
+<td>用“问题覆盖”和“决策价值”取代单纯字数/断言数奖励</td>
+</tr>
+<tr>
+<td>正文 claim 拼接</td>
+<td>句间无关系、同源事实重复</td>
+<td>段落 schema、rhetorical role、editorial fusion</td>
+<td>通用 paragraph planner；禁止 claim 顺序直接等于正文顺序</td>
+</tr>
+<tr>
+<td>标签污染阅读</td>
+<td>111 个建模标签、125 个 internal-review</td>
+<td>reader 隐藏内部标签，只留外部引用</td>
+<td>将审计信息彻底留在 bundle 数据层，正文 AST 不再含展示标签</td>
+</tr>
+<tr>
+<td>来源重复/链接失效</td>
+<td>“出处”重复、卡片不跳原文、同源多卡</td>
+<td>URL 优先、来源卡合并、reader 回归测试</td>
+<td>浏览器自动点击全部外部链接并记录 HTTP/下载结果</td>
+</tr>
+<tr>
+<td>本地 viewer 不可达/旧缓存</td>
+<td>query 文件打不开、页面看似没更新</td>
+<td><code>--start-node</code> 独立 HTML、bundle hash 绑定</td>
+<td>发布证书写入页面版本和正文 diff 摘要，用户可见地显示 release ID</td>
+</tr>
+<tr>
+<td>表结构空壳</td>
+<td>三张表有行名无数据</td>
+<td>独立 table collect/verify/population gate</td>
+<td>每种节点类型定义最小字段集、来源类型和地域覆盖政策</td>
+</tr>
+<tr>
+<td>地域语义错轨</td>
+<td>国际数据被计为中国值、缺口被计为值</td>
+<td>null/gap 语义、region lint、pedigree 标签</td>
+<td>地域要求从 advisory 升为按任务政策配置的硬 Gate</td>
+</tr>
+<tr>
+<td>中国检索方向缺失</td>
+<td>错误得出“找不到中国数据”</td>
+<td>H3C 官方产品/指南/PCF 路由，CN floor</td>
+<td>建立中文厂商词典、产品族词典、官方域名和文档类型路由</td>
+</tr>
+<tr>
+<td>修复只作用于样本</td>
+<td>11 个 P003 专用修复脚本</td>
+<td>部分问题已进 pytest</td>
+<td>将 11 轮 delta 归并为通用 rubric 与 defect fixtures，P003 专用脚本退出生产路径</td>
+</tr>
+<tr>
+<td>发布范围不完整</td>
+<td>单节点过 Gate，行业 bundle 缺页/sigil/viewer</td>
+<td>完整 vendor snapshot、preview 六步、bundle+viewer</td>
+<td>发布 manifest 声明并校验全量资产闭包，禁止运行期临时补资产</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. 把 P003 固化为 Golden Case，Golden 到底应包含什么</h2>
+<p>P003 Golden 不能只是“当前 Markdown 文件”，否则任何文字变化都会造成脆弱的全文 hash 比较，也无法解释为什么合格。建议把 Golden 拆成七个可独立验收的层：</p>
+<h3>G-A：节点身份 Golden</h3>
+<ul>
+<li>固定 P003 的 node dossier、spine hash、产品身份刻面和交接边界；</li>
+<li>固定正例：完整装配、以 CPU 通用计算为主、刀片式交付的服务器产品；</li>
+<li>固定反例：刀片机箱、主板 PCBA、服务器刀片未完成模块、机架式服务器、GPU 主导服务器、数据中心设施、制造活动；</li>
+<li>mutation 将主语替换为上述相邻对象时，Verify 必须拒绝。</li>
+</ul>
+<h3>G-B：证据 Golden</h3>
+<ul>
+<li>10 个核心研究 slot 每个都有冻结 claim、EXACT verdict、supporting quote、source URL、payload hash 和 locator；</li>
+<li>同一证据可以支持多个 claim，但 registry 只保留一个 source identity；</li>
+<li>法规定义、独立厂商说明、规格/PCF、中国官方参考分别占明确来源槽位；</li>
+<li>原文限定词、对象层级或地域被篡改时，Gate 必须失败。</li>
+</ul>
+<h3>G-C：内容 Golden</h3>
+<ul>
+<li>九个正文主题全部覆盖，且每节回答事先定义的问题，而不是只满足字数；</li>
+<li>每个段落有唯一 focus，句子具有 thesis、evidence、explanation、boundary 或 gap 角色；</li>
+<li>相邻外部 claim 先融合为一个自然事实句，再写建模解释；</li>
+<li>外部事实、图谱事实、建模判断和证据缺口在数据层可追溯，但读者正文只显示必要引用；</li>
+<li>不把“断言更多、标签更多”直接当成质量更高。</li>
+</ul>
+<h3>G-D：表格 Golden</h3>
+<ul>
+<li>物性、参数、数据质量三张表都有节点专属字段，不是通用空壳；</li>
+<li>每个非空值绑定 source、basis、pedigree、region、reference configuration；</li>
+<li><code>measured</code>、<code>defined</code>、<code>proxy</code> 和 <code>gap</code> 四种状态互斥；</li>
+<li>国际值与中国值分轨，缺口证据不计入已填值；</li>
+<li>P003 当前基线至少保持 v30 的 10/11 物性、12/16 国际参数、14/16 中国参数、10/10 质量评估，除非新政策显式批准降级。</li>
+</ul>
+<h3>G-E：阅读器 Golden</h3>
+<ul>
+<li>正文无 <code>〔建模判断〕</code>、<code>已核实</code> 和 <code>internal-review</code> 可见徽标；</li>
+<li>每个外部事实附近只有轻量引用链接；</li>
+<li>来源区不重复展示“出处”和“引用原文”；</li>
+<li>同 URL 来源合并为一个来源卡，卡片列出支持的 claim 数；</li>
+<li>所有来源卡可点击，P003 独立 HTML 无 query 参数即可打开；</li>
+<li>页面可见 release ID、生成时间和数据摘要，避免新旧版本混淆。</li>
+</ul>
+<h3>G-F：发布与回放 Golden</h3>
+<ul>
+<li>从 frozen inputs 可离线重放 compose、gate、apply、preview 和 publish；</li>
+<li>reviewed apply 绑定 coverage hash 和目标旧 hash；</li>
+<li>bundle、viewer、页面、registry 和 release journal 的 hash 互相闭合；</li>
+<li>任一 Apply 中断可回滚，resume 不重复副作用；</li>
+<li>原项目无写入、无 symlink 逃逸。</li>
+</ul>
+<h3>G-G：缺陷 Golden</h3>
+<p>把 P003 历史事故做成最小 defect corpus，而不是保留 11 个节点专用改写脚本：</p>
+<ul>
+<li>模块冒充整机；</li>
+<li>claim 超出 quote；</li>
+<li>单一 authority；</li>
+<li>31/30 claim 基数漂移；</li>
+<li>content 改写 Verify verdict；</li>
+<li>两个事实句无连接地拼接；</li>
+<li>可见审计标签泛滥；</li>
+<li>同源引用未合并；</li>
+<li>registry 有 URL 但 reader 不使用；</li>
+<li>空表通过；</li>
+<li>缺口被计为数值；</li>
+<li>国际数据进入中国轨；</li>
+<li>viewer 只构建 data 不构建 HTML；</li>
+<li><code>file://...?id=</code> 本地不可达；</li>
+<li>vendor snapshot 缺页或 sigil。</li>
+</ul>
+<p>每次生产代码变更都必须同时跑正向 Golden replay 和上述 mutation；仅“当前 P003 页面还能打开”不算回归通过。</p>
+<hr>
+<h2>7. 以 P003 为 Golden 的标准生产工作流</h2>
+<p>当前 <code>wiki-node-production@5</code> 已有 17 个阶段。建议保留其主干，同时补上 Golden preflight、失败分类、浏览器验收和有限自动返工，形成下面的标准流。</p>
+<h3>阶段 0：任务与 Golden 合同冻结</h3>
+<p>输入：<code>industry + node_id + target_policy</code>。<br>动作：冻结 graph release、node dossier、正反例、内容问题清单、表格字段合同、地域策略和发布目标。<br>Gate：节点存在、spine hash 匹配、Golden policy 可解析、生产快照资产闭包完整。<br>失败路由：配置错误直接停止，不调用 Agent。</p>
+<h3>阶段 1：Plan / Prepare</h3>
+<p>必须先执行标准 plan，决定 <code>rebuild</code> 或 <code>audit</code>，然后生成不可变 node dossier。旧 wiki-v1、缺十节或含模型回忆的页面只能 rebuild。<br>输出：manifest、journal、dossier、预算、runtime policy。<br>Gate：一个批次内 claim slot、模型、effort、工具权限和预算全部冻结。</p>
+<h3>阶段 2：来源策略与 Research Nomination</h3>
+<p>Research Agent 不上网，只为每个 requirement 提名“要证明什么、应去哪类来源找、locator 是什么”。来源计划按用途分槽：</p>
+<ul>
+<li>法规/标准：定义、适用范围、排除；</li>
+<li>厂商规格/指南：形态、配置和接口；</li>
+<li>PCF/EPD/PCR：参考配置、边界、生命周期和质量指标；</li>
+<li>中国官方厂商资料：CN 参数与地域代表；</li>
+<li>内部图谱：A039、上下游和系统边界；</li>
+<li>建模判断：分配、代理、失效条件，不伪装成外部事实。</li>
+</ul>
+<p>Gate：claim 数恰好符合 slot 合同；主语为目标节点；不得把 requirement 名称改写成事实；相邻对象只能列为反例或 ADJACENT 候选。</p>
+<h3>阶段 3：确定性 Search / Fetch</h3>
+<p>脚本根据 frozen source plan 搜索、抓取和缓存，不允许 Agent 自由浏览后直接写正文。<br>输出：每个 claim 的候选 URL、payload hash、excerpt、locator、content type、region 和 source identity。<br>Gate：SSRF/本地地址阻断、预算、hash、excerpt 可重提取、URL canonicalization、来源类型和地域槽位完整。</p>
+<h3>阶段 4：独立 Verify</h3>
+<p>只读 reviewer 在禁网环境中比较 <code>claim + node_identity + frozen excerpt</code>。<br>规则：只有 <code>CONFIRMED + EXACT + quote substring</code> 才能支持外部事实；ADJACENT、INSUFFICIENT、CONTRADICTED 不得进入正文事实层。<br>Gate：核心 slot 全确认、至少两家独立 authority、要求中国参考时 CN source slot 满足。</p>
+<p>自动返工：</p>
+<ul>
+<li><code>ADJACENT</code> → 回到 claim 主语/来源路由，不重写 Verify；</li>
+<li><code>INSUFFICIENT</code> → 缩小 claim 或换 locator；</li>
+<li><code>NOT_FOUND</code> → 切换来源类型或记录显式 gap；</li>
+<li>protocol/runtime/hash 错误 → 同输入重试 launcher；</li>
+<li>最多两次同类重试，仍失败则进入人工/政策队列，禁止无限循环。</li>
+</ul>
+<h3>阶段 5：Freeze</h3>
+<p>冻结 nomination、Search/Fetch、Verify、usage 和 invocation。此后内容层只能引用裁决，不能修改 claim 文本、quote、verdict 或 node alignment。<br>Gate：claim 集合和 runtime attestation 全部 hash 闭合。</p>
+<h3>阶段 6A：段落级 Content Compose</h3>
+<p>先做 section plan，再写 paragraph plan，最后生成句子。禁止按 claim 顺序逐条贴正文。每段必须声明：</p>
+<ul>
+<li>本段回答的问题；</li>
+<li>thesis；</li>
+<li>使用哪些 evidence claim；</li>
+<li>要给出的 modeling implication；</li>
+<li>适用条件、失效条件或证据缺口；</li>
+<li>与前后段的关系。</li>
+</ul>
+<p>外部事实优先通过 editorial fusion 合并。例如 P003-4 与 P003-5 应写成一个连贯事实：“刀片服务器是一种高密度独立服务器设备，其基本构成至少包括处理器和系统内存。”随后再解释这里的“独立”不意味着可脱离刀片机箱运行。</p>
+<h3>阶段 6B：独立 Editorial Review</h3>
+<p>Reviewer 不检查来源真伪，而检查文章质量：</p>
+<ul>
+<li>句间是否存在解释、因果、限定或转折关系；</li>
+<li>是否重复同源事实；</li>
+<li>是否混淆本体、组件、共享基础设施和活动；</li>
+<li>是否把可追溯写成实测；</li>
+<li>是否把代理可用写成数据完整；</li>
+<li>每节是否真正回答 Golden 问题；</li>
+<li>是否出现为了凑计数而增加的重复判断。</li>
+</ul>
+<p>NO_GO 只返回结构化 paragraph delta；Compose Agent 只能修改指定段落。两轮仍 NO_GO 时停止自动改写并升级，不允许生成 round12、round13 式无限节点专用脚本。</p>
+<h3>阶段 7：Draft Content Gate 与 Draft Apply</h3>
+<p>Draft Gate 同时检查：研究 claim 守恒、内容 claim 守恒、章节问题覆盖、段落连贯度、重复率、字数下限、标签禁用、引用解析、非退化和节点身份。<br>只有 staged candidate 通过后才进行 hash-locked draft Apply；失败必须记录 <code>blocked_before_content_apply</code>，正式页不变。</p>
+<h3>阶段 8A：Table Collect / Verify</h3>
+<p>表格证据与正文证据并行但分流管理。Collector 按字段合同采集值；Verifier 核对单位、配置、年份、地域、定义/代理/实测身份和来源原文。<br>同一数值不得因展示在两个地域轨而复制 source identity；公开参考不得写成项目实测。</p>
+<h3>阶段 8B：Table Population Gate / Apply</h3>
+<p>硬检查：</p>
+<ul>
+<li>节点专属行数与必填字段；</li>
+<li>非空值必须有 source、basis、pedigree；</li>
+<li>gap 不计入 populated；</li>
+<li>INT/CN source region 匹配；</li>
+<li>中国任务启用 <code>params_cn_population_floor</code>；</li>
+<li>低于下限只能发布为明确的 <code>partial/reference_configuration_only</code>，不能宣称 dataset ready。</li>
+</ul>
+<p>通过后单独 hash-locked Apply，防止表格返工改坏已审正文。</p>
+<h3>阶段 9：Preview 与浏览器验收</h3>
+<p>Preview 必须在 production 同构的完整行业快照上运行：Graph、Wiki lint、bundle、viewer、name graph、overlay 全部 PASS。浏览器 smoke test 至少检查：</p>
+<ul>
+<li><code>ict_equipment-wiki-P003.html</code> 可直接打开；</li>
+<li>release ID 和正文 hash 与批次一致；</li>
+<li>正文无内部标签；</li>
+<li>同源卡片已合并；</li>
+<li>每个外部来源链接可打开或下载；</li>
+<li>表格覆盖计数把值与缺口分开；</li>
+<li>页面截图与 Golden 视觉规则无明显退化。</li>
+</ul>
+<h3>阶段 10：Release Gate / Reviewed Apply / Publish</h3>
+<p>G7 汇总证据、内容、表格、浏览器和行业完整性；G8 将 reviewed Apply 绑定 coverage hash、table gate hash 和旧目标 hash；最后同时构建 bundle 与 viewer。<br>只有 release journal 为 <code>published</code>，且所有 Gate PASS，才可对外称“正式发布”。</p>
+<h3>阶段 11：发布后差异与持续学习</h3>
+<p>发布报告自动生成：正文增删、来源增删、表格覆盖变化、地域覆盖、缺口变化、页面和 bundle hash。任何用户发现的逃逸错误必须：</p>
+<ol>
+<li>形成最小 defect fixture；</li>
+<li>证明旧 Gate 会放过；</li>
+<li>修改通用合同/检查器；</li>
+<li>加 mutation；</li>
+<li>对同版本、同脚本、同 prompt 产物做追溯扫描；</li>
+<li>再修当前 P003 页面。</li>
+</ol>
+<p>顺序不能反过来；只修当前页面不算完成。</p>
+<hr>
+<h2>8. Wiki 生产任务如何调用 Skills、Agents、脚本与 Workflow</h2>
+<p>这一节描述一次真实 Wiki 任务在项目中的执行机制。最重要的原则是：**Skill 只负责识别意图和选择流程，Workflow 负责规定顺序，Agent 只提交候选或裁决，脚本负责确定性执行和 Gate，Kernel 负责状态、记忆和发布。**任何一层都不能越权替代另一层。</p>
+<h3>8.1 六层执行架构</h3>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>项目资产</th>
+<th>负责什么</th>
+<th>明确不负责什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>意图与方法层</td>
+<td><code>skills/generate-node-wiki/SKILL.md</code></td>
+<td>识别“生成/补全/修复节点 Wiki”，收集行业和节点 ID，路由到版本化 Workflow</td>
+<td>不直接写 Wiki，不保存运行状态，不宣布 Gate PASS</td>
+</tr>
+<tr>
+<td>编排层</td>
+<td><code>workflows/wiki-node-production@5.json</code></td>
+<td>定义 17 个阶段、依赖关系、Agent/脚本 capability、Gate 和输出协议</td>
+<td>不生成正文，不直接修改正式文件</td>
+</tr>
+<tr>
+<td>Agent 层</td>
+<td><code>agents/researcher</code>、<code>agents/reviewer</code>、<code>agents/repairer</code></td>
+<td>生成研究提名、内容候选、语义裁决和最小修复建议</td>
+<td>无 Web、无正式写权限、不能自审、不能发布</td>
+</tr>
+<tr>
+<td>确定性执行层</td>
+<td><code>vendor/lca_cornerstone/scripts/wiki_*.py</code>、<code>run_wiki_*.py</code></td>
+<td>节点提取、Search/Fetch、schema 校验、coverage、Gate、bundle 和 viewer 构建</td>
+<td>不凭模型记忆补事实，不改变 Workflow 政策</td>
+</tr>
+<tr>
+<td>状态与记忆层</td>
+<td>SQLite、CAS、Event Ledger、batch journal、registry</td>
+<td>保存 Job/Run/Stage、不可变 Artifact、来源、hash、事件、失败和恢复点</td>
+<td>不把聊天上下文当生产记忆，不允许静默覆盖历史裁决</td>
+</tr>
+<tr>
+<td>发布层</td>
+<td><code>release.apply</code>、<code>src/lca_project/kernel/release.py</code></td>
+<td>staging、hash lock、原子 Apply、回滚、reviewed 升级和 publish receipt</td>
+<td>Agent 不可直接调用，Gate 不全时不可写正式目标</td>
+</tr>
+</tbody></table>
+<p>这六层的调用关系是：</p>
+<pre><code class="language-text">用户意图
+  → generate-node-wiki Skill
+    → wiki-node-production@5 Workflow
+      → Control Plane 创建 Job / Run
+        → Agent 生成只读候选
+        → 脚本冻结证据并执行 Gate
+        → CAS / SQLite / Event Ledger 保存证明
+        → Release Manager 执行 hash-locked Apply
+        → bundle + viewer + release journal
+</code></pre>
+<h3>8.2 Skill 在生产中的作用</h3>
+<p>新项目的 <code>skills/generate-node-wiki/SKILL.md</code> 是一个薄入口：</p>
+<ul>
+<li>捕获“生成、补全、重建、修复、Golden 对齐、批量 Wiki”等任务意图；</li>
+<li>只收集 <code>industry</code>、<code>node_id</code> 和任务目标；</li>
+<li>固定路由到 <code>workflow://wiki-node-production@5</code>；</li>
+<li>不携带正文，不直接执行 Apply，也不把对话内容当作已核实证据。</li>
+</ul>
+<p>完整的方法学约束来自 vendored <code>generate-node-wiki</code> 生产规范，包括：外部事实、内部图谱事实、建模判断和证据缺口分层；Product/Activity 内容合同；EXACT 节点对齐；Golden 非退化；数量防火墙；引用与证据表要求。新项目把这些规范落实为 Workflow、schema、脚本和 Gate，而不是要求主 Agent 靠记忆遵守。</p>
+<p>其他 Skill 不嵌入正文生产主链，但形成上下游关系：</p>
+<ul>
+<li><code>industry-graph</code> 先提供已发布的节点身份、刻面和边；Wiki 不得反向修改图谱；</li>
+<li><code>cross-link-binding</code> 在 Wiki 之外处理跨行业 GPID 绑定；</li>
+<li><code>bom-skeleton-probe</code> 用真实 BOM 检验图谱完整性，不为 Wiki 虚构型号数据；</li>
+<li>当 graph release 变化时，影响分析应把依赖它的 Wiki 标为 stale，再重新触发 <code>generate-node-wiki</code>。</li>
+</ul>
+<p>因此，Skill 是“任务入口与政策选择器”，不是一个会自己完成全部工作的超级 Prompt。</p>
+<h3>8.3 Agent 如何分工并受到约束</h3>
+<table>
+<thead>
+<tr>
+<th>Agent/逻辑角色</th>
+<th>配置</th>
+<th>输入</th>
+<th>输出</th>
+<th>权限边界</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Researcher</td>
+<td>Terra / medium</td>
+<td>冻结 node dossier、claim slots、来源策略</td>
+<td>schema-valid nomination 或 table collection proposal</td>
+<td><code>artifact:read</code>，network deny，禁止写权威文件和自审</td>
+</tr>
+<tr>
+<td>Content Composer</td>
+<td><code>agent.propose</code> 的内容任务包</td>
+<td>frozen Verify、Content Blueprint</td>
+<td><code>wiki-content-draft-v2</code>，按 section/paragraph/sentence 组织</td>
+<td>无 Web；不能修改 Verify verdict、quote 或 node identity</td>
+</tr>
+<tr>
+<td>Independent Reviewer</td>
+<td>Sol / medium</td>
+<td>冻结 dossier、evidence、candidate</td>
+<td><code>wiki-verdict-v1</code> 或 <code>wiki-editorial-review-v1</code></td>
+<td>只读、无 Web、无 Apply；必须给出 rule 与 evidence hash</td>
+</tr>
+<tr>
+<td>Table Verifier</td>
+<td><code>agent.review</code> 的表格任务包</td>
+<td>值、单位、地域、配置、来源摘录</td>
+<td>source/value verdict</td>
+<td>不能把 proxy 改成 measured，不能把 INT 来源批准到 CN 轨</td>
+</tr>
+<tr>
+<td>Repairer</td>
+<td>Terra / medium</td>
+<td>结构化失败 envelope</td>
+<td>最小 repair proposal、应回退阶段、预计验证 capability</td>
+<td>不直接修改页面；不能重新解释已冻结 Gate</td>
+</tr>
+</tbody></table>
+<p>Agent 输出必须满足三个条件才会被 Control Plane 接受：</p>
+<ol>
+<li>绑定当前阶段输入 Artifact hash；</li>
+<li>符合阶段输出 schema；</li>
+<li>带已注册 Agent 配置、Prompt hash、模型、effort、工具权限和 usage 的 attestation。</li>
+</ol>
+<p>Agent 不能改变 Workflow 状态。它只能把候选提交给确定性控制器；真正的 <code>research_ready → verified → frozen</code> 迁移由控制器在 schema、hash 和 Gate 通过后完成。这样即使 Agent 自称“已核实”或“可以发布”，系统也不会据此升级状态。</p>
+<h3>8.4 Workflow 如何成为唯一状态机</h3>
+<p><code>workflows/wiki-node-production@5.json</code> 把一次 Wiki 任务拆为 17 个有依赖的阶段：</p>
+<table>
+<thead>
+<tr>
+<th align="right">序号</th>
+<th>Workflow step</th>
+<th>Capability</th>
+<th>关键输入/输出</th>
+<th>放行条件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td><code>plan</code></td>
+<td><code>wiki.batch</code></td>
+<td>node IDs → <code>wiki-plan-v5</code></td>
+<td>节点存在、任务模式和预算冻结</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td><code>prepare</code></td>
+<td><code>wiki.batch</code></td>
+<td>plan → <code>node-dossier-v5</code></td>
+<td>spine、刻面、边界、旧页基线完整</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td><code>research_ready</code></td>
+<td><code>agent.propose</code></td>
+<td>dossier → <code>wiki-proposal-v1</code></td>
+<td>G0 运行证明、slot schema</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td><code>verify</code></td>
+<td><code>agent.review</code></td>
+<td>frozen evidence → <code>wiki-verdict-v1</code></td>
+<td>G4：EXACT、quote、来源身份</td>
+</tr>
+<tr>
+<td align="right">5</td>
+<td><code>freeze</code></td>
+<td><code>wiki.batch</code></td>
+<td>proposal + verdict → attestation</td>
+<td>claim 集合与 runtime hash 闭合</td>
+</tr>
+<tr>
+<td align="right">6</td>
+<td><code>content_compose</code></td>
+<td><code>agent.propose</code></td>
+<td>Verify + Blueprint → content draft</td>
+<td>不改变研究事实，段落 schema 合格</td>
+</tr>
+<tr>
+<td align="right">7</td>
+<td><code>editorial_review</code></td>
+<td><code>agent.review</code></td>
+<td>content draft → editorial verdict</td>
+<td>G5：连贯性、边界、重复与表达</td>
+</tr>
+<tr>
+<td align="right">8</td>
+<td><code>draft_content_gate</code></td>
+<td><code>wiki.batch</code></td>
+<td>staged content → Gate report</td>
+<td>G6：结构、深度、coverage、非退化</td>
+</tr>
+<tr>
+<td align="right">9</td>
+<td><code>draft_apply</code></td>
+<td><code>release.apply</code></td>
+<td>passed draft → <code>wiki-draft-v5</code></td>
+<td>hash-locked draft transaction</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td><code>table_collect</code></td>
+<td><code>agent.propose</code></td>
+<td>table contract + sources → table evidence</td>
+<td>值、配置、地域和来源字段齐全</td>
+</tr>
+<tr>
+<td align="right">11</td>
+<td><code>table_verify</code></td>
+<td><code>agent.review</code></td>
+<td>table evidence → source verdict</td>
+<td>G6T：数值与来源原文相符</td>
+</tr>
+<tr>
+<td align="right">12</td>
+<td><code>table_population_gate</code></td>
+<td><code>wiki.batch</code></td>
+<td>verified table candidate</td>
+<td>G6P：人口下限、pedigree、地域分轨</td>
+</tr>
+<tr>
+<td align="right">13</td>
+<td><code>table_apply</code></td>
+<td><code>release.apply</code></td>
+<td>passed tables → table apply receipt</td>
+<td>与正文分离的 hash-locked Apply</td>
+</tr>
+<tr>
+<td align="right">14</td>
+<td><code>preview</code></td>
+<td><code>wiki.batch</code></td>
+<td>draft + tables → preview</td>
+<td>完整行业快照六步构建</td>
+</tr>
+<tr>
+<td align="right">15</td>
+<td><code>release_gate</code></td>
+<td><code>wiki.batch</code></td>
+<td>preview + 全部证明</td>
+<td>G7：Graph、Wiki、coverage、browser</td>
+</tr>
+<tr>
+<td align="right">16</td>
+<td><code>reviewed_apply</code></td>
+<td><code>release.apply</code></td>
+<td>release certificate</td>
+<td>G8：旧目标 hash 与全部 Gate hash 绑定</td>
+</tr>
+<tr>
+<td align="right">17</td>
+<td><code>publish</code></td>
+<td><code>release.apply</code></td>
+<td>reviewed artifact</td>
+<td>bundle、viewer、post-verify、release journal</td>
+</tr>
+</tbody></table>
+<p>Workflow 的 <code>needs</code> 字段保证阶段不能越级。例如 <code>reviewed_apply</code> 依赖 <code>release_gate</code>，而 <code>release_gate</code> 依赖 <code>preview</code>；即使正文已经生成，也不可能跳过表格 Gate 和浏览器预览直接发布。</p>
+<h3>8.5 各类脚本在每一步做什么</h3>
+<h4>控制入口与状态推进</h4>
+<p><code>vendor/lca_cornerstone/scripts/wiki_batch.py</code> 是唯一批次控制入口，提供：</p>
+<pre><code class="language-text">plan → prepare → validate → research-ready → verify → finalize
+     → apply(draft) → preview → go-no-go → gate
+     → apply(reviewed) → publish
+</code></pre>
+<p>它负责 journal 合法迁移、resume、claim 集合守恒、Gate 绑定和事务边界。<code>blocked</code> 或 <code>failed</code> 只有显式 <code>--resume</code> 才能继续，防止脚本意外把失败批次当成新输入。</p>
+<h4>研究和证据冻结</h4>
+<ul>
+<li><code>run_wiki_nomination_capture.py</code>：用动态 schema 启动 Researcher，冻结 invocation、events、stderr、result 和 usage；</li>
+<li><code>wiki_source_discovery.py</code>：根据来源身份与 locator 确定性 Search/Fetch，执行 URL 安全检查、缓存、payload hash 和 excerpt 提取；</li>
+<li><code>run_wiki_verify_capture.py</code>：启动禁网 Reviewer，并冻结 Verify 的全部运行证据；</li>
+<li><code>wiki_verify_compose.py</code>：把 claim、fetch result 与 verdict 组合成可审计 Verify Artifact；</li>
+<li><code>wiki_research_ready.py</code>：校验核心 external slot、authority 和节点对齐是否达到研究完成条件。</li>
+</ul>
+<p>这里 Agent 不直接使用 Web。Researcher 只说“应查什么来源”，Search/Fetch 由脚本执行；Reviewer 只看已冻结原文。这避免搜索 Agent 一边找资料、一边选择性摘录、一边批准自己的结论。</p>
+<h4>正文生成和编辑</h4>
+<ul>
+<li><code>run_wiki_content_capture.py</code>：按 Content Blueprint 生成结构化内容；</li>
+<li><code>run_wiki_content_sectioned_capture.py</code>：章节隔离生成，降低长文串扰；</li>
+<li><code>run_wiki_editorial_review_capture.py</code> / <code>run_wiki_editorial_sectioned_review.py</code>：独立检查段落连贯、边界和语义；</li>
+<li><code>run_wiki_content_editorial_loop.py</code>：在限定次数内按结构化问题返工；</li>
+<li><code>wiki_content_enrich.py</code>：确定性地把验证过的段落装配成 BODY、KUs 和证据表骨架；</li>
+<li><code>wiki_draft_content_gate.py</code>：在写入前检查章节、深度、来源、重复、claim coverage 和 Golden 非退化。</li>
+</ul>
+<p>内容 Agent 输出的是结构化段落，不直接编辑 Markdown。<code>wiki_content_enrich.py</code> 才负责把已通过审查的内容转换为页面候选，从而使“模型写了什么”和“工程最终写入什么”可对账。</p>
+<h4>表格数据生产</h4>
+<ul>
+<li><code>wiki_table_population.py</code>：读取冻结 reference configuration 和来源绑定数据，生成三张表候选；</li>
+<li>Table Verifier 检查数值、单位、年份、地域和 pedigree；</li>
+<li>Table Population Gate 检查 props、INT params、CN params 和 quality 的人口下限；</li>
+<li>通过后使用独立事务写表，不重新生成正文。</li>
+</ul>
+<p>正文流与数据表流分离很关键：法规和规格事实可以支撑正文身份说明，但不能自动变成定量表值；反过来，某型号 PCF 的数值也不能无条件代表整个 P003 产品族。</p>
+<h4>Coverage、质量和发布</h4>
+<ul>
+<li><code>wiki_claim_coverage.py</code>：检查研究 claim、内容 claim、引用和页面状态的双向集合守恒；</li>
+<li><code>wiki_quality_contract.py</code>：定义 Product/Activity 固定内容合同；</li>
+<li><code>wiki_lint.py</code>：执行引用、表 schema、地域、数值 pedigree、章节和 reviewed 状态等确定性检查；</li>
+<li><code>build_wiki_bundle.py</code>：把已发布 Wiki 与 registry 构建为数据包；</li>
+<li><code>build_wiki_viewer.py</code>：构建行业 viewer 和无需 query 的节点直达 HTML；</li>
+<li><code>src/lca_project/kernel/release.py</code>：执行 hash-locked staging、apply 和 rollback。</li>
+</ul>
+<h3>8.6 项目的“Memory”具体是什么</h3>
+<p>自治生产不能依赖 Agent 在几十轮对话中“记得上次发生了什么”。项目把记忆拆成可验证的持久层：</p>
+<table>
+<thead>
+<tr>
+<th>记忆类型</th>
+<th>位置</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>控制状态</td>
+<td><code>var/state.db</code></td>
+<td>Job、Run、Stage、Gate、exception、release 的 SQLite 投影</td>
+</tr>
+<tr>
+<td>不可变内容</td>
+<td><code>var/artifacts/</code></td>
+<td>以 SHA-256 寻址的 dossier、proposal、evidence、verdict、Gate 和 receipt</td>
+</tr>
+<tr>
+<td>事件历史</td>
+<td>Event Ledger</td>
+<td>追加式记录每次状态变化，可重建状态投影</td>
+</tr>
+<tr>
+<td>批次记忆</td>
+<td><code>var/workspaces/.../journal.json</code></td>
+<td>Wiki 专用 planned → published 状态和 resume 点</td>
+</tr>
+<tr>
+<td>来源记忆</td>
+<td>Wiki source registry、冻结 payload</td>
+<td>source identity、URL、locator、excerpt 和内容 hash</td>
+</tr>
+<tr>
+<td>方法记忆</td>
+<td>Skills、Workflow、schema、policy、tests</td>
+<td>“应该怎么做”和“过去哪些错误不能再发生”</td>
+</tr>
+<tr>
+<td>Golden/缺陷记忆</td>
+<td>Golden profiles、<code>tests/wiki_phase2/</code>、<code>defects/wiki/</code></td>
+<td>正向基线、历史事故和 mutation</td>
+</tr>
+</tbody></table>
+<p>聊天记录和模型上下文只能帮助理解任务，不能成为 production evidence。任何要跨轮复用的信息都必须进入上述某类 Artifact，并带来源、schema、版本和 hash。</p>
+<h3>8.7 一次新节点任务的实际调用顺序</h3>
+<p>当用户提出“为 <code>ict_equipment::Pxxx</code> 生成 Wiki”时，平台应按以下方式运行：</p>
+<ol>
+<li><strong>Skill 路由</strong>：<code>generate-node-wiki</code> 识别任务，选择 <code>wiki-node-production@5</code>，提交行业、节点和 policy。</li>
+<li><strong>Control Plane 建 Job</strong>：生成 idempotency key，冻结 dossier 输入；同输入重试返回同一 Job，不重复生产。</li>
+<li><strong>批次规划</strong>：调用 <code>wiki_batch.py plan &lt;industry&gt; --nodes &lt;ID&gt;</code>，判断 rebuild/audit，创建 manifest 和 journal。</li>
+<li><strong>准备节点档案</strong>：<code>prepare</code> 从本地完整快照提取单节点身份、刻面、边、旧页和基线指标，禁止读取/写入原项目运行态。</li>
+<li><strong>Researcher 提名</strong>：launcher 生成严格 slot 化的 claim proposal；模型只读、无 Web、无 Apply。</li>
+<li><strong>Search/Fetch</strong>：脚本按来源策略获取候选，冻结 URL、payload、excerpt、locator 和 hash。</li>
+<li><strong>Reviewer 核验</strong>：禁网 Reviewer 对每条 claim 判 EXACT/ADJACENT 和 CONFIRMED/INSUFFICIENT 等；失败由 Repairer 映射到 claim、locator 或来源路由返工。</li>
+<li><strong>Freeze</strong>：控制器冻结研究证据链，内容阶段不再允许改变事实裁决。</li>
+<li><strong>Content Compose</strong>：Content Agent 先做章节与段落计划，再生成句子；外部事实、建模解释、边界和缺口分层。</li>
+<li><strong>Editorial Review</strong>：独立 Reviewer 按段落检查连贯性和语义；最多两轮定点返工。</li>
+<li><strong>Draft Gate / Apply</strong>：脚本验证 Golden、coverage、引用和非退化；通过后只写 draft。</li>
+<li><strong>Table Collect / Verify / Gate</strong>：独立采集定量证据，核对地域和 pedigree，达到人口下限后单独 Apply。</li>
+<li><strong>Preview</strong>：在完整行业快照构建 Graph、bundle、viewer 和 overlay，运行 lint 与浏览器 smoke test。</li>
+<li><strong>Release</strong>：G7/G8 汇总全部 signed receipts，Release Manager 原子写 reviewed 页面并同时构建 bundle 与 viewer。</li>
+<li><strong>学习</strong>：发布差异、失败 envelope 和用户发现的问题进入 defect/mutation；下一节点从新的 policy 版本开始受益。</li>
+</ol>
+<h3>8.8 一个可审计批次会留下哪些产物</h3>
+<p>一次成功生产至少留下：</p>
+<ul>
+<li><code>manifest.json</code>、<code>journal.json</code>、<code>prepared.json</code>；</li>
+<li>nomination invocation/events/stderr/result/usage；</li>
+<li><code>source-queue.json</code>、<code>source-evidence.json</code>、冻结 payload hash；</li>
+<li>verify invocation/events/stderr/verdict/usage；</li>
+<li><code>frozen.json</code>、Content Blueprint、content result、editorial review；</li>
+<li><code>draft-content-gate.json</code>、<code>coverage.json</code>；</li>
+<li>table collection、table source verdict、table population gate；</li>
+<li>draft/table/reviewed apply transaction receipts；</li>
+<li><code>preview-report.json</code>、<code>quality-gate.json</code>、<code>gate-report.json</code>；</li>
+<li><code>publish-report.json</code>、<code>release-journal.json</code>；</li>
+<li>正式 Markdown、source registry、bundle、viewer 和各自 SHA-256。</li>
+</ul>
+<p>如果缺少其中任一阶段所要求的 Artifact，系统只能报告停在哪一层，不能用一句“Agent 已完成”代替生产证明。</p>
+<h3>8.9 各组件之间的禁止性边界</h3>
+<ul>
+<li>Skill 不直接写页面；</li>
+<li>Agent 不执行 Search/Fetch，不改变状态，不 Apply，不 publish；</li>
+<li>Reviewer 不修改候选，也不审核自己的输出；</li>
+<li>脚本不把模型记忆写成外部事实；</li>
+<li>Content Compose 不修改 Verify verdict；</li>
+<li>Wiki 不反向修改 graph spine；</li>
+<li>preview 不升级 reviewed；</li>
+<li>table gap 不计作 populated value；</li>
+<li>Release Manager 不接受未绑定当前 candidate hash 的旧 Gate；</li>
+<li>对话中的人工修改不能绕过 journal 和 hash-locked transaction。</li>
+</ul>
+<p>这些边界共同实现“Agent 可以犯错，但错误不能无证明地进入正式 Wiki”。</p>
+<hr>
+<h2>9. 自动发现与自主修复的控制表</h2>
+<table>
+<thead>
+<tr>
+<th>失败类别</th>
+<th>判定者</th>
+<th>自动动作</th>
+<th align="right">最大自动次数</th>
+<th>不允许的动作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Runtime 超时/缺 protocol</td>
+<td>launcher</td>
+<td>原输入幂等重试，切 HTTP fallback</td>
+<td align="right">2</td>
+<td>修改输出 JSON 冒充成功</td>
+</tr>
+<tr>
+<td>Claim 基数/字段漂移</td>
+<td>schema Gate</td>
+<td>退回 Nomination，动态 schema 重生</td>
+<td align="right">2</td>
+<td>在 finalize 手工删 claim</td>
+</tr>
+<tr>
+<td>ADJACENT</td>
+<td>Verify</td>
+<td>退回来源路由或缩小 claim 主语</td>
+<td align="right">2</td>
+<td>把 alignment 手填为 EXACT</td>
+</tr>
+<tr>
+<td>INSUFFICIENT</td>
+<td>Verify</td>
+<td>更换 locator、缩小断言</td>
+<td align="right">2</td>
+<td>用建模判断包装成外部事实</td>
+</tr>
+<tr>
+<td>单一 authority</td>
+<td>Quality Gate</td>
+<td>补另一来源类型</td>
+<td align="right">1</td>
+<td>把同域不同 URL 计作独立来源</td>
+</tr>
+<tr>
+<td>Content 改写 verdict</td>
+<td>Freeze Gate</td>
+<td>丢弃 content candidate，重新 compose</td>
+<td align="right">1</td>
+<td>更新 frozen Verify 配合正文</td>
+</tr>
+<tr>
+<td>段落拼接/重复</td>
+<td>Editorial Gate</td>
+<td>只返工问题段落并重新融合引用</td>
+<td align="right">2</td>
+<td>P003 专用逐句硬编码无限追加</td>
+</tr>
+<tr>
+<td>深度退化</td>
+<td>Golden Gate</td>
+<td>回到 section/paragraph plan</td>
+<td align="right">2</td>
+<td>仅重复句子或增加标签凑数</td>
+</tr>
+<tr>
+<td>表格空壳</td>
+<td>Population Gate</td>
+<td>回到字段来源采集</td>
+<td align="right">1 个来源路由周期</td>
+<td>把缺口文本计作 populated</td>
+</tr>
+<tr>
+<td>地域错轨</td>
+<td>Region lint</td>
+<td>清空错轨值并重新找本地来源</td>
+<td align="right">1</td>
+<td>用国际代理冒充中国值</td>
+</tr>
+<tr>
+<td>Preview 资产缺失</td>
+<td>Snapshot Gate</td>
+<td>重建完整只读 workspace</td>
+<td align="right">1</td>
+<td>在冻结批次内临时复制未声明资产</td>
+</tr>
+<tr>
+<td>Viewer/链接失败</td>
+<td>Browser Gate</td>
+<td>重建 viewer、刷新 bundle hash、重测链接</td>
+<td align="right">2</td>
+<td>只报告 Markdown 正确</td>
+</tr>
+<tr>
+<td>Apply/Publish 中断</td>
+<td>transaction manager</td>
+<td>回滚或幂等 resume</td>
+<td align="right">2</td>
+<td>绕过 journal 直接覆盖正式文件</td>
+</tr>
+</tbody></table>
+<p>自治不是“永远重试直到 PASS”。自治的正确含义是：系统能识别错误类别、选择正确回退阶段、限制重试预算、保存失败证据，并在超出能力边界时诚实停止。</p>
+<hr>
+<h2>10. 新节点的一次标准运行应达到的准入/退出条件</h2>
+<h3>运行前准入</h3>
+<ul>
+<li>图谱节点已发布且 spine hash 冻结；</li>
+<li>node dossier 有正反例和邻接对象；</li>
+<li>Product/Activity 对应内容合同与表格合同存在；</li>
+<li>来源策略包含法规、规格、环境资料和目标地域槽位；</li>
+<li>完整行业 vendor snapshot 已校验；</li>
+<li>Golden profile 与预算已冻结。</li>
+</ul>
+<h3>正文退出</h3>
+<ul>
+<li>核心 external slots 全部 EXACT/CONFIRMED；</li>
+<li>两家以上真正独立 authority；</li>
+<li>研究 claim 和内容 claim 双向守恒；</li>
+<li>九节问题覆盖、段落 reviewer GO；</li>
+<li>无可见内部标签、无重复来源展示；</li>
+<li>内容与上一个 Golden 相比无未经批准的语义退化。</li>
+</ul>
+<h3>表格退出</h3>
+<ul>
+<li>字段集节点专属；</li>
+<li>值、source、basis、pedigree、region 成对完整；</li>
+<li>INT/CN 分轨和下限满足任务政策；</li>
+<li>measured/defined/proxy/gap 不混淆；</li>
+<li>数据集 readiness 与真实覆盖一致。</li>
+</ul>
+<h3>发布退出</h3>
+<ul>
+<li>Draft Gate、Table Gate、Preview、G7、G8 全部 PASS；</li>
+<li>Graph 11/11、Wiki lint 31/31；</li>
+<li>浏览器可打开直达文件并完成来源链接 smoke test；</li>
+<li>bundle、viewer、registry、page、journal hash 闭合；</li>
+<li>release journal=<code>published</code>；</li>
+<li>自动生成版本差异和剩余缺口说明。</li>
+</ul>
+<hr>
+<h2>11. 人如何逐步退出</h2>
+<p>P003 应先作为人工确认过的 Golden 和 mutation 基线，而不是长期要求人逐段重写。建议采用三级自治：</p>
+<ol>
+<li><strong>Shadow</strong>：新节点全自动跑到 preview，与人工结果比较；人只判最终内容和错误类型，不直接改文件。</li>
+<li><strong>Supervised publish</strong>：连续批次达到证据准确率、编辑通过率、链接成功率和缺陷逃逸率门槛后，人只批准 release certificate。</li>
+<li><strong>Policy-bounded autonomous publish</strong>：成熟节点类型在预算、来源类型和风险范围内自动发布；只有身份冲突、证据矛盾、地域下限无法满足或两轮编辑不收敛时才升级人工。</li>
+</ol>
+<p>人退出的前提不是 Agent 不再犯错，而是错误大部分能在发布前被独立 Gate 发现，且系统知道应退回哪个阶段修复。最终人工角色从“对话驱动每一步”变为“制定政策、维护 Golden、处理少量新型异常和抽样审计”。</p>
+<hr>
+<h2>12. 后续工程行动优先级</h2>
+<h3>P0：在跑下一个节点前完成</h3>
+<ol>
+<li>把 v30 P003 拆成 G-A 至 G-G 的正式 Golden fixture 和 release certificate。</li>
+<li>将 11 个 <code>curate_p003_editorial_repair_round*.py</code> 提炼成通用 Editorial Contract 与 defect fixtures；从标准生产路径移除节点专用修补。</li>
+<li>统一 failure envelope：所有 prepared/research_ready 中止都必须记录 <code>stage/error_class/retryable/input_hash/output_hash/message</code>。</li>
+<li>把浏览器直达、同源合并、外链点击、内部标签隐藏、值/缺口计数加入 G7。</li>
+<li>给 Table Population policy 增加按节点类型和地域目标配置的字段/覆盖阈值。</li>
+</ol>
+<h3>P1：扩展到下一批节点时完成</h3>
+<ol>
+<li>建立中文厂商、产品族、官方域名、文档类型和搜索术语路由表。</li>
+<li>选择 A017、P031 和一个新 Product 节点做 shadow，验证 P003 经验是否真正可迁移。</li>
+<li>采集每阶段一次通过率、返工次数、失败类别、token/时间/网络预算和人工升级率。</li>
+<li>设定同类错误最多两轮的自动修复上限，防止“几十轮但没有新增控制能力”。</li>
+</ol>
+<h3>P2：自治晋级前完成</h3>
+<ol>
+<li>Golden replay + defect mutation 全链离线运行；</li>
+<li>对历史同 prompt/同脚本页面执行追溯扫描；</li>
+<li>定义抽样审计、自动回滚、来源过期和 graph spine 变化后的 stale 重建策略；</li>
+<li>连续多个批次达到自治发布 SLO 后，再逐步撤出人工发布批准。</li>
+</ol>
+<hr>
+<h2>13. 最终结论</h2>
+<p>P003 的几十轮尝试有一部分是建设生产基础设施的必要成本：没有这些回合，就不会有节点身份 EXACT、运行证明、事务发布、完整快照和可回放 Gate。但也有明显可以避免的返工：Golden 完成合同定义过晚、研究 claim 直接驱动正文、用数量指标替代编辑质量、表格人口与地域策略后置，以及 P003 专用硬编码修补没有及时上升为通用规则。</p>
+<p>如果 P003 真正成为 Golden Case，下一节点的标准不应是“照着 P003 的句子再写一篇”，而应是：</p>
+<blockquote>
+<p>用 P003 固化的身份测试、证据槽位、段落合同、表格语义、阅读器验收、缺陷 mutation 和自动返工路由，证明新节点能够在有限轮次内完成同等级生产闭环。</p>
+</blockquote>
+<p>理想目标不是一次模型调用就正确，而是一次标准工作流内完成：正常路径一轮；同类可恢复错误最多两轮；超限后准确停止并给出机器可执行的缺口任务。只有这样，“几十轮对话把一个节点磨出来”才会真正转化为“平台自主生产整个骨架数据库”。</p>
+<hr>
+<h2>附录 A：关键产物</h2>
+<ul>
+<li>Phase 2 报告：<code>docs/Phase2-Wiki垂直切片验收报告.md</code></li>
+<li>Phase 3 报告：<code>docs/Phase3-Wiki真实证据正式发布验收报告.md</code></li>
+<li>v27 Golden 重跑报告：<code>docs/P003-Golden内容优先重跑验收报告.md</code></li>
+<li>当前工作流：<code>workflows/wiki-node-production@5.json</code></li>
+<li>P003 Content Blueprint：<code>vendor/lca_cornerstone/fixtures/wiki-phase2/content-blueprints/P003.json</code></li>
+<li>Reader 回归：<code>tests/wiki_phase2/test_wiki_reader_presentation.py</code></li>
+<li>Content/连贯性回归：<code>tests/wiki_phase2/test_content_golden_pipeline.py</code></li>
+<li>Table Population 回归：<code>tests/wiki_phase2/test_wiki_table_population.py</code></li>
+<li>历史缺陷回归：<code>tests/wiki_phase2/test_wiki_defect_corpus.py</code></li>
+<li>v26 首次正式发布：<code>var/workspaces/wiki-production-20260810-v26/runs/wiki-batches/ict_equipment/production-p003-v26/</code></li>
+<li>v28 编辑后发布：<code>var/workspaces/wiki-production-20260811-v28/runs/wiki-batches/ict_equipment/production-p003-v28-batch/</code></li>
+<li>v29 表格发布：<code>var/workspaces/wiki-production-20260811-v29/runs/wiki-batches/ict_equipment/production-p003-v29-table-data/release-journal.json</code></li>
+<li>v30 中国参考发布：<code>var/workspaces/wiki-production-20260811-v30/runs/wiki-batches/ict_equipment/production-p003-v30-cn-reference/release-journal.json</code></li>
+<li>v30 P003 查看器：<code>var/workspaces/wiki-production-20260811-v30/docs/ict_equipment-wiki-P003.html</code></li>
+</ul>
+</article>
+    </main>
+  </div>
+  <footer class="footer">Generated from the authoritative Markdown retrospective · Offline, self-contained HTML · lca-project / 2026-08-11</footer>
+
+  <script>
+    const report = document.getElementById('report');
+    const toc = document.getElementById('toc');
+    const slug = (s) => s.trim().toLowerCase().replace(/[\s/]+/g, '-').replace(/[^\w\-\u3400-\u9fff]/g, '');
+    const headings = [...report.querySelectorAll('h2, h3')];
+    let sectionIndex = 0;
+    headings.forEach((heading, index) => {
+      if (heading.tagName === 'H2') {
+        sectionIndex += 1;
+        heading.dataset.index = String(sectionIndex).padStart(2, '0');
+      }
+      heading.id = slug(heading.textContent) || 'section-' + index;
+      const link = document.createElement('a');
+      link.href = '#' + heading.id;
+      link.textContent = heading.textContent;
+      link.className = heading.tagName === 'H3' ? 'level-3' : 'level-2';
+      toc.appendChild(link);
+    });
+    report.querySelectorAll('table').forEach((table) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      table.parentNode.insertBefore(wrap, table);
+      wrap.appendChild(table);
+    });
+
+    const progress = document.getElementById('progress');
+    const syncProgress = () => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      progress.style.transform = 'scaleX(' + (max > 0 ? scrollY / max : 0) + ')';
+    };
+    addEventListener('scroll', syncProgress, { passive: true });
+    syncProgress();
+    document.getElementById('topBtn').addEventListener('click', () => scrollTo({ top: 0, behavior: 'smooth' }));
+
+    const links = [...toc.querySelectorAll('a')];
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a,b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (!visible) return;
+      links.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === '#' + visible.target.id));
+    }, { rootMargin: '-10% 0px -75% 0px' });
+    headings.forEach((heading) => observer.observe(heading));
+
+    const blocks = [...report.querySelectorAll(':scope > h2')].map((heading, index, all) => {
+      const nodes = [heading];
+      let cursor = heading.nextElementSibling;
+      while (cursor && cursor.tagName !== 'H2') { nodes.push(cursor); cursor = cursor.nextElementSibling; }
+      return { heading, nodes, text: nodes.map((node) => node.textContent).join(' ').toLowerCase() };
+    });
+    document.getElementById('search').addEventListener('input', (event) => {
+      const query = event.target.value.trim().toLowerCase();
+      blocks.forEach((block) => {
+        const show = !query || block.text.includes(query);
+        block.nodes.forEach((node) => node.classList.toggle('search-hidden', !show));
+      });
+      links.forEach((link) => {
+        const target = document.querySelector(link.getAttribute('href'));
+        link.classList.toggle('search-hidden', !!query && target && target.closest('.search-hidden'));
+      });
+    });
+  </script>
+</body>
+</html>

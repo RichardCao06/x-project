@@ -1,0 +1,261 @@
+{
+  "schema_version": "migration-manifest-v1",
+  "source_project": "/Users/shujudagongren/Myspace/lca-cornerstone",
+  "rules": [
+    "Production fixtures may copy an explicitly scoped, hash-addressed industry snapshot; runtime journals are never copied from the source checkout.",
+    "Vendored source copies remain frozen; target-engineered derivatives record target_sha256 separately from source_sha256."
+  ],
+  "assets": [
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/.claude/workflows/bom-skeleton-probe.js",
+      "source_sha256": "c41ece06ca812ab90b90370739671ecd1a56af8167573c033c47b2fd2245dfe5",
+      "target_path": "vendor/lca_cornerstone/.claude/workflows/bom-skeleton-probe.js",
+      "purpose": "BOM deterministic preparation template",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/schemas/wiki-nomination-claims.schema.json",
+      "source_sha256": "4b0ebc3f6f709e4014bffaee21b85e9a513f886b797a9a20a4ec1e80cb1ad4bd",
+      "target_path": "vendor/lca_cornerstone/schemas/wiki-nomination-claims.schema.json",
+      "purpose": "structured Wiki proposal/verdict contract",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/schemas/wiki-verify-verdicts.schema.json",
+      "source_sha256": "621101cb4b08717451723c64e799699c2106f65f692c1966af90bb0f9ccb4cbd",
+      "target_path": "vendor/lca_cornerstone/schemas/wiki-verify-verdicts.schema.json",
+      "purpose": "structured Wiki proposal/verdict contract",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/apply_cross_link.py",
+      "source_sha256": "88c937f5ab775cec4c2332a5586f3556d73fa6f90d85cb5c42dd2d329294cc8a",
+      "target_path": "vendor/lca_cornerstone/scripts/apply_cross_link.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/assemble_wiki_from_ku.py",
+      "source_sha256": "641695797e0f6eedf197da2eb07e2e34742a9321fa4900ae2f19c8660235cbe0",
+      "target_path": "vendor/lca_cornerstone/scripts/assemble_wiki_from_ku.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/assign_gpid.py",
+      "source_sha256": "b9abe4e9f961f80244dbf13d7e6a73b137e73f2717e8029689028512a963c8f4",
+      "target_path": "vendor/lca_cornerstone/scripts/assign_gpid.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/build_product_model.py",
+      "source_sha256": "13cf98c564e2e9997af69ea88d3470a38d25c534c0a27e646610104375f8d9ef",
+      "target_path": "vendor/lca_cornerstone/scripts/build_product_model.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/build_registry.py",
+      "source_sha256": "26ac47377d4e27a2dadc9bea60e9c2f5b2e6f60c82452accc19400287726129f",
+      "target_path": "vendor/lca_cornerstone/scripts/build_registry.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/check_bom_coverage.py",
+      "source_sha256": "953a84e8454fac6b5f18fd59db279dd9c60f36a46f9cad567954e3ddf58c3c7e",
+      "target_path": "vendor/lca_cornerstone/scripts/check_bom_coverage.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/cross_link_lint.py",
+      "source_sha256": "0088321d21c05a9e798e46f8ef3da414fe1f862f1d34f11bba4b6990490b9632",
+      "target_path": "vendor/lca_cornerstone/scripts/cross_link_lint.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/gate.py",
+      "source_sha256": "7ce9a7fc920a55922eddece62f70fded819df585d2023dbee8f6db779cc85f73",
+      "target_path": "vendor/lca_cornerstone/scripts/gate.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/grade_bom_matches.py",
+      "source_sha256": "2f1c1a100bdec49ec6de5a11a71e51630f8f5b29b01a291c3d09286190ce8769",
+      "target_path": "vendor/lca_cornerstone/scripts/grade_bom_matches.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/graph_index.py",
+      "source_sha256": "248a95eac54c61c527304fc3794e0dcafdb12bd5ef60e422ec1f3c6c34e02a5a",
+      "target_path": "vendor/lca_cornerstone/scripts/graph_index.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/ku_distill.py",
+      "source_sha256": "d2a247a9043eaeef2139c6cddca192d2019b587e2b5b8261bb935dd457767a4c",
+      "target_sha256": "7e411675d1effd1717185713b218cfb3caced20fe4d47af6122be869333b8ea5",
+      "target_path": "vendor/lca_cornerstone/scripts/ku_distill.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/materialize.py",
+      "source_sha256": "6053303ffb3348f9c5992ea51e946e118f652216923245629d9ebb99247e99d8",
+      "target_path": "vendor/lca_cornerstone/scripts/materialize.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/merge_wiki_ku.py",
+      "source_sha256": "ccb3544839c99eb5850f346178780b489d7d8b981185e5f2b5ae5ba8ce2446c8",
+      "target_sha256": "5d10b9d7dbf269cf45317e6281668876383d4eaba7b9f8e97dd1477608ec8648",
+      "target_path": "vendor/lca_cornerstone/scripts/merge_wiki_ku.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/prep_bom_buckets.py",
+      "source_sha256": "56a5d0d3aac885b997bd11e28de68206e48e511b9cfb89b3d02c0ccb30664c1a",
+      "target_path": "vendor/lca_cornerstone/scripts/prep_bom_buckets.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/prep_cross_link.py",
+      "source_sha256": "f34c9023824237a82eb3649740d693843b2c0aa174d0b75c1fafe1796dbad7e6",
+      "target_path": "vendor/lca_cornerstone/scripts/prep_cross_link.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/prep_node_wiki.py",
+      "source_sha256": "a3b43183a5282dbca722e2d10b22be60d2e83735f06c9e5607919b77f876d03e",
+      "target_path": "vendor/lca_cornerstone/scripts/prep_node_wiki.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/reconcile.py",
+      "source_sha256": "369b66ab83278b70bff49acdb602705c1b93b66c024c71065e89e33b9d729687",
+      "target_path": "vendor/lca_cornerstone/scripts/reconcile.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/validate_graph.py",
+      "source_sha256": "99a8893e526993fd35b21b771a566ff7c5dff093fca9ccf7ca11f2097523430a",
+      "target_path": "vendor/lca_cornerstone/scripts/validate_graph.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/validate_lca_dataset_binding.py",
+      "source_sha256": "04265408d328d70330b0e29a95d3cb3567ad46959f08d981599f8d1a4f19200c",
+      "target_path": "vendor/lca_cornerstone/scripts/validate_lca_dataset_binding.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/validate_wiki_workflow.py",
+      "source_sha256": "6030a78b76346b80ea9e1840300c7316bbc92b5634e17e146429568ef8ffd454",
+      "target_path": "vendor/lca_cornerstone/scripts/validate_wiki_workflow.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/wiki_batch.py",
+      "source_sha256": "e7b8330495ab10c6648b6234d69d5151c4b3907c2c30053e9f639ad8551ae92b",
+      "target_sha256": "f4a90f9112008e9375c54a23a50faef366347397625c5e797ef08d4298ad304a",
+      "target_path": "vendor/lca_cornerstone/scripts/wiki_batch.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/wiki_draft_content_gate.py",
+      "source_sha256": "c96286d12c44bc24cdb063aa3562dab8dfe621a3eddbdb679b200ab2d017b075",
+      "target_sha256": "edad4d795a6659e77031e4b4355f9c69eb162ffc089c85b8e014cc3431030d33",
+      "target_path": "vendor/lca_cornerstone/scripts/wiki_draft_content_gate.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/wiki_lint.py",
+      "source_sha256": "7329e0df25db8f3ff3c313335d9c1356d1cdc2d5864668724c7fdbff13b76a27",
+      "target_sha256": "ff76cc9863408d3b3cdd044a6a9437841cb82e04cb42dced53cf5a40faf5ec99",
+      "target_path": "vendor/lca_cornerstone/scripts/wiki_lint.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/wiki_quality_contract.py",
+      "source_sha256": "f6f377a377198c5af1c5560c661dce0b1a690deeab79dbb4eafba7880fa94118",
+      "target_path": "vendor/lca_cornerstone/scripts/wiki_quality_contract.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/wiki_source_discovery.py",
+      "source_sha256": "3b3d3402ed9f1e1648506dba4a2de5c8c0adfc04314a64597dba6c10b510bdb9",
+      "target_sha256": "d016e5e05ddcc5b7cdfec2322ea87ba1faeaf78a0d6d432b05123d579481792f",
+      "target_path": "vendor/lca_cornerstone/scripts/wiki_source_discovery.py",
+      "purpose": "deterministic domain gate or its direct dependency",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/.agents/skills/bom-skeleton-probe/SKILL.md",
+      "source_sha256": "630e08fe78d518279c493680ec5c8cc836ad7d331e969fde5ccdd96b67ec2629",
+      "target_path": "vendor/lca_cornerstone/skills/bom-skeleton-probe/SKILL.md",
+      "purpose": "read-only workflow policy reference",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/.agents/skills/cross-link-binding/SKILL.md",
+      "source_sha256": "5c7340f42efd2a73a6d25de2891524919a26dc81b8626805e5fbceddac2cca7d",
+      "target_path": "vendor/lca_cornerstone/skills/cross-link-binding/SKILL.md",
+      "purpose": "read-only workflow policy reference",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/.agents/skills/generate-node-wiki/SKILL.md",
+      "source_sha256": "ce46e1162858df7e297a37ce3cd4e981c657934dc84c13f3a59c8ac0526a411f",
+      "target_path": "vendor/lca_cornerstone/skills/generate-node-wiki/SKILL.md",
+      "purpose": "read-only workflow policy reference",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/.agents/skills/product-system-model/SKILL.md",
+      "source_sha256": "5055abb2cebcd531eba4ac58151b90ca7285cca124f84aea1cf4e20a44095d5b",
+      "target_path": "vendor/lca_cornerstone/skills/product-system-model/SKILL.md",
+      "purpose": "read-only workflow policy reference",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/.claude/workflows/wiki-ku-nominate.js",
+      "source_sha256": "4d355bb7e47414979f4a80c17a8fc285faf29d380b0746964e1339ddfa3f2054",
+      "target_path": "vendor/lca_cornerstone/.claude/workflows/wiki-ku-nominate.js",
+      "purpose": "frozen Wiki nomination workflow template used in compatibility workspaces",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/.claude/workflows/wiki-ku-provenance.js",
+      "source_sha256": "0b71ef370517ff5740a43d410f7dc9647106b67cab111b5ea20fb3f1861fa8fe",
+      "target_path": "vendor/lca_cornerstone/.claude/workflows/wiki-ku-provenance.js",
+      "purpose": "frozen Wiki provenance workflow template used in compatibility workspaces",
+      "frozen": true
+    },
+    {
+      "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/.claude/workflows/wiki-ku-provenance-repair.js",
+      "source_sha256": "e2e7a331031ac6a409d692a1ec22043bd933a0618dc7d5c4f0e58fdbda6aa0f2",
+      "target_path": "vendor/lca_cornerstone/.claude/workflows/wiki-ku-provenance-repair.js",
+      "purpose": "frozen Wiki repair workflow template used in compatibility workspaces",
+      "frozen": true
+    }
+  ]
+}

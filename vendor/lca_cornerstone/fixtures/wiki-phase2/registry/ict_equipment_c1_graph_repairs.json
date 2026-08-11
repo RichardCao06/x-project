@@ -1,0 +1,154 @@
+{
+  "_meta": {
+    "schema_version": "ict-c1-graph-repairs-v1",
+    "scope": "ICT C1 root-cause graph repair",
+    "applied_at": "2026-07-29",
+    "method": "docs/C1候选根因诊断与骨架修复方法.md",
+    "migration_script": "scripts/repair_ict_c1_graph.py",
+    "repository_baseline_graph_sha256": "sha256:546362051ad898dfced969cdc182f73daa07c5494c6868dbf17ca85933aca753",
+    "repaired_graph_sha256": "sha256:40186b09383becbfe3118cce54cea2629cfb2dbe7e085c7a2b6a3efd42605d09",
+    "before": {
+      "products": 79,
+      "activities": 44,
+      "graph_nodes": 123,
+      "edges": 413,
+      "candidates": 189,
+      "C0": 79,
+      "C1": 84,
+      "C2": 26,
+      "C3": 1,
+      "C4": 1
+    },
+    "after": {
+      "products": 88,
+      "activities": 44,
+      "graph_nodes": 132,
+      "edges": 453,
+      "candidates": 203,
+      "C0": 81,
+      "C1": 96,
+      "C2": 26,
+      "C3": 2,
+      "C4": 1,
+      "rejections": 57,
+      "search_matrix_cells": 1716,
+      "nexus_unique_queries": 125
+    },
+    "interpretation": "C1关系数由84增至96是原子产品拆分后按节点分别保留可审计候选的结果，不表示质量下降；所有C1均已写入具体根因、失败维度、处置和补证计划。"
+  },
+  "repairs": [
+    {
+      "old_node": "P044 被动元件, 电阻/电容/电感",
+      "root_cause": "graph_composite_product",
+      "action": "split",
+      "result_nodes": [
+        "P044 被动元件, 电阻(片式)",
+        "P080 被动元件, 电容(MLCC)",
+        "P081 被动元件, 电感(片式)"
+      ],
+      "cross_link_result": "三条流分别精确解析到electronics P127/P128/P129",
+      "status": "resolved"
+    },
+    {
+      "old_node": "P045 接口连接器, PCIe/内存/存储/背板",
+      "root_cause": "graph_composite_product",
+      "action": "split_and_rewire_by_activity",
+      "result_nodes": [
+        "P045 连接器, 板对板",
+        "P082 卡槽连接器, PCIe用",
+        "P086 卡槽连接器, DIMM内存用",
+        "P087 板载存储连接器, SATA/SAS/U.2用",
+        "P088 线束连接器, ICT设备电源用"
+      ],
+      "cross_link_result": "板对板和线束连接器精确解析；PCIe、DIMM和存储连接器保留母行业精确节点缺口",
+      "status": "resolved_with_open_mother_gaps"
+    },
+    {
+      "old_node": "P079 连接器组, 独立显卡PCIe/显示输出/外接电源",
+      "root_cause": "graph_composite_product",
+      "action": "split_and_remove_double_count",
+      "result_nodes": [
+        "P079 板载I/O连接器, 独立显卡显示输出用",
+        "P083 板载电源连接器, 独立显卡外接电源用"
+      ],
+      "boundary_decision": "PCIe金手指归入HDI裸板表面处理，不再作为独立连接器输入",
+      "status": "resolved_with_open_mother_gap"
+    },
+    {
+      "old_node": "P061 铜电缆线束/母排电缆, 电源用",
+      "root_cause": "graph_composite_product",
+      "action": "narrow_existing_node",
+      "result_nodes": [
+        "P061 低压铜电缆线束, ICT设备电源用",
+        "P060 铜母排, 电源用（既有独立节点）"
+      ],
+      "cross_link_result": "P061 Coarse解析到低压铜芯电缆；P060继续精确解析到铜排",
+      "status": "resolved"
+    },
+    {
+      "old_node": "P065 包装材料, 纸箱/泡沫/木托",
+      "root_cause": "graph_composite_product",
+      "action": "split",
+      "result_nodes": [
+        "P065 瓦楞纸箱, ICT设备包装用",
+        "P084 EPS缓冲泡沫, ICT设备包装用",
+        "P085 木制托盘/包装箱, ICT设备包装用"
+      ],
+      "binding_result": "P065与ecoinvent corrugated board box形成C3元数据代理绑定，禁止计算",
+      "cross_link_result": "EPS和木托精确跨链；paper_pulp母图缺少成箱交付流，P065保留placeholder",
+      "status": "resolved_with_open_mother_gap"
+    },
+    {
+      "old_node": "P035 CPU封装器件, 服务器用",
+      "root_cause": "graph_identity_loss",
+      "action": "downgrade_cross_link_and_enrich_matching_profile",
+      "result": "通用logic IC跨链从Exact改为Coarse；未为迎合数据库目录虚构CPU母节点",
+      "status": "controlled_gap"
+    },
+    {
+      "nodes": [
+        "P043 HDI PCB裸板, 服务器/交换机用",
+        "P053 PSU电源模组, 外购成品",
+        "P054 HDD机械硬盘, 外购成品",
+        "P078 功率MOSFET封装器件, 显卡VRM用"
+      ],
+      "root_cause": "node_matching_profile_missing",
+      "action": "add_non_identity_dataset_matching_profile",
+      "result": "补入HDI路线、PSU功率/冗余/效率、HDD企业级规格和MOSFET功率/封装裁决包络；正确专用节点未降格",
+      "status": "resolved"
+    },
+    {
+      "root_cause": "recall_false_positive",
+      "action": "move_to_rejections",
+      "result": "逻辑IC不再挂到功率MOSFET；50–100 W外置电源不再作为服务器PSU/PSU-PCBA的C1；PCI/SATA连接器只保留在相应子型，其他节点转为拒绝",
+      "status": "resolved"
+    }
+  ],
+  "open_gaps": [
+    {
+      "node": "P079",
+      "missing_home_product": "板载显示I/O连接器",
+      "target_industry": "electronics"
+    },
+    {
+      "node": "P082",
+      "missing_home_product": "PCIe卡槽连接器",
+      "target_industry": "electronics"
+    },
+    {
+      "node": "P086",
+      "missing_home_product": "DIMM内存卡槽连接器",
+      "target_industry": "electronics"
+    },
+    {
+      "node": "P087",
+      "missing_home_product": "SATA/SAS/U.2板载存储连接器",
+      "target_industry": "electronics"
+    },
+    {
+      "node": "P065",
+      "missing_home_product": "瓦楞纸箱成品",
+      "target_industry": "paper_pulp"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"policy_id":"cross-link","version":"cross-link-v1","required_gates":["gpid_coverage","single_home_industry","cross_industry_closure"],"apply_mode":"staged_apply","require_registry_lineage":true}

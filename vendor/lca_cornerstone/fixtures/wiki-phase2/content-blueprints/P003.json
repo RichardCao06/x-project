@@ -1,0 +1,62 @@
+{
+  "protocol": "wiki-content-blueprint-v1",
+  "node_id": "P003",
+  "node_type": "product",
+  "golden_target": {
+    "minimum_body_chars": 6500,
+    "minimum_assertions": 48,
+    "maximum_assertions": 140,
+    "minimum_paragraphs": 16,
+    "minimum_modeling_judgments": 32,
+    "maximum_modeling_judgments": 110,
+    "maximum_sentences_per_paragraph": 4,
+    "maximum_external_facts_per_paragraph": 1,
+    "maximum_near_duplicate_ratio": 0.72,
+    "maximum_single_sentence_paragraph_ratio": 0.25
+  },
+  "editorial_fusions": [
+    {"section": "定义与产品身份", "claim_ids": ["P003-0", "P003-1"], "claim_kind": "external_fact", "text": "刀片服务器属于高密度服务器产品形态。"},
+    {"section": "性质与形态", "claim_ids": ["P003-4", "P003-5"], "claim_kind": "external_fact", "text": "刀片服务器是一种高密度独立服务器设备，其基本构成至少包括处理器和系统内存。"},
+    {"section": "参考流与交接边界", "claim_ids": ["P003-8", "P003-9"], "claim_kind": "external_fact", "text": "刀片服务器是定义明确、能够独立发挥服务器功能的产品类别。"},
+    {"section": "规格与相邻节点区分", "claim_ids": ["P003-12", "P003-13"], "claim_kind": "external_fact", "text": "刀片服务器是一种设计用于刀片机箱的紧凑型模块化服务器。"},
+    {"section": "分类与适用范围", "claim_ids": ["P003-19", "P003-20"], "claim_kind": "external_fact", "text": "刀片服务器属于服务器产品，其运行依赖刀片机箱提供的共享资源。"},
+    {"section": "区域化补充要求", "claim_ids": ["P003-25", "P003-26"], "claim_kind": "modeling_judgment", "text": "区域化建模应同时记录制造地点对应的电力供应区域，以及主要物料来源地、组装地和运输起讫地。"}
+  ],
+  "sections": {
+    "定义与产品身份": {"minimum_paragraphs": 2, "topics": ["成品级刀片服务器身份", "与服务器刀片、刀片机箱、机架和数据中心的层级区分", "型号与配置何时参数化而非拆节点"]},
+    "性质与形态": {"minimum_paragraphs": 2, "topics": ["处理器、系统内存与板载部件的产品构成边界", "独立功能与共享机箱依赖并存的物理含义", "包装与交付状态"]},
+    "参考流与交接边界": {"minimum_paragraphs": 2, "topics": ["单台完成装配刀片服务器作为参考流", "制造负荷与使用期共享基础设施负荷的交接", "净质量、BOM和配置记录的配套要求"]},
+    "规格与相邻节点区分": {"minimum_paragraphs": 2, "topics": ["与刀片机箱、机架式服务器、主板PCBA的区别", "CPU、内存、存储、网络接口和管理模块的配置维度", "共享资源分配的适用条件和失效条件"]},
+    "在系统中的角色": {"minimum_paragraphs": 2, "topics": ["A039整机总装到P003产品输出", "上游部件和下游产品系统之间的接口", "使用、维修替换和报废阶段的归属"]},
+    "分类与适用范围": {"minimum_paragraphs": 2, "topics": ["CPU通用计算刀片服务器适用范围", "GPU服务器、机架式服务器、刀片机箱和组件的排除", "配置差异与身份差异的判定"]},
+    "节点特定采集字段": {"minimum_paragraphs": 2, "topics": ["型号级BOM和净质量闭合", "处理器、内存、存储、网络、管理和冷却接口字段", "包装、良率、返工、供应商和制造记录"]},
+    "区域化补充要求": {"minimum_paragraphs": 1, "topics": ["主要部件来源地、装配地和运输路径", "区域电力和供应链代理选择", "代表期与技术代际"]},
+    "数据适用状态与缺口": {"minimum_paragraphs": 1, "topics": ["已核实身份事实与尚缺前景LCI的区分", "配置、共享资源分配和供应链代表性不确定性", "代理失效条件和停止使用条件"]}
+  },
+  "required_tokens": [
+    "刀片机箱", "服务器刀片", "机架式服务器", "A039", "P003", "BOM",
+    "处理器", "系统内存", "存储", "网络接口", "共享资源", "分配",
+    "净质量", "包装", "供应商", "装配地", "运输路径", "代表期", "代理", "失效条件"
+  ],
+  "forbidden_phrases": [
+    "尚无已核验的节点特定证据",
+    "该 claim slot 的目标节点特异性外部证据尚未达到 CONFIRMED",
+    "未核实·模型回忆"
+  ],
+  "evidence_tables": {
+    "props": [
+      "成品级产品身份", "图谱系统边界", "产品层级与相邻对象", "处理器配置边界",
+      "系统内存配置边界", "板载存储与网络边界", "共享机箱接口", "包装与交付状态"
+    ],
+    "params": [
+      "完整型号与SKU", "单台净质量", "型号级BOM版本", "处理器型号与数量",
+      "系统内存容量与条目", "板载存储配置", "网络接口配置", "管理控制模块",
+      "供电接口与额定配置", "冷却接口与方式", "装配地点与代表期", "包装与运输交接"
+    ],
+    "quality": [
+      "BOM质量闭合", "配置覆盖", "共享机箱负荷分配", "供应商覆盖",
+      "制造活动版本一致性", "质量测量方法", "地理代表性", "时间代表性",
+      "技术代际代表性", "代理选择与失效条件"
+    ]
+  }
+}

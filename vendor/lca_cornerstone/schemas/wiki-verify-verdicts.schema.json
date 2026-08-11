@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["items"],
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_id",
+          "verdict",
+          "evidence_id",
+          "node_alignment",
+          "supporting_quote",
+          "reasoning"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": {"type": "string", "minLength": 1},
+          "verdict": {"enum": ["CONFIRMED", "CONTRADICTED", "INSUFFICIENT"]},
+          "evidence_id": {"type": "string", "minLength": 1},
+          "node_alignment": {"enum": ["EXACT", "ADJACENT", "UNRELATED"]},
+          "supporting_quote": {"type": "string"},
+          "reasoning": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

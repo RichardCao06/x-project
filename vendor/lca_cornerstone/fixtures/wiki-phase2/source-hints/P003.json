@@ -1,0 +1,66 @@
+{
+  "protocol": "wiki-source-hints-v1",
+  "node_id": "P003",
+  "generated_from": "failed production Search/Fetch routing analysis",
+  "claim_constraints": {
+    "product.identity.definition": "minimal target definition only; no inferred sharing counts",
+    "product.identity.product_class": "state only that blade servers are also known as high-density servers; do not describe a chassis, enclosure, system, or server blade",
+    "product.form.physical_state": "state only that a blade server includes at least one processor and system memory; blade server must be the grammatical subject",
+    "product.reference.flow_identity": "say only that blade server is an explicitly defined target term; claim_text must not contain 参考, 流, or 对象",
+    "product.adjacent.distinction": "state only that a blade server is designed for use in a blade chassis; blade server must be the grammatical subject; no inferred other-device count",
+    "product.adjacent.specification": "direct source-documented target property only; claim_text must not contain 分类, 维度, or 类型",
+    "product.scope.exclusions": "blade server must be the grammatical subject; state only its operating dependency boundary; adjacent object must not be the subject"
+  },
+  "requirement_routes": {
+    "product.identity.definition": {
+      "source": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "locator": "Annex I point 9, blade server definition"
+    },
+    "product.identity.product_class": {
+      "source": "IBM, What is a blade server?",
+      "locator": "What is a blade server, blade servers also known as high-density servers"
+    },
+    "product.form.physical_state": {
+      "source": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "locator": "Annex I point 9, blade server includes at least one processor and system memory"
+    },
+    "product.form.delivery_state": {
+      "source": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "locator": "Annex I point 9, blade server high-density independent server device"
+    },
+    "product.reference.flow_identity": {
+      "source": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "locator": "Annex I point 9, blade server definition"
+    },
+    "product.reference.handoff_unit": {
+      "source": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "locator": "Annex I point 9, blade server functions as independent server"
+    },
+    "product.adjacent.distinction": {
+      "source": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "locator": "Annex I point 9, blade server designed for use in a blade chassis"
+    },
+    "product.scope.classification": {
+      "source": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "locator": "Annex I point 9, blade server is a server"
+    },
+    "product.scope.exclusions": {
+      "source": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "locator": "Annex I point 9, blade server dependent on shared chassis resources for operation"
+    }
+  },
+  "sources": [
+    {
+      "name": "European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products",
+      "authority_domain": "publications.europa.eu",
+      "canonical_url": "http://publications.europa.eu/resource/oj/JOL_2019_074_R_0003.ENG.xhtml",
+      "locator_topics": ["Article 2 server definition", "Annex I point 9 blade server"]
+    },
+    {
+      "name": "IBM, What is a blade server?",
+      "authority_domain": "ibm.com",
+      "canonical_url": "https://www.ibm.com/think/topics/blade-server",
+      "locator_topics": ["What is a blade server", "How do blade servers work", "Types of blade servers"]
+    }
+  ]
+}

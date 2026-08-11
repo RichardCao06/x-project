@@ -1,0 +1,1 @@
+{"policy_id":"graph-quality","version":"graph-quality-v1","required_gates":["A","B","C","D","E"],"release_gate":"graph.gate","require_materialize_reconcile":true,"agent_output":"proposal_only"}

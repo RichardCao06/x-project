@@ -1,0 +1,15 @@
+{
+  "schema_version": "desired-state-v1",
+  "program_id": "skeleton-database",
+  "jobs": [
+    {
+      "target": "example-industry::graph",
+      "workflow": "graph-industry-production",
+      "policy_version": "graph-quality-v1",
+      "input_hashes": ["replace-with-frozen-source-sha256"],
+      "scope": {"industry": "example-industry"},
+      "risk": "high",
+      "budget": {"agent_calls": 8}
+    }
+  ]
+}

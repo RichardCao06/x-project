@@ -1,0 +1,4 @@
+{
+  "source": {"url": "https://authority.example/source", "verified": true, "payload": "The target product is supplied as granules."},
+  "claim": {"claim_id": "c-1", "verdict": "CONFIRMED", "node_alignment": "EXACT", "claim_kind": "external_fact", "excerpt": "The product is durable."}
+}

@@ -1,0 +1,1 @@
+{"policy_id":"bom-probe","version":"bom-probe-v1","outcomes":["exact","coarse","gap","unresolved"],"may_mutate_graph":false,"gap_output":"proposal_only","require_quality_weighted_ledger":true}

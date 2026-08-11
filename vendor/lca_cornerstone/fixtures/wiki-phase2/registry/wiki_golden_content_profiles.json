@@ -1,0 +1,76 @@
+{
+  "protocol": {
+    "version": "wiki-golden-content-profile-v1",
+    "kind": "wiki-golden-content-profile-registry"
+  },
+  "profiles": {
+    "oil_refining::A017": {
+      "status": "content_candidate_pending_expert_review",
+      "page": {
+        "path": "wiki/oil_refining/activities/A017--烷基化-氢氟酸烷基化-烷基化油.md",
+        "sha256": "f94233703e8e4b526133c815ca3a87a3f1ff0427a257a807479ebeb5dc0dff07",
+        "body_sha256": "f3664fb933bd9d24d92058c9a3d038efa287ad207fb98b177d6fd4f74c917576"
+      },
+      "graph": {
+        "path": "docs/oil_refining-name-graph.json",
+        "sha256": "e74563f01b0c32be47c209903018c9a144cfbd7d5f2f3ebdc7f50c7e4d9071d7",
+        "node_id": "A017",
+        "reference_product_anchor": "P057",
+        "spine_hash": "39cab8b86b70"
+      },
+      "expected_frontmatter": {
+        "schema_version": "wiki-v2",
+        "body_status": "draft",
+        "content_maturity": "candidate",
+        "structure_status": "conformant",
+        "provenance_status": "source_verified",
+        "claim_verification_status": "partial",
+        "quantity_status": "partial",
+        "golden_profile_status": "content_candidate_pending_expert_review"
+      },
+      "contract": {
+        "node_type": "activity",
+        "minimum_body_chars": 5800,
+        "minimum_assertions": 50,
+        "minimum_cited_assertions": 30,
+        "minimum_distinct_inline_sources": 18,
+        "maximum_unclassified_assertions": 0,
+        "evidence_table_minimum_rows": {
+          "flows": 12,
+          "emissions": 4,
+          "indicators": 4,
+          "params": 13,
+          "quality": 11,
+          "props": 11
+        },
+        "required_core_citations": [
+          "ku-f4fefa3ea2cd74ce",
+          "ku-eec9a3b3dbef4896",
+          "ku-0274bd08c6af3ce7",
+          "ku-29cc130c4677925b",
+          "ku-fd3c175e1233bbab",
+          "ku-3d73d99668b2ca0f",
+          "ku-4d4b49f14c83d396",
+          "ku-44f4e41d00a4820e",
+          "ku-53a97c765fd1120b",
+          "ku-d9f8e84b0ca20382"
+        ],
+        "required_content_tokens": [
+          "P057",
+          "汽油调合组分",
+          "反应、分离和处理",
+          "内部总循环量",
+          "A018",
+          "未分配单元过程",
+          "碱液湿法洗涤",
+          "沉淀或中和",
+          "DCS/MES",
+          "中国工程代理",
+          "燕山",
+          "武汉石化",
+          "blocked_pending_node_specific_lci"
+        ]
+      }
+    }
+  }
+}

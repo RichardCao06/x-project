@@ -1,0 +1,921 @@
+- generic [ref=f1e2]:
+  - generic [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - link "← 名称图" [ref=f1e5] [cursor=pointer]:
+        - /url: ict_equipment-name-graph.html
+      - text: ·
+      - link "index" [ref=f1e6] [cursor=pointer]:
+        - /url: ../wiki/ict_equipment/index.md
+    - generic [ref=f1e7]: Product 产品 Wiki
+  - generic "节点 sigil（= g(身份键)）" [ref=f1e8]
+  - heading "服务器, 通用计算, 刀片式" [level=1] [ref=f1e28]
+  - generic [ref=f1e29]:
+    - text: P003
+    - generic [ref=f1e30]: 前景
+    - generic [ref=f1e31]: core
+    - generic [ref=f1e32]: 正式发布
+    - generic [ref=f1e33]: Wiki reviewed
+    - generic [ref=f1e34]: Schema wiki-v2
+    - generic [ref=f1e35]: 结构 conformant
+    - generic [ref=f1e36]: 溯源 claim_verified
+    - generic [ref=f1e37]: 断言 complete
+    - generic [ref=f1e38]: 数量 partial
+    - generic [ref=f1e39]: LCI reference_configuration_only
+  - generic [ref=f1e40]:
+    - generic [ref=f1e41]: "equipment class: server"
+    - generic [ref=f1e42]: "integration level: system"
+    - generic [ref=f1e43]: "compute type: cpu_compute"
+    - generic [ref=f1e44]: "form factor: blade"
+    - generic [ref=f1e45]: "product subtype: 刀片服务器, blade, cpu_compute"
+    - generic [ref=f1e46]: "CPC: 4521"
+    - generic [ref=f1e47]: "HS: 8471.50"
+  - generic [ref=f1e49]:
+    - heading "定义与产品身份" [level=3] [ref=f1e50]
+    - paragraph [ref=f1e51]:
+      - text: 刀片服务器属于高密度服务器产品形态。
+      - superscript [ref=f1e52]:
+        - link "来源" [ref=f1e53] [cursor=pointer]:
+          - /url: "#source-ku-b2ed767fd2c48333"
+      - superscript [ref=f1e54]:
+        - link "来源" [ref=f1e55] [cursor=pointer]:
+          - /url: "#source-ku-bdce14693f667969"
+      - text: 高密度只描述产品形态，不足以单独确认P003成品身份；本文将“刀片服务器”和“服务器刀片”视为同一称谓，并以完整装配状态和交接记录判定对象。 身份记录应至少关联完整型号、SKU、配置版本、序列批次和BOM版本，使同名产品的不同硬件组合能够被识别，同时避免把纯配置变化误判为新的产品层级。 若记录对象缺少成品型号、装配完成标识或可追溯交接凭证，则只能暂作部件集合或代理配置，不能据此确认其代表一台完成交付的P003产品。
+    - paragraph [ref=f1e56]: 本节点以一台刀片服务器为建模对象，并将其与承载多台产品的刀片机箱、机架和数据中心基础设施区分。 P003只描述成品刀片服务器输出；机箱背板、电源、风扇、集中管理设备、机架结构和数据中心设施不进入产品本体，而通过相邻节点、使用阶段过程或明确分配规则处理。 层级判定应记录对象是否随单台产品交付、能否从机箱中单独拆换以及其质量是否已进入该台BOM，任一条件不清楚时都应保留边界待审状态。 若供应商资料把刀片服务器与刀片机箱作为整套系统报价，建模人员仍应依据实物清单和交接范围拆分，无法拆分的套装数据不得直接作为单台产品数据。
+    - paragraph [ref=f1e57]: 同一产品家族内仅处理器数量、系统内存容量、存储配置或网络接口选件变化时，宜用配置参数和情景组合表达，并保持P003这一成品身份不变。 参数化记录应保存基础型号、选件代码、各选件净质量、适用BOM和代表期，以便计算特定配置时替换相应模块而不重复建立结构相同的节点。 当配置变化导致产品类别、主要计算功能、交付边界或制造路线发生实质改变，例如从CPU通用计算转为以加速器为主体时，参数化假设即达到失效条件。 型号之间若只有名称差异却无法取得配置映射，应暂列为证据缺口并执行保守情景，而不应凭名称相似性合并BOM、净质量或制造记录。
+    - heading "性质与形态" [level=3] [ref=f1e58]
+    - paragraph [ref=f1e59]:
+      - text: 刀片服务器是一种高密度独立服务器设备，其基本构成至少包括处理器和系统内存。
+      - superscript [ref=f1e60]:
+        - link "来源" [ref=f1e61] [cursor=pointer]:
+          - /url: "#source-ku-153eb8227d2556ca"
+      - superscript [ref=f1e62]:
+        - link "来源" [ref=f1e63] [cursor=pointer]:
+          - /url: "#source-ku-73123c46ddb53634"
+      - text: 这里的“独立”只表示刀片服务器能作为独立计算节点承担服务器功能，并不表示它可以脱离刀片机箱运行；“服务器刀片”只是同义简称。
+    - paragraph [ref=f1e64]: 产品构成边界从完成装配并随交付移交的刀片服务器本体开始，覆盖板载电路以及随配置交付的计算、存储、网络和管理部件。 采集时应为每类部件记录料号、数量、单件质量、装配位置和是否随成品交付，并以这些字段检查BOM条目与单台净质量能否闭合。 无法确认存储器件、网络适配件或管理模块是否随产品交付时，应分别建立纳入与不纳入情景；不得依据产品家族资料反推具体部件数量。 物理接口应记录供电连接形式及额定配置、冷却接口与方式、背板或网络连接位置和管理通道，但这些接口记录本身不把机箱实体计入单台质量。
+    - paragraph [ref=f1e65]: 产品清单应记录全部实体部件，并另设“是否可更换”属性；长期保留的外壳、板卡和连接结构与可替换的处理器、内存条、存储介质或接口模块都属于实体部件。 这种区分用于连接制造、维修替换和报废阶段，但初始随产品交付的可更换部件仍属于成品BOM，不能因为未来可能替换而从制造端删去。 部件记录应增加拆换单位、预期替换原因、替换后去向和序列追踪字段；缺少这些信息时，只能核算初始产品构成，不能推导维修期消耗。 若维修资料只给出备件套装质量而未区分实际换下部件，套装不得直接充当初始BOM，也不得假定每次维修消耗整套备件。
+    - paragraph [ref=f1e66]: 包装与交付状态应区分裸机、含保护材料的销售包装、与多台产品共用的周转包装以及随机附件，并分别记录质量、数量基准和回收安排。 若包装清单不能映射到单台产品，或周转次数和返还率缺失，则包装负荷只能作为单独的不确定情景，不能以整批包装质量直接重复计入每台产品。
+    - heading "参考流与交接边界" [level=3] [ref=f1e67]
+    - paragraph [ref=f1e68]:
+      - text: 刀片服务器是定义明确、能够独立发挥服务器功能的产品类别。
+      - superscript [ref=f1e69]:
+        - link "来源" [ref=f1e70] [cursor=pointer]:
+          - /url: "#source-ku-4b940c265eae5d25"
+      - superscript [ref=f1e71]:
+        - link "来源" [ref=f1e72] [cursor=pointer]:
+          - /url: "#source-ku-5f21a2b6e7e5d07f"
+      - text: 本节点以一台完整刀片服务器作为产品交接单元。 参考流应表述为完成规定装配与制造检验、具备型号和配置标识并可交付的一台产品，不以板卡数量、计算能力或占用机箱槽位代替。 交接记录应关联单台净质量、BOM版本、配置清单、制造批次、包装状态和离开装配地的时间，从而确保物理产品与制造投入处于同一版本。
+    - paragraph [ref=f1e73]: 制造端边界应包括形成该台产品所需的部件装配、测试、返工和厂内处置，并把可归属于产品的能源、辅料和损耗按一致活动版本汇总；同时，产品交接后所需的共享资源不并入该单台产品的固有物料构成。 使用期由刀片机箱提供的共享供电损耗、风扇冷却、背板通信和集中管理，应在使用模型中依据服务关系分配，而不是回填到出厂BOM。 制造测试期间临时使用的机箱或测试台若服务多个产品，应记录设备使用时长、测试批量和分配依据，并与交付后的共享基础设施明确分开。 若测试能耗同时包含机箱基载且无法识别产品增量负荷，应保留总量分配与增量估算两个情景，不能将全部机箱基载无条件归给被测单台产品。
+    - paragraph [ref=f1e74]: 净质量应采用不含一次性包装的完成装配产品质量，并通过称量值、BOM质量汇总值和配置记录进行三方核对，差异应标记原因与处理方法。 BOM质量闭合应同时检查标配件、选配件、紧固件、散热材料和外壳等易遗漏项目，并明确电子数据中数量单位与质量单位的换算关系；单台称量、型号级BOM和配置快照属于同一代表期和制造批次，是三方数据能够比较并形成质量闭合的前提。
+    - paragraph [ref=f1e75]: 称量包含运输托盘或一次性保护袋时，应记录并扣除这些边界外辅助物；只有装配在服务器本体内、构成该型号配置的部件计入单台净质量，独立随附的线缆、工具或备件即使列入交付清单也应作为单独交付物流记录。 若研究对象确需包含独立附件，应另行定义成套交付组合、列明产品本体与每类附件的独立质量，并保持该组合口径与“一台完整刀片服务器”的产品本体参考流相互区分。
+    - heading "规格与相邻节点区分" [level=3] [ref=f1e76]
+    - paragraph [ref=f1e77]:
+      - text: 刀片服务器是一种设计用于刀片机箱的紧凑型模块化服务器。
+      - superscript [ref=f1e78]:
+        - link "来源" [ref=f1e79] [cursor=pointer]:
+          - /url: "#source-ku-63ee063331febda0"
+      - superscript [ref=f1e80]:
+        - link "来源" [ref=f1e81] [cursor=pointer]:
+          - /url: "#source-ku-90181e63c01a3961"
+      - text: 本节点不吸收与刀片服务器配套使用的设备实体。 与刀片机箱的区分应依据实体所有权和质量边界：刀片服务器本身随单台交付，机箱外壳、共享电源、风扇和背板则服务多个槽位。 若销售资料只给出装满刀片的机箱总质量，应先取得空机箱、刀片服务器数量和各配置质量；不能完成拆分时，该数据仅适用于组合系统情景。
+    - paragraph [ref=f1e82]: 与机架式服务器相比，P003的判定重点是产品需插入共享机箱接口，而不是以独立机架外壳、电源和完整冷却组件作为单台交付边界。 机架式服务器或完整刀片机箱即使与本产品共享部分部件，也不能仅凭用途相近套用同一成品BOM，除非逐项证明交付边界和配置等价。
+    - paragraph [ref=f1e83]: 主板PCBA只是刀片服务器的组成部件；只有完成规定结构装配、配置集成和整机检验后，才形成P003成品。 成品SKU、装配范围和整机检验状态共同用于区分主板PCBA与P003成品。 来源中的“服务器模块”属于待识别称谓：只有装配范围和检验记录证明它代表完整成品时才映射到刀片服务器，否则按PCBA、管理模块或待识别组件处理。
+    - paragraph [ref=f1e84]: 规格参数应按处理器、系统内存、存储、网络接口、管理控制模块、供电接口和冷却接口分组，并为每组保存型号、数量、容量或接口状态。 这些字段用于复现具体交付配置和匹配使用阶段接口，不据此把纯配置变化拆成新的产品节点。
+    - heading "在系统中的角色" [level=3] [ref=f1e85]
+    - paragraph [ref=f1e86]:
+      - text: P003 在内部产品系统图中由 A039 产生。
+      - superscript [ref=f1e87]:
+        - link "图谱" [ref=f1e88] [cursor=pointer]:
+          - /url: "#source-internal-graph"
+      - text: P003是A039完成总装后交付给下游产品系统的通用计算刀片服务器流，用于把制造活动结果与具体产品配置、数量和净质量对应。 A039与P003接口以产品流标识、配置版本和制造批次作为识别键；合格产品数量和对应净质量作为输出量值，良率口径与包装交接状态作为关联属性。 若A039记录的是生产投料数量而P003记录的是合格出厂数量，二者之间必须由报废、返工和在制品变化调节，不能默认一比一闭合。
+    - paragraph [ref=f1e89]: 上游部件过程应通过型号级BOM进入A039，包括处理器、系统内存、存储、网络接口、管理模块、结构件和其他随产品交付的实体。 每条上游接口应保存部件料号、供应商、来源地、数量单位、损耗归属和数据版本。 这些追溯字段使替代部件或双重采购能够按配置覆盖率表达。 若上游只有部件家族平均数据而缺少具体供应商和料号覆盖，应标示代理比例，不得把家族平均值描述为完整型号的实测供应链。
+    - paragraph [ref=f1e90]: P003向下游产品系统提供的是制造完成的刀片服务器，不自动包含刀片机箱、机架、数据中心基础设施或使用期电力等后续服务。 下游模型调用时应同时传递产品配置、装配地、代表期和共享接口条件，否则同一节点结果可能被错误用于不匹配的机箱代际或供应链。
+    - paragraph [ref=f1e91]: 共享制造资源位于刀片服务器产品实体之外；只有无法直接计量且确实服务多台产品时，才按制造批次、设备占用时间或资源驱动量分配其负荷。 分配结果是制造活动负荷，不是产品规格或相邻产品实体；能够直接归属单台产品的消耗不得参加平均分配。
+    - paragraph [ref=f1e92]: 使用阶段的机箱供电和冷却属于刀片机箱提供的共享服务，不属于刀片服务器的固有物料构成。 在实体边界明确后，服务负荷可按槽位、产品数量、运行时长或实测增量分配；存在独占资源或直接计量时，平均分配即失效。
+    - paragraph [ref=f1e93]: 使用阶段应接收单台产品及其配置参数，并另外连接运行电力、共享机箱负荷和数据中心服务；制造端产品节点不预设实际负载率或寿命。 负载率、寿命和共享服务需求属于使用情景参数，应与制造端产品输出分开保存并在下游模型中赋值。
+    - paragraph [ref=f1e94]: 维修替换应把初始可更换部件、备件生产、运输、替换时间和退役去向分别建模，并避免将同一备件同时计入初始BOM与维修消耗。 只有使用情景给出部件寿命、替换频次和实际配置后，才能计算备件需求并与初始BOM执行防重复检查。
+    - paragraph [ref=f1e95]: 报废阶段的归属应从P003净质量和生命周期内新增备件出发，按最终持有的材料与部件建立回收、再利用或处置接口。 若产品在报废前被整机再利用或拆出处理器、系统内存和存储继续使用，应保存转移数量和质量，避免原系统与后续系统重复承担或遗漏处置。 缺少维修频次、替换部件和寿命分布时，P003仍可用于制造端核算，但不得据此声称已经覆盖完整使用、维修和报废阶段。
+    - heading "工艺图 · 邻域工序" [level=3] [ref=f1e96]
+    - img [ref=f1e98]:
+      - generic [ref=f1e101]:
+        - generic [ref=f1e122]: 服务器, 通用计算, 刀片式
+        - generic [ref=f1e123]: P003 · 产品
+      - generic [ref=f1e124]: ▸ 产出它的活动（1）
+      - generic [ref=f1e125]: 消费它的活动（0） ◂
+      - generic "系统集成, 整机总装 | 服务器, 通用计算, 刀片式" [ref=f1e126] [cursor=pointer]:
+        - generic [ref=f1e134]: 系统集成, 整机总装 | 服务器,…
+        - generic [ref=f1e135]: A039 · 产出·参考
+        - generic [ref=f1e136]: ★
+    - heading "分类与适用范围" [level=3] [ref=f1e137]
+    - paragraph [ref=f1e138]:
+      - text: 刀片服务器属于服务器产品，其运行依赖刀片机箱提供的共享资源。
+      - superscript [ref=f1e139]:
+        - link "来源" [ref=f1e140] [cursor=pointer]:
+          - /url: "#source-ku-bce26914c5b903dc"
+      - superscript [ref=f1e141]:
+        - link "来源" [ref=f1e142] [cursor=pointer]:
+          - /url: "#source-ku-320f0db92754b3c0"
+      - text: 本节点适用于表达刀片服务器制造端的产品层级建模。 适用对象应是以CPU执行通用计算任务为主要产品定位、按刀片服务器形态完成装配并通过相应机箱接口运行的成品。 归类记录应保存主要计算部件类型、交付形态、共享机箱依赖和成品SKU，任何一项缺失都应降低分类确定性而非用名称强行归类。
+    - paragraph [ref=f1e143]: P003不能被包含刀片机箱、机架或数据中心设施的组合系统替代。 被排除的刀片机箱、机架等物理基础设施进入各自产品节点，其物理质量不计入P003，但通过产品或物料接口保留关联。 这些基础设施提供的供电、冷却或管理负荷进入相应服务接口，在使用阶段分配给P003，不能作为刀片服务器固有物料。
+    - paragraph [ref=f1e144]: 排除判定先区分组件与成品：未达到完整装配和成品检验状态的对象转入相应部件节点；只有完整成品才进入服务器产品形态与主要功能的联合判定。 完整成品只有同时满足刀片式交付形态和以CPU通用计算为主的产品定位才能归入P003；两个正向准入项任一不满足即予排除，例如机架式交付或加速器主导的成品应转入与其全部身份刻面相符的服务器节点。
+    - paragraph [ref=f1e145]: 混合功能产品先依据交付定义确认产品类别，再判断主要计算功能；物理质量贡献只解释配置差异，不单独决定分类。 交付定义与主要功能证据冲突时，应把对象列为待分类并补充交付文件、配置清单和功能证据，不能先建立配置类别。 证据补齐前，相似外形只可支持候选筛选，不能替代产品身份、成品层级与BOM边界判定。
+    - paragraph [ref=f1e146]: 处理器代次、系统内存容量、存储数量、网络接口速率或管理模块版本的改变，通常作为同一产品身份下的配置差异进行参数化。 当改变同时引起整机外形、机箱兼容关系、主要计算功能、制造装配路线或成品SKU体系的根本变化时，应重新评估是否形成新的身份节点。
+    - paragraph [ref=f1e147]: 配置覆盖应以实际交付数量或明确的研究情景权重汇总，并记录各配置在代表期内的份额，不能对未知市场组合任意设定平均值。 当配置覆盖不完整、需要建立家族代表模型时，只有BOM结构、净质量、制造地点和供应链具有可解释相似性的型号才可作为代理，并须披露未覆盖型号与差异方向。 代理失效条件包括主要部件数量跨档、共享接口代际改变、装配地迁移或净质量差异无法解释，触发后应停止外推并单列数据需求。
+    - heading "节点特定采集字段" [level=3] [ref=f1e148]
+    - paragraph [ref=f1e149]: 应采集型号级物料清单及各部件的净质量；同时，完整型号与SKU应作为采集主索引，并关联BOM版本、生效日期、配置代码、制造批次和单台净质量，防止跨版本拼接部件数据。 BOM条目至少应包含部件名称、内部料号、供应商料号、数量、计量单位、单件质量、材料或部件类别以及是否随产品交付；随机附件若随整机交付，应以独立BOM条目记录其质量，不得并入包装质量。 质量闭合应比较BOM汇总、产品称量和包装扣除后的结果，并为未闭合差额记录可能来自紧固件、线缆、散热材料或称量方法的原因。 若差额超过项目预先设定且记录在案的接受范围，应停止使用该BOM开展材料贡献分析，直至补充条目或完成重新称量。
+    - paragraph [ref=f1e150]: 硬件采集字段用于复现具体配置，并识别刀片服务器本体与共享机箱之间的接口边界。 处理器字段应记录型号、数量、封装或模块料号和供应商，系统内存字段应记录总容量、条目数量、单条容量、类型及是否属于基础配置；板载存储配置应记录介质类型、数量、容量、是否可拆换和控制部件，网络接口配置则应记录板载与可插拔接口、端口数量和模块边界。 管理控制模块应说明是否独立成板、是否包含在主板PCBA以及对应质量；重复出现在主板与模块清单中的同一实体必须去重。 具体配置字段缺失时，可保留“未知”并建立上下界情景，不得依据产品家族宣传资料填入未确认的处理器、内存、存储或接口数量。
+    - paragraph [ref=f1e151]: 供电接口与额定配置、冷却接口与方式应作为共享机箱连接字段采集，用于匹配使用模型，但不得把额定值直接当作实际能耗。 共享机箱只作为供电与冷却接口的连接对象记录，不纳入刀片服务器本体。
+    - paragraph [ref=f1e152]: 制造记录应覆盖装配、测试、老化筛选、返工和报废等活动，并为各活动保存计量范围、能源或辅料单位、批量及活动版本。 良率应区分首次通过率、返工后合格率和最终报废率，并明确分母是投入件、装配台数还是测试次数，避免在多个环节重复放大损耗。
+    - paragraph [ref=f1e153]: 包装字段只记录内包装、外箱和托盘等包装组成的材料、质量、装载数量、重复使用次数与运输交接点；交接点和装载数量共同确定进入运输模型的货量及起始边界，且包装汇总必须排除已列入BOM的随机附件。 运输记录应从该交接点关联起讫地、运输方式、距离依据、装载状态、批量和中转节点；只有运输方式而没有路径与货量时，不足以形成型号级前景运输。
+    - paragraph [ref=f1e154]: 供应商采集应覆盖高贡献部件及关键替代来源，为每个料号记录供应商名称、生产地点、数据代表期、采购份额和是否采用代理数据；同时，双重或多重供应时，应按研究期采购份额建立供应商覆盖矩阵；份额未知时可设置等权或极端情景，但必须标为建模假设。 若供应商、生产地点或采购份额无法追溯，应降低供应链数据质量评级，且不得把家族级代理描述为完整型号的实测供应链。
+    - paragraph [ref=f1e155]: 质量测量方法应说明秤具类型、分辨率、去皮步骤、样本量、抽样批次和异常值处理，使单台净质量具有可审计的测量边界。 测量记录应与产品型号、配置和抽样批次关联；缺少去皮步骤、样本范围或异常值处理时，称量结果不能用于证明型号级质量闭合。
+    - paragraph [ref=f1e156]: 制造活动版本应验证BOM生效期、工艺路线、装配地、供应商组合和包装方案是否属于同一代表期。 发现跨期记录时应按版本拆分并单独说明；无法拆分的数据不得声明为完整型号级实测LCI。
+    - heading "区域化补充要求" [level=3] [ref=f1e157]
+    - paragraph [ref=f1e158]: 区域化建模应同时记录制造地点对应的电力供应区域，以及主要物料来源地、组装地和运输起讫地。 记录这些地点是为了把部件生产、最终装配、仓储和交付活动匹配到背景数据库的相应地理层级，不能以总部地址替代实际活动地。 在地点边界明确后，运输路径按来源地至装配地、装配地至区域仓库和仓库至交接点分段，并分别保存运输方式与距离依据。 厂址未知时使用与已知国家或区域粒度一致的运输和电力代理，并把厂址差异保留为地理不确定性，而不是伪造更精细位置。
+    - paragraph [ref=f1e159]: 区域电力代理应按活动发生地点选择：最终装配与测试匹配装配地电力，高耗能部件制造则匹配相应供应商生产区域而非成品销售区域。 代理选择记录应包含背景数据名称、地理范围、技术范围、年份、替代理由和覆盖活动，确保后续能够识别同一电力数据被误用于不同供应链环节。 装配地或主要供应商区域变化时，应重配受影响活动的电力代理，并保留变更前后的地域依据。
+    - paragraph [ref=f1e160]: 代表期应同时覆盖BOM、制造工艺、供应商份额、区域电力和运输网络，并说明数据年份与目标研究期之间的时间偏离。 技术代际会改变部件生产地域、供应商组合和运输网络，因此处理器平台、系统内存类型、接口代际或机箱兼容关系变化时，应同时复核相关区域化数据。 时间窗口变化时更新区域电力和运输网络，技术代际变化时更新受影响的部件配置与供应链代理；局部变化不使无关数据链一并失效。
+    - generic [ref=f1e161]:
+      - heading "物性/常数表 · 来源限定" [level=4] [ref=f1e162]
+      - table [ref=f1e163]:
+        - rowgroup [ref=f1e164]:
+          - row [ref=f1e165]:
+            - columnheader "property" [ref=f1e166]
+            - columnheader "condition" [ref=f1e167]
+            - columnheader "unit" [ref=f1e168]
+            - columnheader "值" [ref=f1e169]
+            - columnheader "源" [ref=f1e170]
+            - columnheader "pedigree" [ref=f1e171]
+        - rowgroup [ref=f1e172]:
+          - row [ref=f1e173]:
+            - cell "成品级产品身份" [ref=f1e174]
+            - cell "FC430 参考配置" [ref=f1e175]
+            - cell "—" [ref=f1e176]
+            - cell "Dell PowerEdge FC430；quarter-width 刀片服务器 sled" [ref=f1e177]
+            - cell [ref=f1e178]:
+              - link [ref=f1e179] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e180]: dell-fc430-spec-2016
+            - cell "manufacturer_spec" [ref=f1e181]
+          - row [ref=f1e182]:
+            - cell "图谱系统边界" [ref=f1e183]
+            - cell "单台 FC430 sled" [ref=f1e184]
+            - cell "—" [ref=f1e185]
+            - cell "服务器 sled；PowerEdge FX2 enclosure 及机箱级电源属于共享机箱层" [ref=f1e186]
+            - cell [ref=f1e187]:
+              - link [ref=f1e188] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e189]: dell-fc430-spec-2016
+            - cell "manufacturer_spec" [ref=f1e190]
+          - row [ref=f1e191]:
+            - cell "产品层级与相邻对象" [ref=f1e192]
+            - cell "FC430 与 FX2" [ref=f1e193]
+            - cell "—" [ref=f1e194]
+            - cell "完整 quarter-width 服务器 sled；单个 FX2 最多容纳 8 个 FC430" [ref=f1e195]
+            - cell [ref=f1e196]:
+              - link [ref=f1e197] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e198]: dell-fc430-spec-2016
+            - cell "manufacturer_spec" [ref=f1e199]
+          - row [ref=f1e200]:
+            - cell "处理器配置边界" [ref=f1e201]
+            - cell "2019 PCF 最高销量配置" [ref=f1e202]
+            - cell "CPU/台" [ref=f1e203]
+            - cell "2；平台为双插槽 Intel Xeon E5-2600 v4" [ref=f1e204]
+            - cell [ref=f1e205]:
+              - link [ref=f1e206] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e207]: dell-fc430-pcf-2019
+            - cell "manufacturer_reference_configuration" [ref=f1e208]
+          - row [ref=f1e209]:
+            - cell "系统内存配置边界" [ref=f1e210]
+            - cell "2019 PCF 最高销量配置" [ref=f1e211]
+            - cell "GB/台" [ref=f1e212]
+            - cell "16；平台共 8 个 DIMM 插槽" [ref=f1e213]
+            - cell [ref=f1e214]:
+              - link [ref=f1e215] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e216]: dell-fc430-pcf-2019
+            - cell "manufacturer_reference_configuration" [ref=f1e217]
+          - row [ref=f1e218]:
+            - cell "板载存储与网络边界" [ref=f1e219]
+            - cell "2019 PCF 配置 + 平台规格" [ref=f1e220]
+            - cell "—" [ref=f1e221]
+            - cell "2×200 GB 1.8-inch SSD；dual-port 10Gb LOM" [ref=f1e222]
+            - cell [ref=f1e223]:
+              - link [ref=f1e224] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e225]: dell-fc430-spec-2016
+            - cell "cross_document_same_model" [ref=f1e226]
+          - row [ref=f1e227]:
+            - cell "共享机箱接口" [ref=f1e228]
+            - cell "PowerEdge FX2" [ref=f1e229]
+            - cell "—" [ref=f1e230]
+            - cell "机箱级 1600 W/2000 W PSU；CMC 管理共享基础设施" [ref=f1e231]
+            - cell [ref=f1e232]:
+              - link [ref=f1e233] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e234]: dell-fc430-spec-2016
+            - cell "manufacturer_spec" [ref=f1e235]
+          - row [ref=f1e236]:
+            - cell "包装与交付状态" [ref=f1e237]
+            - cell "已审计的三份 Dell 公开文件" [ref=f1e238]
+            - cell "—" [ref=f1e239]
+            - cell "缺口：未公开单台包装组成、包装质量和运输交接配置" [ref=f1e240]
+            - cell [ref=f1e241]:
+              - link [ref=f1e242] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e243]: dell-fc430-pcf-2019
+            - cell "explicit_public_evidence_gap" [ref=f1e244]
+    - generic [ref=f1e245]:
+      - heading "规格/工艺参数表 国际值 10/12 · 代理 1 · 定义 9 · 国际数值源 10/12 · 缺口证据 2/12 中国值 0/12 · 缺口证据 12/12" [level=4] [ref=f1e246]:
+        - text: 规格/工艺参数表
+        - generic [ref=f1e247]: 国际值 10/12 · 代理 1 · 定义 9 · 国际数值源 10/12 · 缺口证据 2/12
+        - generic [ref=f1e248]: 中国值 0/12 · 缺口证据 12/12
+      - table [ref=f1e249]:
+        - rowgroup [ref=f1e250]:
+          - row [ref=f1e251]:
+            - columnheader "parameter" [ref=f1e252]
+            - columnheader "geo" [ref=f1e253]
+            - columnheader "unit" [ref=f1e254]
+            - columnheader "basis" [ref=f1e255]
+            - columnheader "国际值 INT" [ref=f1e256]
+            - columnheader "国际源 INT" [ref=f1e257]
+            - columnheader "中国值 CN" [ref=f1e258]
+            - columnheader "中国源 CN" [ref=f1e259]
+            - columnheader "pedigree" [ref=f1e260]
+        - rowgroup [ref=f1e261]:
+          - row [ref=f1e262]:
+            - cell "完整型号与SKU" [ref=f1e263]
+            - cell "EU reference" [ref=f1e264]
+            - cell "model" [ref=f1e265]
+            - cell "standard_spec" [ref=f1e266]
+            - cell "定义值 Dell PowerEdge FC430；公开 PCF 未披露 Service Tag/SKU" [ref=f1e267]:
+              - generic [ref=f1e268]: 定义值
+              - text: Dell PowerEdge FC430；公开 PCF 未披露 Service Tag/SKU
+            - cell [ref=f1e269]:
+              - link [ref=f1e270] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e271]: dell-fc430-pcf-2019
+            - cell "缺口：未冻结中国交付 SKU" [ref=f1e272]
+            - cell [ref=f1e273]:
+              - link [ref=f1e274] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e275]: dell-fc430-pcf-2019
+            - cell "manufacturer_reference_configuration" [ref=f1e276]
+          - row [ref=f1e277]:
+            - cell "单台净质量" [ref=f1e278]
+            - cell "EU reference" [ref=f1e279]
+            - cell "kg/台" [ref=f1e280]
+            - cell "proxy" [ref=f1e281]
+            - cell "代理值 3.0" [ref=f1e282]:
+              - generic [ref=f1e283]: 代理值
+              - text: "3.0"
+            - cell [ref=f1e284]:
+              - link [ref=f1e285] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e286]: dell-fc430-pcf-2019
+            - cell "缺口：未取得中国交付配置实测净质量" [ref=f1e287]
+            - cell [ref=f1e288]:
+              - link [ref=f1e289] [cursor=pointer]:
+                - /url: "#source-dell-fc430-owner-2020"
+                - code [ref=f1e290]: dell-fc430-owner-2020
+            - cell "PCF assumption; owner manual maximum mass corroboration" [ref=f1e291]
+          - row [ref=f1e292]:
+            - cell "型号级BOM版本" [ref=f1e293]
+            - cell "EU reference" [ref=f1e294]
+            - cell "version" [ref=f1e295]
+            - cell "reference" [ref=f1e296]
+            - cell "缺口：三份公开文件均未披露型号级 BOM" [ref=f1e297]
+            - cell [ref=f1e298]:
+              - link [ref=f1e299] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e300]: dell-fc430-pcf-2019
+            - cell "缺口：未取得中国供应 BOM" [ref=f1e301]
+            - cell [ref=f1e302]:
+              - link [ref=f1e303] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e304]: dell-fc430-pcf-2019
+            - cell "explicit_public_evidence_gap" [ref=f1e305]
+          - row [ref=f1e306]:
+            - cell "处理器型号与数量" [ref=f1e307]
+            - cell "EU reference" [ref=f1e308]
+            - cell "CPU/台" [ref=f1e309]
+            - cell "standard_spec" [ref=f1e310]
+            - cell "定义值 2×CPU；平台支持 Intel Xeon E5-2600 v4" [ref=f1e311]:
+              - generic [ref=f1e312]: 定义值
+              - text: 2×CPU；平台支持 Intel Xeon E5-2600 v4
+            - cell [ref=f1e313]:
+              - link [ref=f1e314] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e315]: dell-fc430-pcf-2019
+            - cell "缺口：中国 SKU 的 CPU 具体料号未冻结" [ref=f1e316]
+            - cell [ref=f1e317]:
+              - link [ref=f1e318] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e319]: dell-fc430-spec-2016
+            - cell "configuration quantity + platform family" [ref=f1e320]
+          - row [ref=f1e321]:
+            - cell "系统内存容量与条目" [ref=f1e322]
+            - cell "EU reference" [ref=f1e323]
+            - cell "GB/台" [ref=f1e324]
+            - cell "standard_spec" [ref=f1e325]
+            - cell "定义值 16 GB；平台 8 DIMM slots、最高 256 GB" [ref=f1e326]:
+              - generic [ref=f1e327]: 定义值
+              - text: 16 GB；平台 8 DIMM slots、最高 256 GB
+            - cell [ref=f1e328]:
+              - link [ref=f1e329] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e330]: dell-fc430-pcf-2019
+            - cell "缺口：中国 SKU 的 DIMM 数量与容量未冻结" [ref=f1e331]
+            - cell [ref=f1e332]:
+              - link [ref=f1e333] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e334]: dell-fc430-spec-2016
+            - cell "configuration capacity + platform capability" [ref=f1e335]
+          - row [ref=f1e336]:
+            - cell "板载存储配置" [ref=f1e337]
+            - cell "EU reference" [ref=f1e338]
+            - cell "drive/台" [ref=f1e339]
+            - cell "standard_spec" [ref=f1e340]
+            - cell "定义值 2×200 GB 1.8-inch SSD" [ref=f1e341]:
+              - generic [ref=f1e342]: 定义值
+              - text: 2×200 GB 1.8-inch SSD
+            - cell [ref=f1e343]:
+              - link [ref=f1e344] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e345]: dell-fc430-pcf-2019
+            - cell "缺口：中国 SKU 存储配置未冻结" [ref=f1e346]
+            - cell [ref=f1e347]:
+              - link [ref=f1e348] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e349]: dell-fc430-pcf-2019
+            - cell "manufacturer_reference_configuration" [ref=f1e350]
+          - row [ref=f1e351]:
+            - cell "网络接口配置" [ref=f1e352]
+            - cell "INT product spec" [ref=f1e353]
+            - cell "port/台" [ref=f1e354]
+            - cell "standard_spec" [ref=f1e355]
+            - cell "定义值 dual-port 10Gb LOM；另可选 NIC/HBA" [ref=f1e356]:
+              - generic [ref=f1e357]: 定义值
+              - text: dual-port 10Gb LOM；另可选 NIC/HBA
+            - cell [ref=f1e358]:
+              - link [ref=f1e359] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e360]: dell-fc430-spec-2016
+            - cell "缺口：中国实际网络选件未冻结" [ref=f1e361]
+            - cell [ref=f1e362]:
+              - link [ref=f1e363] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e364]: dell-fc430-spec-2016
+            - cell "manufacturer_platform_spec" [ref=f1e365]
+          - row [ref=f1e366]:
+            - cell "管理控制模块" [ref=f1e367]
+            - cell "INT product spec" [ref=f1e368]
+            - cell "—" [ref=f1e369]
+            - cell "standard_spec" [ref=f1e370]
+            - cell "定义值 节点含 iDRAC8 with Lifecycle Controller；FX2 含 CMC" [ref=f1e371]:
+              - generic [ref=f1e372]: 定义值
+              - text: 节点含 iDRAC8 with Lifecycle Controller；FX2 含 CMC
+            - cell [ref=f1e373]:
+              - link [ref=f1e374] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e375]: dell-fc430-spec-2016
+            - cell "缺口：中国交付许可版本未冻结" [ref=f1e376]
+            - cell [ref=f1e377]:
+              - link [ref=f1e378] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e379]: dell-fc430-spec-2016
+            - cell "manufacturer_platform_spec" [ref=f1e380]
+          - row [ref=f1e381]:
+            - cell "供电接口与额定配置" [ref=f1e382]
+            - cell "INT product spec" [ref=f1e383]
+            - cell "W/chassis" [ref=f1e384]
+            - cell "standard_spec" [ref=f1e385]
+            - cell "定义值 FX2 chassis-level 1600 W 或 2000 W PSU；1+1 或 2+0" [ref=f1e386]:
+              - generic [ref=f1e387]: 定义值
+              - text: FX2 chassis-level 1600 W 或 2000 W PSU；1+1 或 2+0
+            - cell [ref=f1e388]:
+              - link [ref=f1e389] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e390]: dell-fc430-spec-2016
+            - cell "缺口：中国运行机箱与单台分配值未取得" [ref=f1e391]
+            - cell [ref=f1e392]:
+              - link [ref=f1e393] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e394]: dell-fc430-spec-2016
+            - cell "shared infrastructure; not per-sled consumption" [ref=f1e395]
+          - row [ref=f1e396]:
+            - cell "冷却接口与方式" [ref=f1e397]
+            - cell "INT product boundary" [ref=f1e398]
+            - cell "—" [ref=f1e399]
+            - cell "standard_spec" [ref=f1e400]
+            - cell "定义值 刀片 sled 依赖 FX2 共享机箱热管理；公开规格未给单台冷却负荷" [ref=f1e401]:
+              - generic [ref=f1e402]: 定义值
+              - text: 刀片 sled 依赖 FX2 共享机箱热管理；公开规格未给单台冷却负荷
+            - cell [ref=f1e403]:
+              - link [ref=f1e404] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e405]: dell-fc430-spec-2016
+            - cell "缺口：中国运行机箱与分配驱动量未取得" [ref=f1e406]
+            - cell [ref=f1e407]:
+              - link [ref=f1e408] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e409]: dell-fc430-spec-2016
+            - cell "qualitative shared-boundary evidence" [ref=f1e410]
+          - row [ref=f1e411]:
+            - cell "装配地点与代表期" [ref=f1e412]
+            - cell "EU reference" [ref=f1e413]
+            - cell "—" [ref=f1e414]
+            - cell "standard_spec" [ref=f1e415]
+            - cell "定义值 Assembly Location EU；PCF report 2019-02" [ref=f1e416]:
+              - generic [ref=f1e417]: 定义值
+              - text: Assembly Location EU；PCF report 2019-02
+            - cell [ref=f1e418]:
+              - link [ref=f1e419] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e420]: dell-fc430-pcf-2019
+            - cell "缺口：未取得中国装配厂址与代表期" [ref=f1e421]
+            - cell [ref=f1e422]:
+              - link [ref=f1e423] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e424]: dell-fc430-pcf-2019
+            - cell "regional scenario; no plant identity" [ref=f1e425]
+          - row [ref=f1e426]:
+            - cell "包装与运输交接" [ref=f1e427]
+            - cell "EU reference" [ref=f1e428]
+            - cell "—" [ref=f1e429]
+            - cell "reference" [ref=f1e430]
+            - cell "缺口：未公开包装、装载或运输交接假设" [ref=f1e431]
+            - cell [ref=f1e432]:
+              - link [ref=f1e433] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e434]: dell-fc430-pcf-2019
+            - cell "缺口：未取得中国交付路径" [ref=f1e435]
+            - cell [ref=f1e436]:
+              - link [ref=f1e437] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e438]: dell-fc430-pcf-2019
+            - cell "explicit_public_evidence_gap" [ref=f1e439]
+    - generic [ref=f1e440]:
+      - heading "数据质量与代表性字段 · 不允许代理 中国值 0/10 · 缺口证据 10/10" [level=4] [ref=f1e441]:
+        - text: 数据质量与代表性字段 · 不允许代理
+        - generic [ref=f1e442]: 中国值 0/10 · 缺口证据 10/10
+      - table [ref=f1e443]:
+        - rowgroup [ref=f1e444]:
+          - row [ref=f1e445]:
+            - columnheader "field" [ref=f1e446]
+            - columnheader "unit" [ref=f1e447]
+            - columnheader "basis" [ref=f1e448]
+            - columnheader "中国项目值 CN" [ref=f1e449]
+            - columnheader "中国源 CN" [ref=f1e450]
+            - columnheader "proxy_policy" [ref=f1e451]
+            - columnheader "pedigree" [ref=f1e452]
+        - rowgroup [ref=f1e453]:
+          - row [ref=f1e454]:
+            - cell "BOM质量闭合" [ref=f1e455]
+            - cell "status" [ref=f1e456]
+            - cell "reference" [ref=f1e457]
+            - cell "缺口：公开 PCF 与规格表没有型号级 BOM，无法评价闭合" [ref=f1e458]
+            - cell [ref=f1e459]:
+              - link [ref=f1e460] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e461]: dell-fc430-pcf-2019
+            - cell "不得用 3 kg 总质量反推部件构成" [ref=f1e462]
+            - cell "explicit_gap" [ref=f1e463]
+          - row [ref=f1e464]:
+            - cell "配置覆盖" [ref=f1e465]
+            - cell "scope" [ref=f1e466]
+            - cell "reference" [ref=f1e467]
+            - cell "缺口：仅有单一最高销量配置，未披露销量份额和中国配置覆盖率" [ref=f1e468]
+            - cell [ref=f1e469]:
+              - link [ref=f1e470] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e471]: dell-fc430-pcf-2019
+            - cell "只作为 FC430 参考配置，不外推至 P003 全部型号" [ref=f1e472]
+            - cell "assessed_from_source_scope" [ref=f1e473]
+          - row [ref=f1e474]:
+            - cell "共享机箱负荷分配" [ref=f1e475]
+            - cell "status" [ref=f1e476]
+            - cell "reference" [ref=f1e477]
+            - cell "缺口：仅确认机箱级 PSU/CMC，未披露中国项目单台分配方法" [ref=f1e478]
+            - cell [ref=f1e479]:
+              - link [ref=f1e480] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e481]: dell-fc430-spec-2016
+            - cell "不得把机箱额定功率除以 8 作为单台实耗" [ref=f1e482]
+            - cell "explicit_gap" [ref=f1e483]
+          - row [ref=f1e484]:
+            - cell "供应商覆盖" [ref=f1e485]
+            - cell "status" [ref=f1e486]
+            - cell "reference" [ref=f1e487]
+            - cell "缺口：未披露中国项目部件供应商、采购份额或生产地点" [ref=f1e488]
+            - cell [ref=f1e489]:
+              - link [ref=f1e490] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e491]: dell-fc430-pcf-2019
+            - cell "不得声称具有供应链代表性" [ref=f1e492]
+            - cell "explicit_gap" [ref=f1e493]
+          - row [ref=f1e494]:
+            - cell "制造活动版本一致性" [ref=f1e495]
+            - cell "status" [ref=f1e496]
+            - cell "reference" [ref=f1e497]
+            - cell "缺口：公开文件跨 2016/2019 且未披露中国制造路线版本" [ref=f1e498]
+            - cell [ref=f1e499]:
+              - link [ref=f1e500] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e501]: dell-fc430-pcf-2019
+            - cell "仅组合不随配置变化的平台能力；制造数据不得跨期拼接" [ref=f1e502]
+            - cell "assessed_cross_document" [ref=f1e503]
+          - row [ref=f1e504]:
+            - cell "质量测量方法" [ref=f1e505]
+            - cell "status" [ref=f1e506]
+            - cell "reference" [ref=f1e507]
+            - cell "缺口：3 kg 为 PCF 配置假设和手册最大质量，不是中国样机称量记录" [ref=f1e508]
+            - cell [ref=f1e509]:
+              - link [ref=f1e510] [cursor=pointer]:
+                - /url: "#source-dell-fc430-owner-2020"
+                - code [ref=f1e511]: dell-fc430-owner-2020
+            - cell "不得标为实测净质量" [ref=f1e512]
+            - cell "manufacturer_assumption_corroborated" [ref=f1e513]
+          - row [ref=f1e514]:
+            - cell "地理代表性" [ref=f1e515]
+            - cell "scope" [ref=f1e516]
+            - cell "reference" [ref=f1e517]
+            - cell "缺口：仅有 EU 装配/EU 使用情景，没有中国制造地点" [ref=f1e518]
+            - cell [ref=f1e519]:
+              - link [ref=f1e520] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e521]: dell-fc430-pcf-2019
+            - cell "不能代表中国制造或中国电力背景" [ref=f1e522]
+            - cell "regional_scenario_only" [ref=f1e523]
+          - row [ref=f1e524]:
+            - cell "时间代表性" [ref=f1e525]
+            - cell "period" [ref=f1e526]
+            - cell "reference" [ref=f1e527]
+            - cell "缺口：2016 平台规格与 2019 PCF 不能代表当前中国采购期" [ref=f1e528]
+            - cell [ref=f1e529]:
+              - link [ref=f1e530] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e531]: dell-fc430-pcf-2019
+            - cell "用于历史参考配置；当前研究需重新采集" [ref=f1e532]
+            - cell "legacy_reference" [ref=f1e533]
+          - row [ref=f1e534]:
+            - cell "技术代际代表性" [ref=f1e535]
+            - cell "platform" [ref=f1e536]
+            - cell "reference" [ref=f1e537]
+            - cell "缺口：FC430 的 E5-2600 v4/DDR4/iDRAC8 代际不能代表当前中国项目技术组合" [ref=f1e538]
+            - cell [ref=f1e539]:
+              - link [ref=f1e540] [cursor=pointer]:
+                - /url: "#source-dell-fc430-spec-2016"
+                - code [ref=f1e541]: dell-fc430-spec-2016
+            - cell "不得外推到新一代刀片或不同机箱接口" [ref=f1e542]
+            - cell "model_specific_platform" [ref=f1e543]
+          - row [ref=f1e544]:
+            - cell "代理选择与失效条件" [ref=f1e545]
+            - cell "rule" [ref=f1e546]
+            - cell "reference" [ref=f1e547]
+            - cell "缺口：仅可作 FC430 最高销量配置参考，尚无中国项目代理适配证明" [ref=f1e548]
+            - cell [ref=f1e549]:
+              - link [ref=f1e550] [cursor=pointer]:
+                - /url: "#source-dell-fc430-pcf-2019"
+                - code [ref=f1e551]: dell-fc430-pcf-2019
+            - cell "型号、CPU/内存/存储、机箱、地域或代表期任一不一致即停止外推" [ref=f1e552]
+            - cell "bounded_reference_proxy" [ref=f1e553]
+    - heading "数据适用状态与缺口" [level=3] [ref=f1e554]
+    - paragraph [ref=f1e555]: 现有冻结事实只支持P003的成品身份、基本构成、刀片机箱依赖和A039图谱关系判定，不能据此宣称已取得任何具体型号的前景LCI。 长期缺失型号级物料清单、净质量、制造、运输、共享资源分配和代表性数据。 缺口登记应按完整型号与SKU拆分，分别标明所缺字段、责任数据源、目标代表期、拟用代理、预期影响方向和解除缺口的验收条件。 在型号级证据补齐前，节点可作为产品系统的结构接口和情景占位，但不能输出被解释为特定供应商、特定装配地或特定配置的确定结果。
+    - paragraph [ref=f1e556]: 不同型号的配置差异应作为前景数据适用性与不确定性来源处理；同时，配置不确定性应围绕处理器数量与类型、系统内存条目、存储、网络接口、管理模块和净质量建立情景，并保持每个情景内部BOM一致。 一致性检查应确认同一情景中的部件料号、数量、净质量和BOM版本来自同一型号；任一字段跨型号或跨版本即判为拼接失效。
+    - paragraph [ref=f1e557]: 共享资源的分配方法应单独记录并开展敏感性检验。 敏感性检验应比较按槽位、刀片服务器数量、运行时长、实测增量功率或其他可解释驱动量分配的结果，并披露空槽与冗余资源处理。 若不同分配方法改变主要结论或排序，应把共享机箱负荷标为关键不确定性，不能仅报告单一平均分配结果。
+    - paragraph [ref=f1e558]: 供应链代表性应分别从供应商覆盖、地理范围、时间窗口和技术代际四个维度评价。 供应商覆盖、地理范围、时间窗口和技术代际分别记录覆盖范围、偏差方向和代理依赖，不先合成为单一粒度等级。
+    - paragraph [ref=f1e559]: 数据适用等级分为缺失、家族级代理和型号级可追溯覆盖；最高等级要求记录能够对应具体型号、配置、数据来源和代表期，但不因此自动声称数据来自直接测量。 缺失、家族级代理和型号级可追溯覆盖只描述证据粒度；它与四维代表性评价并列报告，任何综合结论都必须披露两套结果及采用的保守规则。
+    - paragraph [ref=f1e560]: 代理可以临时填补同类部件或相近配置的数据空白，但必须记录映射对象、质量缩放方法、配置差异、区域差异和预计偏差方向。 代理失效条件包括BOM结构不相似、净质量无法闭合、主要供应商或装配地改变、制造路线不一致及跨越关键技术代际。 触发失效条件后，代理只可保留为边界探索，不得用于型号声明、精细比较或产品级公开比较，并应优先补采质量、制造、运输和供应链记录。
+    - generic [ref=f1e561]:
+      - heading "🔗 可引用 LCA 数据集与关联" [level=3] [ref=f1e562]
+      - paragraph [ref=f1e563]: "> 已核验关联 5 条：C0=5、C1=0、C2=0、C3=0、C4=0。这些记录用于发现与代理筛选；进入计算前仍须在具体项目中核对边界、许可和版本。"
+      - table [ref=f1e565]:
+        - rowgroup [ref=f1e566]:
+          - row [ref=f1e567]:
+            - columnheader "强度" [ref=f1e568]
+            - columnheader "数据库记录" [ref=f1e569]
+            - columnheader "数据库/版本" [ref=f1e570]
+            - columnheader "关联对象" [ref=f1e571]
+            - columnheader "潜在用途" [ref=f1e572]
+            - columnheader "主要限制" [ref=f1e573]
+            - columnheader "模型状态" [ref=f1e574]
+        - rowgroup [ref=f1e575]:
+          - row [ref=f1e576]:
+            - cell [ref=f1e577]:
+              - code [ref=f1e578]: C0
+              - text: · 外部对照
+            - cell [ref=f1e579]:
+              - link "はん用コンピュータ, GLO" [ref=f1e580] [cursor=pointer]:
+                - /url: https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx
+            - cell "AIST-IDEA 3.4 public sample" [ref=f1e581]
+            - cell [ref=f1e582]:
+              - code [ref=f1e583]: external_product_result
+            - cell "外部对照；不可替代" [ref=f1e584]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=f1e585]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=f1e586]
+          - row [ref=f1e587]:
+            - cell [ref=f1e588]:
+              - code [ref=f1e589]: C0
+              - text: · 外部对照
+            - cell [ref=f1e590]:
+              - link "はん用コンピュータ, JPN" [ref=f1e591] [cursor=pointer]:
+                - /url: https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx
+            - cell "AIST-IDEA 3.4 public sample" [ref=f1e592]
+            - cell [ref=f1e593]:
+              - code [ref=f1e594]: external_product_result
+            - cell "外部对照；不可替代" [ref=f1e595]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=f1e596]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=f1e597]
+          - row [ref=f1e598]:
+            - cell [ref=f1e599]:
+              - code [ref=f1e600]: C0
+              - text: · 外部对照
+            - cell [ref=f1e601]:
+              - link "ミッドレンジコンピュータ, GLO" [ref=f1e602] [cursor=pointer]:
+                - /url: https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx
+            - cell "AIST-IDEA 3.4 public sample" [ref=f1e603]
+            - cell [ref=f1e604]:
+              - code [ref=f1e605]: external_product_result
+            - cell "外部对照；不可替代" [ref=f1e606]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=f1e607]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=f1e608]
+          - row [ref=f1e609]:
+            - cell [ref=f1e610]:
+              - code [ref=f1e611]: C0
+              - text: · 外部对照
+            - cell [ref=f1e612]:
+              - link "ミッドレンジコンピュータ, JPN" [ref=f1e613] [cursor=pointer]:
+                - /url: https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx
+            - cell "AIST-IDEA 3.4 public sample" [ref=f1e614]
+            - cell [ref=f1e615]:
+              - code [ref=f1e616]: external_product_result
+            - cell "外部对照；不可替代" [ref=f1e617]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=f1e618]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=f1e619]
+          - row [ref=f1e620]:
+            - cell [ref=f1e621]:
+              - code [ref=f1e622]: C0
+              - text: · 外部对照
+            - cell [ref=f1e623]:
+              - link "PowerEdge FC430 carbon footprint" [ref=f1e624] [cursor=pointer]:
+                - /url: https://i.dell.com/sites/csdocuments/CorpComm_Docs/en/carbon-footprint-poweredge-fc430.pdf
+            - cell "Dell Product Carbon Footprint public document" [ref=f1e625]
+            - cell [ref=f1e626]:
+              - code [ref=f1e627]: external_product_result
+            - cell "外部对照；不可替代" [ref=f1e628]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=f1e629]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=f1e630]
+      - paragraph [ref=f1e631]:
+        - text: "> 关联不等于计算绑定；项目采用分别进入"
+        - code [ref=f1e632]: model_dataset_bindings.json
+        - text: 或
+        - code [ref=f1e633]: model_proxy_bindings.json
+        - text: 。
+  - generic [ref=f1e634]:
+    - heading "引用原文与核验记录" [level=2] [ref=f1e635]
+    - article [ref=f1e636]:
+      - generic [ref=f1e637]:
+        - generic [ref=f1e638]:
+          - generic [ref=f1e639]: dell-fc430-owner-2020
+          - generic [ref=f1e640]: Dell PowerEdge FC430 Owner's Manual — chassis dimensions and weight
+        - link "打开官方原文 ↗" [ref=f1e641] [cursor=pointer]:
+          - /url: https://www.dell.com/support/manuals/en-us/poweredge-fc430/fc430ownersmanual_pub/chassis-dimensions-and-weight?guid=guid-06f867c1-90a3-4ef0-847d-e34d84413476&lang=en-us
+      - generic [ref=f1e642]: verified · INT · manufacturer-manual · updated 2020-11-25 · Dell Technologies
+      - generic [ref=f1e643]:
+        - generic [ref=f1e644]: dell-fc430-owner-2020
+        - generic [ref=f1e645]: 定位：Technical specifications > Chassis dimensions and weight; Tables 1–2
+        - list [ref=f1e646]:
+          - listitem [ref=f1e647]: “FC430 dimensions are 102.7 mm by 40.3 mm by 480.36 mm.”
+          - listitem [ref=f1e648]: “Maximum chassis weight is 3.0 kg.”
+        - generic [ref=f1e649]: 核验：Dell official manual page opened and Tables 1–2 checked on 2026-08-11.
+    - article [ref=f1e650]:
+      - generic [ref=f1e651]:
+        - generic [ref=f1e652]:
+          - generic [ref=f1e653]: dell-fc430-pcf-2019
+          - generic [ref=f1e654]: Dell PowerEdge FC430 Estimated Product Carbon Footprint
+        - link "打开官方原文 ↗" [ref=f1e655] [cursor=pointer]:
+          - /url: https://i.dell.com/sites/csdocuments/CorpComm_Docs/en/carbon-footprint-poweredge-fc430.pdf
+      - generic [ref=f1e656]: verified · EU reference scenario · manufacturer-pcf · 2019-02 · Dell Inc.
+      - generic [ref=f1e657]:
+        - generic [ref=f1e658]: dell-fc430-pcf-2019
+        - generic [ref=f1e659]: 定位：pp.1–2; highest-selling configuration and calculation assumptions
+        - list [ref=f1e660]:
+          - listitem [ref=f1e661]: “Product Weight 3 kg; Server Type Blade; Assembly Location EU.”
+          - listitem [ref=f1e662]: “HDD/SSD Quantity x2 200GB SSD 1.8 inch; DRAM Capacity 16GB; CPU Quantity 2.”
+        - generic [ref=f1e663]: 核验：Downloaded from Dell official domain; PDF hash frozen; page 2 assumptions extracted deterministically on 2026-08-11.
+    - article [ref=f1e664]:
+      - generic [ref=f1e665]:
+        - generic [ref=f1e666]:
+          - generic [ref=f1e667]: dell-fc430-spec-2016
+          - generic [ref=f1e668]: Dell PowerEdge FC430 Specification Sheet
+        - link "打开官方原文 ↗" [ref=f1e669] [cursor=pointer]:
+          - /url: https://i.dell.com/sites/csdocuments/Product_Docs/en/poweredge-fc430-spec-sheet.pdf
+      - generic [ref=f1e670]: verified · INT · manufacturer-specification · v2; 2016-12-06 · Dell Inc.
+      - generic [ref=f1e671]:
+        - generic [ref=f1e672]: dell-fc430-spec-2016
+        - generic [ref=f1e673]: 定位：pp.1–2; workload choices and technical specification table
+        - list [ref=f1e674]:
+          - listitem [ref=f1e675]: “Quarter-width; supports up to 8 sleds per PowerEdge FX2 enclosure.”
+          - listitem [ref=f1e676]: “Up to 256GB across 8 DIMM slots; up to two 1.8-inch uSATA SSDs.”
+        - generic [ref=f1e677]: 核验：Downloaded from Dell official domain; PDF hash frozen; specification table cross-checked on 2026-08-11.
+    - article [ref=f1e678]:
+      - generic [ref=f1e680]:
+        - generic [ref=f1e681]: internal-graph
+        - generic [ref=f1e682]: lca-cornerstone ICT 名称图冻结节点与连线
+      - generic [ref=f1e683]: verified · INT · internal-authoritative-graph · 2026-08-03 · lca-cornerstone authoritative name graph
+      - generic [ref=f1e684]:
+        - generic [ref=f1e685]: internal-graph
+        - generic [ref=f1e686]: 定位：docs/ict_equipment-name-graph.json；P031 及相邻 edges
+        - list [ref=f1e687]:
+          - listitem [ref=f1e688]: “P031 is a foreground byproduct produced by 15 activities and has no consumed_by edge.”
+        - generic [ref=f1e689]: 核验：定向 jq 读取 P031 节点，并由 wiki_lint 对账相邻边，2026-08-03
+    - article [ref=f1e690]:
+      - generic [ref=f1e691]:
+        - generic [ref=f1e692]:
+          - generic [ref=f1e693]: 8 条断言引用
+          - generic [ref=f1e694]: European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products
+        - link "打开官方原文 ↗" [ref=f1e695] [cursor=pointer]:
+          - /url: http://publications.europa.eu/resource/cellar/1f9a2ad2-494c-11e9-a8ed-01aa75ed71a1.0006.03/DOC_1
+      - generic [ref=f1e696]: verified · UNSPECIFIED · web · - · claim-verified
+      - generic [ref=f1e697]:
+        - generic [ref=f1e698]: 引用 1/8
+        - generic [ref=f1e699]: 定位：Annex I point 9, blade server includes at least one processor and system memory
+        - list [ref=f1e700]:
+          - listitem [ref=f1e701]: “includes at least one processor and system memory”
+        - generic [ref=f1e702]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-4; verdict=CONFIRMED
+      - generic [ref=f1e703]:
+        - generic [ref=f1e704]: 引用 2/8
+        - generic [ref=f1e705]: 定位：Annex I point 9, blade server dependent on shared chassis resources for operation
+        - list [ref=f1e706]:
+          - listitem [ref=f1e707]: “is dependent upon shared blade chassis resources (e.g., power supply units, cooling) for operation.”
+        - generic [ref=f1e708]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-20; verdict=CONFIRMED
+      - generic [ref=f1e709]:
+        - generic [ref=f1e710]: 引用 3/8
+        - generic [ref=f1e711]: 定位：Annex I point 9, blade server definition
+        - list [ref=f1e712]:
+          - listitem [ref=f1e713]: “‘blade server’ means a server that is designed for use in a blade chassis.”
+        - generic [ref=f1e714]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-8; verdict=CONFIRMED
+      - generic [ref=f1e715]:
+        - generic [ref=f1e716]: 引用 4/8
+        - generic [ref=f1e717]: 定位：Annex I point 9, blade server functions as independent server
+        - list [ref=f1e718]:
+          - listitem [ref=f1e719]: “functions as an independent server”
+        - generic [ref=f1e720]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-9; verdict=CONFIRMED
+      - generic [ref=f1e721]:
+        - generic [ref=f1e722]: 引用 5/8
+        - generic [ref=f1e723]: 定位：Annex I point 9, blade server designed for use in a blade chassis
+        - list [ref=f1e724]:
+          - listitem [ref=f1e725]: “‘blade server’ means a server that is designed for use in a blade chassis.”
+        - generic [ref=f1e726]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-12; verdict=CONFIRMED
+      - generic [ref=f1e727]:
+        - generic [ref=f1e728]: 引用 6/8
+        - generic [ref=f1e729]: 定位：Annex I point 9, blade server high-density independent server device
+        - list [ref=f1e730]:
+          - listitem [ref=f1e731]: “A blade server is a high-density device that functions as an independent server”
+        - generic [ref=f1e732]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-5; verdict=CONFIRMED
+      - generic [ref=f1e733]:
+        - generic [ref=f1e734]: 引用 7/8
+        - generic [ref=f1e735]: 定位：Annex I point 9, blade server definition
+        - list [ref=f1e736]:
+          - listitem [ref=f1e737]: “A blade server is a high-density device that functions as an independent server”
+        - generic [ref=f1e738]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-0; verdict=CONFIRMED
+      - generic [ref=f1e739]:
+        - generic [ref=f1e740]: 引用 8/8
+        - generic [ref=f1e741]: 定位：Annex I point 9, blade server is a server
+        - list [ref=f1e742]:
+          - listitem [ref=f1e743]: “‘blade server’ means a server”
+        - generic [ref=f1e744]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-19; verdict=CONFIRMED
+    - article [ref=f1e745]:
+      - generic [ref=f1e746]:
+        - generic [ref=f1e747]:
+          - generic [ref=f1e748]: 2 条断言引用
+          - generic [ref=f1e749]: IBM, What is a blade server?
+        - link "打开官方原文 ↗" [ref=f1e750] [cursor=pointer]:
+          - /url: https://www.ibm.com/think/topics/blade-server
+      - generic [ref=f1e751]: verified · UNSPECIFIED · web · - · claim-verified
+      - generic [ref=f1e752]:
+        - generic [ref=f1e753]: 引用 1/2
+        - generic [ref=f1e754]: 定位：What is a blade server
+        - list [ref=f1e755]:
+          - listitem [ref=f1e756]: “Blade servers, also known as high-density servers, are compact computing modules that manage the distribution of data across a computer network .”
+        - generic [ref=f1e757]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-13; verdict=CONFIRMED
+      - generic [ref=f1e758]:
+        - generic [ref=f1e759]: 引用 2/2
+        - generic [ref=f1e760]: 定位：What is a blade server, blade servers also known as high-density servers
+        - list [ref=f1e761]:
+          - listitem [ref=f1e762]: “Blade servers, also known as high-density servers”
+        - generic [ref=f1e763]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-1; verdict=CONFIRMED
+  - generic [ref=f1e764]:
+    - heading "修改日志" [level=3] [ref=f1e765]
+    - heading "2026-08-11 · P003 参考配置表格数据回填" [level=4] [ref=f1e766]
+    - list [ref=f1e767]:
+      - listitem [ref=f1e768]:
+        - strong [ref=f1e769]: 参考配置：
+        - text: Dell PowerEdge FC430 官方 PCF 的最高销量配置；规格边界由 Dell 官方规格表交叉约束。
+      - listitem [ref=f1e770]:
+        - strong [ref=f1e771]: 新增数据：
+        - text: 回填质量、处理器、内存、存储、网络、共享机箱接口、地理和代表期；中国型号值、公开 BOM、供应商与包装数据保持显式缺口。
+      - listitem [ref=f1e772]:
+        - strong [ref=f1e773]: 适用限制：
+        - text: 本批次只形成单一国际参考配置，不代表 P003 全部型号，也不构成中国实测前景 LCI。
+      - listitem [ref=f1e774]:
+        - strong [ref=f1e775]: 工程控制：
+        - text: 数据先进入冻结 collection，经 Table Population Gate 后再按页面与 registry 双 hash 原子应用。
+    - heading "2026-08-11 · 断言级溯源受控合并" [level=4] [ref=f1e776]
+    - list [ref=f1e777]:
+      - listitem [ref=f1e778]:
+        - strong [ref=f1e779]: 发现的问题：
+        - text: 本次送审断言中有 15 条取得独立支持、146 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=f1e780]:
+        - strong [ref=f1e781]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=f1e782]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=f1e783]:
+        - strong [ref=f1e784]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=f1e785]:
+        - strong [ref=f1e786]: 数据影响：
+        - text: 本次处理 161 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-08-10 · 断言级溯源受控合并" [level=4] [ref=f1e787]
+    - list [ref=f1e788]:
+      - listitem [ref=f1e789]:
+        - strong [ref=f1e790]: 发现的问题：
+        - text: 本次送审断言中有 10 条取得独立支持、20 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=f1e791]:
+        - strong [ref=f1e792]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=f1e793]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=f1e794]:
+        - strong [ref=f1e795]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=f1e796]:
+        - strong [ref=f1e797]: 数据影响：
+        - text: 本次处理 30 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-08-03 · 断言级溯源受控合并" [level=4] [ref=f1e798]
+    - list [ref=f1e799]:
+      - listitem [ref=f1e800]:
+        - strong [ref=f1e801]: 发现的问题：
+        - text: 本次送审断言中有 4 条取得独立支持、13 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=f1e802]:
+        - strong [ref=f1e803]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=f1e804]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=f1e805]:
+        - strong [ref=f1e806]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=f1e807]:
+        - strong [ref=f1e808]: 数据影响：
+        - text: 本次处理 17 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-08-03 · P003 官方来源补充" [level=4] [ref=f1e809]
+    - list [ref=f1e810]:
+      - listitem [ref=f1e811]:
+        - strong [ref=f1e812]: 范围：
+        - text: 重新冻结 6 条外部断言，来源限定为 Dell 的 M1000e 产品页与 UNSD ISIC Rev.4 2620 页面。
+      - listitem [ref=f1e813]:
+        - strong [ref=f1e814]: 核验：
+        - text: 独立 Verify-only 在无联网条件下逐条裁决，6/6 为 CONFIRMED；本页采用其中 4 条不重复、直接服务于节点边界或分类的断言。
+      - listitem [ref=f1e815]:
+        - strong [ref=f1e816]: 结果：
+        - text: 页面保留为
+        - code [ref=f1e817]: draft/partial
+        - text: ，因为本次是对既有草稿的局部补充，尚未形成覆盖全页的 production coverage 与 Go/No-Go 放行证据。
+      - listitem [ref=f1e818]:
+        - strong [ref=f1e819]: 数据影响：
+        - text: 未新增 LCI 数值，未改变名称图、刻面或边。
+    - heading "2026-08-03 · 断言级溯源受控合并" [level=4] [ref=f1e820]
+    - list [ref=f1e821]:
+      - listitem [ref=f1e822]:
+        - strong [ref=f1e823]: 发现的问题：
+        - text: 本次送审断言中有 0 条取得独立支持、9 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=f1e824]:
+        - strong [ref=f1e825]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=f1e826]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=f1e827]:
+        - strong [ref=f1e828]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=f1e829]:
+        - strong [ref=f1e830]: 数据影响：
+        - text: 本次处理 9 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-07-30 · 从“预先强绑定”改为“可引用数据集关联”" [level=4] [ref=f1e831]
+    - list [ref=f1e832]:
+      - listitem [ref=f1e833]:
+        - strong [ref=f1e834]: 发现的问题：
+        - text: 节点 Wiki 的目的，是让后续 LCA 建模快速发现可直接引用或可作代理的数据集；旧栏目只展示正式绑定和 C2，隐藏了具有代理筛选价值的 C1，也把部分真实相邻记录直接归入否决，容易把“关联强弱”误读成“能否立即计算”。
+      - listitem [ref=f1e835]:
+        - strong [ref=f1e836]: 采取的修改：
+        - text: 按冻结的官方/公开证据重新裁决本节点的数据集引用关系，当前展示 5 条关联（C0=5、C1=0、C2=0、C3=0、C4=0），另保留 0 条真正否决；每条同时标记关联对象、潜在用途、主要限制和项目裁决要求。
+      - listitem [ref=f1e837]:
+        - strong [ref=f1e838]: 修改原则：
+        - text: C0–C4 只表示节点—数据集关联强度，不授予计算权限；C1/C2 可进入项目级 P0–P3 代理裁决，C3/C4 也必须在具体模型中核对边界、许可和版本后才形成真正绑定。
+  - generic [ref=f1e839]:
+    - link "← 服务器, 通用计算, 1U" [ref=f1e841] [cursor=pointer]:
+      - /url: "?id=P002"
+    - link "GPU服务器, AI训练, 4U →" [ref=f1e843] [cursor=pointer]:
+      - /url: "?id=P004"

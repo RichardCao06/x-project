@@ -1,0 +1,903 @@
+{
+  "_meta": {
+    "industry": "ict_equipment",
+    "count": 57,
+    "note": "P004、A011、P019、A002、P040、P042 与 P074–P077 节点 Wiki 溯源试制。verified 仅用于已打开原文并核对支持范围或可由权威名称图直接复核的来源；企业级披露、产品族手册和一般环评不得直接当作目标 SKU/单板中国实测 LCI。"
+  },
+  "sources": {
+    "cpc": {
+      "title": "联合国中心产品分类(CPC)",
+      "type": "classification",
+      "version": "Rev.2.1",
+      "locator": "UNSD",
+      "hash": "",
+      "status": "seed-unverified",
+      "region": "INT"
+    },
+    "ecoinvent": {
+      "title": "ecoinvent LCI 数据库",
+      "type": "LCI-db",
+      "version": "3.x",
+      "locator": "ecoinvent Association",
+      "hash": "",
+      "status": "seed-unverified",
+      "region": "INT"
+    },
+    "gabi": {
+      "title": "GaBi/Sphera LCI 数据库",
+      "type": "LCI-db",
+      "version": "2023",
+      "locator": "Sphera",
+      "hash": "",
+      "status": "seed-unverified",
+      "region": "INT"
+    },
+    "hs": {
+      "title": "商品名称及编码协调制度(HS)",
+      "type": "classification",
+      "version": "2022",
+      "locator": "WCO 世界海关组织",
+      "hash": "",
+      "status": "seed-unverified",
+      "region": "INT"
+    },
+    "internal-review": {
+      "title": "内部评审与建模约定",
+      "type": "internal",
+      "version": "-",
+      "locator": "docs/采集与制作方案.md / 对话记录",
+      "hash": "",
+      "status": "seed-unverified",
+      "region": "INT"
+    },
+    "internal-modeling-judgment": {
+      "title": "INTERNAL_MODELING_JUDGMENT",
+      "type": "internal",
+      "version": "-",
+      "locator": "P003 页面中显式标注的系统边界、参考流、采集字段与数据缺口判断",
+      "hash": "",
+      "status": "seed-unverified",
+      "region": "INT"
+    },
+    "internal-graph": {
+      "title": "lca-cornerstone ICT 名称图冻结节点与连线",
+      "type": "internal-authoritative-graph",
+      "version": "2026-08-03",
+      "locator": "docs/ict_equipment-name-graph.json；P031 及相邻 edges",
+      "authority": "lca-cornerstone authoritative name graph",
+      "hash": "",
+      "ref_count": 4,
+      "excerpt_seeds": [
+        "P031 is a foreground byproduct produced by 15 activities and has no consumed_by edge."
+      ],
+      "status": "verified",
+      "region": "INT",
+      "verified_via": "定向 jq 读取 P031 节点，并由 wiki_lint 对账相邻边，2026-08-03"
+    },
+    "p003-internal-graph": {
+      "title": "lca-cornerstone P003 名称图冻结节点与连线",
+      "type": "internal-authoritative-graph",
+      "version": "2026-08-03",
+      "locator": "docs/ict_equipment-name-graph.json；P003、A039 及相邻 edges",
+      "authority": "lca-cornerstone authoritative name graph",
+      "hash": "",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "P003 is a foreground blade CPU compute server produced by A039 and has no consumed_by edge."
+      ],
+      "status": "verified",
+      "region": "INT",
+      "verified_via": "定向 jq 读取 P003、A039 节点，并由 wiki_lint 对账相邻边，2026-08-03"
+    },
+    "ku-2d9d20e3e40fd79f": {
+      "title": "IPC-9261A In-Process DPMO and Estimated Yield for PCAs — Scope",
+      "type": "industry-standard",
+      "version": "IPC-9261A; accessed 2026-08-03",
+      "locator": "§1.1 Scope",
+      "authority": "IPC",
+      "hash": "5a7ab2d1b3f1869ce16de003ee6bb27ddb22c0f683b0a6419dc0a29370dee2da",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "This document defines standard methodolo- gies for calculating defects per million opportunities (DPMO) metrics related to electronic printed board assembly processes. It is intended for use in measuring in-process assembly steps rather than end product determination."
+      ],
+      "status": "verified",
+      "region": "INT",
+      "verified_via": "wiki-ku-v1; claim_id=P031-v3-01; deterministic Search/Fetch + no-Web Verify",
+      "url": "https://www.electronics.org/TOC/IPC-9261A.pdf"
+    },
+    "ku-bf4452259fa36967": {
+      "title": "IPC-9261A In-Process DPMO and Estimated Yield for PCAs — Defect attribution",
+      "type": "industry-standard",
+      "version": "IPC-9261A; accessed 2026-08-03",
+      "locator": "§1.2 Purpose",
+      "authority": "IPC",
+      "hash": "5a7ab2d1b3f1869ce16de003ee6bb27ddb22c0f683b0a6419dc0a29370dee2da",
+      "ref_count": 3,
+      "excerpt_seeds": [
+        "To facilitate process improvement, defects discovered at any stated inspection or test point should be assigned to their appropriate process step."
+      ],
+      "status": "verified",
+      "region": "INT",
+      "verified_via": "wiki-ku-v1; claim_id=P031-v3-02; deterministic Search/Fetch + no-Web Verify",
+      "url": "https://www.electronics.org/TOC/IPC-9261A.pdf"
+    },
+    "ku-9e454e4ae80cca4e": {
+      "title": "IPC-9261A In-Process DPMO and Estimated Yield for PCAs — Estimated yield",
+      "type": "industry-standard",
+      "version": "IPC-9261A; accessed 2026-08-03",
+      "locator": "§1.3.3 Process Step Estimated Yield",
+      "authority": "IPC",
+      "hash": "5a7ab2d1b3f1869ce16de003ee6bb27ddb22c0f683b0a6419dc0a29370dee2da",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "The expected percentage of assemblies with no defects for a particular process step or combined process steps, based on historical defect rates."
+      ],
+      "status": "verified",
+      "region": "INT",
+      "verified_via": "wiki-ku-v1; claim_id=P031-v3-04; deterministic Search/Fetch + no-Web Verify",
+      "url": "https://www.electronics.org/TOC/IPC-9261A.pdf"
+    },
+    "ku-80c1b867f7349dba": {
+      "title": "Basel Convention decision BC-16/5",
+      "type": "international-convention-decision",
+      "version": "BC-16/5; accessed 2026-08-03",
+      "locator": "paragraph 2",
+      "authority": "Conference of the Parties to the Basel Convention",
+      "hash": "818a8c267fd651dc4d561c15f0fa3848f56b22e1ac93c365a5c35fdd0252f90d",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "Adopts on an interim basis the revised technical guidelines on transboundary movements of electrical and electronic waste and used electrical and electronic equipment, in particular regarding the distinction between waste and non-waste under the Basel Convention;"
+      ],
+      "status": "verified",
+      "region": "INT",
+      "verified_via": "wiki-ku-v1; claim_id=P031-v3-05; deterministic Search/Fetch + no-Web Verify",
+      "url": "https://www.basel.int/Portals/4/download.aspx?d=UNEP-CHW-COP.16-BC-16-5.English.pdf"
+    },
+    "isic": {
+      "title": "国际标准产业分类(ISIC)",
+      "type": "classification",
+      "version": "Rev.4",
+      "locator": "UNSD",
+      "hash": "",
+      "status": "seed-unverified",
+      "region": "INT"
+    },
+    "ku-amd-rx9070xt-spec": {
+      "title": "AMD Radeon RX 9070 XT Official Specifications",
+      "type": "manufacturer-product-spec",
+      "version": "accessed 2026-07-27",
+      "locator": "https://www.amd.com/en/products/graphics/desktops/radeon/9000-series/amd-radeon-rx-9070xt.html；lines 490–622",
+      "authority": "AMD",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "Board Type is Desktop and the product uses additional power connectors.",
+        "The page lists 16 GB GDDR6, 256-bit memory interface and 304 W typical board power."
+      ],
+      "status": "seed-unverified"
+    },
+    "ku-cn-chongqing-dram-fbga-eia-2024": {
+      "title": "重庆高新区某电子项目环境影响报告表 — DRAM/NAND Package FBGA 封装与测试",
+      "type": "government-eia-report",
+      "version": "2024-03",
+      "locator": "https://gxq.cq.gov.cn/hbslgg/202403/W020240312483781396311.pdf；pp.40–42，§2.4.3、表2.4-3至表2.4-4",
+      "authority": "重庆高新技术产业开发区管理委员会公开文件",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 11,
+      "excerpt_seeds": [
+        "The project states that DRAM Package and NAND Package products use an FBGA packaging process followed by testing.",
+        "The disclosed FBGA route includes wafer back grinding, dicing, die attach, wire bonding, EMC molding, ball attach, singulation and transfer to testing.",
+        "The testing route includes temperature/pressure screening, electrical and speed tests, sorting, marking, visual inspection and packaging."
+      ],
+      "status": "verified",
+      "verified_via": "主会话打开政府公开 PDF 并核对 pp.40–42 工序原文，2026-07-28",
+      "url": "https://gxq.cq.gov.cn/hbslgg/202403/W020240312483781396311.pdf"
+    },
+    "ku-cn-rohs-2016": {
+      "title": "电器电子产品有害物质限制使用管理办法",
+      "type": "regulation",
+      "version": "工业和信息化部等八部门令第32号",
+      "locator": "https://www.miit.gov.cn/jgsj/zfs/gzdt/art/2020/art_26714a290ac8407fb6df9eb816c2596f.html；第二至三条",
+      "authority": "中华人民共和国工业和信息化部等八部门",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 4,
+      "excerpt_seeds": [
+        "办法适用于在中国境内生产、销售和进口的电器电子产品。",
+        "办法列出铅、汞、镉、六价铬、PBB、PBDE等有害物质，并要求相关标注与限制使用措施。"
+      ],
+      "status": "seed-unverified"
+    },
+    "ku-cn-smd-yfvs-eia-2019": {
+      "title": "延锋伟世通怡东汽车仪表有限公司 SMD 产线新建项目环境影响报告表",
+      "type": "government-eia-report",
+      "version": "2019；accessed 2026-07-29",
+      "authority": "绍兴市柯桥区政府公开文件",
+      "region": "CN",
+      "status": "verified",
+      "locator": "https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web2944/site/attach/xxzfwzx/zwgk/tzgg/201903/P020190321328767382504.pdf；pp.3–4、26、28–31，表1.1-2、表1.1-3、图5.1-1、表5.3-4、表5.3-8",
+      "url": "https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web2944/site/attach/xxzfwzx/zwgk/tzgg/201903/P020190321328767382504.pdf",
+      "excerpt_seeds": [
+        "项目公开的 SMD 路线包括锡膏印刷、SPI、贴片、回流焊、AOI、线路板测试、裁板、组装与包装。",
+        "设备表列出锡膏印刷机1台、SPI 1台、贴片机2台、AOI 1台、线路板测试机1台、裁板机1台和回流焊炉1台。",
+        "项目表列出36万片线路板/年、10吨表面贴装元器件/年、1吨无铅焊锡膏/年、0.2吨助焊剂/年、0.2吨清洗剂/年和50万kWh/年生产生活合计用电。",
+        "固废表列出废线路板0.5吨/年、废清洗液0.2吨/年和废助焊剂0.1吨/年。",
+        "项目是汽车仪表 SMD 线且包含裁板、组装、包装及生活用电，不能直接代表服务器等目标 PCBA 的 SMT 单元过程。"
+      ],
+      "verified_via": "主会话从政府公开地址下载 PDF，核对文件 SHA-256，并逐项核对设备、产能、物料能源、工艺边界和固废表，2026-07-29"
+    },
+    "ku-cn-xuchang-pcba-2018": {
+      "title": "许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "type": "government-eia-approval",
+      "version": "许环建审〔2018〕36号",
+      "locator": "https://sthjj.xuchang.gov.cn/yghb/001001/20180809/ba8ecd15-a38a-4d59-821c-afd6ece39c19.html；第二至三条、lines 16–27",
+      "authority": "许昌市生态环境局",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "The approved process includes solder-paste printing, inspection, placement, reflow soldering, AOI, repair, wave soldering and product inspection.",
+        "The project identifies soldering exhaust, waste packaging, solder dross, solder-paste containers, waste circuit boards and electronic components."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者核对许昌市生态环境局官方批复的工序与废物流，2026-07-27"
+    },
+    "ku-d980c3e309044a3a": {
+      "title": "排污许可证申请与核发技术规范 电子工业",
+      "type": "national-environmental-standard",
+      "version": "HJ 1031—2019",
+      "locator": "https://www.mee.gov.cn/ywgz/fgbz/bz/bzwb/pwxk/201907/t20190726_712441.shtml；lines 32–42",
+      "authority": "中华人民共和国生态环境部",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "标准规定实际排放量核算、自行监测、环境管理台账和排污许可证执行报告要求。"
+      ],
+      "status": "verified",
+      "verified_via": "consumer_electronics::P069 独立 checker 核验生态环境部标准发布页，2026-07-27",
+      "url": "https://www.mee.gov.cn/ywgz/fgbz/bz/bzwb/pwxk/201907/t20190726_712441.shtml"
+    },
+    "ku-dram-taiwan-lca-boundary-2010": {
+      "title": "Life cycle assessment of DRAM in Taiwan's semiconductor industry",
+      "type": "peer-reviewed-paper",
+      "version": "Journal of Cleaner Production 18(5), 2010",
+      "locator": "https://doi.org/10.1016/j.jclepro.2009.10.004；abstract/system boundary lines 61–72",
+      "authority": "Journal of Cleaner Production",
+      "region": "TW",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "The study evaluates energy and chemicals used in DRAM manufacturing in Taiwan.",
+        "Its stated system boundary excludes silicon-wafer production, DRAM assembly and packaging, product use, disposal and transportation.",
+        "The published study therefore cannot directly supply a cradle-to-gate packaged-DRAM product inventory for P040."
+      ],
+      "status": "verified",
+      "verified_via": "主会话打开论文摘要与系统边界原文并核对适用限制，2026-07-28",
+      "url": "https://doi.org/10.1016/j.jclepro.2009.10.004"
+    },
+    "ku-ecoinvent-v312-overview-ict": {
+      "title": "ecoinvent Database Overview v3.12 — ICT batch matching records",
+      "type": "official-lci-database-catalog",
+      "version": "3.12；Cut-Off；accessed 2026-07-29",
+      "authority": "ecoinvent Association",
+      "region": "INT",
+      "status": "verified",
+      "locator": "https://support.ecoinvent.org/hubfs/Knowledge%20Base/Database/Releases/3.12/Database%20Overview%20v3.12.xlsx；sheet Cut-Off AO；P065 row 2411 / UUID e45b56e4-029f-55ba-bc24-eb19aa4bded4；P066 row 17276 / UUID 64d70fe5-a32d-52a9-8901-3b52f9e4ab4e；workbook sha256 93b9f045833316560b92c6560f338d4766b08c5f54fd8ac03ee87de03a88098c",
+      "url": "https://support.ecoinvent.org/hubfs/Knowledge%20Base/Database/Releases/3.12/Database%20Overview%20v3.12.xlsx",
+      "excerpt_seeds": [
+        "Cut-Off AO lists computer production, desktop, without screen, GLO, with activity UUID 600fa501-f676-5956-a027-f0464d58803a.",
+        "Cut-Off AO lists integrated circuit production, memory type, GLO, with activity UUID a77fe8ac-52ef-56e6-894d-0fc6d949680d.",
+        "Cut-Off AO lists mounted desktop-mainboard and unspecified surface-mounted printed-wiring-board production records, both Pb free and GLO.",
+        "Cut-Off AO lists market group for electricity, medium voltage, CN, with activity UUID 64d70fe5-a32d-52a9-8901-3b52f9e4ab4e and reference unit kWh.",
+        "The CN medium-voltage market-group product information includes transmission infrastructure, country-specific losses and transformation losses; its public time period is 2015-2025.",
+        "Cut-Off AO row 2411 lists corrugated board box production, RoW, kg, 2008-2025; the product information describes cutting, printing, slotting, folding and gluing corrugated board.",
+        "Cut-Off AO lists mounting, surface mount technology, Pb-free solder, GLO, UUID f7e74531-77f4-5b90-8ad9-8a596b82e141, with reference unit m2; its product information describes mounting one square metre of printed wiring board using lead-free solder paste.",
+        "ICT batch matching also checked official records for logic and memory ICs, passive and active components, bare and mounted PWB, PSU, HDD, fans, connectors, cable, solder paste, transistors and corrugated boxes."
+      ],
+      "verified_via": "从 ecoinvent 官方 v3.12 overview 下载 XLSX；核对文件哈希并定向解析 Cut-Off AO 的活动、参考产品、UUID、地域、时间、单位和产品说明；再用 ecoinvent 官方许可页确认游客仅可访问元数据、完整交换与累计清单需许可证，2026-07-29"
+    },
+    "ku-h3c-r5300-g5": {
+      "title": "H3C UniServer R5300 G5服务器用户指南",
+      "type": "manufacturer-product-manual",
+      "version": "6W112；accessed 2026-07-27",
+      "locator": "https://www.h3c.com/cn/d_202401/2020942_30005_0.htm；2.1简介、表2-1、表2-2、表2-4至表2-5",
+      "authority": "新华三技术有限公司",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "R5300 G5是4U两路GPU服务器。",
+        "系列覆盖4GPU、8GPU、16GPU和HGX 4-GPU模块机型。",
+        "手册列出主板、GPU、电源、网卡、硬盘、风扇、内存和机箱等部件。"
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者逐项打开 H3C 官方手册并核对 §2.1、表2-1、§2.3，2026-07-27",
+      "url": "https://www.h3c.com/cn/d_202401/2020942_30005_0.htm"
+    },
+    "ku-h3c-server-pcf-2024": {
+      "title": "新华三服务器全系碳足迹发布",
+      "type": "manufacturer-carbon-footprint-disclosure",
+      "version": "2024-04-26",
+      "locator": "https://www.h3c.com/cn/d_202404/2115184_473262_0.htm；正文 lines 731–770",
+      "authority": "新华三技术有限公司",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 3,
+      "excerpt_seeds": [
+        "披露覆盖9款服务器并采用ISO 14040、ISO 14044和ISO 14067框架。",
+        "评价边界覆盖原材料、制造、运输、使用和报废阶段。",
+        "主要环境影响指标为全球变暖潜势。"
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者逐项打开 H3C 官方披露并核对评价框架与边界，2026-07-27",
+      "url": "https://www.h3c.com/cn/d_202404/2115184_473262_0.htm"
+    },
+    "ku-hbm-public-lci-gap": {
+      "title": "HBM公开LCI证据审计",
+      "type": "evidence-audit",
+      "version": "2026-07-27",
+      "locator": "Samsung HBM2e Carbon Trust certificate; Samsung semiconductor DNV assurance statement; English/Chinese HBM LCI and project disclosure search",
+      "authority": "lca-cornerstone independent verification",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "The audit did not obtain a reproducible HBM unit-process inventory or China HBM product-allocated plant inventory.",
+        "The evidence verdict is INSUFFICIENT and must not be stated as non-existence."
+      ],
+      "status": "verified",
+      "verified_via": "独立checker执行公开来源审计，2026-07-27"
+    },
+    "ku-hpe-dl325-gen11-pcf": {
+      "title": "HPE Product Carbon Footprint — HPE ProLiant DL325 Gen11 Server",
+      "type": "manufacturer-carbon-footprint-disclosure",
+      "version": "accessed 2026-07-27",
+      "locator": "https://www.hpe.com/psnow/downloadDoc/HPE%20product%20carbon%20footprint%20%E2%80%93%20HPE%20ProLiant%20DL325%20Gen11%20Server-a00140770enw.pdf?contentDisposition=attachment&id=a00140770enw；pp.1–2, tables 1–2",
+      "authority": "Hewlett Packard Enterprise",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "The configuration table records CPU, DRAM, network adapter, storage controller, SSD, power supply and product weight.",
+        "Use-stage fields include product lifetime, PUE and yearly energy.",
+        "PAIA is used for manufacturing and end-of-life greenhouse-gas estimates."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者逐项核对 HPE 官方 PDF 的表 1、表 2 与方法说明，2026-07-27",
+      "url": "https://www.hpe.com/psnow/downloadDoc/HPE%20product%20carbon%20footprint%20%E2%80%93%20HPE%20ProLiant%20DL325%20Gen11%20Server-a00140770enw.pdf?contentDisposition=attachment&id=a00140770enw"
+    },
+    "ku-ict-a011-spine": {
+      "title": "lca-cornerstone ICT Equipment Name Graph — A011 System Assembly",
+      "type": "internal-authoritative-graph",
+      "version": "2026-07-27",
+      "locator": "docs/ict_equipment-name-graph.json；A011、P004、P019、P024、P026、P027、P029、P049、P051、P055、P057、P059、P061、P063、P064、P066 及对应 edges",
+      "authority": "lca-cornerstone authoritative name graph",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 10,
+      "excerpt_seeds": [
+        "A011 produces P004 as its reference product.",
+        "A011 consumes fourteen product flows, including boards, accelerator cards, memory, storage, power, cooling, structure, cabling, interface material, plastics and electricity.",
+        "A022 and A023 are separate downstream testing and configuration activities."
+      ],
+      "status": "verified",
+      "verified_via": "主会话定向读取 A011 节点与全部 15 条相邻 edges，2026-07-27"
+    },
+    "ku-ict-graphics-spine": {
+      "title": "lca-cornerstone ICT Equipment Name Graph — Graphics Card Stages",
+      "type": "internal-authoritative-graph",
+      "version": "2026-07-27",
+      "locator": "docs/ict_equipment-name-graph.json；P067–P079、A041–A044 及对应 edges",
+      "authority": "lca-cornerstone authoritative name graph",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 18,
+      "excerpt_seeds": [
+        "A041 produces P074; A042 consumes P074 and produces P075.",
+        "A043 consumes P075 and produces P076; A044 consumes P076 and produces P077.",
+        "P074–P077 product_subtype 分别为 graphics_card_pcba、graphics_card_assembled、graphics_card_tested、graphics_card_packaged。"
+      ],
+      "status": "verified",
+      "verified_via": "主会话定向读取权威节点与 edges，2026-07-27"
+    },
+    "ku-ict-p004-spine": {
+      "title": "lca-cornerstone ICT Equipment Name Graph — P004 and Adjacent Activities",
+      "type": "internal-authoritative-graph",
+      "version": "2026-07-27",
+      "locator": "docs/ict_equipment-name-graph.json；P004、A011、A020、A022、A023 及对应 edges",
+      "authority": "lca-cornerstone authoritative name graph",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "A011 produces P004; A020 consumes P004.",
+        "A022 and A023 each consume and produce P004.",
+        "P004 identity facets are server, system, gpu_ai_training and 4u."
+      ],
+      "status": "verified",
+      "verified_via": "主会话定向读取权威节点与 edges，2026-07-27"
+    },
+    "ku-ict-p019-a002-spine": {
+      "title": "lca-cornerstone ICT Equipment Name Graph — P019 and A002",
+      "type": "internal-authoritative-graph",
+      "version": "2026-07-27",
+      "locator": "docs/ict_equipment-name-graph.json；P019、A002、A011、A012、P030、P031 及 A002/P019 全部相邻 edges",
+      "authority": "lca-cornerstone authoritative name graph",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 12,
+      "excerpt_seeds": [
+        "A002 produces P019 as reference product and P030/P031 as additional outputs.",
+        "A002 currently consumes ten product flows including CPU, GPU, DRAM and HBM packages.",
+        "P019 is consumed by both A011 training-server assembly and A012 inference-server assembly."
+      ],
+      "status": "verified",
+      "verified_via": "主会话定向读取 P019、A002 与全部相邻 edges，2026-07-27"
+    },
+    "ku-ict-p040-spine": {
+      "title": "lca-cornerstone ICT Equipment Name Graph — P040 DRAM Package",
+      "type": "internal-authoritative-graph",
+      "version": "2026-07-28",
+      "locator": "docs/ict_equipment-name-graph.json；P040、A001、A002、A004、A005、A006、A007、A024、A029、A030 及相邻 edges",
+      "authority": "lca-cornerstone authoritative name graph",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 12,
+      "excerpt_seeds": [
+        "P040 is a background product consumed by nine ICT SMT activities and has no ICT-side producing activity.",
+        "P040 resolves exactly to electronics::semiconductor_package.package.silicon.molded_package.semiconductor_package[silicon,dram_general].",
+        "The resolved mother-industry product is electronics::P011, produced by electronics::A012."
+      ],
+      "status": "verified",
+      "verified_via": "主会话定向读取权威 P040 节点、resolves_to 与全部相邻 edges，2026-07-28"
+    },
+    "ku-micron-hbm-architecture": {
+      "title": "Micron High Bandwidth Memory (HBM)",
+      "type": "manufacturer-technical-page",
+      "version": "accessed 2026-07-27",
+      "locator": "https://www.micron.com/products/memory/hbm；FAQ: What is high-bandwidth memory?",
+      "authority": "Micron Technology",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 6,
+      "excerpt_seeds": [
+        "HBM uses a specialized 3D-stacked SDRAM architecture.",
+        "DRAM dies may be stacked on an optional base die and interconnected with TSVs and microbumps."
+      ],
+      "status": "verified",
+      "verified_via": "独立checker核验Micron官方产品页，2026-07-27",
+      "url": "https://www.micron.com/products/memory/hbm"
+    },
+    "ku-micron-hbm2e-kgsd": {
+      "title": "Integrating and Operating HBM2E Memory",
+      "type": "manufacturer-whitepaper",
+      "version": "2020",
+      "locator": "https://assets.micron.com/adobe/assets/urn%3Aaaid%3Aaem%3A275edf31-79e3-4b6c-8bbd-a233babe9281/renditions/original/as/micron-hbm2e-memory-wp.pdf；pp.1–2, 13",
+      "authority": "Micron Technology",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "HBM2E is shipped as a known good stacked die (KGSD).",
+        "KGSD does not mean the later CoWoS/SiP integration and system qualification are complete."
+      ],
+      "status": "verified",
+      "verified_via": "独立checker核验Micron官方白皮书，2026-07-27",
+      "url": "https://assets.micron.com/adobe/assets/urn%3Aaaid%3Aaem%3A275edf31-79e3-4b6c-8bbd-a233babe9281/renditions/original/as/micron-hbm2e-memory-wp.pdf"
+    },
+    "ku-nvidia-hgx-h100-baseboard": {
+      "title": "NVIDIA Fabric Manager User Guide — HGX H100 GPU Baseboard",
+      "type": "manufacturer-platform-documentation",
+      "version": "accessed 2026-07-27",
+      "locator": "https://docs.nvidia.com/hgx-platforms/fabric-manager-user-guide/index.html；Overview lines 36–40、The NVIDIA HGX H100 GPU Baseboard lines 170–176",
+      "authority": "NVIDIA",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 6,
+      "excerpt_seeds": [
+        "The NVIDIA HGX H100 server variant consists of one GPU baseboard with eight H100 GPUs and four NVSwitches.",
+        "The document identifies the assembly as the NVIDIA HGX H100 GPU Baseboard."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者核对 NVIDIA Fabric Manager 官方文档的 HGX H100 baseboard 定义与组成，2026-07-27",
+      "url": "https://docs.nvidia.com/hgx-platforms/fabric-manager-user-guide/index.html"
+    },
+    "ku-nvidia-rtx5090-spec": {
+      "title": "NVIDIA GeForce RTX 5090 Official Specifications",
+      "type": "manufacturer-product-spec",
+      "version": "accessed 2026-07-27",
+      "locator": "https://www.nvidia.com/en-gb/geforce/graphics-cards/50-series/rtx-5090/；lines 514–584",
+      "authority": "NVIDIA",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "Standard memory configuration is 32 GB GDDR7.",
+        "The reference design lists card dimensions, display connectors and total graphics power, and notes that add-in-card manufacturer specifications may vary."
+      ],
+      "status": "seed-unverified"
+    },
+    "ku-pcpartner-2024-listing": {
+      "title": "PC Partner Group Introductory Document and ESG Disclosure",
+      "type": "listed-company-disclosure",
+      "version": "2024-11-12",
+      "locator": "https://www1.hkexnews.hk/listedco/listconews/sehk/2024/1112/2024111201022.pdf；pp.150, 172–174",
+      "authority": "PC Partner Group / HKEX",
+      "region": "CN",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "The group identifies itself as an NVIDIA AIC partner manufacturing products with GeForce GPUs.",
+        "PC Partner Dongguan environmental disclosure covers electricity, waste, water and packaging materials at manufacturing-site level.",
+        "Purchased electricity is a main indirect energy source; disclosed waste includes paper, plastic, activated carbon and PCB trims."
+      ],
+      "status": "seed-unverified"
+    },
+    "ku-samsung-ddr-dram-components": {
+      "title": "Samsung Semiconductor — DDR DRAM Components",
+      "type": "manufacturer-product-page",
+      "version": "accessed 2026-07-28",
+      "locator": "https://semiconductor.samsung.com/dram/ddr/；DDR5/DDR4 product specifications and FAQ lines 241–327, 629–652",
+      "authority": "Samsung Semiconductor",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 9,
+      "excerpt_seeds": [
+        "A DRAM chip is an individual semiconductor device; a DRAM module combines multiple chips on a circuit board.",
+        "Samsung DDR5 component examples list up to 32 Gb density, x8/x16 organization, 1.1 V and 78/82/102/106 FBGA package variants.",
+        "Samsung DDR4 component examples list x4/x8/x16 organization and 78/96 FBGA package variants."
+      ],
+      "status": "verified",
+      "verified_via": "主会话打开并逐行核对 Samsung Semiconductor 官方 DDR 产品页，2026-07-28",
+      "url": "https://semiconductor.samsung.com/dram/ddr/"
+    },
+    "ku-samsung-gddr-components": {
+      "title": "Samsung Semiconductor — GDDR DRAM Components",
+      "type": "manufacturer-product-page",
+      "version": "accessed 2026-07-28",
+      "locator": "https://semiconductor.samsung.com/dram/gddr/；GDDR7/GDDR6 specifications and FAQ lines 243–355",
+      "authority": "Samsung Semiconductor",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "GDDR is a high-performance DRAM family designed for high bandwidth and fast data transfer in graphics and accelerator applications.",
+        "The official page reports product-family-specific package, organization, speed and density values for GDDR6 and GDDR7."
+      ],
+      "status": "verified",
+      "verified_via": "主会话打开并逐行核对 Samsung Semiconductor 官方 GDDR 产品页，2026-07-28",
+      "url": "https://semiconductor.samsung.com/dram/gddr/"
+    },
+    "ku-samsung-semiconductor-lca-scope-2023": {
+      "title": "Samsung Electronics Achieves LCA Verification on Product Carbon Footprint for Semiconductors",
+      "type": "manufacturer-lca-disclosure",
+      "version": "2023-01-30",
+      "locator": "https://news.samsung.com/global/samsung-electronics-achieves-life-cycle-assessment-verification-on-product-carbon-footprint-for-semiconductors；lines 73–83",
+      "authority": "Samsung Electronics",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "Samsung states that its semiconductor carbon-footprint method covers raw-material extraction through chip manufacturing, assembling and testing.",
+        "The disclosure says the method follows ISO 14040, ISO 14044 and ISO 14067 and includes DRAM in the product portfolio.",
+        "The page describes methodology and certification scope but does not publish a reproducible unit-process LCI for the P040 target product."
+      ],
+      "status": "verified",
+      "verified_via": "主会话打开 Samsung 官方披露并核对方法边界与公开内容，2026-07-28",
+      "url": "https://news.samsung.com/global/samsung-electronics-achieves-life-cycle-assessment-verification-on-product-carbon-footprint-for-semiconductors"
+    },
+    "ku-sphera-mlc-2026-catalog": {
+      "title": "Sphera Managed LCA Content Databases Documentation 2026.1 — ICT records",
+      "type": "official-lci-database-catalog",
+      "version": "2026.1；accessed 2026-07-29",
+      "authority": "Sphera",
+      "region": "INT",
+      "status": "verified",
+      "locator": "https://lcadatabase.sphera.com/wp-content/uploads/2026/05/Sphera-MLC-Databases-Documentation-2026.1.zip；Dataset List 2026.1 row 16169；process XML https://lcadatabase.sphera.com/2026/xml-data/processes/729f2a50-082d-4483-85eb-3548509197a1.xml；flow UUID ff2c7e23-8b56-4e45-9b2e-37550ebdef26",
+      "url": "https://lcadatabase.sphera.com/wp-content/uploads/2026/05/Sphera-MLC-Databases-Documentation-2026.1.zip",
+      "excerpt_seeds": [
+        "The official 2026.1 dataset list identifies Solder paste SnAg3Cu0.5 (SAC-Lot), geography GLO, as an aggregated process with production mix at plant.",
+        "The same official catalog exposes stable GUIDs and per-record XML documentation links for the retained ICT records.",
+        "The process XML identifies an attributional cradle-to-gate LCI result, reference year 2025, valid until 2028, and a SAC305 solder-paste output before soldering.",
+        "The linked product flow uses mass with kg as the reference unit and records Sn 0.965, Ag 0.03 and Cu 0.005 flow properties.",
+        "The public process XML contains only one reference-product exchange; its access restriction requires a separate Sphera agreement, so no complete LCI inventory was copied."
+      ],
+      "verified_via": "从 Sphera 官方下载 2026.1 documentation ZIP 并核对工作簿哈希；逐层打开 process、flow、flow property 和 unit group ILCD XML，核对 GUID、参考流、kg、组成、地域、时间、边界、交换数和许可限制，2026-07-29"
+    },
+    "ku-supermicro-hgx-4u": {
+      "title": "Supermicro NVIDIA H200/H100 and L40 GPU System Portfolio",
+      "type": "manufacturer-product-portfolio",
+      "version": "accessed 2026-07-27",
+      "locator": "https://www.supermicro.com/en/accelerators/nvidia/hopper-ada-lovelace?mlg=0；HGX Systems lines 32–59、PCIe GPU Systems lines 85–109",
+      "authority": "Super Micro Computer, Inc.",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 5,
+      "excerpt_seeds": [
+        "The portfolio includes a 4U liquid-cooled HGX H100/H200 8-GPU system.",
+        "It also lists 8U HGX and 4U or 5U PCIe GPU systems."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者逐项打开 Supermicro 官方产品页与产品组合页，2026-07-27",
+      "url": "https://www.supermicro.com/en/accelerators/nvidia/hopper-ada-lovelace?mlg=0"
+    },
+    "ku-tsmc-cowos-hbm-boundary": {
+      "title": "TSMC CoWoS Advanced Packaging",
+      "type": "manufacturer-technical-page",
+      "version": "accessed 2026-07-27",
+      "locator": "https://3dfabric.tsmc.com/schinese/dedicatedFoundry/technology/cowos.htm",
+      "authority": "TSMC",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 4,
+      "excerpt_seeds": [
+        "CoWoS integrates logic chiplets and HBM stacks on an interposer.",
+        "For an HBM KGSD product node, CoWoS/SiP integration is treated as a downstream consuming activity."
+      ],
+      "status": "verified",
+      "verified_via": "独立checker核验TSMC官方CoWoS页面，2026-07-27",
+      "url": "https://3dfabric.tsmc.com/schinese/dedicatedFoundry/technology/cowos.htm"
+    },
+    "ku-unsd-cpc452-provisional": {
+      "title": "UNSD Classification Detail — CPC Provisional Group 452",
+      "type": "classification",
+      "version": "CPC Provisional",
+      "locator": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/9/452；breakdown lines 27–43",
+      "authority": "United Nations Statistics Division",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "Class 4521 is analogue or hybrid ADP machines.",
+        "Class 4523 is digital processing units for ADP."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者核对 UNSD CPC Provisional 452 分解并确认 4521 错配，2026-07-27",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/9/452"
+    },
+    "ku-unsd-cpc45250": {
+      "title": "UNSD Classification Detail — CPC 45250",
+      "type": "classification",
+      "version": "CPC Version 2.1",
+      "locator": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/1074/45250；hierarchy and correspondence",
+      "authority": "United Nations Statistics Division",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 3,
+      "excerpt_seeds": [
+        "CPC 45250 is other automatic data processing machines.",
+        "It corresponds to HS 847150 and ISIC Rev.4 2620."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者核对 UNSD CPC Rev.2.1 45250 与 HS 847150 对应关系，2026-07-27",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/1074/45250"
+    },
+    "ku-unsd-cpc45281": {
+      "title": "UNSD Classification Detail — CPC 45281",
+      "type": "classification",
+      "version": "CPC 2.1 / HS 2017",
+      "locator": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/1074/45281；lines 83–132",
+      "authority": "United Nations Statistics Division",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "CPC 45281 is Sound, video, network and similar cards for automatic data processing machines.",
+        "The subclass includes expansion cards such as video cards and corresponds to HS 847180 and ISIC 2610."
+      ],
+      "status": "seed-unverified"
+    },
+    "ku-unsd-cpc45290": {
+      "title": "UNSD Classification Detail — CPC 45290",
+      "type": "classification",
+      "version": "CPC 2.1 / HS 2017",
+      "locator": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/1074/45290；correspondence lines 38–64",
+      "authority": "United Nations Statistics Division",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "CPC 4529 is the class and 45290 is its leaf subclass for parts and accessories of computing machines.",
+        "CPC 45290 corresponds to HS 847330, 847340 and 847350 in HS 2017."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者核对 UNSD CPC Rev.2.1 45290 的层级、名称及 HS 对应，2026-07-27"
+    },
+    "ku-unsd-isic2610": {
+      "title": "UNSD Classification Detail — ISIC Rev.4 2610",
+      "type": "classification",
+      "version": "ISIC Rev.4",
+      "locator": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/27/2610；lines 31–37",
+      "authority": "United Nations Statistics Division",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 8,
+      "excerpt_seeds": [
+        "ISIC 2610 includes manufacture of interface cards such as video cards.",
+        "ISIC 2610 includes loading of components onto printed circuit boards.",
+        "ISIC 2620 excludes electronic assemblies, interface cards and modules used in computers to class 2610."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者交叉核对 UNSD ISIC Rev.4 2610 的包含项与 2620 的排除项，2026-07-27"
+    },
+    "ku-unsd-isic2620": {
+      "title": "UNSD Classification Detail — ISIC Rev.4 2620",
+      "type": "classification",
+      "version": "ISIC Rev.4",
+      "locator": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/27/2620；explanatory note lines 31–38",
+      "authority": "United Nations Statistics Division",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "ISIC 2620 includes manufacture or assembly of computer servers."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者核对 UNSD ISIC Rev.4 2620 explanatory note，2026-07-27",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/27/2620"
+    },
+    "ku-wco-hs847150": {
+      "title": "WCO Harmonized System — HS 8471.50",
+      "type": "classification",
+      "version": "HS 2007 page；accessed 2026-07-27",
+      "locator": "https://www.wcotradetools.org/en/harmonized-system/2007/en/16847150；lines 311–358",
+      "authority": "World Customs Organization",
+      "region": "INT",
+      "hash": "",
+      "ref_count": 2,
+      "excerpt_seeds": [
+        "8471.50 covers processing units other than subheadings 8471.41 or 8471.49."
+      ],
+      "status": "verified",
+      "verified_via": "独立来源核验者核对 WCO HS 8471.50 原文并限定为描述匹配、非海关裁定，2026-07-27",
+      "url": "https://www.wcotradetools.org/en/harmonized-system/2007/en/16847150"
+    },
+    "ku-2943c0544fb7f0b4": {
+      "title": "Dell — PowerEdge M1000e Blade Enclosure",
+      "type": "manufacturer-product-documentation",
+      "version": "accessed 2026-08-03",
+      "locator": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e；PowerEdge M1000e product overview",
+      "authority": "Dell Technologies",
+      "region": "SG",
+      "hash": "e4e66f310589aa99f166b0d8b9dac8b7358b37be96bd1db83515c7b576f89071",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Enhance data center efficiency with the shared power, cooling, networking and management infrastructure of the PowerEdge™ M1000e Blade Enclosure."
+      ],
+      "status": "verified",
+      "verified_via": "独立 Verify-only 读取冻结 evidence 后裁决 CONFIRMED，2026-08-03",
+      "url": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e"
+    },
+    "ku-0bc9a58c24e97446": {
+      "title": "Dell — PowerEdge M1000e Blade Enclosure",
+      "type": "manufacturer-product-documentation",
+      "version": "accessed 2026-08-03",
+      "locator": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e；PowerEdge M1000e management specifications",
+      "authority": "Dell Technologies",
+      "region": "SG",
+      "hash": "e4e66f310589aa99f166b0d8b9dac8b7358b37be96bd1db83515c7b576f89071",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Enables automated and embedded one-to-many blade BIOS and firmware updates, independent of the OS through iDRAC"
+      ],
+      "status": "verified",
+      "verified_via": "独立 Verify-only 读取冻结 evidence 后裁决 CONFIRMED，2026-08-03",
+      "url": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e"
+    },
+    "ku-efb457c39afcdb51": {
+      "title": "Dell — PowerEdge M1000e Blade Enclosure",
+      "type": "manufacturer-product-documentation",
+      "version": "accessed 2026-08-03",
+      "locator": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e；PowerEdge M1000e chassis specifications",
+      "authority": "Dell Technologies",
+      "region": "SG",
+      "hash": "e4e66f310589aa99f166b0d8b9dac8b7358b37be96bd1db83515c7b576f89071",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Chassis Form Factor: 10U modular enclosure holds up to sixteen half-height blade servers"
+      ],
+      "status": "verified",
+      "verified_via": "独立 Verify-only 读取冻结 evidence 后裁决 CONFIRMED，2026-08-03",
+      "url": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e"
+    },
+    "ku-28b222cb20bdb495": {
+      "title": "UNSD Classification Detail — ISIC Rev.4 2620",
+      "type": "classification",
+      "version": "ISIC Rev.4",
+      "locator": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/27/2620；ISIC Rev.4 2620 explanatory note",
+      "authority": "United Nations Statistics Division",
+      "region": "INT",
+      "hash": "67e99938d0db39afaffcd9a03e7fbda6907aec0fe7db32449910badc87a20fb3",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "This class includes the manufacture and/or assembly of electronic computers, such as mainframes, desktop computers, laptops and computer servers;"
+      ],
+      "status": "verified",
+      "verified_via": "独立 Verify-only 读取冻结 evidence 后裁决 CONFIRMED，2026-08-03",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/27/2620"
+    },
+    "ku-ict-name-graph-20260730": {
+      "title": "lca-cornerstone ICT Equipment Name Graph — cross-industry linked products",
+      "type": "internal-authoritative-graph",
+      "version": "2026-07-30",
+      "locator": "docs/ict_equipment-name-graph.json sha256=40186b09383becbfe3118cce54cea2629cfb2dbe7e085c7a2b6a3efd42605d09",
+      "authority": "repository-authoritative-graph",
+      "hash": "40186b09383becbfe3118cce54cea2629cfb2dbe7e085c7a2b6a3efd42605d09",
+      "ref_count": 32,
+      "excerpt_seeds": [
+        "Deterministic node, edge and resolves_to audit for: P035, P036, P037, P038, P039, P041, P043, P044, P045, P046, P047, P048, P049, P050, P054, P055, P056, P057, P058, P059, P060, P061, P062, P063, P066, P069, P071, P078, P080, P081, P083, P088"
+      ],
+      "status": "verified",
+      "region": "INT",
+      "verified_via": "scripts/fill_linked_background_wiki.py; internal file hash and node lookup",
+      "url": ""
+    },
+    "ku-1e08289e962eefcc": {
+      "title": "Dell — PowerEdge M1000e Blade Enclosure",
+      "type": "manufacturer-product-documentation",
+      "version": "accessed 2026-08-03",
+      "locator": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e",
+      "authority": "Dell Technologies",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Enhance data center efficiency with the shared power, cooling, networking and management infrastructure of the PowerEdge™ M1000e Blade Enclosure."
+      ],
+      "status": "verified",
+      "region": "SG",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=P003-f3c33e771a85d5f4; verdict=CONFIRMED",
+      "url": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e"
+    },
+    "ku-990f1bf730ba9eb5": {
+      "title": "Dell — PowerEdge M1000e Blade Enclosure",
+      "type": "manufacturer-product-documentation",
+      "version": "accessed 2026-08-03",
+      "locator": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e",
+      "authority": "Dell Technologies",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Enables automated and embedded one-to-many blade BIOS and firmware updates, independent of the OS through iDRAC"
+      ],
+      "status": "verified",
+      "region": "SG",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=P003-70de6703410e8ed0; verdict=CONFIRMED",
+      "url": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e"
+    },
+    "ku-5e5adca4597c163c": {
+      "title": "Dell — PowerEdge M1000e Blade Enclosure",
+      "type": "manufacturer-product-documentation",
+      "version": "accessed 2026-08-03",
+      "locator": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e",
+      "authority": "Dell Technologies",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "Chassis Form Factor: 10U modular enclosure holds up to sixteen half-height blade servers"
+      ],
+      "status": "verified",
+      "region": "SG",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=P003-a82c4fe7bdca6caf; verdict=CONFIRMED",
+      "url": "https://www.dell.com/en-sg/shop/ipovw/poweredge-m1000e"
+    },
+    "ku-6382982b68e9716d": {
+      "title": "UNSD Classification Detail — ISIC Rev.4 2620",
+      "type": "classification",
+      "version": "ISIC Rev.4",
+      "locator": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/27/2620",
+      "authority": "United Nations Statistics Division",
+      "hash": "",
+      "ref_count": 1,
+      "excerpt_seeds": [
+        "This class includes the manufacture and/or assembly of electronic computers, such as mainframes, desktop computers, laptops and computer servers;"
+      ],
+      "status": "verified",
+      "region": "INT",
+      "verified_via": "node-wiki-provenance wiki-ku-v1; claim_id=P003-d4ebf906c79c1410; verdict=CONFIRMED",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/Detail/EN/27/2620"
+    }
+  }
+}

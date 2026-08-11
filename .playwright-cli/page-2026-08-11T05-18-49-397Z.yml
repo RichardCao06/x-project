@@ -1,0 +1,334 @@
+- generic [ref=e2]:
+  - generic [ref=e823]:
+    - generic [ref=e824]:
+      - link "← 名称图" [ref=e825] [cursor=pointer]:
+        - /url: ict_equipment-name-graph.html
+      - text: ·
+      - link "index" [ref=e826] [cursor=pointer]:
+        - /url: ../wiki/ict_equipment/index.md
+    - generic [ref=e827]: Activity 单元过程 Wiki
+  - generic "节点 sigil（= g(身份键)）" [ref=e828]
+  - heading "SMT贴装, 回流焊接 | 主板PCBA, 通用服务器用" [level=1] [ref=e853]
+  - generic [ref=e854]:
+    - text: A001
+    - generic [ref=e855]: 前景
+    - generic [ref=e856]: core
+    - generic [ref=e857]: 草稿 · 未正式发布
+    - generic [ref=e858]: Wiki draft
+    - generic [ref=e859]: Schema wiki-v1
+    - generic [ref=e860]: 断言 partial
+  - generic [ref=e861]:
+    - generic [ref=e862]: "transformation verb: smt_assembly"
+    - generic [ref=e863]: "technology route: reflow_smt"
+    - generic [ref=e864]: "reference product anchor: ref::主板PCBA, 通用服务器用"
+  - generic [ref=e865]: "★ 参考产品: 主板PCBA, 通用服务器用"
+  - generic [ref=e866]: 草稿 · 未正式发布： 尚未同时满足正式发布所需的 Wiki-v2、结构、溯源与完整断言核验条件。 当前 Wiki draft · 断言核验 partial。
+  - generic [ref=e868]:
+    - heading "定义与参考活动" [level=3] [ref=e869]
+    - paragraph [ref=e870]: 该活动表示面向通用服务器主板PCBA的表面贴装与回流焊接装联工序。 〔未核实·模型回忆〕
+    - heading "参考产品与参考单位" [level=3] [ref=e871]
+    - paragraph [ref=e872]:
+      - text: 参考产品锚定为“主板PCBA, 通用服务器用”；建模时以一块完成装联的主板PCBA作为参考单位。 〔未核实·模型回忆〕
+      - superscript [ref=e873]:
+        - link "方法说明" [ref=e874] [cursor=pointer]:
+          - /url: "#source-internal-review"
+    - heading "单元过程边界" [level=3] [ref=e875]
+    - paragraph [ref=e876]:
+      - text: 单元过程边界覆盖元器件贴装、焊膏回流焊接及其现场工艺辅助投入，不延伸至上游元器件制造或下游整机装配。 〔未核实·模型回忆〕
+      - superscript [ref=e877]:
+        - link "方法说明" [ref=e878] [cursor=pointer]:
+          - /url: "#source-internal-review"
+    - heading "技术路线与相邻活动区分" [level=3] [ref=e879]
+    - paragraph [ref=e880]: 回流SMT路线以焊膏印刷、贴装和受控回流焊形成焊点，区别于以通孔元件为主的波峰焊路线。 〔未核实·模型回忆〕
+    - heading "节点特定采集字段" [level=3] [ref=e881]
+    - paragraph [ref=e882]:
+      - text: 应采集主板投产与良品数量、贴装元器件和焊接辅料投料、设备电力、返修报废量及排风处理配置。 〔未核实·模型回忆〕
+      - superscript [ref=e883]:
+        - link "方法说明" [ref=e884] [cursor=pointer]:
+          - /url: "#source-internal-review"
+    - heading "区域化补充要求" [level=3] [ref=e885]
+    - paragraph [ref=e886]:
+      - text: 应补充制造地点、电力供应区域、焊接排风治理水平和废物处置去向，以支持区域化背景连接。 〔未核实·模型回忆〕
+      - superscript [ref=e887]:
+        - link "方法说明" [ref=e888] [cursor=pointer]:
+          - /url: "#source-internal-review"
+    - heading "数据适用状态与缺口" [level=3] [ref=e889]
+    - paragraph [ref=e890]:
+      - text: 冻结档案关联了4项LCA资料，但尚缺该通用服务器主板实际BOM、良率、能耗和现场排放的节点特定数据。 〔未核实·模型回忆〕
+      - superscript [ref=e891]:
+        - link "方法说明" [ref=e892] [cursor=pointer]:
+          - /url: "#source-internal-review"
+    - heading "工艺图 · 邻域工序" [level=3] [ref=e893]
+    - img [ref=e895]:
+      - generic [ref=e913]:
+        - generic [ref=e939]: SMT贴装, 回流焊接 | 主…
+        - generic [ref=e940]: A001 · 活动
+      - generic [ref=e941]: ▸ 投入 CONSUMES（14）
+      - generic [ref=e942]: 产出 PRODUCES（3） ◂
+      - generic [ref=e943]: … 另 1 项（见名称图）
+      - generic "CPU封装器件, 服务器用" [ref=e944] [cursor=pointer]: P035 · 投入·背景
+      - generic "DRAM内存封装器件" [ref=e952] [cursor=pointer]: P040 · 投入·背景
+      - generic "HDI PCB裸板, 服务器/交换机用" [ref=e960] [cursor=pointer]:
+        - generic [ref=e966]: HDI PCB裸板, 服务器/交换…
+        - generic [ref=e967]: P043 · 投入·背景
+      - generic "被动元件, 电阻(片式)" [ref=e968] [cursor=pointer]: P044 · 投入·背景
+      - generic "连接器, 板对板" [ref=e976] [cursor=pointer]: P045 · 投入·背景
+      - generic "IC封装器件, NIC网络控制器" [ref=e984] [cursor=pointer]: P049 · 投入·背景
+      - generic "电源管理IC封装器件" [ref=e992] [cursor=pointer]: P050 · 投入·背景
+      - generic "无铅焊料锡膏, SAC305" [ref=e1000] [cursor=pointer]: P062 · 投入·背景
+      - generic "中压电力, ICT制造用" [ref=e1008] [cursor=pointer]: P066 · 投入·背景
+      - generic "被动元件, 电容(MLCC)" [ref=e1016] [cursor=pointer]: P080 · 投入·背景
+      - generic "被动元件, 电感(片式)" [ref=e1024] [cursor=pointer]: P081 · 投入·背景
+      - generic "卡槽连接器, PCIe用" [ref=e1032] [cursor=pointer]: P082 · 投入·背景
+      - generic "卡槽连接器, DIMM内存用" [ref=e1040] [cursor=pointer]: P086 · 投入·背景
+      - generic "主板PCBA, 通用服务器用" [ref=e1048] [cursor=pointer]:
+        - generic [ref=e1055]: P018 · 参考产品
+        - generic [ref=e1056]: ★
+      - generic "共生焊料浮渣" [ref=e1057] [cursor=pointer]:
+        - generic [ref=e1064]: P030 · 共生品
+        - generic [ref=e1065]: ◇
+      - generic "共生报废PCBA" [ref=e1066] [cursor=pointer]:
+        - generic [ref=e1073]: P031 · 共生品
+        - generic [ref=e1074]: ◇
+    - heading "投入产出与脊边对账" [level=3] [ref=e1075]
+    - paragraph [ref=e1076]:
+      - text: 该节点按冻结连接关系消耗P043、P035、P040、P044、P080、P081、P062、P066、P050、P049、P045、P082、P086、P087，并产出P018、P030、P031。 〔未核实·模型回忆〕
+      - superscript [ref=e1077]:
+        - link "方法说明" [ref=e1078] [cursor=pointer]:
+          - /url: "#source-internal-review"
+    - heading "直接排放、废物与监测指标边界" [level=3] [ref=e1079]
+    - paragraph [ref=e1080]:
+      - text: 直接环境清单应限于本工序现场产生的焊接烟气、挥发性排放、废焊膏及不合格板等，不将上游材料生产排放计入本节点。 〔未核实·模型回忆〕
+      - superscript [ref=e1081]:
+        - link "方法说明" [ref=e1082] [cursor=pointer]:
+          - /url: "#source-internal-review"
+    - generic [ref=e1083]:
+      - heading "🔗 可引用 LCA 数据集与关联" [level=3] [ref=e1084]
+      - paragraph [ref=e1085]: "> 已核验关联 4 条：C0=2、C1=0、C2=2、C3=0、C4=0。这些记录用于发现与代理筛选；进入计算前仍须在具体项目中核对边界、许可和版本。"
+      - table [ref=e1087]:
+        - rowgroup [ref=e1088]:
+          - row [ref=e1089]:
+            - columnheader "强度" [ref=e1090]
+            - columnheader "数据库记录" [ref=e1091]
+            - columnheader "数据库/版本" [ref=e1092]
+            - columnheader "关联对象" [ref=e1093]
+            - columnheader "潜在用途" [ref=e1094]
+            - columnheader "主要限制" [ref=e1095]
+            - columnheader "模型状态" [ref=e1096]
+        - rowgroup [ref=e1097]:
+          - row [ref=e1098]:
+            - cell [ref=e1099]:
+              - code [ref=e1100]: C2
+              - text: · 候选关联
+            - cell [ref=e1101]:
+              - link "mounting, surface mount technology, Pb-free solder" [ref=e1102] [cursor=pointer]:
+                - /url: https://ecoquery.ecoinvent.org/3.12/cutoff/dataset/5084/documentation
+            - cell "ecoinvent 3.12" [ref=e1103]
+            - cell [ref=e1104]:
+              - code [ref=e1105]: process_dataset
+            - cell "候选关联；优先补证" [ref=e1106]
+            - cell "活动和 SMT/回流焊路线达到近似门；功能单位、过程边界及中国工厂参数仍需校准。" [ref=e1107]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1108]
+          - row [ref=e1109]:
+            - cell [ref=e1110]:
+              - code [ref=e1111]: C2
+              - text: · 候选关联
+            - cell [ref=e1112]:
+              - link "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board" [ref=e1113] [cursor=pointer]:
+                - /url: https://lcadatabase.sphera.com/2026/xml-data/processes/309288a5-19a4-4efc-9e62-e5cf173751cc.xml
+            - cell "Sphera Managed LCA Content 2026.1" [ref=e1114]
+            - cell [ref=e1115]:
+              - code [ref=e1116]: process_dataset
+            - cell "候选关联；优先补证" [ref=e1117]
+            - cell "活动和 SMT/回流焊路线达到近似门；功能单位、过程边界及中国工厂参数仍需校准。" [ref=e1118]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1119]
+          - row [ref=e1120]:
+            - cell [ref=e1121]:
+              - code [ref=e1122]: C0
+              - text: · 外部对照
+            - cell [ref=e1123]:
+              - link "printed wiring board production, surface mounted, unspecified, Pb free" [ref=e1124] [cursor=pointer]:
+                - /url: https://ecoquery.ecoinvent.org/3.12/cutoff/dataset/1415/documentation
+            - cell "ecoinvent 3.12" [ref=e1125]
+            - cell [ref=e1126]:
+              - code [ref=e1127]: external_process_result
+            - cell "外部对照；不可替代" [ref=e1128]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=e1129]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1130]
+          - row [ref=e1131]:
+            - cell [ref=e1132]:
+              - code [ref=e1133]: C0
+              - text: · 外部对照
+            - cell [ref=e1134]:
+              - link "印制线路板组件" [ref=e1135] [cursor=pointer]:
+                - /url: https://www.hiqlcd.com/dataset/hiqlcd/1.5.0/cut_off/e8b682ed-6133-44d5-8ef8-6603d9323a78
+            - cell "HiQLCD 1.5.0" [ref=e1136]
+            - cell [ref=e1137]:
+              - code [ref=e1138]: external_process_result
+            - cell "外部对照；不可替代" [ref=e1139]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=e1140]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1141]
+      - heading "C2 候选关联的校准缺口" [level=4] [ref=e1142]
+      - paragraph [ref=e1143]: "> C2 是优先补证对象，不是已绑定数据。以下字段用于判断它以后应成为直接引用候选还是 P2/P3 项目代理。"
+      - table [ref=e1145]:
+        - rowgroup [ref=e1146]:
+          - row [ref=e1147]:
+            - columnheader "候选数据集" [ref=e1148]
+            - columnheader "功能单位对齐" [ref=e1149]
+            - columnheader "过程边界对齐" [ref=e1150]
+            - columnheader "中国工厂参数" [ref=e1151]
+            - columnheader "使用前状态" [ref=e1152]
+        - rowgroup [ref=e1153]:
+          - row [ref=e1154]:
+            - cell [ref=e1155]:
+              - link "mounting, surface mount technology, Pb-free solder" [ref=e1156] [cursor=pointer]:
+                - /url: https://ecoquery.ecoinvent.org/3.12/cutoff/dataset/5084/documentation
+            - cell [ref=e1157]:
+              - text: 源
+              - code [ref=e1158]: m2
+              - text: ；目标
+              - code [ref=e1159]: 1 piece 主板PCBA, 通用服务器用
+              - text: ；仍缺 4 项换算字段
+            - cell [ref=e1160]:
+              - code [ref=e1161]: partial
+              - text: ；待核 3 项
+            - cell "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）" [ref=e1162]
+            - cell "C2 · 未形成模型绑定 · 不可直接计算" [ref=e1163]
+          - row [ref=e1164]:
+            - cell [ref=e1165]:
+              - link "Assembly line SMD (1SP, 2CS, 1CP, 1R, 1Rf) throughput 300/h - open input printed circuit board" [ref=e1166] [cursor=pointer]:
+                - /url: https://lcadatabase.sphera.com/2026/xml-data/processes/309288a5-19a4-4efc-9e62-e5cf173751cc.xml
+            - cell [ref=e1167]:
+              - text: 源
+              - code [ref=e1168]: kg
+              - text: ；目标
+              - code [ref=e1169]: 1 piece 主板PCBA, 通用服务器用
+              - text: ；仍缺 4 项换算字段
+            - cell [ref=e1170]:
+              - code [ref=e1171]: partial
+              - text: ；待核 3 项
+            - cell "中国项目代理：锡膏 2.78 g/片；项目电力 1.39 kWh/片（均禁止计算）" [ref=e1172]
+            - cell "C2 · 未形成模型绑定 · 不可直接计算" [ref=e1173]
+      - paragraph [ref=e1174]:
+        - text: "> 关联不等于计算绑定；项目采用分别进入"
+        - code [ref=e1175]: model_dataset_bindings.json
+        - text: 或
+        - code [ref=e1176]: model_proxy_bindings.json
+        - text: 。
+  - generic [ref=e1177]:
+    - heading "引用原文与核验记录" [level=2] [ref=e1178]
+    - article [ref=e1179]:
+      - generic [ref=e1181]:
+        - generic [ref=e1182]: ecoinvent
+        - generic [ref=e1183]: ecoinvent LCI 数据库
+      - generic [ref=e1184]: seed-unverified · INT · LCI-db · 3.x ·
+      - generic [ref=e1185]: 定位：ecoinvent Association
+    - article [ref=e1186]:
+      - generic [ref=e1188]:
+        - generic [ref=e1189]: hs
+        - generic [ref=e1190]: 商品名称及编码协调制度(HS)
+      - generic [ref=e1191]: seed-unverified · INT · classification · 2022 ·
+      - generic [ref=e1192]: 定位：WCO 世界海关组织
+    - article [ref=e1193]:
+      - generic [ref=e1195]:
+        - generic [ref=e1196]: isic
+        - generic [ref=e1197]: 国际标准产业分类(ISIC)
+      - generic [ref=e1198]: seed-unverified · INT · classification · Rev.4 ·
+      - generic [ref=e1199]: 定位：UNSD
+    - article [ref=e1200]:
+      - generic [ref=e1201]:
+        - generic [ref=e1202]:
+          - generic [ref=e1203]: ku-cn-smd-yfvs-eia-2019
+          - generic [ref=e1204]: 延锋伟世通怡东汽车仪表有限公司 SMD 产线新建项目环境影响报告表
+        - link "打开官方原文 ↗" [ref=e1205] [cursor=pointer]:
+          - /url: https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web2944/site/attach/xxzfwzx/zwgk/tzgg/201903/P020190321328767382504.pdf
+      - generic [ref=e1206]: verified · CN · government-eia-report · 2019；accessed 2026-07-29 · 绍兴市柯桥区政府公开文件
+      - generic [ref=e1207]: 定位：https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web2944/site/attach/xxzfwzx/zwgk/tzgg/201903/P020190321328767382504.pdf；pp.3–4、26、28–31，表1.1-2、表1.1-3、图5.1-1、表5.3-4、表5.3-8
+      - list [ref=e1208]:
+        - listitem [ref=e1209]: “项目公开的 SMD 路线包括锡膏印刷、SPI、贴片、回流焊、AOI、线路板测试、裁板、组装与包装。”
+        - listitem [ref=e1210]: “设备表列出锡膏印刷机1台、SPI 1台、贴片机2台、AOI 1台、线路板测试机1台、裁板机1台和回流焊炉1台。”
+        - listitem [ref=e1211]: “项目表列出36万片线路板/年、10吨表面贴装元器件/年、1吨无铅焊锡膏/年、0.2吨助焊剂/年、0.2吨清洗剂/年和50万kWh/年生产生活合计用电。”
+        - listitem [ref=e1212]: “固废表列出废线路板0.5吨/年、废清洗液0.2吨/年和废助焊剂0.1吨/年。”
+        - listitem [ref=e1213]: “项目是汽车仪表 SMD 线且包含裁板、组装、包装及生活用电，不能直接代表服务器等目标 PCBA 的 SMT 单元过程。”
+      - generic [ref=e1214]: 核验：主会话从政府公开地址下载 PDF，核对文件 SHA-256，并逐项核对设备、产能、物料能源、工艺边界和固废表，2026-07-29
+    - article [ref=e1215]:
+      - generic [ref=e1216]:
+        - generic [ref=e1217]:
+          - generic [ref=e1218]: ku-ecoinvent-v312-overview-ict
+          - generic [ref=e1219]: ecoinvent Database Overview v3.12 — ICT batch matching records
+        - link "打开官方原文 ↗" [ref=e1220] [cursor=pointer]:
+          - /url: https://support.ecoinvent.org/hubfs/Knowledge%20Base/Database/Releases/3.12/Database%20Overview%20v3.12.xlsx
+      - generic [ref=e1221]: verified · INT · official-lci-database-catalog · 3.12；Cut-Off；accessed 2026-07-29 · ecoinvent Association
+      - generic [ref=e1222]: 定位：https://support.ecoinvent.org/hubfs/Knowledge%20Base/Database/Releases/3.12/Database%20Overview%20v3.12.xlsx；sheet Cut-Off AO；P065 row 2411 / UUID e45b56e4-029f-55ba-bc24-eb19aa4bded4；P066 row 17276 / UUID 64d70fe5-a32d-52a9-8901-3b52f9e4ab4e；workbook sha256 93b9f045833316560b92c6560f338d4766b08c5f54fd8ac03ee87de03a88098c
+      - list [ref=e1223]:
+        - listitem [ref=e1224]: “Cut-Off AO lists computer production, desktop, without screen, GLO, with activity UUID 600fa501-f676-5956-a027-f0464d58803a.”
+        - listitem [ref=e1225]: “Cut-Off AO lists integrated circuit production, memory type, GLO, with activity UUID a77fe8ac-52ef-56e6-894d-0fc6d949680d.”
+        - listitem [ref=e1226]: “Cut-Off AO lists mounted desktop-mainboard and unspecified surface-mounted printed-wiring-board production records, both Pb free and GLO.”
+        - listitem [ref=e1227]: “Cut-Off AO lists market group for electricity, medium voltage, CN, with activity UUID 64d70fe5-a32d-52a9-8901-3b52f9e4ab4e and reference unit kWh.”
+        - listitem [ref=e1228]: “The CN medium-voltage market-group product information includes transmission infrastructure, country-specific losses and transformation losses; its public time period is 2015-2025.”
+        - listitem [ref=e1229]: “Cut-Off AO row 2411 lists corrugated board box production, RoW, kg, 2008-2025; the product information describes cutting, printing, slotting, folding and gluing corrugated board.”
+        - listitem [ref=e1230]: “Cut-Off AO lists mounting, surface mount technology, Pb-free solder, GLO, UUID f7e74531-77f4-5b90-8ad9-8a596b82e141, with reference unit m2; its product information describes mounting one square metre of printed wiring board using lead-free solder paste.”
+        - listitem [ref=e1231]: “ICT batch matching also checked official records for logic and memory ICs, passive and active components, bare and mounted PWB, PSU, HDD, fans, connectors, cable, solder paste, transistors and corrugated boxes.”
+      - generic [ref=e1232]: 核验：从 ecoinvent 官方 v3.12 overview 下载 XLSX；核对文件哈希并定向解析 Cut-Off AO 的活动、参考产品、UUID、地域、时间、单位和产品说明；再用 ecoinvent 官方许可页确认游客仅可访问元数据、完整交换与累计清单需许可证，2026-07-29
+    - article [ref=e1233]:
+      - generic [ref=e1234]:
+        - generic [ref=e1235]:
+          - generic [ref=e1236]: ku-sphera-mlc-2026-catalog
+          - generic [ref=e1237]: Sphera Managed LCA Content Databases Documentation 2026.1 — ICT records
+        - link "打开官方原文 ↗" [ref=e1238] [cursor=pointer]:
+          - /url: https://lcadatabase.sphera.com/wp-content/uploads/2026/05/Sphera-MLC-Databases-Documentation-2026.1.zip
+      - generic [ref=e1239]: verified · INT · official-lci-database-catalog · 2026.1；accessed 2026-07-29 · Sphera
+      - generic [ref=e1240]: 定位：https://lcadatabase.sphera.com/wp-content/uploads/2026/05/Sphera-MLC-Databases-Documentation-2026.1.zip；Dataset List 2026.1 row 16169；process XML https://lcadatabase.sphera.com/2026/xml-data/processes/729f2a50-082d-4483-85eb-3548509197a1.xml；flow UUID ff2c7e23-8b56-4e45-9b2e-37550ebdef26
+      - list [ref=e1241]:
+        - listitem [ref=e1242]: “The official 2026.1 dataset list identifies Solder paste SnAg3Cu0.5 (SAC-Lot), geography GLO, as an aggregated process with production mix at plant.”
+        - listitem [ref=e1243]: “The same official catalog exposes stable GUIDs and per-record XML documentation links for the retained ICT records.”
+        - listitem [ref=e1244]: “The process XML identifies an attributional cradle-to-gate LCI result, reference year 2025, valid until 2028, and a SAC305 solder-paste output before soldering.”
+        - listitem [ref=e1245]: “The linked product flow uses mass with kg as the reference unit and records Sn 0.965, Ag 0.03 and Cu 0.005 flow properties.”
+        - listitem [ref=e1246]: “The public process XML contains only one reference-product exchange; its access restriction requires a separate Sphera agreement, so no complete LCI inventory was copied.”
+      - generic [ref=e1247]: 核验：从 Sphera 官方下载 2026.1 documentation ZIP 并核对工作簿哈希；逐层打开 process、flow、flow property 和 unit group ILCD XML，核对 GUID、参考流、kg、组成、地域、时间、边界、交换数和许可限制，2026-07-29
+    - article [ref=e1248]:
+      - generic [ref=e1250]:
+        - generic [ref=e1251]: ku-hiqlcd-public-ict-2026
+        - generic [ref=e1252]: 来源注册缺失
+      - generic [ref=e1253]: missing-registry · · registry-gap · ·
+      - generic [ref=e1254]: 定位：
+    - article [ref=e1255]:
+      - generic [ref=e1257]:
+        - generic [ref=e1258]: internal-review
+        - generic [ref=e1259]: 内部评审与建模约定
+      - generic [ref=e1260]: seed-unverified · INT · internal · - ·
+      - generic [ref=e1261]: 定位：docs/采集与制作方案.md / 对话记录
+  - generic [ref=e1262]:
+    - heading "修改日志" [level=3] [ref=e1263]
+    - heading "2026-08-03 · 断言级溯源受控合并" [level=4] [ref=e1264]
+    - list [ref=e1265]:
+      - listitem [ref=e1266]:
+        - strong [ref=e1267]: 发现的问题：
+        - text: 本次送审断言中有 0 条取得独立支持、9 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=e1268]:
+        - strong [ref=e1269]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=e1270]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=e1271]:
+        - strong [ref=e1272]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=e1273]:
+        - strong [ref=e1274]: 数据影响：
+        - text: 本次处理 9 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-07-30 · 从“预先强绑定”改为“可引用数据集关联”" [level=4] [ref=e1275]
+    - list [ref=e1276]:
+      - listitem [ref=e1277]:
+        - strong [ref=e1278]: 发现的问题：
+        - text: 节点 Wiki 的目的，是让后续 LCA 建模快速发现可直接引用或可作代理的数据集；旧栏目只展示正式绑定和 C2，隐藏了具有代理筛选价值的 C1，也把部分真实相邻记录直接归入否决，容易把“关联强弱”误读成“能否立即计算”。
+      - listitem [ref=e1279]:
+        - strong [ref=e1280]: 采取的修改：
+        - text: 按冻结的官方/公开证据重新裁决本节点的数据集引用关系，当前展示 4 条关联（C0=2、C1=0、C2=2、C3=0、C4=0），另保留 1 条真正否决；每条同时标记关联对象、潜在用途、主要限制和项目裁决要求。
+      - listitem [ref=e1281]:
+        - strong [ref=e1282]: 中国源补检：
+        - text: 本节点新增 1 条 HiQLCD 官方公共元数据关联；已核验稳定 UUID、版本、系统模型、参考产品/单位、地域、时间和公开边界，完整 I/O/LCIA 仍受许可控制。
+      - listitem [ref=e1283]:
+        - strong [ref=e1284]: 修改原则：
+        - text: C0–C4 只表示节点—数据集关联强度，不授予计算权限；C1/C2 可进入项目级 P0–P3 代理裁决，C3/C4 也必须在具体模型中核对边界、许可和版本后才形成真正绑定。
+  - link "SMT贴装, 回流焊接 | 主板PCBA, AI训练GPU服务器用 →" [ref=e1287] [cursor=pointer]:
+    - /url: "?id=A002"

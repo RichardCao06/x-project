@@ -1,0 +1,207 @@
+{
+ "_meta": {
+  "source_industry": "shipping",
+  "detected_via": "cross-link 试跑 (LLM 提名 verdict=no_node)",
+  "date": "2026-06-30",
+  "note": "这些是 shipping bg 节点的 target 行业图本身缺对应前景节点(不是 cross-link 算法问题)。应在对应 target 行业的下一轮建图/扩图时补节点;补完后只重跑 prep+LLM+apply 即可绑定。"
+ },
+ "gaps_by_target_industry": {
+  "nonferrous_metals": [
+   {
+    "src_id": "P105",
+    "name": "因瓦合金, Invar 36, LNG薄膜围护用",
+    "cpc": "41423",
+    "hs": "7506.20",
+    "provenance": [
+     "GTT MARK III 0.7mm因瓦薄膜",
+     "Imphy Aperam Invar 36",
+     "GTT NO96 L03+主屏障"
+    ],
+    "note": "需在 nonferrous_metals 图补对应前景节点(建图层缺口)"
+   }
+  ],
+  "machinery": [
+   {
+    "src_id": "P106",
+    "name": "两冲程低速柴油主机, MAN B&W/WinGD",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "provenance": [
+     "MAN B&W S90ME-C主机",
+     "WinGD X92产品手册",
+     "ecoinvent 'bulk carrier/oil tanker production'"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P107",
+    "name": "甲醇双燃料主机, MAN ME-LGIM 两冲程低速",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "provenance": [
+     "MAN-ES ME-LGIM甲醇双燃料主机",
+     "WinGD X-DF2.0甲醇版"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P108",
+    "name": "LNG双燃料主机, WinGD X-DF/MAN MEGI",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "provenance": [
+     "WinGD X-DF2.0低压LNG双燃料",
+     "MAN B&W ME-GI高压LNG双燃料"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P109",
+    "name": "氨双燃料主机, 两冲程低速 氨/柴油双燃料",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "provenance": [
+     "MAN Energy Solutions氨双燃料主机概念设计",
+     "WinGD氨燃料发动机路线图"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P110",
+    "name": "四冲程中速柴油辅机, 船用发电用",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "provenance": [
+     "MAN L/V28/32辅机",
+     "Wartsila 20辅机",
+     "HiMSEN辅机"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P111",
+    "name": "海工船用四冲程中速柴油/LNG双燃料辅机",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "provenance": [
+     "Wärtsilä 31 dual-fuel genset",
+     "MAN 175D genset",
+     "Caterpillar marine genset"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P112",
+    "name": "船用螺旋桨, 铸铜镍铝青铜/不锈钢",
+    "cpc": "49140",
+    "hs": "8487.10",
+    "provenance": [
+     "MAN Alpha/Wartsila CPP/FPP螺旋桨",
+     "ISO 484",
+     "铜镍铝青铜合金"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P115",
+    "name": "船用侧推装置, 隧道式艏侧推",
+    "cpc": "49140",
+    "hs": "8487.90",
+    "provenance": [
+     "Wartsila侧推装置",
+     "Rolls-Royce隧道式侧推"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P116",
+    "name": "船用甲醇燃料储罐, 高压不锈钢储罐",
+    "cpc": "44291",
+    "hs": "7311.00",
+    "provenance": [
+     "IMO MSC-MEPC.2甲醇燃料储罐",
+     "Wärtsilä甲醇燃料储罐设计",
+     "SOLAS II-2 Ch.11"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P117",
+    "name": "船用氨燃料储罐, IMO C型低温独立压力罐",
+    "cpc": "44291",
+    "hs": "7311.00",
+    "provenance": [
+     "IGF Code氨燃料草案",
+     "DNV氨燃料船用储罐",
+     "MAN氨FGSS独立压力罐"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P118",
+    "name": "甲醇供给系统管路, FGSS不锈钢/双套管",
+    "cpc": "42151",
+    "hs": "7304.41",
+    "provenance": [
+     "IMO MSC甲醇双套管管路安全",
+     "Wärtsilä FGSS管路设计手册"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P119",
+    "name": "船用惰性气体发生器, 烟气型/氮气型",
+    "cpc": "44133",
+    "hs": "8419.89",
+    "provenance": [
+     "SOLAS Reg.II-2/4 惰性气体系统",
+     "Hampson/Woodford/Coppus",
+     "Smit Ship Service IGS"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P120",
+    "name": "海工船起重机总成, 3000t+海洋工程吊机",
+    "cpc": "44211",
+    "hs": "8426.19",
+    "provenance": [
+     "Huisman offshore crane",
+     "NOV crane",
+     "MacGregor crane specs"
+    ],
+    "note": "需在 machinery 图补对应前景节点(建图层缺口)"
+   }
+  ],
+  "electrical_equipment": [
+   {
+    "src_id": "P124",
+    "name": "船用电缆, 铜导体防火型",
+    "cpc": "46410",
+    "hs": "8544.60",
+    "provenance": [
+     "IEC 60092-353船用电缆",
+     "CCS电气规范"
+    ],
+    "note": "需在 electrical_equipment 图补对应前景节点(建图层缺口)"
+   },
+   {
+    "src_id": "P126",
+    "name": "船用渡轮电池储能系统, BESS",
+    "cpc": "46410",
+    "hs": "8507.60",
+    "provenance": [
+     "Corvus Energy ESS",
+     "Siemens SIESTORAGE marine",
+     "Wärtsilä GEMS marine battery"
+    ],
+    "note": "需在 electrical_equipment 图补对应前景节点(建图层缺口)"
+   }
+  ]
+ },
+ "summary": {
+  "machinery": 13,
+  "electrical_equipment": 2,
+  "nonferrous_metals": 1
+ }
+}

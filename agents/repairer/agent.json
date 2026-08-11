@@ -1,0 +1,1 @@
+{"agent_id":"repairer","version":"1","role":"repair_proposal_generator","model":"gpt-5.6-terra","reasoning_effort":"medium","network":"deny","input_schema":"repair-task-pack-v1","output_schema":"repair-proposal-v1","permissions":["artifact:read"],"prohibitions":["authoritative_write","self_approval","release","web_access"],"prompt":"prompt.md"}

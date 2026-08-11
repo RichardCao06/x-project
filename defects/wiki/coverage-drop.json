@@ -1,0 +1,5 @@
+{
+  "required_claim_ids": ["confirmed-1", "not-found-2", "budget-skipped-3", "unmapped-4"],
+  "reported_claim_ids": ["confirmed-1"],
+  "statuses": {"confirmed-1": "CONFIRMED", "not-found-2": "NOT_FOUND", "budget-skipped-3": "BUDGET_SKIPPED", "unmapped-4": "UNMAPPED"}
+}

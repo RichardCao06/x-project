@@ -1,0 +1,6410 @@
+{
+  "_meta": {
+    "schema_version": "lca-node-reference-status-v2",
+    "scope": "Multi-industry node-to-dataset association status",
+    "checked_at": "2026-07-31",
+    "node_count": 133,
+    "source_count": 13,
+    "source_evidence_frozen_at": "2026-07-31",
+    "association_adjudicated_at": "2026-07-31",
+    "association_count": 285,
+    "association_grade_counts": {
+      "C0": 109,
+      "C1": 143,
+      "C2": 33,
+      "C3": 0,
+      "C4": 0
+    },
+    "project_binding_count": 0,
+    "project_proxy_count": 0,
+    "note": "Node-level C0-C4 records are reusable reference associations, not project model bindings and not calculation permissions."
+  },
+  "nodes": [
+    {
+      "node_ref": "ict_equipment::A001",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | 主板PCBA, 通用服务器用",
+      "node_spine_hash": "dadca68d566b",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A002",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | 主板PCBA, AI训练GPU服务器用",
+      "node_spine_hash": "934d15637c39",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A003",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | GPU加速卡, AI训练用",
+      "node_spine_hash": "2548a09d818b",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A004",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | GPU加速卡, AI推理用",
+      "node_spine_hash": "2908c47405c6",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A005",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | 交换机主板PCBA, 100G/400G",
+      "node_spine_hash": "101e56584e17",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A006",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | DIMM内存条",
+      "node_spine_hash": "d53133ac6272",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A007",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | SSD模组",
+      "node_spine_hash": "aa290679e4fc",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A008",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | PSU电源模组",
+      "node_spine_hash": "7aef29840364",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A009",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 服务器, 通用计算, 2U",
+      "node_spine_hash": "b16b3c4fab6b",
+      "direct_binding_policy": "activity_process",
+      "match_status": "rejected_mismatch",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A010",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 服务器, 通用计算, 1U",
+      "node_spine_hash": "a7374d9cc2ec",
+      "direct_binding_policy": "activity_process",
+      "match_status": "rejected_mismatch",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A011",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | GPU服务器, AI训练, 4U",
+      "node_spine_hash": "325f2b767db3",
+      "direct_binding_policy": "activity_process",
+      "match_status": "rejected_mismatch",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A012",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | GPU服务器, AI推理, 2U",
+      "node_spine_hash": "497313b7b5ad",
+      "direct_binding_policy": "activity_process",
+      "match_status": "rejected_mismatch",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A013",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 网络交换机, 100G/400G, 2U",
+      "node_spine_hash": "9040a0b3d314",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A014",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 网络交换机, 800G, 2U",
+      "node_spine_hash": "6fd2bdf0255e",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A015",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 存储阵列, 全闪存, 4U",
+      "node_spine_hash": "a69156947414",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A016",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 存储阵列, 机械硬盘, 4U",
+      "node_spine_hash": "d9f3cfff017f",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A017",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | UPS不间断电源, 2U",
+      "node_spine_hash": "2ffedbca4eb6",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A018",
+      "node_type": "activity",
+      "node_name": "烧录测试, 压力老化 | 服务器/交换机/存储设备, 测试合格",
+      "node_spine_hash": "e8e99082d0a1",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A019",
+      "node_type": "activity",
+      "node_name": "配置出厂, BIOS配置 | 服务器, 通用计算, 2U",
+      "node_spine_hash": "c732dfa24548",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A020",
+      "node_type": "activity",
+      "node_name": "配置出厂, 机架级集成 | 机架系统",
+      "node_spine_hash": "80cca372c675",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A021",
+      "node_type": "activity",
+      "node_name": "烧录测试, 压力老化 | 服务器, 通用计算, 2U",
+      "node_spine_hash": "da025d2bd63c",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A022",
+      "node_type": "activity",
+      "node_name": "烧录测试, 压力老化 | GPU服务器, AI训练, 4U",
+      "node_spine_hash": "ecd9f705993c",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A023",
+      "node_type": "activity",
+      "node_name": "配置出厂, BIOS配置 | GPU服务器, AI训练, 4U",
+      "node_spine_hash": "92a87ed23664",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A024",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | 交换机主板PCBA, 800G",
+      "node_spine_hash": "421cc49dc369",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A025",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 网络交换机, 100G/400G, 1U",
+      "node_spine_hash": "2a9a57ffe142",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A026",
+      "node_type": "activity",
+      "node_name": "配置出厂, 终检出厂 | 网络交换机, 100G/400G, 1U",
+      "node_spine_hash": "2824bec072dc",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A027",
+      "node_type": "activity",
+      "node_name": "配置出厂, 终检出厂 | 网络交换机, 100G/400G, 2U",
+      "node_spine_hash": "559297097bfc",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A028",
+      "node_type": "activity",
+      "node_name": "配置出厂, 终检出厂 | 网络交换机, 800G, 2U",
+      "node_spine_hash": "13da11d74dc8",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A029",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | 存储控制板PCBA, 全闪存阵列用",
+      "node_spine_hash": "a17c31d866c8",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A030",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | 存储控制板PCBA, 机械硬盘阵列用",
+      "node_spine_hash": "0be04d3c8eb0",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A031",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | 存储背板子总成",
+      "node_spine_hash": "634407fc73a8",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A032",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 存储阵列, 全闪存, 2U",
+      "node_spine_hash": "15babecf292c",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A033",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 存储阵列, 机械硬盘, 2U",
+      "node_spine_hash": "c711207519c6",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A034",
+      "node_type": "activity",
+      "node_name": "烧录测试, 压力老化 | SSD模组",
+      "node_spine_hash": "3cc76c02c50e",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A035",
+      "node_type": "activity",
+      "node_name": "烧录测试, 压力老化 | DIMM内存条",
+      "node_spine_hash": "f58e34810516",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A036",
+      "node_type": "activity",
+      "node_name": "配置出厂, BIOS配置 | 存储阵列, 全闪存, 4U",
+      "node_spine_hash": "7c6132a1c37d",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A037",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 机架PDU, 1U",
+      "node_spine_hash": "cdee3adccd68",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A038",
+      "node_type": "activity",
+      "node_name": "烧录测试, 压力老化 | 网络交换机, 100G/400G, 2U",
+      "node_spine_hash": "1af58a7a47a2",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A039",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 服务器, 通用计算, 刀片式",
+      "node_spine_hash": "5c7023ff07da",
+      "direct_binding_policy": "activity_process",
+      "match_status": "rejected_mismatch",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A040",
+      "node_type": "activity",
+      "node_name": "系统集成, 整机总装 | 笔记本电脑",
+      "node_spine_hash": "9cac7cbdb793",
+      "direct_binding_policy": "activity_process",
+      "match_status": "rejected_mismatch",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A041",
+      "node_type": "activity",
+      "node_name": "SMT贴装, 回流焊接 | 消费级独立显卡PCBA",
+      "node_spine_hash": "50c913043e37",
+      "direct_binding_policy": "activity_process",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 2,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::A042",
+      "node_type": "activity",
+      "node_name": "系统集成, 散热与结构装配 | 消费级独立显卡, 装配完成",
+      "node_spine_hash": "368e66efdb96",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A043",
+      "node_type": "activity",
+      "node_name": "烧录测试, 固件与功能压力测试 | 消费级独立显卡, 测试合格",
+      "node_spine_hash": "ff1ff377f026",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::A044",
+      "node_type": "activity",
+      "node_name": "配置出厂, 终检与包装 | 消费级独立显卡, 包装完成",
+      "node_spine_hash": "ed554d743392",
+      "direct_binding_policy": "activity_process",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P001",
+      "node_type": "product",
+      "node_name": "服务器, 通用计算, 2U",
+      "node_spine_hash": "b1ba63500878",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 6,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 6,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "C0",
+      "association_grade_counts": {
+        "C0": 6,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 6,
+      "highest_association_grade": "C0",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P002",
+      "node_type": "product",
+      "node_name": "服务器, 通用计算, 1U",
+      "node_spine_hash": "b59521a7f9b4",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "C0",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C0",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P003",
+      "node_type": "product",
+      "node_name": "服务器, 通用计算, 刀片式",
+      "node_spine_hash": "8047a798aa25",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 5,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "C0",
+      "association_grade_counts": {
+        "C0": 5,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C0",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P004",
+      "node_type": "product",
+      "node_name": "GPU服务器, AI训练, 4U",
+      "node_spine_hash": "2b05909cddd8",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 5,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "C0",
+      "association_grade_counts": {
+        "C0": 5,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C0",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P005",
+      "node_type": "product",
+      "node_name": "GPU服务器, AI推理, 2U",
+      "node_spine_hash": "76a7efa516b2",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "C0",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C0",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P006",
+      "node_type": "product",
+      "node_name": "笔记本电脑",
+      "node_spine_hash": "e39d6041b725",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 3,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 3,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "C0",
+      "association_grade_counts": {
+        "C0": 3,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 3,
+      "highest_association_grade": "C0",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P007",
+      "node_type": "product",
+      "node_name": "网络交换机, 100G/400G, 1U",
+      "node_spine_hash": "1d6ebc63b88d",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P008",
+      "node_type": "product",
+      "node_name": "网络交换机, 100G/400G, 2U",
+      "node_spine_hash": "1cae360cf102",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P009",
+      "node_type": "product",
+      "node_name": "网络交换机, 800G, 2U",
+      "node_spine_hash": "48ffbe43c14f",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P010",
+      "node_type": "product",
+      "node_name": "存储阵列, 全闪存, 4U",
+      "node_spine_hash": "08d29c78d75b",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P011",
+      "node_type": "product",
+      "node_name": "存储阵列, 全闪存, 2U",
+      "node_spine_hash": "30a39a074bcf",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P012",
+      "node_type": "product",
+      "node_name": "存储阵列, 机械硬盘, 4U",
+      "node_spine_hash": "04d5d9dbbaf1",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 1,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 1,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "C0",
+      "association_grade_counts": {
+        "C0": 1,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 1,
+      "highest_association_grade": "C0",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P013",
+      "node_type": "product",
+      "node_name": "存储阵列, 机械硬盘, 2U",
+      "node_spine_hash": "833257922572",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P014",
+      "node_type": "product",
+      "node_name": "UPS不间断电源, 2U",
+      "node_spine_hash": "9f60a5df385d",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P015",
+      "node_type": "product",
+      "node_name": "机架PDU, 1U",
+      "node_spine_hash": "9d1cb894e879",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P016",
+      "node_type": "product",
+      "node_name": "机架系统",
+      "node_spine_hash": "d2e66fda7e5b",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P017",
+      "node_type": "product",
+      "node_name": "服务器/交换机/存储设备, 测试合格",
+      "node_spine_hash": "74ecb5034d15",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P018",
+      "node_type": "product",
+      "node_name": "主板PCBA, 通用服务器用",
+      "node_spine_hash": "c3a19e7f64e2",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P019",
+      "node_type": "product",
+      "node_name": "主板PCBA, AI训练GPU服务器用",
+      "node_spine_hash": "c91c66f406f6",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P020",
+      "node_type": "product",
+      "node_name": "存储控制板PCBA, 全闪存阵列用",
+      "node_spine_hash": "5360486c4451",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P021",
+      "node_type": "product",
+      "node_name": "存储控制板PCBA, 机械硬盘阵列用",
+      "node_spine_hash": "5209a499e654",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P022",
+      "node_type": "product",
+      "node_name": "交换机主板PCBA, 100G/400G",
+      "node_spine_hash": "30876193c570",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P023",
+      "node_type": "product",
+      "node_name": "交换机主板PCBA, 800G",
+      "node_spine_hash": "86e6cd15c228",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P024",
+      "node_type": "product",
+      "node_name": "GPU加速卡, AI训练用",
+      "node_spine_hash": "291e9281d6e0",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P025",
+      "node_type": "product",
+      "node_name": "GPU加速卡, AI推理用",
+      "node_spine_hash": "fabaa5277a32",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P026",
+      "node_type": "product",
+      "node_name": "DIMM内存条",
+      "node_spine_hash": "0322ac250544",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P027",
+      "node_type": "product",
+      "node_name": "SSD模组",
+      "node_spine_hash": "247722f00a47",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P028",
+      "node_type": "product",
+      "node_name": "存储背板子总成",
+      "node_spine_hash": "1bd9058b0cba",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P029",
+      "node_type": "product",
+      "node_name": "PSU电源模组",
+      "node_spine_hash": "c3a4c5c4716a",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 7,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 6,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 6,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 7,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P030",
+      "node_type": "product",
+      "node_name": "共生焊料浮渣",
+      "node_spine_hash": "2d23b5d0fb4f",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P031",
+      "node_type": "product",
+      "node_name": "共生报废PCBA",
+      "node_spine_hash": "029349300a11",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 3,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 3,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P032",
+      "node_type": "product",
+      "node_name": "共生测试不良整机",
+      "node_spine_hash": "c028f638084c",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P033",
+      "node_type": "product",
+      "node_name": "共生贵金属回收料",
+      "node_spine_hash": "2616388b2904",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P034",
+      "node_type": "product",
+      "node_name": "共生包装废料",
+      "node_spine_hash": "198615cc9cb8",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P035",
+      "node_type": "product",
+      "node_name": "CPU封装器件, 服务器用",
+      "node_spine_hash": "218c1822b7e8",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P036",
+      "node_type": "product",
+      "node_name": "GPU封装器件, AI训练用",
+      "node_spine_hash": "6b899e03d894",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P037",
+      "node_type": "product",
+      "node_name": "GPU封装器件, AI推理用",
+      "node_spine_hash": "1889e129828c",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P038",
+      "node_type": "product",
+      "node_name": "交换ASIC封装器件, 100G/400G",
+      "node_spine_hash": "cfc0f2b290f3",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P039",
+      "node_type": "product",
+      "node_name": "交换ASIC封装器件, 800G",
+      "node_spine_hash": "99ba8b3032f0",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P040",
+      "node_type": "product",
+      "node_name": "DRAM内存封装器件",
+      "node_spine_hash": "e668829259c4",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 6,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 6,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 6,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 6,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P041",
+      "node_type": "product",
+      "node_name": "NAND闪存封装器件",
+      "node_spine_hash": "378999cb9e3d",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 3,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 3,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P042",
+      "node_type": "product",
+      "node_name": "HBM高带宽内存封装器件",
+      "node_spine_hash": "60843dd352ab",
+      "direct_binding_policy": "background_import",
+      "match_status": "rejected_mismatch",
+      "formal_binding_count": 0,
+      "candidate_count": 3,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 3,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P043",
+      "node_type": "product",
+      "node_name": "HDI PCB裸板, 服务器/交换机用",
+      "node_spine_hash": "577618454aac",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 7,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 7,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 7,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 7,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P044",
+      "node_type": "product",
+      "node_name": "被动元件, 电阻(片式)",
+      "node_spine_hash": "95b541d6ca7b",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 2,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 1
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 1,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 2,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P045",
+      "node_type": "product",
+      "node_name": "连接器, 板对板",
+      "node_spine_hash": "5738d0dd74c2",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 3,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P046",
+      "node_type": "product",
+      "node_name": "光模块, 400G/800G",
+      "node_spine_hash": "1b1dfbc31479",
+      "direct_binding_policy": "background_import",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P047",
+      "node_type": "product",
+      "node_name": "逻辑IC封装器件, 网络PHY/SerDes",
+      "node_spine_hash": "9cc52ba9cc2d",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P048",
+      "node_type": "product",
+      "node_name": "ASIC封装器件, 存储/NVMe控制器",
+      "node_spine_hash": "b3ab25b1b812",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P049",
+      "node_type": "product",
+      "node_name": "IC封装器件, NIC网络控制器",
+      "node_spine_hash": "c5c344c8920c",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P050",
+      "node_type": "product",
+      "node_name": "电源管理IC封装器件",
+      "node_spine_hash": "765ddafcbe5c",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P051",
+      "node_type": "product",
+      "node_name": "风扇模组, 服务器/机架用, 成品",
+      "node_spine_hash": "4a52e6110e8c",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 1,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 1,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P052",
+      "node_type": "product",
+      "node_name": "液冷CDU, 冷量分配单元",
+      "node_spine_hash": "61d4c0a5afbe",
+      "direct_binding_policy": "background_import",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P053",
+      "node_type": "product",
+      "node_name": "PSU电源模组, 外购成品",
+      "node_spine_hash": "b278fba97534",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 3,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 3,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P054",
+      "node_type": "product",
+      "node_name": "HDD机械硬盘, 外购成品",
+      "node_spine_hash": "9a47e13fa74b",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P055",
+      "node_type": "product",
+      "node_name": "铝散热器/铝挤型, 服务器用",
+      "node_spine_hash": "3a6dc095e7ce",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P056",
+      "node_type": "product",
+      "node_name": "铝机架框/铝机箱结构件",
+      "node_spine_hash": "d7d82f34fea5",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P057",
+      "node_type": "product",
+      "node_name": "钢钣金机箱/导轨, 服务器用",
+      "node_spine_hash": "2b8a0fe2d1e2",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P058",
+      "node_type": "product",
+      "node_name": "机架钢框/机柜钢结构",
+      "node_spine_hash": "c01c6e191b85",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P059",
+      "node_type": "product",
+      "node_name": "铜热管/均热板/液冷冷板",
+      "node_spine_hash": "3b372fa09013",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P060",
+      "node_type": "product",
+      "node_name": "铜母排, 电源用",
+      "node_spine_hash": "5cc0c822c657",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 1,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 1,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P061",
+      "node_type": "product",
+      "node_name": "低压铜电缆线束, ICT设备电源用",
+      "node_spine_hash": "7fe1bb37c39b",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 2,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 2,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 2,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 2,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P062",
+      "node_type": "product",
+      "node_name": "无铅焊料锡膏, SAC305",
+      "node_spine_hash": "4b569640f5c4",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 1
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 3,
+        "C2": 1,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P063",
+      "node_type": "product",
+      "node_name": "导热硅脂/导热垫, TIM",
+      "node_spine_hash": "9b406f07aefc",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P064",
+      "node_type": "product",
+      "node_name": "塑料导风罩/前面板/线缆护套",
+      "node_spine_hash": "0f6cc67adb86",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P065",
+      "node_type": "product",
+      "node_name": "瓦楞纸箱, ICT设备包装用",
+      "node_spine_hash": "96803339bb67",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 1,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 1
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 1,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 1,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P066",
+      "node_type": "product",
+      "node_name": "中压电力, ICT制造用",
+      "node_spine_hash": "0ee71dad79e0",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 2,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 2
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 2,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 2,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P067",
+      "node_type": "product",
+      "node_name": "GPU封装器件, 消费级图形",
+      "node_spine_hash": "bc34fdc65e99",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 4,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 4,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 4,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P068",
+      "node_type": "product",
+      "node_name": "GDDR显存封装器件, 独立显卡用",
+      "node_spine_hash": "1cd9c7d56be3",
+      "direct_binding_policy": "background_import",
+      "match_status": "rejected_mismatch",
+      "formal_binding_count": 0,
+      "candidate_count": 2,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 2,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 2,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 2,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P069",
+      "node_type": "product",
+      "node_name": "HDI PCB裸板, 独立显卡用",
+      "node_spine_hash": "22aa6b06576b",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 7,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 7,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 7,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 7,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P070",
+      "node_type": "product",
+      "node_name": "风扇模组, 独立显卡用",
+      "node_spine_hash": "a6ec9a9d3b32",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 1,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 1,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P071",
+      "node_type": "product",
+      "node_name": "铝散热鳍片/散热器, 独立显卡用",
+      "node_spine_hash": "fc2a173f8e5c",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P072",
+      "node_type": "product",
+      "node_name": "钢制I/O挡板/背板, 独立显卡用",
+      "node_spine_hash": "6d20830e625f",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P073",
+      "node_type": "product",
+      "node_name": "塑料风扇罩/导流罩, 独立显卡用",
+      "node_spine_hash": "8a1722c26c02",
+      "direct_binding_policy": "cross_industry_home_node",
+      "match_status": "deferred_to_home_industry",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P074",
+      "node_type": "product",
+      "node_name": "消费级独立显卡PCBA",
+      "node_spine_hash": "907d93d08e9d",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "external_aggregate_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 4,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P075",
+      "node_type": "product",
+      "node_name": "消费级独立显卡, 装配完成",
+      "node_spine_hash": "7fb243cd9e4e",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P076",
+      "node_type": "product",
+      "node_name": "消费级独立显卡, 测试合格",
+      "node_spine_hash": "72601b9c2428",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P077",
+      "node_type": "product",
+      "node_name": "消费级独立显卡, 包装完成",
+      "node_spine_hash": "4d1d8432a7a3",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "not_applicable_direct_binding",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P078",
+      "node_type": "product",
+      "node_name": "功率MOSFET封装器件, 显卡VRM用",
+      "node_spine_hash": "5761426afc71",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 1,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 1,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P079",
+      "node_type": "product",
+      "node_name": "板载I/O连接器, 独立显卡显示输出用",
+      "node_spine_hash": "c93e744a0426",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 3,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P080",
+      "node_type": "product",
+      "node_name": "被动元件, 电容(MLCC)",
+      "node_spine_hash": "1310f5528642",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 2,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 1
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 1,
+        "C2": 1,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 2,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P081",
+      "node_type": "product",
+      "node_name": "被动元件, 电感(片式)",
+      "node_spine_hash": "3312be26bed1",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 2,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 2,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 2,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 2,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P082",
+      "node_type": "product",
+      "node_name": "卡槽连接器, PCIe用",
+      "node_spine_hash": "29bfc22845a5",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 7,
+      "rejection_count": 1,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 7,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 7,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 7,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P083",
+      "node_type": "product",
+      "node_name": "板载电源连接器, 独立显卡外接电源用",
+      "node_spine_hash": "041eebd318d3",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 3,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P084",
+      "node_type": "product",
+      "node_name": "EPS缓冲泡沫, ICT设备包装用",
+      "node_spine_hash": "8c17192eba4c",
+      "direct_binding_policy": "background_import",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 0,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0
+      },
+      "highest_match_grade": "none",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 0,
+      "highest_association_grade": "none",
+      "model_binding_count": 0,
+      "reference_status": "no_usable_association_in_checked_sources"
+    },
+    {
+      "node_ref": "ict_equipment::P085",
+      "node_type": "product",
+      "node_name": "木制托盘/包装箱, ICT设备包装用",
+      "node_spine_hash": "1293555f77a0",
+      "direct_binding_policy": "background_import",
+      "match_status": "not_found_in_accessible_catalogs",
+      "formal_binding_count": 0,
+      "candidate_count": 1,
+      "rejection_count": 0,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 1
+      },
+      "highest_match_grade": "C2",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 0,
+        "C2": 1,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 1,
+      "highest_association_grade": "C2",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P086",
+      "node_type": "product",
+      "node_name": "卡槽连接器, DIMM内存用",
+      "node_spine_hash": "3aa3677bc3e2",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 3,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P087",
+      "node_type": "product",
+      "node_name": "板载存储连接器, SATA/SAS/U.2用",
+      "node_spine_hash": "646e67d14c11",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 6,
+      "rejection_count": 2,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 6,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 6,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 6,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "ict_equipment::P088",
+      "node_type": "product",
+      "node_name": "线束连接器, ICT设备电源用",
+      "node_spine_hash": "4834f6519c36",
+      "direct_binding_policy": "background_import",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 5,
+      "rejection_count": 3,
+      "checked_database_scope": "multi-source official/public metadata audit; see registry/lca_source_catalog.json",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "epd-international",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus",
+        "sphera-mlc-2026.1",
+        "vendor-pcf"
+      ],
+      "unsearchable_or_partial_sources": [
+        "unep-glad",
+        "milca",
+        "clcd",
+        "federal-lca-commons:rate-limited-supplementary-queries"
+      ],
+      "checked_at": "2026-07-30",
+      "candidate_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 0,
+        "C1": 5,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 5,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    },
+    {
+      "node_ref": "power::P001",
+      "node_type": "product",
+      "node_name": "电力, 高压",
+      "node_spine_hash": "aabe1fd792df",
+      "direct_binding_policy": "composed_via_activity",
+      "match_status": "verified_candidate",
+      "formal_binding_count": 0,
+      "candidate_count": 2,
+      "rejection_count": 0,
+      "checked_database_scope": "Targeted record-level search of HiQLCD, Federal LCA Commons/USLCI, ecoinvent official electricity documentation, EPLCA/ELCD, IDEA public sample and openLCA Nexus; remaining catalog families recorded as partial or unavailable",
+      "searched_sources": [
+        "aist-idea-3.4-sample",
+        "ecoinvent-3.12-cutoff",
+        "eplca-ef31",
+        "eplca-elcd-ilcd",
+        "federal-lca-commons",
+        "hiqlcd",
+        "openlca-nexus"
+      ],
+      "unsearchable_or_partial_sources": [
+        "aist-idea-3.4-sample:public sample is not a full electricity catalog",
+        "clcd:no stable public record-level directory verified",
+        "epd-international:EPD product declarations are not a stable P001 process catalog",
+        "eplca-ef31:public search did not yield a P001 busbar record",
+        "eplca-elcd-ilcd:public search did not yield a P001 busbar record",
+        "milca:no stable public record-level directory verified",
+        "sphera-mlc-2026.1:public catalog metadata only",
+        "unep-glad:discovery network did not expose a stable retained P001 record",
+        "vendor-pcf:product declarations are not P001 process datasets"
+      ],
+      "checked_at": "2026-07-31",
+      "candidate_grade_counts": {
+        "C0": 1,
+        "C1": 1,
+        "C2": 0
+      },
+      "highest_match_grade": "C1",
+      "association_grade_counts": {
+        "C0": 1,
+        "C1": 1,
+        "C2": 0,
+        "C3": 0,
+        "C4": 0
+      },
+      "association_count": 2,
+      "highest_association_grade": "C1",
+      "model_binding_count": 0,
+      "reference_status": "associations_available"
+    }
+  ]
+}

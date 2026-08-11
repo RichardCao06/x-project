@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__TITLE__</title>
+<style>
+:root{
+  --bg:#070f1c; --bg2:#0b1729; --panel:#0f2138; --panel2:#13263f; --line:#1d3954;
+  --ink:#cfe3f7; --dim:#7f9bbd; --faint:#5a7596; --cyan:#52d4f5; --cyan2:#2a9fc7;
+  --green:#56d6a0; --amber:#f0b35b; --violet:#b18cf0; --rose:#f07a9b; --pink:#e06bbf;
+  --good:#3fb98a; --bad:#e0607e; --warn:#e0a84f;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.55;font-size:14px;
+  background-image:linear-gradient(rgba(82,212,245,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(82,212,245,.035) 1px,transparent 1px);
+  background-size:26px 26px;}
+code,.mono{font-family:"SF Mono",ui-monospace,"Roboto Mono",Menlo,monospace}
+a{color:var(--cyan)}
+header.hero{padding:34px 30px 22px;border-bottom:1px solid var(--line);
+  background:radial-gradient(1200px 300px at 12% -40%,rgba(82,212,245,.14),transparent 60%);}
+.kick{font:600 11px/1 "SF Mono",monospace;letter-spacing:.32em;color:var(--cyan2);text-transform:uppercase}
+h1{margin:10px 0 6px;font-size:27px;letter-spacing:.5px}
+.sub{color:var(--dim);max-width:920px}
+.metaline{margin-top:12px;color:var(--faint);font-size:12.5px;max-width:980px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 14px;min-width:104px}
+.chip b{display:block;font-size:21px;color:var(--cyan);font-family:"SF Mono",monospace}
+.chip span{font-size:11px;color:var(--dim)}
+.chip.ok b{color:var(--green)}
+nav.tabs{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:4px;padding:10px 24px;
+  background:rgba(7,15,28,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.tabs button{background:transparent;border:1px solid transparent;color:var(--dim);font:600 13px/1 inherit;
+  padding:8px 15px;border-radius:8px;cursor:pointer;transition:.15s}
+nav.tabs button:hover{color:var(--ink);background:var(--panel)}
+nav.tabs button.active{color:var(--bg);background:var(--cyan);border-color:var(--cyan)}
+main{padding:26px 30px 80px;max-width:1320px;margin:0 auto}
+section{display:none;animation:fade .25s ease}
+section.show{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+h2.sec{font-size:19px;margin:6px 0 4px;display:flex;align-items:center;gap:10px}
+h2.sec::before{content:"";width:4px;height:20px;background:var(--cyan);border-radius:2px;display:inline-block}
+.lead{color:var(--dim);margin:0 0 20px;max-width:980px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+.panel h3{margin:0 0 12px;font-size:15px;color:var(--cyan)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+.g3{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 15px;transition:.15s}
+.card:hover{border-color:var(--cyan2);box-shadow:0 0 0 1px rgba(82,212,245,.2)}
+.card .nm{font-weight:600;font-size:14.5px;margin-bottom:7px;color:#eaf4ff}
+.facets{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.fk{font:600 10.5px/1 "SF Mono",monospace;background:var(--panel2);border:1px solid var(--line);
+  color:var(--dim);padding:4px 7px;border-radius:5px}
+.fk b{color:var(--cyan)}
+.badge{font:600 10px/1 "SF Mono",monospace;padding:3px 7px;border-radius:5px;display:inline-block;vertical-align:middle}
+.b-fg{background:rgba(86,214,160,.14);color:var(--green);border:1px solid rgba(86,214,160,.3)}
+.b-bg{background:rgba(240,179,91,.13);color:var(--amber);border:1px solid rgba(240,179,91,.3)}
+.b-core{background:rgba(82,212,245,.12);color:var(--cyan);border:1px solid rgba(82,212,245,.3)}
+.b-long{background:rgba(177,140,240,.13);color:var(--violet);border:1px solid rgba(177,140,240,.3)}
+.codes{font:11px/1.5 "SF Mono",monospace;color:var(--faint);margin-top:7px}
+.codes b{color:var(--dim);font-weight:600}
+.io{margin-top:9px;font-size:12px}
+.io .lab{font:600 10px/1 "SF Mono",monospace;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;margin-bottom:4px}
+.flow{display:flex;flex-wrap:wrap;gap:5px}
+.tok{font-size:11.5px;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel2)}
+.tok.ref{border-color:rgba(82,212,245,.5);color:var(--cyan);background:rgba(82,212,245,.08);font-weight:600}
+.tok.co{border-color:rgba(224,107,191,.4);color:var(--pink)}
+.tok.bg{border-color:rgba(240,179,91,.35);color:var(--amber);opacity:.92}
+.tok.inp{color:var(--ink)}
+.prov{margin-top:9px}
+.prov summary{cursor:pointer;color:var(--faint);font-size:11px;list-style:none;user-select:none}
+.prov summary::before{content:"▸ ";color:var(--cyan2)}
+.prov[open] summary::before{content:"▾ "}
+.prov ul{margin:6px 0 0;padding-left:16px;color:var(--faint);font-size:11px}
+.prov li{margin-bottom:3px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;position:sticky;top:51px;z-index:10;
+  background:rgba(7,15,28,.9);backdrop-filter:blur(6px);padding:10px 0}
+.toolbar input,.toolbar select{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:8px 11px;font:13px inherit}
+.toolbar input{min-width:230px}
+.toolbar .count{color:var(--faint);font-size:12px;margin-left:auto}
+.groupttl{grid-column:1/-1;margin:14px 0 2px;font:600 13px/1 "SF Mono",monospace;color:var(--cyan2);
+  letter-spacing:.05em;display:flex;align-items:center;gap:9px}
+.groupttl .n{color:var(--faint);font-weight:400}
+.groupttl::after{content:"";flex:1;height:1px;background:var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--cyan2);font:600 11px/1 "SF Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+td .st{font:600 11px/1.55 "SF Mono",monospace;padding:5px 9px;border-radius:6px;display:inline-block;white-space:normal;max-width:680px}
+.st.s-ok{background:rgba(63,185,138,.14);color:var(--good)}
+.st.s-warn{background:rgba(224,168,79,.14);color:var(--warn)}
+.st.s-bad{background:rgba(224,96,126,.14);color:var(--bad)}
+.note{background:var(--panel2);border-left:3px solid var(--cyan2);padding:11px 14px;border-radius:0 8px 8px 0;margin:14px 0;color:var(--dim);font-size:13px}
+.note.warn{border-color:var(--amber)}
+ul.tight{margin:8px 0;padding-left:18px}ul.tight li{margin-bottom:6px;color:var(--dim)}
+.cv{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.cv span{font:11px/1.3 "SF Mono",monospace;background:var(--panel2);border:1px solid var(--line);
+  padding:4px 8px;border-radius:5px;color:var(--dim)}
+.cv span em{color:var(--cyan);font-style:normal;font-weight:600}
+.rationale{font-size:12px;color:var(--faint);margin-top:6px;border-top:1px dashed var(--line);padding-top:8px}
+.tmpl{font:13px "SF Mono",monospace;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:8px 0;color:var(--cyan)}
+.syn{font-size:12.5px}
+.syn .can{color:var(--cyan);font-weight:600;font-family:"SF Mono",monospace}
+.syn .al{color:var(--faint)}
+.foot{color:var(--faint);font-size:11.5px;text-align:center;padding:30px 0 0;border-top:1px solid var(--line);margin-top:30px}
+.gap{border-left:3px solid var(--rose);background:rgba(240,122,155,.06)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:11.5px;color:var(--faint);margin-top:10px}
+.legend .tok{font-size:10.5px}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="kick">Industry Name Graph · 名称与拓扑层</div>
+  <h1 id="h-title"></h1>
+  <div class="sub" id="h-sub"></div>
+  <div class="metaline" id="h-meta"></div>
+  <div class="chips" id="h-chips"></div>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main>
+  <section id="s-overview" class="show"></section>
+  <section id="s-conv"></section>
+  <section id="s-prod"></section>
+  <section id="s-act"></section>
+  <section id="s-map"></section>
+  <section id="s-score"></section>
+</main>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D=JSON.parse(document.getElementById('data').textContent);
+const M=D._meta, CV=D.conventions;
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const code=v=>String(v||'').split('(')[0].trim();
+const gloss=v=>{const m=String(v||'').match(/\(([^)]*)\)/);return m?m[1]:'';};
+const PPF=(CV.product_facets[0]||{}).name||'base_material';
+const AVF=(CV.activity_facets[0]||{}).name||'transformation_verb';
+
+const pFacetMap={},aFacetMap={};
+(CV.product_facets||[]).forEach(f=>{const m={};(f.controlled_values||[]).forEach(v=>m[code(v)]=v);pFacetMap[f.name]=m;});
+(CV.activity_facets||[]).forEach(f=>{const m={};(f.controlled_values||[]).forEach(v=>m[code(v)]=v);aFacetMap[f.name]=m;});
+const grpLabel=c=>gloss((pFacetMap[PPF]||{})[c])||c;
+const verbLabel=c=>gloss((aFacetMap[AVF]||{})[c])||c;
+const routeLabel=c=>gloss((aFacetMap.technology_route||{})[c])||c;
+
+const pById={},pByName={};
+D.products.forEach(p=>{pById[p.id]=p;pByName[p.name]=p;});
+
+document.getElementById('h-title').textContent=M.title;
+document.getElementById('h-sub').textContent=M.scope;
+document.getElementById('h-meta').textContent='方法：'+M.method+'  ·  生成：'+M.generated;
+const c=M.counts;
+document.getElementById('h-chips').innerHTML=[
+  ['产品节点',c.products,`前景 ${c.products_foreground} · 背景 ${c.products_background}`,''],
+  ['活动节点',c.activities,'Activity',''],
+  ['边',c.edges,`产出 ${c.edges_produces} · 消耗 ${c.edges_consumes}`,''],
+  ['闭合校验','0','违反 A/B/C(代码核验)','ok'],
+].map(([t,n,s,k])=>`<div class="chip ${k}"><b>${n}</b><span>${t}</span><span style="color:var(--faint)">${s}</span></div>`).join('');
+
+const TABS=[['s-overview','概览'],['s-conv','约定'],['s-prod','产品'],['s-act','活动'],['s-map','外部对表'],['s-score','记分卡']];
+document.getElementById('tabs').innerHTML=TABS.map((t,i)=>`<button data-t="${t[0]}" class="${i===0?'active':''}">${t[1]}</button>`).join('');
+document.getElementById('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('main section').forEach(s=>s.classList.remove('show'));
+  document.getElementById(b.dataset.t).classList.add('show');
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+document.getElementById('s-overview').innerHTML=`
+<h2 class="sec">概览 · 这是什么</h2>
+<p class="lead">${esc(M.disclaimer)}</p>
+<div class="grid g3">
+  <div class="card"><div class="nm" style="color:var(--cyan)">① 多源三角</div><p style="color:var(--dim);font-size:13px;margin:0">技术标准 · 既有数据库(ecoinvent/GaBi) · 统计分类(CPC/HS/ISIC) 三类来源互补播种，一个漏掉的另一个补上。</p></div>
+  <div class="card"><div class="nm" style="color:var(--green)">② 图内闭合</div><p style="color:var(--dim);font-size:13px;margin:0">三条不变量：A 无孤儿产品 · B 产出列全(含全部共生品) · C 无悬空输入。上游追溯逼出中间品与共生品。</p></div>
+  <div class="card"><div class="nm" style="color:var(--amber)">③ 外部对表</div><p style="color:var(--dim);font-size:13px;margin:0">拿 CPC/HS/ISIC + 技术分类当 checklist，把"完整"变成"对标尺查不出缺口"的可验证属性。</p></div>
+</div>
+<div class="note"><b style="color:var(--cyan)">闭合校验结果（代码级独立核验）：</b> 不变量 A 孤儿产品 = ${M.closure_check.invariant_A_orphans} · 不变量 C 悬空输入 = ${M.closure_check.invariant_C_dangling} · 活动缺参考产品 = ${M.closure_check.activities_without_reference} · outputs 指向不存在产品 = ${M.closure_check.outputs_to_missing_product}。${esc(M.closure_check.note)}</div>
+<div class="note warn"><b style="color:var(--amber)">诚实边界：</b> "可辩护的完整" = 图闭合无违反 + 对外部分类查不出缺口 + 专家过审，在声明的分辨率与边界下成立 —— <b>不等于绝对完整</b>。本图专家会签未完成；长尾领域以 confidence=longtail 显式标注（见记分卡）。</div>
+`;
+
+function facetCard(f){
+  return `<div class="card"><div class="nm">${esc(f.name)}</div>
+    <div style="color:var(--dim);font-size:12.5px">${esc(f.description)}</div>
+    <div class="cv">${(f.controlled_values||[]).map(v=>`<span><em>${esc(code(v))}</em>${gloss(v)?'  '+esc(gloss(v)):''}</span>`).join('')}</div>
+    <div class="rationale">▸ ${esc(f.rationale)}</div></div>`;
+}
+document.getElementById('s-conv').innerHTML=`
+<h2 class="sec">阶段一 · 约定（采集前锁死的骨架）</h2>
+<p class="lead">身份 = 结构化刻面键，名字 = 由键确定性渲染（键唯一 ⇒ 名字唯一）。地理/年份/系统模型不进身份，是派生坐标。</p>
+<div class="panel"><h3>边界 · 前景 / 背景判定</h3>
+  <div style="margin-bottom:10px"><span class="badge b-fg">FOREGROUND</span> <span style="color:var(--dim);font-size:13px">${esc(CV.boundary.foreground_rule)}</span></div>
+  <div><span class="badge b-bg">BACKGROUND</span> <span style="color:var(--dim);font-size:13px">${esc(CV.boundary.background_rule)}</span></div>
+  <ul class="tight">${(CV.boundary.examples||[]).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>
+</div>
+<div class="panel"><h3>命名模板（确定性渲染）</h3>
+  <div style="font-size:12px;color:var(--faint)">产品</div><div class="tmpl">${esc(CV.product_naming_template)}</div>
+  <div style="font-size:12px;color:var(--faint)">活动</div><div class="tmpl">${esc(CV.activity_naming_template)}</div>
+</div>
+<h3 style="color:var(--cyan);margin:22px 0 10px">产品刻面</h3><div class="grid g2">${(CV.product_facets||[]).map(facetCard).join('')}</div>
+<h3 style="color:var(--cyan);margin:22px 0 10px">活动刻面</h3><div class="grid g2">${(CV.activity_facets||[]).map(facetCard).join('')}</div>
+<div class="panel" style="margin-top:18px"><h3>不进身份的刻面（派生坐标 / 元数据）</h3>
+  ${(CV.non_identity_facets||[]).map(f=>`<div style="margin-bottom:8px"><span class="fk"><b>${esc(f.name)}</b></span> <span style="color:var(--dim);font-size:12.5px">${esc(f.note)}</span></div>`).join('')}
+</div>
+<div class="panel"><h3>同义词表 · ${(CV.synonym_table||[]).length} 条（别名 → 规范键，去重用）</h3>
+  <table><tr><th>规范键</th><th>别名</th><th>刻面</th></tr>
+  ${(CV.synonym_table||[]).map(s=>`<tr><td class="syn"><span class="can">${esc(s.canonical)}</span></td><td class="syn al">${(s.aliases||[]).map(esc).join(' · ')}</td><td class="mono" style="color:var(--faint);font-size:11px">${esc(s.facet)}</td></tr>`).join('')}
+  </table>
+</div>`;
+
+function prodCard(p){
+  const fk=Object.entries(p.facets||{}).map(([k,v])=>`<span class="fk">${esc(k.replace(/_/g,' '))}: <b>${esc(v)}</b></span>`).join('');
+  const codes=[];if(p.cpc)codes.push(`<b>CPC</b> ${esc(p.cpc)}`);if(p.hs)codes.push(`<b>HS</b> ${esc(p.hs)}`);
+  return `<div class="card wiki-card" data-id="${esc(p.id)}" data-mat="${esc(code(p.facets[PPF]||''))}" data-bnd="${esc(p.boundary||'')}" data-conf="${esc(p.confidence||'')}" data-txt="${esc((p.name+' '+(p.provenance||[]).join(' ')).toLowerCase())}">
+    <div class="nm">${esc(p.name)} <span class="badge ${p.boundary==='background'?'b-bg':'b-fg'}">${p.boundary==='background'?'背景':'前景'}</span> <span class="badge ${p.confidence==='longtail'?'b-long':'b-core'}">${esc(p.confidence||'')}</span></div>
+    <div class="facets">${fk}</div>
+    ${codes.length?`<div class="codes">${codes.join(' &nbsp; ')}</div>`:''}
+    ${(p.provenance||[]).length?`<details class="prov"><summary>出处 ${p.provenance.length}</summary><ul>${p.provenance.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}
+  </div>`;
+}
+const mats=[...new Set(D.products.map(p=>code(p.facets[PPF]||'')))].filter(Boolean).sort();
+document.getElementById('s-prod').innerHTML=`
+<h2 class="sec">产品节点 · ${D.products.length}</h2>
+<div class="toolbar">
+  <input id="pq" placeholder="搜索产品名 / 出处…">
+  <select id="pmat"><option value="">全部分组 (${mats.length})</option>${mats.map(m=>`<option value="${esc(m)}">${esc(m)} — ${esc(grpLabel(m))}</option>`).join('')}</select>
+  <select id="pbnd"><option value="">前景+背景</option><option value="foreground">仅前景</option><option value="background">仅背景</option></select>
+  <select id="pconf"><option value="">全部信心</option><option value="core">core</option><option value="longtail">longtail</option></select>
+  <span class="count" id="pcount"></span>
+</div>
+<div class="grid g3" id="pgrid"></div>`;
+function renderProducts(){
+  const q=document.getElementById('pq').value.toLowerCase().trim();
+  const fm=document.getElementById('pmat').value,fb=document.getElementById('pbnd').value,fc=document.getElementById('pconf').value;
+  const list=D.products.filter(p=>(!fm||code(p.facets[PPF]||'')===fm)&&(!fb||(p.boundary||'')===fb)&&(!fc||(p.confidence||'')===fc)&&(!q||(p.name+' '+(p.provenance||[]).join(' ')).toLowerCase().includes(q)));
+  const groups={};list.forEach(p=>{const m=code(p.facets[PPF]||'其它');(groups[m]=groups[m]||[]).push(p);});
+  const order=Object.keys(groups).sort();
+  document.getElementById('pgrid').innerHTML=order.map(m=>`<div class="groupttl">${esc(m)} <span class="n">${esc(grpLabel(m))}</span> <span class="n">· ${groups[m].length}</span></div>`+groups[m].map(prodCard).join('')).join('');
+  document.getElementById('pcount').textContent=list.length+' / '+D.products.length+' 个产品';
+}
+['pq','pmat','pbnd','pconf'].forEach(id=>document.getElementById(id).addEventListener('input',renderProducts));
+renderProducts();
+
+function tok(name){const p=pByName[name];const bg=p&&p.boundary==='background';return `<span class="tok ${bg?'bg':'inp'}">${esc(name)}</span>`;}
+function actCard(a){
+  const f=a.facets||{};
+  const fk=[['verb',f[AVF]],['route',f.technology_route],['ref',f.reference_product_anchor]].filter(x=>x[1]).map(x=>`<span class="fk">${x[0]}: <b>${esc(x[1])}</b></span>`).join('');
+  const codes=[];if(a.isic)codes.push(`<b>ISIC</b> ${esc(a.isic)}`);if(a.bref)codes.push(`<b>BREF/类</b> ${esc(a.bref)}`);
+  const outs=(a.outputs||[]).map(o=>`<span class="tok ${o.role==='reference'?'ref':'co'}">${esc(o.product)}${o.role==='reference'?' ★':''}</span>`).join('');
+  const ins=(a.inputs||[]).map(tok).join('');
+  return `<div class="card wiki-card" data-id="${esc(a.id)}" data-verb="${esc(code(f[AVF]||''))}" data-route="${esc(code(f.technology_route||''))}" data-conf="${esc(a.confidence||'')}" data-txt="${esc((a.name+' '+(a.provenance||[]).join(' ')).toLowerCase())}">
+    <div class="nm">${esc(a.name)} <span class="badge ${a.confidence==='longtail'?'b-long':'b-core'}">${esc(a.confidence||'')}</span></div>
+    <div class="facets">${fk}</div>
+    ${codes.length?`<div class="codes">${codes.join(' &nbsp; ')}</div>`:''}
+    <div class="io"><div class="lab">输入 ⟶</div><div class="flow">${ins||'<span style="color:var(--faint)">—</span>'}</div></div>
+    <div class="io"><div class="lab">⟶ 产出</div><div class="flow">${outs}</div></div>
+    ${(a.provenance||[]).length?`<details class="prov"><summary>出处 ${a.provenance.length}</summary><ul>${a.provenance.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}
+  </div>`;
+}
+const verbs=[...new Set(D.activities.map(a=>code(a.facets[AVF]||'')))].filter(Boolean).sort();
+const routes=[...new Set(D.activities.map(a=>code(a.facets.technology_route||'')))].filter(Boolean).sort();
+document.getElementById('s-act').innerHTML=`
+<h2 class="sec">活动节点 · ${D.activities.length}</h2>
+<div class="legend"><span><span class="tok ref">参考产品 ★</span></span><span><span class="tok co">共生产品</span></span><span><span class="tok bg">背景输入</span></span><span><span class="tok inp">前景输入</span></span></div>
+<div class="toolbar">
+  <input id="aq" placeholder="搜索活动名 / 出处…">
+  <select id="averb"><option value="">全部转化动词 (${verbs.length})</option>${verbs.map(v=>`<option value="${esc(v)}">${esc(v)} — ${esc(verbLabel(v))}</option>`).join('')}</select>
+  <select id="aroute"><option value="">全部技术路线 (${routes.length})</option>${routes.map(v=>`<option value="${esc(v)}">${esc(v)} — ${esc(routeLabel(v))}</option>`).join('')}</select>
+  <select id="aconf"><option value="">全部信心</option><option value="core">core</option><option value="longtail">longtail</option></select>
+  <span class="count" id="acount"></span>
+</div>
+<div class="grid g2" id="agrid"></div>`;
+function renderActs(){
+  const q=document.getElementById('aq').value.toLowerCase().trim();
+  const fv=document.getElementById('averb').value,fr=document.getElementById('aroute').value,fc=document.getElementById('aconf').value;
+  const list=D.activities.filter(a=>(!fv||code(a.facets[AVF]||'')===fv)&&(!fr||code(a.facets.technology_route||'')===fr)&&(!fc||(a.confidence||'')===fc)&&(!q||(a.name+' '+(a.provenance||[]).join(' ')).toLowerCase().includes(q)));
+  const groups={};list.forEach(a=>{const v=code(a.facets[AVF]||'其它');(groups[v]=groups[v]||[]).push(a);});
+  const order=Object.keys(groups).sort();
+  document.getElementById('agrid').innerHTML=order.map(v=>`<div class="groupttl">${esc(v)} <span class="n">${esc(verbLabel(v))}</span> <span class="n">· ${groups[v].length}</span></div>`+groups[v].map(actCard).join('')).join('');
+  document.getElementById('acount').textContent=list.length+' / '+D.activities.length+' 个活动';
+}
+['aq','averb','aroute','aconf'].forEach(id=>document.getElementById(id).addEventListener('input',renderActs));
+renderActs();
+
+/* ===== 节点 Wiki 抽屉：点击卡片 → 内嵌 wiki.html 动态渲染 ===== */
+(function(){
+  const css=`.wiki-card{position:relative;cursor:pointer}
+.wiki-card::after{content:"📖 wiki ›";position:absolute;top:11px;right:13px;font:600 10px/1 "SF Mono",monospace;color:var(--cyan2);opacity:.5}
+.wiki-card:hover::after{opacity:1}
+.wiki-card:hover{border-color:var(--cyan)!important}
+.wiki-card details,.wiki-card summary,.wiki-card a{cursor:auto}
+#wkov{position:fixed;inset:0;background:rgba(4,9,18,.62);backdrop-filter:blur(2px);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s}
+#wkov.show{opacity:1;pointer-events:auto}
+#wkdr{position:fixed;top:0;right:0;height:100%;width:min(880px,95vw);background:var(--bg);border-left:1px solid var(--cyan2);z-index:91;transform:translateX(101%);transition:transform .22s ease;box-shadow:-22px 0 60px rgba(0,0,0,.55);display:flex;flex-direction:column}
+#wkdr.show{transform:none}
+#wkbar{display:flex;align-items:center;gap:9px;padding:9px 13px;border-bottom:1px solid var(--line);background:var(--panel)}
+#wkbar .t{flex:1;font:12px "SF Mono",monospace;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wkbar a,#wkbar button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:6px 11px;font:12px inherit;cursor:pointer;text-decoration:none}
+#wkbar a:hover,#wkbar button:hover{border-color:var(--cyan2)}
+#wkif{flex:1;border:0;width:100%;background:var(--bg)}`;
+  const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
+  const wrap=document.createElement('div');
+  wrap.innerHTML=`<div id="wkov"></div><aside id="wkdr" aria-hidden="true">
+    <div id="wkbar"><span class="t" id="wkt">节点 Wiki</span>
+      <a id="wkfull" target="_blank" rel="noopener">↗ 整页</a>
+      <button id="wkx">✕ 关闭</button></div>
+    <iframe id="wkif" title="node wiki"></iframe></aside>`;
+  document.body.appendChild(wrap);
+  const ov=document.getElementById('wkov'),dr=document.getElementById('wkdr'),
+        ifr=document.getElementById('wkif'),t=document.getElementById('wkt'),full=document.getElementById('wkfull');
+  const wikiViewer='__WIKI__',wikiPreviewViewer='__WIKI_PREVIEW__',
+        wikiPreviewIds=new Set(__WIKI_PREVIEW_IDS__);
+  const viewerFor=id=>wikiPreviewIds.has(id)?wikiPreviewViewer:wikiViewer;
+  function open(id){
+    const viewer=viewerFor(id),isDraft=wikiPreviewIds.has(id);
+    ifr.src=viewer+'?id='+encodeURIComponent(id)+'&embed=1';
+    full.href=viewer+'?id='+encodeURIComponent(id);
+    t.textContent=id+(isDraft?' · DRAFT PREVIEW（未发布）':' · 节点 Wiki');
+    ov.classList.add('show');dr.classList.add('show');dr.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+  }
+  function close(){ov.classList.remove('show');dr.classList.remove('show');dr.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';setTimeout(()=>{if(!dr.classList.contains('show'))ifr.src='about:blank';},240);}
+  document.addEventListener('click',e=>{
+    const c=e.target.closest('.wiki-card');if(!c)return;
+    if(e.target.closest('details')||e.target.closest('summary')||e.target.closest('a'))return;
+    const id=c.getAttribute('data-id');if(id)open(id);
+  });
+  document.getElementById('wkx').onclick=close;ov.onclick=close;
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+  window.addEventListener('message',e=>{if(e.data&&e.data.wikiNav){const id=e.data.wikiNav;
+    const isDraft=wikiPreviewIds.has(id),viewer=viewerFor(id),
+          desired=viewer+'?id='+encodeURIComponent(id)+'&embed=1';
+    // 子页会先在当前 bundle 内导航；父页必须重新执行 allowlist 路由，
+    // 否则从一个 preview 节点可继续浏览整个 preview bundle。
+    if(ifr.getAttribute('src')!==desired)ifr.src=desired;
+    full.href=viewer+'?id='+encodeURIComponent(id);
+    t.textContent=id+(isDraft?' · DRAFT PREVIEW（未发布）':' · 节点 Wiki');}});
+  // 深链：打开页面时带 #wiki=A005 直接弹出
+  const h=location.hash.match(/wiki=([PA]\d{3})/);if(h)setTimeout(()=>open(h[1]),300);
+})();
+
+document.getElementById('s-map').innerHTML=`
+<h2 class="sec">阶段四 · 外部分类对表（缺口探测器）</h2>
+<p class="lead">每个产品映 CPC/HS、每个活动映 ISIC/NACE、每项技术映技术分类；标尺中存在而图中缺节点的子类 = 缺口（声明边界内的已回填，边界外的显式排除）。</p>
+${D.external_mapping.map(m=>{
+  const cls=esc(m.classification);
+  return `<div class="panel">
+    <h3>${cls.split('。')[0].slice(0,80)}</h3>
+    <details class="prov" open><summary>对表结论与边界说明</summary><div style="color:var(--dim);font-size:12.5px;margin-top:6px">${cls}</div></details>
+    <div style="margin:12px 0;color:var(--faint);font-size:12px">已映码 <b style="color:var(--cyan)">${(m.mapped||[]).length}</b> · 缺口 <b style="color:var(--rose)">${(m.gaps||[]).length}</b></div>
+    ${(m.gaps||[]).length?`<div class="grid g2">${m.gaps.map(gp=>`<div class="card gap"><div class="nm" style="font-size:13px"><span class="mono" style="color:var(--rose)">${esc(gp.code)}</span></div><div style="color:var(--dim);font-size:12.5px">${esc(gp.description)}</div></div>`).join('')}</div>`:'<div style="color:var(--good);font-size:12.5px">无边界内缺口</div>'}
+  </div>`;
+}).join('')}`;
+
+function stClass(s){const t=s||'';if(/未完成|未达|违反[^=]*=\s*[1-9]|缺少/.test(t))return 's-bad';if(/部分|但|争议|≈|实质达成|边界态|未用/.test(t))return 's-warn';return 's-ok';}
+document.getElementById('s-score').innerHTML=`
+<h2 class="sec">完整性记分卡</h2>
+<p class="lead">让完整可度量，而非口说。全部满足 = 在声明口径下"可辩护地完整"。</p>
+<div class="panel"><table>
+  <tr><th style="width:34%">检查项</th><th style="width:14%">目标</th><th>实际状态</th></tr>
+  ${D.scorecard.rows.map(r=>`<tr><td><b style="color:var(--ink)">${esc(r.check)}</b></td><td class="mono" style="color:var(--dim)">${esc(r.target)}</td><td><span class="st ${stClass(r.status)}">${esc(r.status)}</span></td></tr>`).join('')}
+</table></div>
+<div class="note"><b style="color:var(--cyan)">总评：</b> ${esc(D.scorecard.overall)}</div>
+<h3 style="color:var(--amber);margin:22px 0 10px">长尾领域（显式标注"可能不全"）</h3>
+<ul class="tight">${D.scorecard.longtail_notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>
+<div class="foot">${esc(M.title)} · ${esc(M.industry)} · 生成 ${esc(M.generated)} · 由六阶段 workflow（21 agents）按《采集与制作方案》构建 · 名称/拓扑层，非数值数据集</div>`;
+</script>
+</body>
+</html>

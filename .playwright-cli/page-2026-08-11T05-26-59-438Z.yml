@@ -1,0 +1,850 @@
+- generic [ref=e2]:
+  - generic [ref=e791]:
+    - generic [ref=e792]:
+      - link "← 名称图" [ref=e793] [cursor=pointer]:
+        - /url: ict_equipment-name-graph.html
+      - text: ·
+      - link "index" [ref=e794] [cursor=pointer]:
+        - /url: ../wiki/ict_equipment/index.md
+    - generic [ref=e795]: Product 产品 Wiki
+  - generic "节点 sigil（= g(身份键)）" [ref=e796]
+  - heading "服务器, 通用计算, 刀片式" [level=1] [ref=e816]
+  - generic [ref=e817]:
+    - text: P003
+    - generic [ref=e818]: 前景
+    - generic [ref=e819]: core
+    - generic [ref=e820]: 正式发布
+    - generic [ref=e821]: Wiki reviewed
+    - generic [ref=e822]: Schema wiki-v2
+    - generic [ref=e823]: 结构 conformant
+    - generic [ref=e824]: 溯源 claim_verified
+    - generic [ref=e825]: 断言 complete
+    - generic [ref=e826]: 数量 not_populated
+    - generic [ref=e827]: LCI blocked_pending_node_specific_lci
+  - generic [ref=e828]:
+    - generic [ref=e829]: "equipment class: server"
+    - generic [ref=e830]: "integration level: system"
+    - generic [ref=e831]: "compute type: cpu_compute"
+    - generic [ref=e832]: "form factor: blade"
+    - generic [ref=e833]: "product subtype: 刀片服务器, blade, cpu_compute"
+    - generic [ref=e834]: "CPC: 4521"
+    - generic [ref=e835]: "HS: 8471.50"
+  - generic [ref=e837]:
+    - heading "定义与产品身份" [level=3] [ref=e838]
+    - paragraph [ref=e839]:
+      - text: 刀片服务器属于高密度服务器产品形态。
+      - superscript [ref=e840]:
+        - link "来源" [ref=e841] [cursor=pointer]:
+          - /url: "#source-ku-b2ed767fd2c48333"
+      - superscript [ref=e842]:
+        - link "来源" [ref=e843] [cursor=pointer]:
+          - /url: "#source-ku-bdce14693f667969"
+      - text: 高密度只描述产品形态，不足以单独确认P003成品身份；本文将“刀片服务器”和“服务器刀片”视为同一称谓，并以完整装配状态和交接记录判定对象。 身份记录应至少关联完整型号、SKU、配置版本、序列批次和BOM版本，使同名产品的不同硬件组合能够被识别，同时避免把纯配置变化误判为新的产品层级。 若记录对象缺少成品型号、装配完成标识或可追溯交接凭证，则只能暂作部件集合或代理配置，不能据此确认其代表一台完成交付的P003产品。
+    - paragraph [ref=e844]: 本节点以一台刀片服务器为建模对象，并将其与承载多台产品的刀片机箱、机架和数据中心基础设施区分。 P003只描述成品刀片服务器输出；机箱背板、电源、风扇、集中管理设备、机架结构和数据中心设施不进入产品本体，而通过相邻节点、使用阶段过程或明确分配规则处理。 层级判定应记录对象是否随单台产品交付、能否从机箱中单独拆换以及其质量是否已进入该台BOM，任一条件不清楚时都应保留边界待审状态。 若供应商资料把刀片服务器与刀片机箱作为整套系统报价，建模人员仍应依据实物清单和交接范围拆分，无法拆分的套装数据不得直接作为单台产品数据。
+    - paragraph [ref=e845]: 同一产品家族内仅处理器数量、系统内存容量、存储配置或网络接口选件变化时，宜用配置参数和情景组合表达，并保持P003这一成品身份不变。 参数化记录应保存基础型号、选件代码、各选件净质量、适用BOM和代表期，以便计算特定配置时替换相应模块而不重复建立结构相同的节点。 当配置变化导致产品类别、主要计算功能、交付边界或制造路线发生实质改变，例如从CPU通用计算转为以加速器为主体时，参数化假设即达到失效条件。 型号之间若只有名称差异却无法取得配置映射，应暂列为证据缺口并执行保守情景，而不应凭名称相似性合并BOM、净质量或制造记录。
+    - heading "性质与形态" [level=3] [ref=e846]
+    - paragraph [ref=e847]:
+      - text: 刀片服务器是一种高密度独立服务器设备，其基本构成至少包括处理器和系统内存。
+      - superscript [ref=e848]:
+        - link "来源" [ref=e849] [cursor=pointer]:
+          - /url: "#source-ku-153eb8227d2556ca"
+      - superscript [ref=e850]:
+        - link "来源" [ref=e851] [cursor=pointer]:
+          - /url: "#source-ku-73123c46ddb53634"
+      - text: 这里的“独立”只表示刀片服务器能作为独立计算节点承担服务器功能，并不表示它可以脱离刀片机箱运行；“服务器刀片”只是同义简称。
+    - paragraph [ref=e852]: 产品构成边界从完成装配并随交付移交的刀片服务器本体开始，覆盖板载电路以及随配置交付的计算、存储、网络和管理部件。 采集时应为每类部件记录料号、数量、单件质量、装配位置和是否随成品交付，并以这些字段检查BOM条目与单台净质量能否闭合。 无法确认存储器件、网络适配件或管理模块是否随产品交付时，应分别建立纳入与不纳入情景；不得依据产品家族资料反推具体部件数量。 物理接口应记录供电连接形式及额定配置、冷却接口与方式、背板或网络连接位置和管理通道，但这些接口记录本身不把机箱实体计入单台质量。
+    - paragraph [ref=e853]: 产品清单应记录全部实体部件，并另设“是否可更换”属性；长期保留的外壳、板卡和连接结构与可替换的处理器、内存条、存储介质或接口模块都属于实体部件。 这种区分用于连接制造、维修替换和报废阶段，但初始随产品交付的可更换部件仍属于成品BOM，不能因为未来可能替换而从制造端删去。 部件记录应增加拆换单位、预期替换原因、替换后去向和序列追踪字段；缺少这些信息时，只能核算初始产品构成，不能推导维修期消耗。 若维修资料只给出备件套装质量而未区分实际换下部件，套装不得直接充当初始BOM，也不得假定每次维修消耗整套备件。
+    - paragraph [ref=e854]: 包装与交付状态应区分裸机、含保护材料的销售包装、与多台产品共用的周转包装以及随机附件，并分别记录质量、数量基准和回收安排。 若包装清单不能映射到单台产品，或周转次数和返还率缺失，则包装负荷只能作为单独的不确定情景，不能以整批包装质量直接重复计入每台产品。
+    - heading "参考流与交接边界" [level=3] [ref=e855]
+    - paragraph [ref=e856]:
+      - text: 刀片服务器是定义明确、能够独立发挥服务器功能的产品类别。
+      - superscript [ref=e857]:
+        - link "来源" [ref=e858] [cursor=pointer]:
+          - /url: "#source-ku-4b940c265eae5d25"
+      - superscript [ref=e859]:
+        - link "来源" [ref=e860] [cursor=pointer]:
+          - /url: "#source-ku-5f21a2b6e7e5d07f"
+      - text: 本节点以一台完整刀片服务器作为产品交接单元。 参考流应表述为完成规定装配与制造检验、具备型号和配置标识并可交付的一台产品，不以板卡数量、计算能力或占用机箱槽位代替。 交接记录应关联单台净质量、BOM版本、配置清单、制造批次、包装状态和离开装配地的时间，从而确保物理产品与制造投入处于同一版本。
+    - paragraph [ref=e861]: 制造端边界应包括形成该台产品所需的部件装配、测试、返工和厂内处置，并把可归属于产品的能源、辅料和损耗按一致活动版本汇总；同时，产品交接后所需的共享资源不并入该单台产品的固有物料构成。 使用期由刀片机箱提供的共享供电损耗、风扇冷却、背板通信和集中管理，应在使用模型中依据服务关系分配，而不是回填到出厂BOM。 制造测试期间临时使用的机箱或测试台若服务多个产品，应记录设备使用时长、测试批量和分配依据，并与交付后的共享基础设施明确分开。 若测试能耗同时包含机箱基载且无法识别产品增量负荷，应保留总量分配与增量估算两个情景，不能将全部机箱基载无条件归给被测单台产品。
+    - paragraph [ref=e862]: 净质量应采用不含一次性包装的完成装配产品质量，并通过称量值、BOM质量汇总值和配置记录进行三方核对，差异应标记原因与处理方法。 BOM质量闭合应同时检查标配件、选配件、紧固件、散热材料和外壳等易遗漏项目，并明确电子数据中数量单位与质量单位的换算关系；单台称量、型号级BOM和配置快照属于同一代表期和制造批次，是三方数据能够比较并形成质量闭合的前提。
+    - paragraph [ref=e863]: 称量包含运输托盘或一次性保护袋时，应记录并扣除这些边界外辅助物；只有装配在服务器本体内、构成该型号配置的部件计入单台净质量，独立随附的线缆、工具或备件即使列入交付清单也应作为单独交付物流记录。 若研究对象确需包含独立附件，应另行定义成套交付组合、列明产品本体与每类附件的独立质量，并保持该组合口径与“一台完整刀片服务器”的产品本体参考流相互区分。
+    - heading "规格与相邻节点区分" [level=3] [ref=e864]
+    - paragraph [ref=e865]:
+      - text: 刀片服务器是一种设计用于刀片机箱的紧凑型模块化服务器。
+      - superscript [ref=e866]:
+        - link "来源" [ref=e867] [cursor=pointer]:
+          - /url: "#source-ku-63ee063331febda0"
+      - superscript [ref=e868]:
+        - link "来源" [ref=e869] [cursor=pointer]:
+          - /url: "#source-ku-90181e63c01a3961"
+      - text: 本节点不吸收与刀片服务器配套使用的设备实体。 与刀片机箱的区分应依据实体所有权和质量边界：刀片服务器本身随单台交付，机箱外壳、共享电源、风扇和背板则服务多个槽位。 若销售资料只给出装满刀片的机箱总质量，应先取得空机箱、刀片服务器数量和各配置质量；不能完成拆分时，该数据仅适用于组合系统情景。
+    - paragraph [ref=e870]: 与机架式服务器相比，P003的判定重点是产品需插入共享机箱接口，而不是以独立机架外壳、电源和完整冷却组件作为单台交付边界。 机架式服务器或完整刀片机箱即使与本产品共享部分部件，也不能仅凭用途相近套用同一成品BOM，除非逐项证明交付边界和配置等价。
+    - paragraph [ref=e871]: 主板PCBA只是刀片服务器的组成部件；只有完成规定结构装配、配置集成和整机检验后，才形成P003成品。 成品SKU、装配范围和整机检验状态共同用于区分主板PCBA与P003成品。 来源中的“服务器模块”属于待识别称谓：只有装配范围和检验记录证明它代表完整成品时才映射到刀片服务器，否则按PCBA、管理模块或待识别组件处理。
+    - paragraph [ref=e872]: 规格参数应按处理器、系统内存、存储、网络接口、管理控制模块、供电接口和冷却接口分组，并为每组保存型号、数量、容量或接口状态。 这些字段用于复现具体交付配置和匹配使用阶段接口，不据此把纯配置变化拆成新的产品节点。
+    - heading "在系统中的角色" [level=3] [ref=e873]
+    - paragraph [ref=e874]:
+      - text: P003 在内部产品系统图中由 A039 产生。
+      - superscript [ref=e875]:
+        - link "图谱" [ref=e876] [cursor=pointer]:
+          - /url: "#source-internal-graph"
+      - text: P003是A039完成总装后交付给下游产品系统的通用计算刀片服务器流，用于把制造活动结果与具体产品配置、数量和净质量对应。 A039与P003接口以产品流标识、配置版本和制造批次作为识别键；合格产品数量和对应净质量作为输出量值，良率口径与包装交接状态作为关联属性。 若A039记录的是生产投料数量而P003记录的是合格出厂数量，二者之间必须由报废、返工和在制品变化调节，不能默认一比一闭合。
+    - paragraph [ref=e877]: 上游部件过程应通过型号级BOM进入A039，包括处理器、系统内存、存储、网络接口、管理模块、结构件和其他随产品交付的实体。 每条上游接口应保存部件料号、供应商、来源地、数量单位、损耗归属和数据版本。 这些追溯字段使替代部件或双重采购能够按配置覆盖率表达。 若上游只有部件家族平均数据而缺少具体供应商和料号覆盖，应标示代理比例，不得把家族平均值描述为完整型号的实测供应链。
+    - paragraph [ref=e878]: P003向下游产品系统提供的是制造完成的刀片服务器，不自动包含刀片机箱、机架、数据中心基础设施或使用期电力等后续服务。 下游模型调用时应同时传递产品配置、装配地、代表期和共享接口条件，否则同一节点结果可能被错误用于不匹配的机箱代际或供应链。
+    - paragraph [ref=e879]: 共享制造资源位于刀片服务器产品实体之外；只有无法直接计量且确实服务多台产品时，才按制造批次、设备占用时间或资源驱动量分配其负荷。 分配结果是制造活动负荷，不是产品规格或相邻产品实体；能够直接归属单台产品的消耗不得参加平均分配。
+    - paragraph [ref=e880]: 使用阶段的机箱供电和冷却属于刀片机箱提供的共享服务，不属于刀片服务器的固有物料构成。 在实体边界明确后，服务负荷可按槽位、产品数量、运行时长或实测增量分配；存在独占资源或直接计量时，平均分配即失效。
+    - paragraph [ref=e881]: 使用阶段应接收单台产品及其配置参数，并另外连接运行电力、共享机箱负荷和数据中心服务；制造端产品节点不预设实际负载率或寿命。 负载率、寿命和共享服务需求属于使用情景参数，应与制造端产品输出分开保存并在下游模型中赋值。
+    - paragraph [ref=e882]: 维修替换应把初始可更换部件、备件生产、运输、替换时间和退役去向分别建模，并避免将同一备件同时计入初始BOM与维修消耗。 只有使用情景给出部件寿命、替换频次和实际配置后，才能计算备件需求并与初始BOM执行防重复检查。
+    - paragraph [ref=e883]: 报废阶段的归属应从P003净质量和生命周期内新增备件出发，按最终持有的材料与部件建立回收、再利用或处置接口。 若产品在报废前被整机再利用或拆出处理器、系统内存和存储继续使用，应保存转移数量和质量，避免原系统与后续系统重复承担或遗漏处置。 缺少维修频次、替换部件和寿命分布时，P003仍可用于制造端核算，但不得据此声称已经覆盖完整使用、维修和报废阶段。
+    - heading "工艺图 · 邻域工序" [level=3] [ref=e884]
+    - img [ref=e886]:
+      - generic [ref=e889]:
+        - generic [ref=e910]: 服务器, 通用计算, 刀片式
+        - generic [ref=e911]: P003 · 产品
+      - generic [ref=e912]: ▸ 产出它的活动（1）
+      - generic [ref=e913]: 消费它的活动（0） ◂
+      - generic "系统集成, 整机总装 | 服务器, 通用计算, 刀片式" [ref=e914] [cursor=pointer]:
+        - generic [ref=e922]: 系统集成, 整机总装 | 服务器,…
+        - generic [ref=e923]: A039 · 产出·参考
+        - generic [ref=e924]: ★
+    - heading "分类与适用范围" [level=3] [ref=e925]
+    - paragraph [ref=e926]:
+      - text: 刀片服务器属于服务器产品，其运行依赖刀片机箱提供的共享资源。
+      - superscript [ref=e927]:
+        - link "来源" [ref=e928] [cursor=pointer]:
+          - /url: "#source-ku-bce26914c5b903dc"
+      - superscript [ref=e929]:
+        - link "来源" [ref=e930] [cursor=pointer]:
+          - /url: "#source-ku-320f0db92754b3c0"
+      - text: 本节点适用于表达刀片服务器制造端的产品层级建模。 适用对象应是以CPU执行通用计算任务为主要产品定位、按刀片服务器形态完成装配并通过相应机箱接口运行的成品。 归类记录应保存主要计算部件类型、交付形态、共享机箱依赖和成品SKU，任何一项缺失都应降低分类确定性而非用名称强行归类。
+    - paragraph [ref=e931]: P003不能被包含刀片机箱、机架或数据中心设施的组合系统替代。 被排除的刀片机箱、机架等物理基础设施进入各自产品节点，其物理质量不计入P003，但通过产品或物料接口保留关联。 这些基础设施提供的供电、冷却或管理负荷进入相应服务接口，在使用阶段分配给P003，不能作为刀片服务器固有物料。
+    - paragraph [ref=e932]: 排除判定先区分组件与成品：未达到完整装配和成品检验状态的对象转入相应部件节点；只有完整成品才进入服务器产品形态与主要功能的联合判定。 完整成品只有同时满足刀片式交付形态和以CPU通用计算为主的产品定位才能归入P003；两个正向准入项任一不满足即予排除，例如机架式交付或加速器主导的成品应转入与其全部身份刻面相符的服务器节点。
+    - paragraph [ref=e933]: 混合功能产品先依据交付定义确认产品类别，再判断主要计算功能；物理质量贡献只解释配置差异，不单独决定分类。 交付定义与主要功能证据冲突时，应把对象列为待分类并补充交付文件、配置清单和功能证据，不能先建立配置类别。 证据补齐前，相似外形只可支持候选筛选，不能替代产品身份、成品层级与BOM边界判定。
+    - paragraph [ref=e934]: 处理器代次、系统内存容量、存储数量、网络接口速率或管理模块版本的改变，通常作为同一产品身份下的配置差异进行参数化。 当改变同时引起整机外形、机箱兼容关系、主要计算功能、制造装配路线或成品SKU体系的根本变化时，应重新评估是否形成新的身份节点。
+    - paragraph [ref=e935]: 配置覆盖应以实际交付数量或明确的研究情景权重汇总，并记录各配置在代表期内的份额，不能对未知市场组合任意设定平均值。 当配置覆盖不完整、需要建立家族代表模型时，只有BOM结构、净质量、制造地点和供应链具有可解释相似性的型号才可作为代理，并须披露未覆盖型号与差异方向。 代理失效条件包括主要部件数量跨档、共享接口代际改变、装配地迁移或净质量差异无法解释，触发后应停止外推并单列数据需求。
+    - heading "节点特定采集字段" [level=3] [ref=e936]
+    - paragraph [ref=e937]: 应采集型号级物料清单及各部件的净质量；同时，完整型号与SKU应作为采集主索引，并关联BOM版本、生效日期、配置代码、制造批次和单台净质量，防止跨版本拼接部件数据。 BOM条目至少应包含部件名称、内部料号、供应商料号、数量、计量单位、单件质量、材料或部件类别以及是否随产品交付；随机附件若随整机交付，应以独立BOM条目记录其质量，不得并入包装质量。 质量闭合应比较BOM汇总、产品称量和包装扣除后的结果，并为未闭合差额记录可能来自紧固件、线缆、散热材料或称量方法的原因。 若差额超过项目预先设定且记录在案的接受范围，应停止使用该BOM开展材料贡献分析，直至补充条目或完成重新称量。
+    - paragraph [ref=e938]: 硬件采集字段用于复现具体配置，并识别刀片服务器本体与共享机箱之间的接口边界。 处理器字段应记录型号、数量、封装或模块料号和供应商，系统内存字段应记录总容量、条目数量、单条容量、类型及是否属于基础配置；板载存储配置应记录介质类型、数量、容量、是否可拆换和控制部件，网络接口配置则应记录板载与可插拔接口、端口数量和模块边界。 管理控制模块应说明是否独立成板、是否包含在主板PCBA以及对应质量；重复出现在主板与模块清单中的同一实体必须去重。 具体配置字段缺失时，可保留“未知”并建立上下界情景，不得依据产品家族宣传资料填入未确认的处理器、内存、存储或接口数量。
+    - paragraph [ref=e939]: 供电接口与额定配置、冷却接口与方式应作为共享机箱连接字段采集，用于匹配使用模型，但不得把额定值直接当作实际能耗。 共享机箱只作为供电与冷却接口的连接对象记录，不纳入刀片服务器本体。
+    - paragraph [ref=e940]: 制造记录应覆盖装配、测试、老化筛选、返工和报废等活动，并为各活动保存计量范围、能源或辅料单位、批量及活动版本。 良率应区分首次通过率、返工后合格率和最终报废率，并明确分母是投入件、装配台数还是测试次数，避免在多个环节重复放大损耗。
+    - paragraph [ref=e941]: 包装字段只记录内包装、外箱和托盘等包装组成的材料、质量、装载数量、重复使用次数与运输交接点；交接点和装载数量共同确定进入运输模型的货量及起始边界，且包装汇总必须排除已列入BOM的随机附件。 运输记录应从该交接点关联起讫地、运输方式、距离依据、装载状态、批量和中转节点；只有运输方式而没有路径与货量时，不足以形成型号级前景运输。
+    - paragraph [ref=e942]: 供应商采集应覆盖高贡献部件及关键替代来源，为每个料号记录供应商名称、生产地点、数据代表期、采购份额和是否采用代理数据；同时，双重或多重供应时，应按研究期采购份额建立供应商覆盖矩阵；份额未知时可设置等权或极端情景，但必须标为建模假设。 若供应商、生产地点或采购份额无法追溯，应降低供应链数据质量评级，且不得把家族级代理描述为完整型号的实测供应链。
+    - paragraph [ref=e943]: 质量测量方法应说明秤具类型、分辨率、去皮步骤、样本量、抽样批次和异常值处理，使单台净质量具有可审计的测量边界。 测量记录应与产品型号、配置和抽样批次关联；缺少去皮步骤、样本范围或异常值处理时，称量结果不能用于证明型号级质量闭合。
+    - paragraph [ref=e944]: 制造活动版本应验证BOM生效期、工艺路线、装配地、供应商组合和包装方案是否属于同一代表期。 发现跨期记录时应按版本拆分并单独说明；无法拆分的数据不得声明为完整型号级实测LCI。
+    - heading "区域化补充要求" [level=3] [ref=e945]
+    - paragraph [ref=e946]: 区域化建模应同时记录制造地点对应的电力供应区域，以及主要物料来源地、组装地和运输起讫地。 记录这些地点是为了把部件生产、最终装配、仓储和交付活动匹配到背景数据库的相应地理层级，不能以总部地址替代实际活动地。 在地点边界明确后，运输路径按来源地至装配地、装配地至区域仓库和仓库至交接点分段，并分别保存运输方式与距离依据。 厂址未知时使用与已知国家或区域粒度一致的运输和电力代理，并把厂址差异保留为地理不确定性，而不是伪造更精细位置。
+    - paragraph [ref=e947]: 区域电力代理应按活动发生地点选择：最终装配与测试匹配装配地电力，高耗能部件制造则匹配相应供应商生产区域而非成品销售区域。 代理选择记录应包含背景数据名称、地理范围、技术范围、年份、替代理由和覆盖活动，确保后续能够识别同一电力数据被误用于不同供应链环节。 装配地或主要供应商区域变化时，应重配受影响活动的电力代理，并保留变更前后的地域依据。
+    - paragraph [ref=e948]: 代表期应同时覆盖BOM、制造工艺、供应商份额、区域电力和运输网络，并说明数据年份与目标研究期之间的时间偏离。 技术代际会改变部件生产地域、供应商组合和运输网络，因此处理器平台、系统内存类型、接口代际或机箱兼容关系变化时，应同时复核相关区域化数据。 时间窗口变化时更新区域电力和运输网络，技术代际变化时更新受影响的部件配置与供应链代理；局部变化不使无关数据链一并失效。
+    - generic [ref=e949]:
+      - heading "物性/常数表 · 来源限定" [level=4] [ref=e950]
+      - table [ref=e951]:
+        - rowgroup [ref=e952]:
+          - row [ref=e953]:
+            - columnheader "property" [ref=e954]
+            - columnheader "condition" [ref=e955]
+            - columnheader "unit" [ref=e956]
+            - columnheader "值" [ref=e957]
+            - columnheader "源" [ref=e958]
+            - columnheader "pedigree" [ref=e959]
+        - rowgroup [ref=e960]:
+          - row [ref=e961]:
+            - cell "成品级产品身份" [ref=e962]
+            - cell "P003 成品级刀片服务器边界" [ref=e963]
+            - cell "—" [ref=e964]
+            - cell "待核" [ref=e965]
+            - cell [ref=e966]:
+              - link [ref=e967] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e968]: internal-review
+            - cell "待评" [ref=e969]
+          - row [ref=e970]:
+            - cell "图谱系统边界" [ref=e971]
+            - cell "P003 成品级刀片服务器边界" [ref=e972]
+            - cell "—" [ref=e973]
+            - cell "待核" [ref=e974]
+            - cell [ref=e975]:
+              - link [ref=e976] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e977]: internal-review
+            - cell "待评" [ref=e978]
+          - row [ref=e979]:
+            - cell "产品层级与相邻对象" [ref=e980]
+            - cell "P003 成品级刀片服务器边界" [ref=e981]
+            - cell "—" [ref=e982]
+            - cell "待核" [ref=e983]
+            - cell [ref=e984]:
+              - link [ref=e985] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e986]: internal-review
+            - cell "待评" [ref=e987]
+          - row [ref=e988]:
+            - cell "处理器配置边界" [ref=e989]
+            - cell "P003 成品级刀片服务器边界" [ref=e990]
+            - cell "—" [ref=e991]
+            - cell "待核" [ref=e992]
+            - cell [ref=e993]:
+              - link [ref=e994] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e995]: internal-review
+            - cell "待评" [ref=e996]
+          - row [ref=e997]:
+            - cell "系统内存配置边界" [ref=e998]
+            - cell "P003 成品级刀片服务器边界" [ref=e999]
+            - cell "—" [ref=e1000]
+            - cell "待核" [ref=e1001]
+            - cell [ref=e1002]:
+              - link [ref=e1003] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1004]: internal-review
+            - cell "待评" [ref=e1005]
+          - row [ref=e1006]:
+            - cell "板载存储与网络边界" [ref=e1007]
+            - cell "P003 成品级刀片服务器边界" [ref=e1008]
+            - cell "—" [ref=e1009]
+            - cell "待核" [ref=e1010]
+            - cell [ref=e1011]:
+              - link [ref=e1012] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1013]: internal-review
+            - cell "待评" [ref=e1014]
+          - row [ref=e1015]:
+            - cell "共享机箱接口" [ref=e1016]
+            - cell "P003 成品级刀片服务器边界" [ref=e1017]
+            - cell "—" [ref=e1018]
+            - cell "待核" [ref=e1019]
+            - cell [ref=e1020]:
+              - link [ref=e1021] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1022]: internal-review
+            - cell "待评" [ref=e1023]
+          - row [ref=e1024]:
+            - cell "包装与交付状态" [ref=e1025]
+            - cell "P003 成品级刀片服务器边界" [ref=e1026]
+            - cell "—" [ref=e1027]
+            - cell "待核" [ref=e1028]
+            - cell [ref=e1029]:
+              - link [ref=e1030] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1031]: internal-review
+            - cell "待评" [ref=e1032]
+    - generic [ref=e1033]:
+      - heading "规格/工艺参数表 国际值 0/12 · 国际源 12/12 中国值 0/12 · 中国源 12/12" [level=4] [ref=e1034]:
+        - text: 规格/工艺参数表
+        - generic [ref=e1035]: 国际值 0/12 · 国际源 12/12
+        - generic [ref=e1036]: 中国值 0/12 · 中国源 12/12
+      - table [ref=e1037]:
+        - rowgroup [ref=e1038]:
+          - row [ref=e1039]:
+            - columnheader "parameter" [ref=e1040]
+            - columnheader "geo" [ref=e1041]
+            - columnheader "unit" [ref=e1042]
+            - columnheader "basis" [ref=e1043]
+            - columnheader "国际值 INT" [ref=e1044]
+            - columnheader "国际源 INT" [ref=e1045]
+            - columnheader "中国值 CN" [ref=e1046]
+            - columnheader "中国源 CN" [ref=e1047]
+            - columnheader "pedigree" [ref=e1048]
+        - rowgroup [ref=e1049]:
+          - row [ref=e1050]:
+            - cell "完整型号与SKU" [ref=e1051]
+            - cell "target" [ref=e1052]
+            - cell "待采" [ref=e1053]
+            - cell "measured_average" [ref=e1054]
+            - cell "待采" [ref=e1055]
+            - cell [ref=e1056]:
+              - link [ref=e1057] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1058]: internal-review
+            - cell "待采" [ref=e1059]
+            - cell [ref=e1060]:
+              - link [ref=e1061] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1062]: internal-review
+            - cell "待评" [ref=e1063]
+          - row [ref=e1064]:
+            - cell "单台净质量" [ref=e1065]
+            - cell "target" [ref=e1066]
+            - cell "待采" [ref=e1067]
+            - cell "measured_average" [ref=e1068]
+            - cell "待采" [ref=e1069]
+            - cell [ref=e1070]:
+              - link [ref=e1071] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1072]: internal-review
+            - cell "待采" [ref=e1073]
+            - cell [ref=e1074]:
+              - link [ref=e1075] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1076]: internal-review
+            - cell "待评" [ref=e1077]
+          - row [ref=e1078]:
+            - cell "型号级BOM版本" [ref=e1079]
+            - cell "target" [ref=e1080]
+            - cell "待采" [ref=e1081]
+            - cell "measured_average" [ref=e1082]
+            - cell "待采" [ref=e1083]
+            - cell [ref=e1084]:
+              - link [ref=e1085] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1086]: internal-review
+            - cell "待采" [ref=e1087]
+            - cell [ref=e1088]:
+              - link [ref=e1089] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1090]: internal-review
+            - cell "待评" [ref=e1091]
+          - row [ref=e1092]:
+            - cell "处理器型号与数量" [ref=e1093]
+            - cell "target" [ref=e1094]
+            - cell "待采" [ref=e1095]
+            - cell "measured_average" [ref=e1096]
+            - cell "待采" [ref=e1097]
+            - cell [ref=e1098]:
+              - link [ref=e1099] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1100]: internal-review
+            - cell "待采" [ref=e1101]
+            - cell [ref=e1102]:
+              - link [ref=e1103] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1104]: internal-review
+            - cell "待评" [ref=e1105]
+          - row [ref=e1106]:
+            - cell "系统内存容量与条目" [ref=e1107]
+            - cell "target" [ref=e1108]
+            - cell "待采" [ref=e1109]
+            - cell "measured_average" [ref=e1110]
+            - cell "待采" [ref=e1111]
+            - cell [ref=e1112]:
+              - link [ref=e1113] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1114]: internal-review
+            - cell "待采" [ref=e1115]
+            - cell [ref=e1116]:
+              - link [ref=e1117] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1118]: internal-review
+            - cell "待评" [ref=e1119]
+          - row [ref=e1120]:
+            - cell "板载存储配置" [ref=e1121]
+            - cell "target" [ref=e1122]
+            - cell "待采" [ref=e1123]
+            - cell "measured_average" [ref=e1124]
+            - cell "待采" [ref=e1125]
+            - cell [ref=e1126]:
+              - link [ref=e1127] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1128]: internal-review
+            - cell "待采" [ref=e1129]
+            - cell [ref=e1130]:
+              - link [ref=e1131] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1132]: internal-review
+            - cell "待评" [ref=e1133]
+          - row [ref=e1134]:
+            - cell "网络接口配置" [ref=e1135]
+            - cell "target" [ref=e1136]
+            - cell "待采" [ref=e1137]
+            - cell "measured_average" [ref=e1138]
+            - cell "待采" [ref=e1139]
+            - cell [ref=e1140]:
+              - link [ref=e1141] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1142]: internal-review
+            - cell "待采" [ref=e1143]
+            - cell [ref=e1144]:
+              - link [ref=e1145] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1146]: internal-review
+            - cell "待评" [ref=e1147]
+          - row [ref=e1148]:
+            - cell "管理控制模块" [ref=e1149]
+            - cell "target" [ref=e1150]
+            - cell "待采" [ref=e1151]
+            - cell "measured_average" [ref=e1152]
+            - cell "待采" [ref=e1153]
+            - cell [ref=e1154]:
+              - link [ref=e1155] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1156]: internal-review
+            - cell "待采" [ref=e1157]
+            - cell [ref=e1158]:
+              - link [ref=e1159] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1160]: internal-review
+            - cell "待评" [ref=e1161]
+          - row [ref=e1162]:
+            - cell "供电接口与额定配置" [ref=e1163]
+            - cell "target" [ref=e1164]
+            - cell "待采" [ref=e1165]
+            - cell "measured_average" [ref=e1166]
+            - cell "待采" [ref=e1167]
+            - cell [ref=e1168]:
+              - link [ref=e1169] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1170]: internal-review
+            - cell "待采" [ref=e1171]
+            - cell [ref=e1172]:
+              - link [ref=e1173] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1174]: internal-review
+            - cell "待评" [ref=e1175]
+          - row [ref=e1176]:
+            - cell "冷却接口与方式" [ref=e1177]
+            - cell "target" [ref=e1178]
+            - cell "待采" [ref=e1179]
+            - cell "measured_average" [ref=e1180]
+            - cell "待采" [ref=e1181]
+            - cell [ref=e1182]:
+              - link [ref=e1183] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1184]: internal-review
+            - cell "待采" [ref=e1185]
+            - cell [ref=e1186]:
+              - link [ref=e1187] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1188]: internal-review
+            - cell "待评" [ref=e1189]
+          - row [ref=e1190]:
+            - cell "装配地点与代表期" [ref=e1191]
+            - cell "target" [ref=e1192]
+            - cell "待采" [ref=e1193]
+            - cell "measured_average" [ref=e1194]
+            - cell "待采" [ref=e1195]
+            - cell [ref=e1196]:
+              - link [ref=e1197] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1198]: internal-review
+            - cell "待采" [ref=e1199]
+            - cell [ref=e1200]:
+              - link [ref=e1201] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1202]: internal-review
+            - cell "待评" [ref=e1203]
+          - row [ref=e1204]:
+            - cell "包装与运输交接" [ref=e1205]
+            - cell "target" [ref=e1206]
+            - cell "待采" [ref=e1207]
+            - cell "measured_average" [ref=e1208]
+            - cell "待采" [ref=e1209]
+            - cell [ref=e1210]:
+              - link [ref=e1211] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1212]: internal-review
+            - cell "待采" [ref=e1213]
+            - cell [ref=e1214]:
+              - link [ref=e1215] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1216]: internal-review
+            - cell "待评" [ref=e1217]
+    - generic [ref=e1218]:
+      - heading "数据质量与代表性字段 · 不允许代理 中国值 10/10 · 中国源 10/10" [level=4] [ref=e1219]:
+        - text: 数据质量与代表性字段 · 不允许代理
+        - generic [ref=e1220]: 中国值 10/10 · 中国源 10/10
+      - table [ref=e1221]:
+        - rowgroup [ref=e1222]:
+          - row [ref=e1223]:
+            - columnheader "field" [ref=e1224]
+            - columnheader "unit" [ref=e1225]
+            - columnheader "basis" [ref=e1226]
+            - columnheader "中国项目值 CN" [ref=e1227]
+            - columnheader "中国源 CN" [ref=e1228]
+            - columnheader "proxy_policy" [ref=e1229]
+            - columnheader "pedigree" [ref=e1230]
+        - rowgroup [ref=e1231]:
+          - row [ref=e1232]:
+            - cell "BOM质量闭合" [ref=e1233]
+            - cell "—" [ref=e1234]
+            - cell "reference" [ref=e1235]
+            - cell "待核" [ref=e1236]
+            - cell [ref=e1237]:
+              - link [ref=e1238] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1239]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1240]
+            - cell "待评" [ref=e1241]
+          - row [ref=e1242]:
+            - cell "配置覆盖" [ref=e1243]
+            - cell "—" [ref=e1244]
+            - cell "reference" [ref=e1245]
+            - cell "待核" [ref=e1246]
+            - cell [ref=e1247]:
+              - link [ref=e1248] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1249]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1250]
+            - cell "待评" [ref=e1251]
+          - row [ref=e1252]:
+            - cell "共享机箱负荷分配" [ref=e1253]
+            - cell "—" [ref=e1254]
+            - cell "reference" [ref=e1255]
+            - cell "待核" [ref=e1256]
+            - cell [ref=e1257]:
+              - link [ref=e1258] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1259]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1260]
+            - cell "待评" [ref=e1261]
+          - row [ref=e1262]:
+            - cell "供应商覆盖" [ref=e1263]
+            - cell "—" [ref=e1264]
+            - cell "reference" [ref=e1265]
+            - cell "待核" [ref=e1266]
+            - cell [ref=e1267]:
+              - link [ref=e1268] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1269]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1270]
+            - cell "待评" [ref=e1271]
+          - row [ref=e1272]:
+            - cell "制造活动版本一致性" [ref=e1273]
+            - cell "—" [ref=e1274]
+            - cell "reference" [ref=e1275]
+            - cell "待核" [ref=e1276]
+            - cell [ref=e1277]:
+              - link [ref=e1278] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1279]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1280]
+            - cell "待评" [ref=e1281]
+          - row [ref=e1282]:
+            - cell "质量测量方法" [ref=e1283]
+            - cell "—" [ref=e1284]
+            - cell "reference" [ref=e1285]
+            - cell "待核" [ref=e1286]
+            - cell [ref=e1287]:
+              - link [ref=e1288] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1289]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1290]
+            - cell "待评" [ref=e1291]
+          - row [ref=e1292]:
+            - cell "地理代表性" [ref=e1293]
+            - cell "—" [ref=e1294]
+            - cell "reference" [ref=e1295]
+            - cell "待核" [ref=e1296]
+            - cell [ref=e1297]:
+              - link [ref=e1298] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1299]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1300]
+            - cell "待评" [ref=e1301]
+          - row [ref=e1302]:
+            - cell "时间代表性" [ref=e1303]
+            - cell "—" [ref=e1304]
+            - cell "reference" [ref=e1305]
+            - cell "待核" [ref=e1306]
+            - cell [ref=e1307]:
+              - link [ref=e1308] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1309]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1310]
+            - cell "待评" [ref=e1311]
+          - row [ref=e1312]:
+            - cell "技术代际代表性" [ref=e1313]
+            - cell "—" [ref=e1314]
+            - cell "reference" [ref=e1315]
+            - cell "待核" [ref=e1316]
+            - cell [ref=e1317]:
+              - link [ref=e1318] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1319]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1320]
+            - cell "待评" [ref=e1321]
+          - row [ref=e1322]:
+            - cell "代理选择与失效条件" [ref=e1323]
+            - cell "—" [ref=e1324]
+            - cell "reference" [ref=e1325]
+            - cell "待核" [ref=e1326]
+            - cell [ref=e1327]:
+              - link [ref=e1328] [cursor=pointer]:
+                - /url: "#source-internal-review"
+                - code [ref=e1329]: internal-review
+            - cell "不得以相邻对象或未披露配置冒充目标数据" [ref=e1330]
+            - cell "待评" [ref=e1331]
+    - heading "数据适用状态与缺口" [level=3] [ref=e1332]
+    - paragraph [ref=e1333]: 现有冻结事实只支持P003的成品身份、基本构成、刀片机箱依赖和A039图谱关系判定，不能据此宣称已取得任何具体型号的前景LCI。 长期缺失型号级物料清单、净质量、制造、运输、共享资源分配和代表性数据。 缺口登记应按完整型号与SKU拆分，分别标明所缺字段、责任数据源、目标代表期、拟用代理、预期影响方向和解除缺口的验收条件。 在型号级证据补齐前，节点可作为产品系统的结构接口和情景占位，但不能输出被解释为特定供应商、特定装配地或特定配置的确定结果。
+    - paragraph [ref=e1334]: 不同型号的配置差异应作为前景数据适用性与不确定性来源处理；同时，配置不确定性应围绕处理器数量与类型、系统内存条目、存储、网络接口、管理模块和净质量建立情景，并保持每个情景内部BOM一致。 一致性检查应确认同一情景中的部件料号、数量、净质量和BOM版本来自同一型号；任一字段跨型号或跨版本即判为拼接失效。
+    - paragraph [ref=e1335]: 共享资源的分配方法应单独记录并开展敏感性检验。 敏感性检验应比较按槽位、刀片服务器数量、运行时长、实测增量功率或其他可解释驱动量分配的结果，并披露空槽与冗余资源处理。 若不同分配方法改变主要结论或排序，应把共享机箱负荷标为关键不确定性，不能仅报告单一平均分配结果。
+    - paragraph [ref=e1336]: 供应链代表性应分别从供应商覆盖、地理范围、时间窗口和技术代际四个维度评价。 供应商覆盖、地理范围、时间窗口和技术代际分别记录覆盖范围、偏差方向和代理依赖，不先合成为单一粒度等级。
+    - paragraph [ref=e1337]: 数据适用等级分为缺失、家族级代理和型号级可追溯覆盖；最高等级要求记录能够对应具体型号、配置、数据来源和代表期，但不因此自动声称数据来自直接测量。 缺失、家族级代理和型号级可追溯覆盖只描述证据粒度；它与四维代表性评价并列报告，任何综合结论都必须披露两套结果及采用的保守规则。
+    - paragraph [ref=e1338]: 代理可以临时填补同类部件或相近配置的数据空白，但必须记录映射对象、质量缩放方法、配置差异、区域差异和预计偏差方向。 代理失效条件包括BOM结构不相似、净质量无法闭合、主要供应商或装配地改变、制造路线不一致及跨越关键技术代际。 触发失效条件后，代理只可保留为边界探索，不得用于型号声明、精细比较或产品级公开比较，并应优先补采质量、制造、运输和供应链记录。
+    - generic [ref=e1339]:
+      - heading "🔗 可引用 LCA 数据集与关联" [level=3] [ref=e1340]
+      - paragraph [ref=e1341]: "> 已核验关联 5 条：C0=5、C1=0、C2=0、C3=0、C4=0。这些记录用于发现与代理筛选；进入计算前仍须在具体项目中核对边界、许可和版本。"
+      - table [ref=e1343]:
+        - rowgroup [ref=e1344]:
+          - row [ref=e1345]:
+            - columnheader "强度" [ref=e1346]
+            - columnheader "数据库记录" [ref=e1347]
+            - columnheader "数据库/版本" [ref=e1348]
+            - columnheader "关联对象" [ref=e1349]
+            - columnheader "潜在用途" [ref=e1350]
+            - columnheader "主要限制" [ref=e1351]
+            - columnheader "模型状态" [ref=e1352]
+        - rowgroup [ref=e1353]:
+          - row [ref=e1354]:
+            - cell [ref=e1355]:
+              - code [ref=e1356]: C0
+              - text: · 外部对照
+            - cell [ref=e1357]:
+              - link "はん用コンピュータ, GLO" [ref=e1358] [cursor=pointer]:
+                - /url: https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx
+            - cell "AIST-IDEA 3.4 public sample" [ref=e1359]
+            - cell [ref=e1360]:
+              - code [ref=e1361]: external_product_result
+            - cell "外部对照；不可替代" [ref=e1362]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=e1363]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1364]
+          - row [ref=e1365]:
+            - cell [ref=e1366]:
+              - code [ref=e1367]: C0
+              - text: · 外部对照
+            - cell [ref=e1368]:
+              - link "はん用コンピュータ, JPN" [ref=e1369] [cursor=pointer]:
+                - /url: https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx
+            - cell "AIST-IDEA 3.4 public sample" [ref=e1370]
+            - cell [ref=e1371]:
+              - code [ref=e1372]: external_product_result
+            - cell "外部对照；不可替代" [ref=e1373]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=e1374]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1375]
+          - row [ref=e1376]:
+            - cell [ref=e1377]:
+              - code [ref=e1378]: C0
+              - text: · 外部对照
+            - cell [ref=e1379]:
+              - link "ミッドレンジコンピュータ, GLO" [ref=e1380] [cursor=pointer]:
+                - /url: https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx
+            - cell "AIST-IDEA 3.4 public sample" [ref=e1381]
+            - cell [ref=e1382]:
+              - code [ref=e1383]: external_product_result
+            - cell "外部对照；不可替代" [ref=e1384]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=e1385]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1386]
+          - row [ref=e1387]:
+            - cell [ref=e1388]:
+              - code [ref=e1389]: C0
+              - text: · 外部对照
+            - cell [ref=e1390]:
+              - link "ミッドレンジコンピュータ, JPN" [ref=e1391] [cursor=pointer]:
+                - /url: https://sumpo.or.jp/consulting/lca/idea/din2eh00000001km-att/AIST-IDEAv34_Ja_sample.xlsx
+            - cell "AIST-IDEA 3.4 public sample" [ref=e1392]
+            - cell [ref=e1393]:
+              - code [ref=e1394]: external_product_result
+            - cell "外部对照；不可替代" [ref=e1395]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=e1396]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1397]
+          - row [ref=e1398]:
+            - cell [ref=e1399]:
+              - code [ref=e1400]: C0
+              - text: · 外部对照
+            - cell [ref=e1401]:
+              - link "PowerEdge FC430 carbon footprint" [ref=e1402] [cursor=pointer]:
+                - /url: https://i.dell.com/sites/csdocuments/CorpComm_Docs/en/carbon-footprint-poweredge-fc430.pdf
+            - cell "Dell Product Carbon Footprint public document" [ref=e1403]
+            - cell [ref=e1404]:
+              - code [ref=e1405]: external_product_result
+            - cell "外部对照；不可替代" [ref=e1406]
+            - cell "数据集边界覆盖完整产品/行业聚合，直接挂接会与已展开前景链重复计入。" [ref=e1407]
+            - cell "仅知识关联 · 仍需项目裁决 · 不可直接计算" [ref=e1408]
+      - paragraph [ref=e1409]:
+        - text: "> 关联不等于计算绑定；项目采用分别进入"
+        - code [ref=e1410]: model_dataset_bindings.json
+        - text: 或
+        - code [ref=e1411]: model_proxy_bindings.json
+        - text: 。
+  - generic [ref=e1412]:
+    - heading "引用原文与核验记录" [level=2] [ref=e1413]
+    - article [ref=e1414]:
+      - generic [ref=e1416]:
+        - generic [ref=e1417]: internal-graph
+        - generic [ref=e1418]: lca-cornerstone ICT 名称图冻结节点与连线
+      - generic [ref=e1419]: verified · INT · internal-authoritative-graph · 2026-08-03 · lca-cornerstone authoritative name graph
+      - generic [ref=e1420]:
+        - generic [ref=e1421]: internal-graph
+        - generic [ref=e1422]: 定位：docs/ict_equipment-name-graph.json；P031 及相邻 edges
+        - list [ref=e1423]:
+          - listitem [ref=e1424]: “P031 is a foreground byproduct produced by 15 activities and has no consumed_by edge.”
+        - generic [ref=e1425]: 核验：定向 jq 读取 P031 节点，并由 wiki_lint 对账相邻边，2026-08-03
+    - article [ref=e1426]:
+      - generic [ref=e1428]:
+        - generic [ref=e1429]: internal-review
+        - generic [ref=e1430]: 内部评审与建模约定
+      - generic [ref=e1431]: seed-unverified · INT · internal · - ·
+      - generic [ref=e1432]:
+        - generic [ref=e1433]: internal-review
+        - generic [ref=e1434]: 定位：docs/采集与制作方案.md / 对话记录
+    - article [ref=e1435]:
+      - generic [ref=e1436]:
+        - generic [ref=e1437]:
+          - generic [ref=e1438]: 8 条断言引用
+          - generic [ref=e1439]: European Commission, Commission Regulation (EU) 2019/424 laying down ecodesign requirements for servers and data storage products
+        - link "打开官方原文 ↗" [ref=e1440] [cursor=pointer]:
+          - /url: http://publications.europa.eu/resource/cellar/1f9a2ad2-494c-11e9-a8ed-01aa75ed71a1.0006.03/DOC_1
+      - generic [ref=e1441]: verified · UNSPECIFIED · web · - · claim-verified
+      - generic [ref=e1442]:
+        - generic [ref=e1443]: 引用 1/8
+        - generic [ref=e1444]: 定位：Annex I point 9, blade server includes at least one processor and system memory
+        - list [ref=e1445]:
+          - listitem [ref=e1446]: “includes at least one processor and system memory”
+        - generic [ref=e1447]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-4; verdict=CONFIRMED
+      - generic [ref=e1448]:
+        - generic [ref=e1449]: 引用 2/8
+        - generic [ref=e1450]: 定位：Annex I point 9, blade server dependent on shared chassis resources for operation
+        - list [ref=e1451]:
+          - listitem [ref=e1452]: “is dependent upon shared blade chassis resources (e.g., power supply units, cooling) for operation.”
+        - generic [ref=e1453]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-20; verdict=CONFIRMED
+      - generic [ref=e1454]:
+        - generic [ref=e1455]: 引用 3/8
+        - generic [ref=e1456]: 定位：Annex I point 9, blade server definition
+        - list [ref=e1457]:
+          - listitem [ref=e1458]: “‘blade server’ means a server that is designed for use in a blade chassis.”
+        - generic [ref=e1459]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-8; verdict=CONFIRMED
+      - generic [ref=e1460]:
+        - generic [ref=e1461]: 引用 4/8
+        - generic [ref=e1462]: 定位：Annex I point 9, blade server functions as independent server
+        - list [ref=e1463]:
+          - listitem [ref=e1464]: “functions as an independent server”
+        - generic [ref=e1465]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-9; verdict=CONFIRMED
+      - generic [ref=e1466]:
+        - generic [ref=e1467]: 引用 5/8
+        - generic [ref=e1468]: 定位：Annex I point 9, blade server designed for use in a blade chassis
+        - list [ref=e1469]:
+          - listitem [ref=e1470]: “‘blade server’ means a server that is designed for use in a blade chassis.”
+        - generic [ref=e1471]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-12; verdict=CONFIRMED
+      - generic [ref=e1472]:
+        - generic [ref=e1473]: 引用 6/8
+        - generic [ref=e1474]: 定位：Annex I point 9, blade server high-density independent server device
+        - list [ref=e1475]:
+          - listitem [ref=e1476]: “A blade server is a high-density device that functions as an independent server”
+        - generic [ref=e1477]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-5; verdict=CONFIRMED
+      - generic [ref=e1478]:
+        - generic [ref=e1479]: 引用 7/8
+        - generic [ref=e1480]: 定位：Annex I point 9, blade server definition
+        - list [ref=e1481]:
+          - listitem [ref=e1482]: “A blade server is a high-density device that functions as an independent server”
+        - generic [ref=e1483]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-0; verdict=CONFIRMED
+      - generic [ref=e1484]:
+        - generic [ref=e1485]: 引用 8/8
+        - generic [ref=e1486]: 定位：Annex I point 9, blade server is a server
+        - list [ref=e1487]:
+          - listitem [ref=e1488]: “‘blade server’ means a server”
+        - generic [ref=e1489]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-19; verdict=CONFIRMED
+    - article [ref=e1490]:
+      - generic [ref=e1491]:
+        - generic [ref=e1492]:
+          - generic [ref=e1493]: 2 条断言引用
+          - generic [ref=e1494]: IBM, What is a blade server?
+        - link "打开官方原文 ↗" [ref=e1495] [cursor=pointer]:
+          - /url: https://www.ibm.com/think/topics/blade-server
+      - generic [ref=e1496]: verified · UNSPECIFIED · web · - · claim-verified
+      - generic [ref=e1497]:
+        - generic [ref=e1498]: 引用 1/2
+        - generic [ref=e1499]: 定位：What is a blade server
+        - list [ref=e1500]:
+          - listitem [ref=e1501]: “Blade servers, also known as high-density servers, are compact computing modules that manage the distribution of data across a computer network .”
+        - generic [ref=e1502]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-13; verdict=CONFIRMED
+      - generic [ref=e1503]:
+        - generic [ref=e1504]: 引用 2/2
+        - generic [ref=e1505]: 定位：What is a blade server, blade servers also known as high-density servers
+        - list [ref=e1506]:
+          - listitem [ref=e1507]: “Blade servers, also known as high-density servers”
+        - generic [ref=e1508]: 核验：generate-node-wiki wiki-ku-v1; claim_id=P003-1; verdict=CONFIRMED
+  - generic [ref=e1509]:
+    - heading "修改日志" [level=3] [ref=e1510]
+    - heading "2026-08-11 · 断言级溯源受控合并" [level=4] [ref=e1511]
+    - list [ref=e1512]:
+      - listitem [ref=e1513]:
+        - strong [ref=e1514]: 发现的问题：
+        - text: 本次送审断言中有 15 条取得独立支持、146 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=e1515]:
+        - strong [ref=e1516]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=e1517]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=e1518]:
+        - strong [ref=e1519]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=e1520]:
+        - strong [ref=e1521]: 数据影响：
+        - text: 本次处理 161 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-08-10 · 断言级溯源受控合并" [level=4] [ref=e1522]
+    - list [ref=e1523]:
+      - listitem [ref=e1524]:
+        - strong [ref=e1525]: 发现的问题：
+        - text: 本次送审断言中有 10 条取得独立支持、20 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=e1526]:
+        - strong [ref=e1527]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=e1528]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=e1529]:
+        - strong [ref=e1530]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=e1531]:
+        - strong [ref=e1532]: 数据影响：
+        - text: 本次处理 30 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-08-03 · 断言级溯源受控合并" [level=4] [ref=e1533]
+    - list [ref=e1534]:
+      - listitem [ref=e1535]:
+        - strong [ref=e1536]: 发现的问题：
+        - text: 本次送审断言中有 4 条取得独立支持、13 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=e1537]:
+        - strong [ref=e1538]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=e1539]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=e1540]:
+        - strong [ref=e1541]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=e1542]:
+        - strong [ref=e1543]: 数据影响：
+        - text: 本次处理 17 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-08-03 · P003 官方来源补充" [level=4] [ref=e1544]
+    - list [ref=e1545]:
+      - listitem [ref=e1546]:
+        - strong [ref=e1547]: 范围：
+        - text: 重新冻结 6 条外部断言，来源限定为 Dell 的 M1000e 产品页与 UNSD ISIC Rev.4 2620 页面。
+      - listitem [ref=e1548]:
+        - strong [ref=e1549]: 核验：
+        - text: 独立 Verify-only 在无联网条件下逐条裁决，6/6 为 CONFIRMED；本页采用其中 4 条不重复、直接服务于节点边界或分类的断言。
+      - listitem [ref=e1550]:
+        - strong [ref=e1551]: 结果：
+        - text: 页面保留为
+        - code [ref=e1552]: draft/partial
+        - text: ，因为本次是对既有草稿的局部补充，尚未形成覆盖全页的 production coverage 与 Go/No-Go 放行证据。
+      - listitem [ref=e1553]:
+        - strong [ref=e1554]: 数据影响：
+        - text: 未新增 LCI 数值，未改变名称图、刻面或边。
+    - heading "2026-08-03 · 断言级溯源受控合并" [level=4] [ref=e1555]
+    - list [ref=e1556]:
+      - listitem [ref=e1557]:
+        - strong [ref=e1558]: 发现的问题：
+        - text: 本次送审断言中有 0 条取得独立支持、9 条证据不足；另有 0 条因冲突、共享引用或锚点不唯一未自动修改。
+      - listitem [ref=e1559]:
+        - strong [ref=e1560]: 采取的修改：
+        - text: 已核实断言改挂专属
+        - code [ref=e1561]: ku-*
+        - text: 引用；证据不足断言移除装饰性旧引用并明确降级。
+      - listitem [ref=e1562]:
+        - strong [ref=e1563]: 修改原则：
+        - text: 只修改哈希一致且唯一命中的原文行；不整页重写；不机械处理矛盾；来源注册、正文引用与修改日志同步更新。
+      - listitem [ref=e1564]:
+        - strong [ref=e1565]: 数据影响：
+        - text: 本次处理 9 条可安全合并断言；未新增或推断任何 LCI 数值。
+    - heading "2026-07-30 · 从“预先强绑定”改为“可引用数据集关联”" [level=4] [ref=e1566]
+    - list [ref=e1567]:
+      - listitem [ref=e1568]:
+        - strong [ref=e1569]: 发现的问题：
+        - text: 节点 Wiki 的目的，是让后续 LCA 建模快速发现可直接引用或可作代理的数据集；旧栏目只展示正式绑定和 C2，隐藏了具有代理筛选价值的 C1，也把部分真实相邻记录直接归入否决，容易把“关联强弱”误读成“能否立即计算”。
+      - listitem [ref=e1570]:
+        - strong [ref=e1571]: 采取的修改：
+        - text: 按冻结的官方/公开证据重新裁决本节点的数据集引用关系，当前展示 5 条关联（C0=5、C1=0、C2=0、C3=0、C4=0），另保留 0 条真正否决；每条同时标记关联对象、潜在用途、主要限制和项目裁决要求。
+      - listitem [ref=e1572]:
+        - strong [ref=e1573]: 修改原则：
+        - text: C0–C4 只表示节点—数据集关联强度，不授予计算权限；C1/C2 可进入项目级 P0–P3 代理裁决，C3/C4 也必须在具体模型中核对边界、许可和版本后才形成真正绑定。
+  - generic [ref=e1574]:
+    - link "← 服务器, 通用计算, 1U" [ref=e1576] [cursor=pointer]:
+      - /url: "?id=P002"
+    - link "GPU服务器, AI训练, 4U →" [ref=e1578] [cursor=pointer]:
+      - /url: "?id=P004"

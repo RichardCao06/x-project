@@ -1,0 +1,14 @@
+{
+  "policy_id": "governance", "version": "governance-v1",
+  "job_transitions": {
+    "planned": ["ready", "superseded"], "ready": ["leased", "quarantined", "blocked_budget"],
+    "leased": ["running", "ready"], "running": ["candidate", "retryable", "repairable", "failed"],
+    "candidate": ["gated", "repairable", "quarantined"], "gated": ["applied", "repairable", "quarantined"],
+    "applied": ["published", "repairable"], "retryable": ["ready", "failed"],
+    "repairable": ["ready", "quarantined"], "blocked_budget": ["ready", "quarantined"], "published": [], "quarantined": [], "failed": [], "superseded": []
+  },
+  "release": {"required_gates": ["G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7"], "require_hash_locked_apply": true, "atomic_projection": true},
+  "agents": {"may_direct_apply": false, "may_self_approve": false, "network_default": "deny"},
+  "retry": {"max_attempts": 3, "backoff_seconds": [1, 5, 30]},
+  "exceptions": {"quarantine_after_repeated_error_codes": 3}
+}

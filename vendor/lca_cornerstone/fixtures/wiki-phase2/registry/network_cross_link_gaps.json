@@ -1,0 +1,2961 @@
+{
+ "_meta": {
+  "source": "docs/*-name-graph.json 直扫(B 阶段后)",
+  "date": "2026-06-30",
+  "total_gaps": 318,
+  "n_target_industries_with_gaps": 29
+ },
+ "summary_by_target": {
+  "chemicals": 202,
+  "machinery": 60,
+  "electrical_equipment": 12,
+  "ceramics_refractories": 4,
+  "nonferrous_metals": 3,
+  "consumer_electronics": 3,
+  "steel": 3,
+  "ambient": 2,
+  "aluminium": 2,
+  "oil_refining": 2,
+  "paper_pulp": 2,
+  "carbon_materials": 2,
+  "glass": 2,
+  "coal_mining": 2,
+  "agriculture": 2,
+  "precision_instruments": 2,
+  "construction": 1,
+  "transport": 1,
+  "scrap_recycling": 1,
+  "mechanical_parts": 1,
+  "minerals": 1,
+  "electronics": 1,
+  "mining": 1,
+  "power": 1,
+  "semiconductor": 1,
+  "oil_gas": 1,
+  "rubber": 1,
+  "battery": 1,
+  "waste_management": 1
+ },
+ "gaps_by_target_industry": {
+  "chemicals": [
+   {
+    "src_industry": "agriculture",
+    "src_id": "P035",
+    "src_name": "钾肥",
+    "cpc": "34640",
+    "hs": "3104",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "agriculture",
+    "src_id": "P036",
+    "src_name": "复合肥",
+    "cpc": null,
+    "hs": "3105",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "agriculture",
+    "src_id": "P037",
+    "src_name": "杀虫剂",
+    "cpc": null,
+    "hs": "3808",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "agriculture",
+    "src_id": "P038",
+    "src_name": "除草剂",
+    "cpc": "34960",
+    "hs": "3808.93",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "agriculture",
+    "src_id": "P039",
+    "src_name": "杀菌剂",
+    "cpc": "34950",
+    "hs": "3808.92",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "aluminium",
+    "src_id": "P066",
+    "src_name": "生石灰 (外购)",
+    "cpc": "37420",
+    "hs": "2522",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "aluminium",
+    "src_id": "P074",
+    "src_name": "轧制油/润滑剂 (外购)",
+    "cpc": "33380",
+    "hs": "2710",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ambient",
+    "src_id": "P011",
+    "src_name": "分子筛/活性氧化铝, 干燥吸附剂",
+    "cpc": "34650",
+    "hs": "3824.99",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "auto",
+    "src_id": "P080",
+    "src_name": "材料, 燃料电池, 电堆系统(外购)",
+    "cpc": "46930",
+    "hs": "8501.80",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "auto",
+    "src_id": "P081",
+    "src_name": "材料, 储氢, 高压储氢瓶(IV型, CFRP)",
+    "cpc": "36930",
+    "hs": "3923.10",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "auto",
+    "src_id": "P086",
+    "src_name": "材料, 安全, 气体发生器/烟火药剂(外购)",
+    "cpc": null,
+    "hs": "3604",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "auto",
+    "src_id": "P088",
+    "src_name": "材料, 热管理, 冷媒(R1234yf)(外购)",
+    "cpc": null,
+    "hs": "2903",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "aviation",
+    "src_id": "P109",
+    "src_name": "可持续航空燃料 SAF, HEFA路线, 背景",
+    "cpc": "33330",
+    "hs": "2710.19",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "aviation",
+    "src_id": "P111",
+    "src_name": "超声检测耦合剂/渗透剂/X射线胶片, NDI用, 背景",
+    "cpc": "47490",
+    "hs": "3824",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "aviation",
+    "src_id": "P114",
+    "src_name": "Nomex 蜂窝芯材, 芳纶纸蜂窝, 背景",
+    "cpc": "36990",
+    "hs": "4823",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "battery",
+    "src_id": "P072",
+    "src_name": "硅源, 纳米硅/氧化亚硅(SiOx)",
+    "cpc": "34230",
+    "hs": "2804.61",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "battery",
+    "src_id": "P091",
+    "src_name": "原电池物料, 干电池体系",
+    "cpc": "34230",
+    "hs": "3824.99",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "battery",
+    "src_id": "P151",
+    "src_name": "硫源, 单质硫",
+    "cpc": "34220",
+    "hs": "2503.00",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "carbon_materials",
+    "src_id": "P060",
+    "src_name": "氢氟酸 (外购)",
+    "cpc": "34220",
+    "hs": "2811.11",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "carbon_materials",
+    "src_id": "P062",
+    "src_name": "浮选剂/捕收剂 (外购)",
+    "cpc": "34900",
+    "hs": "3824.99",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "carbon_materials",
+    "src_id": "P063",
+    "src_name": "爆破药品 (外购)",
+    "cpc": "35450",
+    "hs": "3602",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P084",
+    "src_name": "碳化硅粉(背景)",
+    "cpc": "34990",
+    "hs": "284920",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P085",
+    "src_name": "氮化硅粉(背景)",
+    "cpc": "34990",
+    "hs": "284610",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P086",
+    "src_name": "氮化铝粉(背景)",
+    "cpc": "34290",
+    "hs": "285000",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P103",
+    "src_name": "Y2O3烧结助剂(背景)",
+    "cpc": "34290",
+    "hs": "284690",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P105",
+    "src_name": "碳化硼(B4C)添加剂(背景)",
+    "cpc": "34990",
+    "hs": "284910",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P110",
+    "src_name": "焦油/沥青浸渍剂(背景)",
+    "cpc": "33530",
+    "hs": "270799",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P114",
+    "src_name": "石油焦/冶金焦(背景)",
+    "cpc": "33500",
+    "hs": "271311",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P035",
+    "src_name": "无机盐, 碳酸氢铵, 固态",
+    "cpc": "34530",
+    "hs": "310240",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P038",
+    "src_name": "无机盐, 氟化钠, 固态",
+    "cpc": "34160",
+    "hs": "283311",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P086",
+    "src_name": "电池化学品, NMP溶剂, 液态, 电池级",
+    "cpc": "34690",
+    "hs": "293399",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P128",
+    "src_name": "醇与含氧物, 乙醛, 液态",
+    "cpc": null,
+    "hs": "2912.11",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P162",
+    "src_name": "中间体, 乙苯, 液态",
+    "cpc": "34230",
+    "hs": "2902.60",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P170",
+    "src_name": "醇与含氧物, 异丙醇(IPA), 液态",
+    "cpc": "34322",
+    "hs": "2905.12",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P171",
+    "src_name": "醇与含氧物, 丁醇(正丁醇), 液态",
+    "cpc": "34323",
+    "hs": "2905.13",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P178",
+    "src_name": "醇与含氧物, 甲基叔丁基醚(MTBE), 液态",
+    "cpc": "34325",
+    "hs": "2909.19",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P248",
+    "src_name": "工业气体, 蒸汽/水 (工厂供汽)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P040",
+    "src_name": "浮选捕收剂, 煤油/柴油, 液态",
+    "cpc": "33330",
+    "hs": "271019",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P041",
+    "src_name": "乳化炸药, 矿用三级, 固态",
+    "cpc": "34820",
+    "hs": "360200",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P042",
+    "src_name": "絮凝剂, 聚丙烯酰胺, 水相",
+    "cpc": "34530",
+    "hs": "390690",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "construction_materials",
+    "src_id": "P058",
+    "src_name": "化学外加剂(减水剂/高效减水剂), 液态",
+    "cpc": "3596",
+    "hs": "3824.40",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "construction_materials",
+    "src_id": "P085",
+    "src_name": "纤维素纤维/PVA纤维(纤维水泥板增强)",
+    "cpc": "4311",
+    "hs": "5504.10",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P093",
+    "src_name": "绝缘纸板/绝缘纸(纤维素)",
+    "cpc": null,
+    "hs": "4823.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electronics",
+    "src_id": "P092",
+    "src_name": "硅片/外延片",
+    "cpc": null,
+    "hs": "3818",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electronics",
+    "src_id": "P093",
+    "src_name": "SiC衬底晶圆",
+    "cpc": null,
+    "hs": "3818",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electronics",
+    "src_id": "P094",
+    "src_name": "GaN外延片",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electronics",
+    "src_id": "P095",
+    "src_name": "蓝宝石衬底",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electronics",
+    "src_id": "P100",
+    "src_name": "陶瓷基板, DBC/AlN",
+    "cpc": null,
+    "hs": "6914",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electronics",
+    "src_id": "P113",
+    "src_name": "液晶材料",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electronics",
+    "src_id": "P115",
+    "src_name": "OLED有机发光材料",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electronics",
+    "src_id": "P118",
+    "src_name": "荧光粉转换膜",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ferroalloy",
+    "src_id": "P088",
+    "src_name": "硫酸铵, 副产, 固态",
+    "cpc": "34600",
+    "hs": "2833.21",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ferroalloy",
+    "src_id": "P089",
+    "src_name": "三氧化二铬",
+    "cpc": "34530",
+    "hs": "2825.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P046",
+    "src_name": "硼砂/硼酸",
+    "cpc": "3514",
+    "hs": "2840",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P053",
+    "src_name": "PVB中间膜",
+    "cpc": "47220",
+    "hs": "392061",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P054",
+    "src_name": "EVA中间膜",
+    "cpc": "47220",
+    "hs": "392010",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P055",
+    "src_name": "SGP中间膜",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P057",
+    "src_name": "氧化铅/钡/锌",
+    "cpc": "34990",
+    "hs": "2824",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P058",
+    "src_name": "硝酸钾",
+    "cpc": "34620",
+    "hs": "3104",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P059",
+    "src_name": "粘结剂/上浆剂(有机)",
+    "cpc": "36999",
+    "hs": "3506",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P060",
+    "src_name": "镀膜靶材/前驱体",
+    "cpc": "34990",
+    "hs": "2827",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P063",
+    "src_name": "氮化硅/氧化锌溅射靶材",
+    "cpc": "34990",
+    "hs": "3824",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P069",
+    "src_name": "干燥剂(分子筛)",
+    "cpc": "34990",
+    "hs": "3824",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "industrial_gases",
+    "src_id": "P033",
+    "src_name": "calcium_carbide, primary_product, solid",
+    "cpc": "35142",
+    "hs": "284910",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "industrial_gases",
+    "src_id": "P034",
+    "src_name": "zeolite_adsorbent, primary_product, solid",
+    "cpc": "34530",
+    "hs": "284210",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "industrial_gases",
+    "src_id": "P035",
+    "src_name": "activated_alumina_adsorbent, primary_product, solid",
+    "cpc": "34531",
+    "hs": "380290",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "industrial_gases",
+    "src_id": "P036",
+    "src_name": "monoethanolamine, primary_product, liquid",
+    "cpc": "35163",
+    "hs": "292211",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "industrial_gases",
+    "src_id": "P046",
+    "src_name": "fluorine, primary_product, gas",
+    "cpc": "34160",
+    "hs": "280130",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "instruments",
+    "src_id": "P102",
+    "src_name": "HPLC UHPLC column, analytical",
+    "cpc": null,
+    "hs": "9027.20",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "instruments",
+    "src_id": "P166",
+    "src_name": "CsI columnar scintillator layer, FPD",
+    "cpc": null,
+    "hs": "2827.39",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "machinery",
+    "src_id": "P078",
+    "src_name": "型砂/铸造耗料 (外购)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "mechanical_parts",
+    "src_id": "P088",
+    "src_name": "lubricant grease",
+    "cpc": "3340",
+    "hs": "2710.19",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "mechanical_parts",
+    "src_id": "P089",
+    "src_name": "cutting fluid",
+    "cpc": null,
+    "hs": "3403.19",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "mechanical_parts",
+    "src_id": "P094",
+    "src_name": "abrasives (Al2O3/CBN/diamond)",
+    "cpc": null,
+    "hs": "6804.21",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "medical_imaging",
+    "src_id": "P038",
+    "src_name": "LYSO闪烁晶体",
+    "cpc": "35400",
+    "hs": "3824.99",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "medical_imaging",
+    "src_id": "P040",
+    "src_name": "CsI柱状晶体闪烁层",
+    "cpc": "35400",
+    "hs": "2827.39",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "medical_imaging",
+    "src_id": "P043",
+    "src_name": "PMN-PT单晶压电材料",
+    "cpc": "37320",
+    "hs": "3824.99",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "minerals",
+    "src_id": "P105",
+    "src_name": "氢氟酸(浸酸提纯用)",
+    "cpc": "34250",
+    "hs": "2811.19",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "minerals",
+    "src_id": "P107",
+    "src_name": "水玻璃(硅酸钠,结合剂)",
+    "cpc": "34290",
+    "hs": "2839.11",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "minerals",
+    "src_id": "P109",
+    "src_name": "连二亚硫酸钠(漂白剂)",
+    "cpc": "34250",
+    "hs": "2831.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "minerals",
+    "src_id": "P110",
+    "src_name": "爆破用炸药",
+    "cpc": "36310",
+    "hs": "3602.00",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "minerals",
+    "src_id": "P112",
+    "src_name": "酚醛树脂(结合剂)",
+    "cpc": "35540",
+    "hs": "3909.40",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "minerals",
+    "src_id": "P117",
+    "src_name": "矿区运输服务",
+    "cpc": "64120",
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "mining",
+    "src_id": "P092",
+    "src_name": "浮选药剂, 捕收剂/起泡剂",
+    "cpc": "3469",
+    "hs": "3403.99",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "mining",
+    "src_id": "P093",
+    "src_name": "浮选药剂, 抑制剂/活化剂",
+    "cpc": "3469",
+    "hs": "3402.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "mining",
+    "src_id": "P096",
+    "src_name": "氰化钠, 浸出用",
+    "cpc": "3419",
+    "hs": "2837.11",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "mining",
+    "src_id": "P097",
+    "src_name": "炸药, 采矿爆破用",
+    "cpc": "3591",
+    "hs": "3602.00",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "natural_gas",
+    "src_id": "P030",
+    "src_name": "MDEA(甲基二乙醇胺)",
+    "cpc": "35410",
+    "hs": "2922.19",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "natural_gas",
+    "src_id": "P031",
+    "src_name": "MEA(一乙醇胺)",
+    "cpc": "35410",
+    "hs": "2922.11",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "natural_gas",
+    "src_id": "P032",
+    "src_name": "TEG(三甘醇)",
+    "cpc": "35420",
+    "hs": "2905.39",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "natural_gas",
+    "src_id": "P033",
+    "src_name": "分子筛(3A/4A)",
+    "cpc": "34760",
+    "hs": "3824.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "natural_gas",
+    "src_id": "P034",
+    "src_name": "活性炭(脱汞)",
+    "cpc": "34540",
+    "hs": "3802.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "nonferrous_metals",
+    "src_id": "P137",
+    "src_name": "硼铁(FeB, 外购合金原料)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "oil_gas",
+    "src_id": "P039",
+    "src_name": "胺液MDEA（甲基二乙醇胺）, 初级品, 液态",
+    "cpc": "34130",
+    "hs": "292219",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "oil_gas",
+    "src_id": "P040",
+    "src_name": "三甘醇TEG（triethylene glycol）, 初级品, 液态",
+    "cpc": "34120",
+    "hs": "290539",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "oil_gas",
+    "src_id": "P041",
+    "src_name": "钻井液（水基）, 初级品, 液态",
+    "cpc": "34990",
+    "hs": "382490",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "oil_gas",
+    "src_id": "P043",
+    "src_name": "压裂液（滑溜水/线性胶）, 初级品, 液态",
+    "cpc": "34990",
+    "hs": "382490",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "oil_refining",
+    "src_id": "P037",
+    "src_name": "脂肪酸甲酯(FAME), 初级品, 液态",
+    "cpc": "34990",
+    "hs": "382600",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "oil_refining",
+    "src_id": "P043",
+    "src_name": "FCC催化剂(沸石微球), 初级品, 固态",
+    "cpc": "3510",
+    "hs": "381512",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "oil_refining",
+    "src_id": "P046",
+    "src_name": "氢氟酸(工业级), 初级品, 液态",
+    "cpc": "34610",
+    "hs": "281111",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "optoelectronics",
+    "src_id": "P040",
+    "src_name": "Nd:YAG激光晶体棒坯",
+    "cpc": "349",
+    "hs": "3824",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "optoelectronics",
+    "src_id": "P041",
+    "src_name": "LBO/BBO/KTP非线性晶体坯料",
+    "cpc": "349",
+    "hs": "3824",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "optoelectronics",
+    "src_id": "P047",
+    "src_name": "光学涂层靶材(SiO2/TiO2/Al2O3/MgF2)",
+    "cpc": "349",
+    "hs": "3824",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "optoelectronics",
+    "src_id": "P052",
+    "src_name": "蓝宝石衬底片",
+    "cpc": "349",
+    "hs": "3824",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "optoelectronics",
+    "src_id": "P058",
+    "src_name": "蓝宝石研磨薄片(LED PSS图案化衬底)",
+    "cpc": "349",
+    "hs": "3824",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "optoelectronics",
+    "src_id": "P062",
+    "src_name": "ITO透明导电膜靶材",
+    "cpc": "349",
+    "hs": "8549",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "optoelectronics",
+    "src_id": "P063",
+    "src_name": "氟化钙/MgF2光学晶体坯",
+    "cpc": "349",
+    "hs": "3824",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P078",
+    "src_name": "Na2S 硫化钠",
+    "cpc": "34229",
+    "hs": "2830",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P080",
+    "src_name": "Na2SO3 亚硫酸钠 (CTMP 蒸煮药品)",
+    "cpc": "34229",
+    "hs": "2832",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P081",
+    "src_name": "ClO2 二氧化氯 (ECF 漂白药品)",
+    "cpc": "34119",
+    "hs": "2828",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P082",
+    "src_name": "NaClO3 氯酸钠 (ClO2 发生原料)",
+    "cpc": "34229",
+    "hs": "2829",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P083",
+    "src_name": "H2O2 过氧化氢 (TCF/ECF 漂白药品)",
+    "cpc": "34119",
+    "hs": "2847",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P084",
+    "src_name": "O3 臭氧 (TCF 漂白氧化剂)",
+    "cpc": "34119",
+    "hs": "2811",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P087",
+    "src_name": "EDTA/DTPA 螯合剂 (漂白络合剂)",
+    "cpc": "34990",
+    "hs": "2922",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P092",
+    "src_name": "PCC 沉淀碳酸钙 (精制填料)",
+    "cpc": "34990",
+    "hs": "2836",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P094",
+    "src_name": "TiO2 钛白粉 (高不透明度填料)",
+    "cpc": "34660",
+    "hs": "3206",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P095",
+    "src_name": "阳离子淀粉 (施胶剂/助留剂)",
+    "cpc": "23230",
+    "hs": "3505",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P096",
+    "src_name": "AKD 烷基烯酮二聚体 (施胶剂)",
+    "cpc": "34990",
+    "hs": "3812",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P097",
+    "src_name": "ASA 烯基琥珀酸酐 (施胶剂)",
+    "cpc": "34990",
+    "hs": "2917",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P100",
+    "src_name": "聚丙烯酰胺 PAM (助留助滤剂)",
+    "cpc": "34750",
+    "hs": "3906",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P101",
+    "src_name": "PAE 湿强剂 (聚酰胺多胺-环氧氯丙烷)",
+    "cpc": "34750",
+    "hs": "3909",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P103",
+    "src_name": "混凝剂/絮凝剂 (废水处理药剂)",
+    "cpc": "34990",
+    "hs": "2827",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P104",
+    "src_name": "硅酮离型剂 (有机硅涂层)",
+    "cpc": "35350",
+    "hs": "3209",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P112",
+    "src_name": "ClO2(漂白药品, 外购)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "paper_pulp",
+    "src_id": "P114",
+    "src_name": "H2O2(漂白药品, 外购)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics",
+    "src_id": "P004",
+    "src_name": "fluoride_crystal passive_optic (material, uv)",
+    "cpc": "21322",
+    "hs": "252922",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics",
+    "src_id": "P005",
+    "src_name": "crystal_laser_host passive_optic (material, broadband)",
+    "cpc": "34990",
+    "hs": "381512",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics",
+    "src_id": "P006",
+    "src_name": "crystal_nonlinear passive_optic (material, broadband)",
+    "cpc": "34990",
+    "hs": "381512",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics",
+    "src_id": "P007",
+    "src_name": "crystal_nonlinear optical_modulator_switch (material, na)",
+    "cpc": "34990",
+    "hs": "382499",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics",
+    "src_id": "P019",
+    "src_name": "na led_emitter (material, na) — YAG:Ce phosphor",
+    "cpc": "34250",
+    "hs": "320620",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics",
+    "src_id": "P113",
+    "src_name": "silica_glass optical_fiber (material, na) — bought-in preform",
+    "cpc": "47330",
+    "hs": "700220",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics_laser",
+    "src_id": "P004",
+    "src_name": "crystal_laser_host passive_optic (material, na)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics_laser",
+    "src_id": "P005",
+    "src_name": "crystal_nonlinear passive_optic (material, na)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics_laser",
+    "src_id": "P010",
+    "src_name": "silica_glass preform_intermediate (intermediate, nir)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "photonics_laser",
+    "src_id": "P072",
+    "src_name": "na led_emitter (material, na)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "plastics",
+    "src_id": "P026",
+    "src_name": "PEEK/PPS/LCP/PI单体前驱体",
+    "cpc": null,
+    "hs": "2924",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "plastics",
+    "src_id": "P029",
+    "src_name": "溶剂/稀释剂",
+    "cpc": null,
+    "hs": "2901",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "plastics",
+    "src_id": "P035",
+    "src_name": "白油(成孔剂)",
+    "cpc": null,
+    "hs": "2710",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "plastics",
+    "src_id": "P041",
+    "src_name": "水",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "plastics",
+    "src_id": "P047",
+    "src_name": "氧化铝/勃姆石涂层浆料",
+    "cpc": null,
+    "hs": "2818",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "plastics",
+    "src_id": "P048",
+    "src_name": "醋酸纤维素(TAC树脂)",
+    "cpc": null,
+    "hs": "3912",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "plastics",
+    "src_id": "P049",
+    "src_name": "UV固化树脂",
+    "cpc": null,
+    "hs": "3907",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P034",
+    "src_name": "核燃料组件",
+    "cpc": "18900",
+    "hs": "2844",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P036",
+    "src_name": "重水, 核级, 液态",
+    "cpc": "34250",
+    "hs": "2845",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "precision_instruments",
+    "src_id": "P161",
+    "src_name": "HPLC UHPLC column, analytical",
+    "cpc": null,
+    "hs": "9027.20",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail",
+    "src_id": "P105",
+    "src_name": "PEM hydrogen fuel cell stack | component | na [component]",
+    "cpc": "46410",
+    "hs": "8501",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail",
+    "src_id": "P108",
+    "src_name": "refrigerant R407C/R32/R410A, HVAC grade | material | na [material]",
+    "cpc": "34230",
+    "hs": "2903",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail_equipment",
+    "src_id": "P079",
+    "src_name": "制冷剂R410A [background]",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail_equipment",
+    "src_id": "P100",
+    "src_name": "焊接材料(焊丝/焊剂) [background]",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail_equipment",
+    "src_id": "P101",
+    "src_name": "玻璃纤维增强复合材料(GFRP) [background]",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P089",
+    "src_name": "异丁烯",
+    "cpc": "34130",
+    "hs": "2901.29",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P091",
+    "src_name": "氯丁二烯",
+    "cpc": "34730",
+    "hs": "2903.21",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P094",
+    "src_name": "二烯单体(ENB/DCPD/HD)",
+    "cpc": "34730",
+    "hs": "2901.29",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P096",
+    "src_name": "含氟单体(VF2/HFP/TFE等)",
+    "cpc": "34730",
+    "hs": "2903.79",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P099",
+    "src_name": "催化剂/引发剂",
+    "cpc": "34690",
+    "hs": "3815.19",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P101",
+    "src_name": "凝聚剂(氯化钠/硫酸等)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P104",
+    "src_name": "氨水(胶乳保鲜剂)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P108",
+    "src_name": "硫磺",
+    "cpc": "34510",
+    "hs": "2503.00",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P115",
+    "src_name": "偶联剂硅烷",
+    "cpc": null,
+    "hs": "2931.00",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P117",
+    "src_name": "增粘树脂(酚醛/古马隆树脂)",
+    "cpc": null,
+    "hs": "3909.40",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P118",
+    "src_name": "氧化镁",
+    "cpc": null,
+    "hs": "2519.90",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P119",
+    "src_name": "结构控制剂(羟基硅油)",
+    "cpc": null,
+    "hs": "3910.00",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P108",
+    "src_name": "絮凝剂, 聚丙烯酰胺, 水溶液",
+    "cpc": "34680",
+    "hs": "390690",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P109",
+    "src_name": "脱漆剂, 工业级, 液态",
+    "cpc": "34690",
+    "hs": "381400",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "semiconductor",
+    "src_id": "P002",
+    "src_name": "多晶硅(EG-Si)",
+    "cpc": null,
+    "hs": "2804.61",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "semiconductor",
+    "src_id": "P031",
+    "src_name": "SiC粉源料",
+    "cpc": null,
+    "hs": "284920",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "semiconductor",
+    "src_id": "P034",
+    "src_name": "砷源As",
+    "cpc": null,
+    "hs": "280480",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P090",
+    "src_name": "粘胶纤维",
+    "cpc": null,
+    "hs": "5504",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P091",
+    "src_name": "莱赛尔纤维",
+    "cpc": null,
+    "hs": "5504",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P092",
+    "src_name": "活性染料",
+    "cpc": null,
+    "hs": "3204",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P094",
+    "src_name": "酸性染料",
+    "cpc": null,
+    "hs": "3204",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P095",
+    "src_name": "阳离子染料",
+    "cpc": null,
+    "hs": "3204",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P096",
+    "src_name": "还原染料",
+    "cpc": null,
+    "hs": "3204",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P097",
+    "src_name": "直接染料",
+    "cpc": null,
+    "hs": "3204",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P098",
+    "src_name": "硫化染料",
+    "cpc": null,
+    "hs": "3204",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P099",
+    "src_name": "印染助剂/整理剂",
+    "cpc": null,
+    "hs": "3809",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P100",
+    "src_name": "退浆剂/碱液",
+    "cpc": null,
+    "hs": "3402",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P103",
+    "src_name": "柔软剂",
+    "cpc": null,
+    "hs": "3809",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P104",
+    "src_name": "固色剂",
+    "cpc": null,
+    "hs": "3809",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P105",
+    "src_name": "涂层剂/整理剂",
+    "cpc": null,
+    "hs": "3906",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P106",
+    "src_name": "化学粘合剂(纺织用)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P108",
+    "src_name": "纺纱油剂/上浆剂",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P109",
+    "src_name": "浆纱淀粉/PVA上浆剂",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "textiles",
+    "src_id": "P110",
+    "src_name": "纺织用生物酶(纤维素酶/蛋白酶)",
+    "cpc": null,
+    "hs": "3507",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P028",
+    "src_name": "聚合氯化铝(PAC), 初级品, 固态",
+    "cpc": "34290",
+    "hs": "282732",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P029",
+    "src_name": "聚丙烯酰胺(PAM)絮凝剂, 初级品, 固态",
+    "cpc": "47420",
+    "hs": "390690",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P036",
+    "src_name": "阻垢剂(磷酸盐类), 初级品, 液态",
+    "cpc": "34620",
+    "hs": "382499",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P038",
+    "src_name": "杀菌剂(异噻唑啉酮), 初级品, 液态",
+    "cpc": "34693",
+    "hs": "380894",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P041",
+    "src_name": "离子交换树脂, 初级品, 固态",
+    "cpc": "47530",
+    "hs": "391400",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P042",
+    "src_name": "强酸性阳离子交换树脂(H型), 初级品, 固态",
+    "cpc": null,
+    "hs": "391400",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P009",
+    "src_name": "脲醛树脂胶 (UF胶)",
+    "cpc": "35340",
+    "hs": "3909",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P010",
+    "src_name": "酚醛树脂胶 (PF胶)",
+    "cpc": "35340",
+    "hs": "3909",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P011",
+    "src_name": "三聚氰胺改性脲醛胶 (MUF胶)",
+    "cpc": "35340",
+    "hs": "3909",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P012",
+    "src_name": "间苯二酚-酚醛胶 (RF/PRF胶)",
+    "cpc": "35340",
+    "hs": "3909",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P014",
+    "src_name": "EPI 乳液聚合物异氰酸酯胶",
+    "cpc": "35490",
+    "hs": "3506",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P015",
+    "src_name": "大豆蛋白/无醛胶 (NAF)",
+    "cpc": "35490",
+    "hs": "3505",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P017",
+    "src_name": "ACQ 季铵铜防腐剂",
+    "cpc": "34620",
+    "hs": "3808",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P018",
+    "src_name": "CCA 铬化砷酸铜防腐剂",
+    "cpc": "34620",
+    "hs": "3808",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P019",
+    "src_name": "铜唑 CA 防腐剂 (CA-B/CA-C)",
+    "cpc": "34620",
+    "hs": "3808",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P020",
+    "src_name": "硼酸/硼砂防腐剂 (DOT/SBX)",
+    "cpc": "34620",
+    "hs": "2840",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P021",
+    "src_name": "阻燃处理剂 (磷酸铵盐/硼酸盐 FRT)",
+    "cpc": "35690",
+    "hs": "3824",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "wood_materials",
+    "src_id": "P022",
+    "src_name": "石蜡 (wax emulsion,板面防水助剂)",
+    "cpc": "33300",
+    "hs": "2712",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   }
+  ],
+  "machinery": [
+   {
+    "src_industry": "agriculture",
+    "src_id": "P046",
+    "src_name": "农业机械",
+    "cpc": "44130",
+    "hs": "8432",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "agriculture",
+    "src_id": "P047",
+    "src_name": "拖拉机",
+    "cpc": null,
+    "hs": "8701",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "agriculture",
+    "src_id": "P048",
+    "src_name": "收割机",
+    "cpc": null,
+    "hs": "8433",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "agriculture",
+    "src_id": "P049",
+    "src_name": "轧花机",
+    "cpc": null,
+    "hs": "8445.11",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "agriculture",
+    "src_id": "P050",
+    "src_name": "林业机械",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ambient",
+    "src_id": "P015",
+    "src_name": "变压吸附塔, PSA吸附床, 设备",
+    "cpc": "43930",
+    "hs": "8421.29",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ambient",
+    "src_id": "P016",
+    "src_name": "膜分离组件, 中空纤维膜, 制氮富氧",
+    "cpc": "43930",
+    "hs": "8421.39",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ambient",
+    "src_id": "P017",
+    "src_name": "冷冻干燥机, 压缩空气干燥, 设备",
+    "cpc": "46530",
+    "hs": "8419.89",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ambient",
+    "src_id": "P018",
+    "src_name": "过滤材料, 颗粒过滤器",
+    "cpc": "43930",
+    "hs": "8421.39",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "carbon_materials",
+    "src_id": "P064",
+    "src_name": "回转窑 (外购)",
+    "cpc": "44913",
+    "hs": "8417",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "carbon_materials",
+    "src_id": "P065",
+    "src_name": "Acheson石墨化炉 (外购)",
+    "cpc": "44913",
+    "hs": "8417",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "carbon_materials",
+    "src_id": "P066",
+    "src_name": "环式焙烧炉 (外购)",
+    "cpc": "44913",
+    "hs": "8417",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P046",
+    "src_name": "液压支架, 综采工作面, 固态",
+    "cpc": "44220",
+    "hs": "843031",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P047",
+    "src_name": "采煤机, 综采装备, 固态",
+    "cpc": "44220",
+    "hs": "843020",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P048",
+    "src_name": "连续采矿机, 房柱式装备, 固态",
+    "cpc": "44220",
+    "hs": "843039",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P049",
+    "src_name": "矿用推土机, 露天剥采, 固态",
+    "cpc": "44220",
+    "hs": "843061",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P050",
+    "src_name": "重介质旋流器, 选煤装备, 固态",
+    "cpc": "44310",
+    "hs": "847420",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P109",
+    "src_name": "集电环总成(DFIG转子引出, 成品)",
+    "cpc": null,
+    "hs": "8503.00",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ict_equipment",
+    "src_id": "P051",
+    "src_name": "风扇模组(成品, 服务器/机架)",
+    "cpc": null,
+    "hs": "8414.59",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ict_equipment",
+    "src_id": "P052",
+    "src_name": "液冷CDU(冷量分配单元)",
+    "cpc": null,
+    "hs": "8419.50",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "instruments",
+    "src_id": "P122",
+    "src_name": "patient examination table, medical",
+    "cpc": null,
+    "hs": "9402.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "machinery",
+    "src_id": "P061",
+    "src_name": "滚动体, 钢球 (外购)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "machinery",
+    "src_id": "P062",
+    "src_name": "机械密封组件 (外购)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "machinery",
+    "src_id": "P118",
+    "src_name": "滚动体, 圆柱滚子 (外购)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "machinery",
+    "src_id": "P119",
+    "src_name": "滚动体, 圆锥滚子 (外购)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "medical_imaging",
+    "src_id": "P056",
+    "src_name": "检查床机械总成",
+    "cpc": "48530",
+    "hs": "9402.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "minerals",
+    "src_id": "P116",
+    "src_name": "矿山机械与破碎设备",
+    "cpc": "44130",
+    "hs": "8474.20",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "mining",
+    "src_id": "P098",
+    "src_name": "采矿设备, 基础设施",
+    "cpc": "4441",
+    "hs": "8430.31",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P046",
+    "src_name": "飞轮机组(设备/基础设施)",
+    "cpc": null,
+    "hs": "8502",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P050",
+    "src_name": "储氢设施(设备/基础设施)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P053",
+    "src_name": "锅炉(设备/基础设施)",
+    "cpc": "43110",
+    "hs": "8402",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P056",
+    "src_name": "燃气轮机(设备/基础设施)",
+    "cpc": "43133",
+    "hs": "8411",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P057",
+    "src_name": "核反应堆/核岛(设备/基础设施)",
+    "cpc": "43000",
+    "hs": "8401",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P058",
+    "src_name": "水轮机(设备/基础设施)",
+    "cpc": "43132",
+    "hs": "8410",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail",
+    "src_id": "P111",
+    "src_name": "diesel engine assembly, locomotive grade | component | na [component]",
+    "cpc": "43122",
+    "hs": "8408",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail_equipment",
+    "src_id": "P075",
+    "src_name": "专用工程设备 [background]",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail_equipment",
+    "src_id": "P077",
+    "src_name": "冷却系统组件 [background]",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rail_equipment",
+    "src_id": "P095",
+    "src_name": "柴油发动机总成 [background]",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P111",
+    "src_name": "破碎机, 重型锤式, 固态",
+    "cpc": "44340",
+    "hs": "847420",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P112",
+    "src_name": "剪切打包机, 重型, 固态",
+    "cpc": "44390",
+    "hs": "846290",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P116",
+    "src_name": "静电分选机, 工业级, 固态",
+    "cpc": "44990",
+    "hs": "847989",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P118",
+    "src_name": "离心机, 工业级, 固态",
+    "cpc": "44190",
+    "hs": "842119",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P106",
+    "src_name": "两冲程低速柴油主机, MAN B&W/WinGD",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P107",
+    "src_name": "甲醇双燃料主机, MAN ME-LGIM 两冲程低速",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P108",
+    "src_name": "LNG双燃料主机, WinGD X-DF/MAN MEGI",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P109",
+    "src_name": "氨双燃料主机, 两冲程低速 氨/柴油双燃料",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P110",
+    "src_name": "四冲程中速柴油辅机, 船用发电用",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P111",
+    "src_name": "海工船用四冲程中速柴油/LNG双燃料辅机",
+    "cpc": "44133",
+    "hs": "8408.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P112",
+    "src_name": "船用螺旋桨, 铸铜镍铝青铜/不锈钢",
+    "cpc": "49140",
+    "hs": "8487.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P115",
+    "src_name": "船用侧推装置, 隧道式艏侧推",
+    "cpc": "49140",
+    "hs": "8487.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P116",
+    "src_name": "船用甲醇燃料储罐, 高压不锈钢储罐",
+    "cpc": "44291",
+    "hs": "7311.00",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P117",
+    "src_name": "船用氨燃料储罐, IMO C型低温独立压力罐",
+    "cpc": "44291",
+    "hs": "7311.00",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P118",
+    "src_name": "甲醇供给系统管路, FGSS不锈钢/双套管",
+    "cpc": "42151",
+    "hs": "7304.41",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P119",
+    "src_name": "船用惰性气体发生器, 烟气型/氮气型",
+    "cpc": "44133",
+    "hs": "8419.89",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P120",
+    "src_name": "海工船起重机总成, 3000t+海洋工程吊机",
+    "cpc": "44211",
+    "hs": "8426.19",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P043",
+    "src_name": "反渗透膜组件, 初级品, 固态",
+    "cpc": "48990",
+    "hs": "842121",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P044",
+    "src_name": "超滤膜组件(UF), 初级品, 固态",
+    "cpc": null,
+    "hs": "842129",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P045",
+    "src_name": "电去离子(EDI)模块, 初级品, 固态",
+    "cpc": null,
+    "hs": "842129",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P046",
+    "src_name": "MBR膜组件(浸没式), 初级品, 固态",
+    "cpc": null,
+    "hs": "842129",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "water_supply",
+    "src_id": "P047",
+    "src_name": "多效蒸发器(MED)组件, 初级品, 固态",
+    "cpc": null,
+    "hs": "841910",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "electrical_equipment": [
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P104",
+    "src_name": "分接开关(成品外购件)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P116",
+    "src_name": "低压塑壳断路器(MCCB, 成品)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P120",
+    "src_name": "隔离开关(成品外购件)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P125",
+    "src_name": "XLPE绝缘电力电缆(低压)",
+    "cpc": "46910",
+    "hs": "8544.49",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P126",
+    "src_name": "XLPE绝缘电力电缆(中压)",
+    "cpc": "46910",
+    "hs": "8544.60",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P127",
+    "src_name": "XLPE绝缘电力电缆(高压)",
+    "cpc": "46910",
+    "hs": "8544.60",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P128",
+    "src_name": "海底电力电缆(HVDC/HVAC)",
+    "cpc": "46910",
+    "hs": "8544.70",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "medical_imaging",
+    "src_id": "P055",
+    "src_name": "滑环电气接触组件",
+    "cpc": "46610",
+    "hs": "8536.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P048",
+    "src_name": "液流电池电堆/电解液(设备/基础设施)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P049",
+    "src_name": "电解槽(设备/基础设施)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P052",
+    "src_name": "输电线路",
+    "cpc": "46360",
+    "hs": "8544",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "shipping",
+    "src_id": "P124",
+    "src_name": "船用电缆, 铜导体防火型",
+    "cpc": "46410",
+    "hs": "8544.60",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "ceramics_refractories": [
+   {
+    "src_industry": "aviation",
+    "src_id": "P122",
+    "src_name": "碳-碳刹车盘/刹车组件, 外购, 背景",
+    "cpc": "43110",
+    "hs": "8803.20",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P087",
+    "src_name": "氧化锆粉(背景)",
+    "cpc": "34110",
+    "hs": "282560",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P091",
+    "src_name": "莫来石熟料(背景)",
+    "cpc": "16900",
+    "hs": "250840",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ceramics_refractories",
+    "src_id": "P095",
+    "src_name": "氧化锆粉(AZS熔铸用,背景)",
+    "cpc": "34110",
+    "hs": "282560",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "nonferrous_metals": [
+   {
+    "src_industry": "battery",
+    "src_id": "P150",
+    "src_name": "锂金属负极箔",
+    "cpc": "34230",
+    "hs": "8104.11",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "chemicals",
+    "src_id": "P237",
+    "src_name": "背景, 外购铂族金属(Pt/Pd/Rh盐溶液), 液态",
+    "cpc": null,
+    "hs": "7110",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P061",
+    "src_name": "银/铝/铬溅射靶材",
+    "cpc": "41990",
+    "hs": "8101",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "consumer_electronics": [
+   {
+    "src_industry": "consumer_electronics",
+    "src_id": "P129",
+    "src_name": "充电器/适配器整件, 外购",
+    "cpc": "4641",
+    "hs": "8504.40",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "consumer_electronics",
+    "src_id": "P130",
+    "src_name": "数据线/Type-C连接线, 外购",
+    "cpc": "4731",
+    "hs": "8544.42",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "consumer_electronics",
+    "src_id": "P132",
+    "src_name": "遥控器整件",
+    "cpc": "4731",
+    "hs": "8543",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "steel": [
+   {
+    "src_industry": "electrical_equipment",
+    "src_id": "P102",
+    "src_name": "非晶合金带材",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "machinery",
+    "src_id": "P150",
+    "src_name": "废钢(回炉料) (外购)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "rubber",
+    "src_id": "P121",
+    "src_name": "钢丝帘线",
+    "cpc": "41290",
+    "hs": "7217.30",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   }
+  ],
+  "ambient": [
+   {
+    "src_industry": "ambient",
+    "src_id": "P001",
+    "src_name": "大气, 自然基本流, 气态",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "ambient",
+    "src_id": "P003",
+    "src_name": "环境水, 自然基本流, 液态",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "aluminium": [
+   {
+    "src_industry": "aviation",
+    "src_id": "P115",
+    "src_name": "铝蜂窝芯材, 背景",
+    "cpc": "42999",
+    "hs": "7616",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "glass",
+    "src_id": "P048",
+    "src_name": "氧化铝/长石",
+    "cpc": "3411",
+    "hs": "2818",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "oil_refining": [
+   {
+    "src_industry": "carbon_materials",
+    "src_id": "P053",
+    "src_name": "减压瓦斯油 (外购)",
+    "cpc": "33330",
+    "hs": "2710.19",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "carbon_materials",
+    "src_id": "P054",
+    "src_name": "芳烃油/煤系芳油 (外购)",
+    "cpc": "33330",
+    "hs": "2707",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "paper_pulp": [
+   {
+    "src_industry": "construction_materials",
+    "src_id": "P086",
+    "src_name": "护面纸(石膏板面层)",
+    "cpc": "3212",
+    "hs": "4804.00",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "consumer_electronics",
+    "src_id": "P127",
+    "src_name": "纸盒包装材料",
+    "cpc": "3221",
+    "hs": "4819.10",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "carbon_materials": [
+   {
+    "src_industry": "ferroalloy",
+    "src_id": "P068",
+    "src_name": "木炭",
+    "cpc": "02400",
+    "hs": "4402.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "plastics",
+    "src_id": "P037",
+    "src_name": "碳纤维/矿物填料",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "glass": [
+   {
+    "src_industry": "instruments",
+    "src_id": "P105",
+    "src_name": "CaF2 optical crystal, photonics",
+    "cpc": null,
+    "hs": "7001.00",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "semiconductor",
+    "src_id": "P030",
+    "src_name": "划片刀/研磨膜",
+    "cpc": null,
+    "hs": "680421",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "coal_mining": [
+   {
+    "src_industry": "magnesium",
+    "src_id": "P024",
+    "src_name": "煤/兰炭",
+    "cpc": "11000",
+    "hs": "2701",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "nonferrous_metals",
+    "src_id": "P087",
+    "src_name": "含锗粉煤灰/含锗煤焦油",
+    "cpc": null,
+    "hs": "2620",
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   }
+  ],
+  "agriculture": [
+   {
+    "src_industry": "power",
+    "src_id": "P030",
+    "src_name": "泥炭, 燃料级, 块状",
+    "cpc": "11040",
+    "hs": "2703",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "power",
+    "src_id": "P040",
+    "src_name": "沼气/生物气",
+    "cpc": "17200",
+    "hs": "2711",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "precision_instruments": [
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P113",
+    "src_name": "分选线, 光学/磁选, 固态",
+    "cpc": "44990",
+    "hs": "847989",
+    "home_status": "null",
+    "llm_rationale": ""
+   },
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P114",
+    "src_name": "光学分选机, NIR, 固态",
+    "cpc": "44990",
+    "hs": "847989",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "construction": [
+   {
+    "src_industry": "coal_mining",
+    "src_id": "P051",
+    "src_name": "采矿基础设施, 井筒巷道",
+    "cpc": "53290",
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "transport": [
+   {
+    "src_industry": "construction_materials",
+    "src_id": "P083",
+    "src_name": "运输服务(公路/铁路)",
+    "cpc": null,
+    "hs": null,
+    "home_status": "placeholder",
+    "llm_rationale": ""
+   }
+  ],
+  "scrap_recycling": [
+   {
+    "src_industry": "construction_materials",
+    "src_id": "P087",
+    "src_name": "废弃/拆除混凝土, 散装",
+    "cpc": "3754",
+    "hs": "3825.20",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "mechanical_parts": [
+   {
+    "src_industry": "industrial_gases",
+    "src_id": "P042",
+    "src_name": "steel_cylinder, primary_product, solid",
+    "cpc": "42910",
+    "hs": "731100",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "minerals": [
+   {
+    "src_industry": "instruments",
+    "src_id": "P108",
+    "src_name": "precision granite base, metrology",
+    "cpc": null,
+    "hs": "6802.93",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "electronics": [
+   {
+    "src_industry": "medical_imaging",
+    "src_id": "P050",
+    "src_name": "非晶硅TFT阵列基板",
+    "cpc": "471",
+    "hs": "9022.90",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "mining": [
+   {
+    "src_industry": "power",
+    "src_id": "P035",
+    "src_name": "铀精矿, 核燃料前体, 粉末(黄饼)",
+    "cpc": "13000",
+    "hs": "2612",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "power": [
+   {
+    "src_industry": "power",
+    "src_id": "P041",
+    "src_name": "地热流体/地热资源",
+    "cpc": "17300",
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "semiconductor": [
+   {
+    "src_industry": "power",
+    "src_id": "P042",
+    "src_name": "光伏组件",
+    "cpc": "47140",
+    "hs": "8541",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "oil_gas": [
+   {
+    "src_industry": "power",
+    "src_id": "P062",
+    "src_name": "CO2运输与封存服务",
+    "cpc": "94900",
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "rubber": [
+   {
+    "src_industry": "rail",
+    "src_id": "P094",
+    "src_name": "rubber brake pad/block, organic composite | component | rubber [material]",
+    "cpc": "36921",
+    "hs": "6813",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "battery": [
+   {
+    "src_industry": "rail_equipment",
+    "src_id": "P127",
+    "src_name": "氢燃料电池系统 [background]",
+    "cpc": null,
+    "hs": null,
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ],
+  "waste_management": [
+   {
+    "src_industry": "scrap_recycling",
+    "src_id": "P020",
+    "src_name": "垃圾焚烧灰渣, 副产, 固态",
+    "cpc": "34950",
+    "hs": "262190",
+    "home_status": "null",
+    "llm_rationale": ""
+   }
+  ]
+ }
+}

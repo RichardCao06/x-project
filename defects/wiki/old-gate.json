@@ -1,0 +1,8 @@
+{
+  "candidate": "new candidate body",
+  "old_candidate_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "gates": [
+    {"gate_id": "G6", "status": "pass", "input_hashes": ["0000000000000000000000000000000000000000000000000000000000000000"], "policy_version": "wiki-production-v3"},
+    {"gate_id": "G7", "status": "pass", "input_hashes": ["0000000000000000000000000000000000000000000000000000000000000000"], "policy_version": "wiki-production-v3"}
+  ]
+}

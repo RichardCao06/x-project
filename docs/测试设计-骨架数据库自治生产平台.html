@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="lca-cornerstone 骨架数据库自治生产平台测试策略、测试矩阵与测试用例">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23141918'/%3E%3Cpath d='M14 33l11 11 25-27' fill='none' stroke='%23d8ff4f' stroke-width='7' stroke-linecap='square'/%3E%3C/svg%3E">
+  <title>自治生产平台 · 测试策略与测试用例</title>
+  <style>
+    :root {
+      --ink: #141918;
+      --ink-2: #28302e;
+      --muted: #66716e;
+      --paper: #f3f0e7;
+      --panel: #fbfaf5;
+      --line: #c8c3b5;
+      --acid: #d8ff4f;
+      --acid-dark: #728d00;
+      --blue: #2d67f3;
+      --cyan: #21a89c;
+      --orange: #eb7d28;
+      --red: #cc3d2b;
+      --violet: #7857d9;
+      --shadow: 0 18px 50px rgba(20,25,24,.11);
+      --display: "Baskerville", "Songti SC", "STSong", serif;
+      --body: "Avenir Next", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      --mono: "SFMono-Regular", "Cascadia Code", "Fira Code", monospace;
+      --side: 274px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(20,25,24,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(20,25,24,.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 20px 20px;
+      font-family: var(--body);
+      line-height: 1.68;
+    }
+    a { color: inherit; text-underline-offset: 3px; }
+    code, pre { font-family: var(--mono); }
+    code { padding: .12em .38em; border: 1px solid #dad6c9; background: #efede4; font-size: .9em; }
+    pre { overflow: auto; margin: 18px 0; padding: 20px; color: #eef5f1; background: var(--ink); line-height: 1.62; font-size: 12px; }
+    button, input, select { font: inherit; }
+
+    .rail {
+      position: fixed; inset: 0 auto 0 0; z-index: 20;
+      width: var(--side); overflow-y: auto; padding: 24px 20px 30px;
+      color: #dfe7e3; background: var(--ink); border-right: 1px solid #39403e;
+    }
+    .rail-brand { padding-bottom: 20px; border-bottom: 1px solid #3d4542; }
+    .rail-code { color: var(--acid); font-family: var(--mono); font-size: 10px; letter-spacing: .16em; }
+    .rail-name { margin-top: 7px; font-family: var(--display); font-size: 20px; }
+    .rail nav { display: grid; gap: 3px; margin-top: 20px; }
+    .rail nav a {
+      display: grid; grid-template-columns: 28px 1fr; align-items: baseline;
+      padding: 7px 8px; border-left: 2px solid transparent;
+      color: #aeb9b5; text-decoration: none; font-size: 12px; transition: .16s ease;
+    }
+    .rail nav a span { color: #65716d; font-family: var(--mono); font-size: 9px; }
+    .rail nav a:hover, .rail nav a.active { border-left-color: var(--acid); color: #fff; background: #212927; }
+    .rail-summary { margin-top: 26px; padding: 14px; border: 1px solid #3f4744; color: #a8b3af; font-size: 11px; }
+    .rail-summary b { display: block; margin-bottom: 5px; color: var(--acid); font-family: var(--mono); font-size: 9px; }
+
+    .main { margin-left: var(--side); }
+    .masthead {
+      position: relative; overflow: hidden; min-height: 610px;
+      padding: 70px clamp(30px, 6vw, 90px); color: #f2f5f3; background: var(--ink);
+    }
+    .masthead::before {
+      content: ""; position: absolute; width: 620px; height: 620px; right: -210px; top: -290px;
+      border: 1px solid rgba(216,255,79,.25); border-radius: 50%;
+      box-shadow: 0 0 0 68px rgba(216,255,79,.025), 0 0 0 136px rgba(216,255,79,.018);
+    }
+    .kicker { color: var(--acid); font-family: var(--mono); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; }
+    h1, h2, h3, h4 { font-family: var(--display); font-weight: 600; }
+    h1 { max-width: 900px; margin: 28px 0 20px; font-size: clamp(46px, 6.4vw, 88px); line-height: .96; letter-spacing: -.045em; }
+    .subtitle { max-width: 770px; color: #aebbb7; font-size: 19px; }
+    .scoreboard {
+      display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 1px;
+      max-width: 840px; margin-top: 58px; border: 1px solid #3d4542; background: #3d4542;
+    }
+    .score { padding: 18px; background: var(--ink); }
+    .score b { display: block; color: var(--acid); font-family: var(--mono); font-size: 28px; line-height: 1; }
+    .score span { display: block; margin-top: 7px; color: #8f9b97; font-size: 10px; letter-spacing: .08em; }
+
+    .doc { max-width: 1380px; margin: 0 auto; padding: 0 clamp(22px, 5vw, 72px) 100px; }
+    section { padding: 80px 0 12px; border-top: 1px solid var(--line); }
+    section:first-child { border-top: 0; }
+    .section-head { display: grid; grid-template-columns: 76px 1fr; gap: 20px; margin-bottom: 34px; }
+    .section-index { color: var(--acid-dark); font-family: var(--mono); font-size: 11px; letter-spacing: .08em; }
+    h2 { margin: 0; font-size: clamp(34px, 4.2vw, 58px); line-height: 1.04; letter-spacing: -.035em; }
+    .lead { max-width: 860px; margin-top: 13px; color: var(--muted); font-size: 16px; }
+    h3 { margin: 42px 0 14px; font-size: 25px; }
+    h4 { margin: 24px 0 8px; font-size: 18px; }
+    p { margin: 0 0 15px; }
+    ul, ol { padding-left: 1.25em; }
+    li + li { margin-top: 6px; }
+
+    .statement { margin: 26px 0; padding: 24px 28px; border-left: 5px solid var(--acid); color: #ebf1ee; background: var(--ink); box-shadow: var(--shadow); }
+    .statement strong { color: var(--acid); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card { padding: 22px; border: 1px solid var(--line); background: rgba(251,250,245,.88); box-shadow: 0 8px 28px rgba(20,25,24,.05); }
+    .card h3 { margin: 0 0 10px; font-size: 21px; }
+    .card p, .card li { color: var(--muted); font-size: 12px; }
+    .card .tagline { margin-bottom: 14px; color: var(--acid-dark); font-family: var(--mono); font-size: 9px; letter-spacing: .11em; }
+
+    .pyramid { display: grid; gap: 8px; max-width: 850px; margin: 26px auto; }
+    .pyramid-row { margin: auto; padding: 13px 20px; text-align: center; border: 1px solid #aaa596; background: var(--panel); font-size: 12px; }
+    .pyramid-row:nth-child(1) { width: 28%; color: #fff; border-color: var(--red); background: var(--red); }
+    .pyramid-row:nth-child(2) { width: 45%; border-color: var(--orange); }
+    .pyramid-row:nth-child(3) { width: 64%; border-color: var(--violet); }
+    .pyramid-row:nth-child(4) { width: 82%; border-color: var(--cyan); }
+    .pyramid-row:nth-child(5) { width: 100%; border-color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 22px 0; border: 1px solid var(--line); background: var(--panel); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 12px 13px; border-bottom: 1px solid #d9d4c7; text-align: left; vertical-align: top; }
+    th { color: var(--acid); background: var(--ink); font-family: var(--mono); font-size: 9px; letter-spacing: .08em; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: rgba(216,255,79,.11); }
+
+    .risk { display: inline-block; min-width: 34px; padding: 2px 7px; text-align: center; font-family: var(--mono); font-size: 9px; font-weight: 700; }
+    .p0 { color: #fff; background: var(--red); }
+    .p1 { color: #fff; background: var(--orange); }
+    .p2 { color: #fff; background: var(--blue); }
+    .auto { color: #07564f; background: #c6f3e9; }
+    .manual { color: #5d4314; background: #f5dfaa; }
+    .fixture { color: #40248b; background: #ded4ff; }
+
+    .filterbar {
+      position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: 1fr 180px 180px auto; gap: 10px;
+      margin: 0 calc(-1 * clamp(22px, 5vw, 72px)); padding: 13px clamp(22px, 5vw, 72px);
+      border-bottom: 1px solid #303735; color: #fff; background: rgba(20,25,24,.97); backdrop-filter: blur(12px);
+    }
+    .filterbar input, .filterbar select { width: 100%; padding: 9px 10px; border: 1px solid #4a5350; color: #eef3f1; background: #222a28; outline: none; font-size: 12px; }
+    .filterbar input:focus, .filterbar select:focus { border-color: var(--acid); }
+    .filter-count { align-self: center; color: var(--acid); font-family: var(--mono); font-size: 10px; white-space: nowrap; }
+
+    .suite { margin: 18px 0; border: 1px solid var(--line); background: rgba(251,250,245,.86); }
+    .suite summary { display: grid; grid-template-columns: 80px 1fr auto; gap: 14px; align-items: center; padding: 18px; cursor: pointer; list-style: none; }
+    .suite summary::-webkit-details-marker { display: none; }
+    .suite summary::after { content: "+"; color: var(--acid-dark); font-family: var(--mono); font-size: 20px; }
+    .suite[open] summary::after { content: "−"; }
+    .suite-code { color: var(--acid-dark); font-family: var(--mono); font-size: 10px; }
+    .suite-title { font-family: var(--display); font-size: 20px; }
+    .suite-count { color: var(--muted); font-family: var(--mono); font-size: 9px; }
+    .suite-body { overflow-x: auto; border-top: 1px solid var(--line); }
+    .case-table td:first-child { white-space: nowrap; color: var(--blue); font-family: var(--mono); font-size: 10px; font-weight: 700; }
+    .case-table td:nth-child(4) { min-width: 260px; }
+    .case-table td:nth-child(5) { min-width: 280px; }
+    .case-row.hidden, .suite.hidden { display: none; }
+
+    .pipeline { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; margin: 26px 0; }
+    .stage { position: relative; min-height: 125px; padding: 16px; border-top: 4px solid var(--blue); background: var(--panel); box-shadow: 0 7px 24px rgba(20,25,24,.05); }
+    .stage:nth-child(2) { border-color: var(--cyan); }
+    .stage:nth-child(3) { border-color: var(--violet); }
+    .stage:nth-child(4) { border-color: var(--orange); }
+    .stage:nth-child(5) { border-color: var(--red); }
+    .stage:nth-child(6) { border-color: var(--acid-dark); }
+    .stage:not(:last-child)::after { content: "→"; position: absolute; right: -15px; top: 42px; color: #777; }
+    .stage b { font-family: var(--mono); font-size: 9px; }
+    .stage span { display: block; margin-top: 11px; font-size: 12px; }
+
+    .checklist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0; list-style: none; }
+    .checklist li { position: relative; margin: 0; padding: 13px 14px 13px 42px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; }
+    .checklist li::before { content: "✓"; position: absolute; left: 15px; top: 11px; color: var(--acid-dark); font-family: var(--mono); font-weight: 700; }
+
+    .footer { margin-top: 80px; padding: 30px 0 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    .tools { position: fixed; z-index: 30; right: 18px; bottom: 18px; display: flex; gap: 8px; }
+    .tool { width: 42px; height: 42px; border: 1px solid #414a47; border-radius: 50%; color: var(--acid); background: var(--ink); cursor: pointer; box-shadow: 0 8px 24px rgba(20,25,24,.2); }
+    .mobile-nav { display: none; }
+
+    @media (max-width: 1100px) {
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+      .pipeline { grid-template-columns: repeat(3, 1fr); }
+      .stage:nth-child(3)::after { display: none; }
+    }
+    @media (max-width: 820px) {
+      :root { --side: 0px; }
+      .rail { width: 274px; transform: translateX(-100%); transition: .22s ease; }
+      body.nav-open .rail { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .mobile-nav { display: inline-block; }
+      .scoreboard { grid-template-columns: 1fr 1fr; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .filterbar { grid-template-columns: 1fr 1fr; }
+      .filterbar input { grid-column: span 2; }
+    }
+    @media (max-width: 560px) {
+      .masthead { min-height: auto; padding: 72px 22px 46px; }
+      h1 { font-size: 46px; }
+      .doc { padding-inline: 18px; }
+      .section-head { grid-template-columns: 46px 1fr; }
+      .pipeline, .checklist { grid-template-columns: 1fr; }
+      .stage::after { display: none !important; }
+      .suite summary { grid-template-columns: 62px 1fr auto; }
+      .suite-count { display: none; }
+    }
+    @media print {
+      body { background: #fff; font-size: 9pt; }
+      .rail, .tools, .filterbar { display: none !important; }
+      .main { margin: 0; }
+      .masthead { min-height: auto; padding: 34px; color: #111; background: #fff; border-bottom: 4px solid #111; }
+      .masthead::before { display: none; }
+      .kicker, .score b { color: #465500; }
+      .subtitle { color: #555; }
+      .scoreboard { border-color: #aaa; background: #aaa; }
+      .score { color: #111; background: #fff; }
+      .doc { max-width: none; padding: 0 25px 40px; }
+      section { padding-top: 42px; }
+      .suite { break-inside: avoid; }
+      .suite:not([open]) .suite-body { display: block; }
+      .statement, pre, th { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="rail" aria-label="测试文档目录">
+    <div class="rail-brand"><div class="rail-code">QA / VALIDATION SPEC</div><div class="rail-name">自治生产平台测试设计</div></div>
+    <nav id="toc">
+      <a href="#summary"><span>01</span>测试摘要</a>
+      <a href="#strategy"><span>02</span>测试策略</a>
+      <a href="#scope"><span>03</span>范围与风险</a>
+      <a href="#environment"><span>04</span>环境与数据</a>
+      <a href="#traceability"><span>05</span>追踪矩阵</a>
+      <a href="#catalog"><span>06</span>测试用例目录</a>
+      <a href="#mutation"><span>07</span>缺陷与变异测试</a>
+      <a href="#pipeline"><span>08</span>CI 与发布门</a>
+      <a href="#defects"><span>09</span>缺陷和恢复</a>
+      <a href="#acceptance"><span>10</span>验收与 SLO</a>
+      <a href="#implementation"><span>11</span>实施顺序</a>
+      <a href="#baseline"><span>12</span>现有测试映射</a>
+    </nav>
+    <div class="rail-summary"><b>COMPANION DOCUMENT</b>配套《骨架数据库自治生产平台·技术设计》，将架构原则转换成可执行测试、准入门和质量证据。</div>
+  </aside>
+
+  <main class="main">
+    <header class="masthead">
+      <div class="kicker">lca-cornerstone · Quality Engineering · v1.0</div>
+      <h1>测试策略<br>与测试用例</h1>
+      <p class="subtitle">面向骨架数据库自治生产平台的分层验证、故障注入、工作流重放、发布回滚和自治准入设计。</p>
+      <div class="scoreboard">
+        <div class="score"><b>12</b><span>TEST SUITES</span></div>
+        <div class="score"><b>96</b><span>CORE CASES</span></div>
+        <div class="score"><b>107</b><span>EXISTING PYTEST BASELINE</span></div>
+        <div class="score"><b>G0–G7</b><span>ASSURANCE LAYERS</span></div>
+      </div>
+    </header>
+
+    <article class="doc">
+      <section id="summary">
+        <div class="section-head"><div class="section-index">01 / 12</div><div><h2>测试摘要</h2><p class="lead">测试的目标不是证明 Agent 永远正确，而是证明错误不会无证进入权威库，能够被发现、定位、回滚和重新执行。</p></div></div>
+        <div class="statement"><strong>发布级质量命题：</strong>任意正式发布物都必须能回答“由哪个 Job、哪些冻结输入、哪个执行器、哪个模型和工具配置、哪些 Gate、哪份政策以及哪个 commit 产生”，且能在注入已知错误时可靠阻断。</div>
+        <div class="grid-3">
+          <article class="card"><div class="tagline">VERIFY THE SYSTEM</div><h3>确定性正确</h3><p>验证状态机、Artifact、哈希、Schema、事务、回滚、集合守恒和 Gate 组合逻辑。</p></article>
+          <article class="card"><div class="tagline">VERIFY THE AGENT BOUNDARY</div><h3>语义受控</h3><p>验证 Agent 权限、输入冻结、输出协议、独立核验、弃权和相邻对象陷阱。</p></article>
+          <article class="card"><div class="tagline">VERIFY THE DEFENSES</div><h3>检查器有效</h3><p>通过 defect corpus 和 mutation testing 证明 Gate 能抓住真实历史错误。</p></article>
+        </div>
+        <h3>测试产物</h3>
+        <ul class="checklist">
+          <li>机器可读 Test Case Registry</li><li>可重放 fixture 与 frozen artifact</li>
+          <li>JUnit/JSON Gate 报告</li><li>Mutation score 与逃逸缺陷账</li>
+          <li>Workflow replay 记录</li><li>Release verification manifest</li>
+        </ul>
+      </section>
+
+      <section id="strategy">
+        <div class="section-head"><div class="section-index">02 / 12</div><div><h2>测试策略</h2><p class="lead">采用“底层确定性测试密集、上层真实运行稀疏”的金字塔，同时增加传统软件测试中少见但本项目必需的语义核验和 Gate 变异层。</p></div></div>
+        <div class="pyramid" aria-label="测试金字塔">
+          <div class="pyramid-row">真实 E2E / Canary / 人工抽检</div>
+          <div class="pyramid-row">Workflow Replay / Recovery</div>
+          <div class="pyramid-row">Agent Protocol / Semantic Evaluation</div>
+          <div class="pyramid-row">Contract / Gate / Integration</div>
+          <div class="pyramid-row">Unit / Property / Static / Schema</div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>测试层</th><th>目标</th><th>运行频率</th><th>是否联网/LLM</th></tr></thead><tbody>
+          <tr><td>Unit / Property</td><td>单函数、边界条件、不变量</td><td>每次提交</td><td>否</td></tr>
+          <tr><td>Contract</td><td>Job、Artifact、Event、Gate、Agent Schema</td><td>每次提交</td><td>否</td></tr>
+          <tr><td>Integration</td><td>State DB、CAS、Executor、事务 Apply</td><td>每次提交</td><td>否</td></tr>
+          <tr><td>Workflow Replay</td><td>冻结输入下的状态转移和恢复</td><td>每次 PR / nightly</td><td>使用冻结结果</td></tr>
+          <tr><td>Agent Evaluation</td><td>协议遵守、语义精度、弃权、运行漂移</td><td>Agent/Prompt 变更</td><td>受控 LLM</td></tr>
+          <tr><td>Mutation / Defect</td><td>验证 Gate 本身抓错能力</td><td>每次 Gate/Policy 变更</td><td>通常否</td></tr>
+          <tr><td>E2E / Canary</td><td>真实外部依赖和生产边界</td><td>发布候选 / 定期</td><td>受预算限制</td></tr>
+        </tbody></table></div>
+        <h3>通用测试用例结构</h3>
+        <pre>test_case_id: WIKI-EVD-007
+requirement: ADR-006 / G3 / G4
+priority: P0
+preconditions: frozen node dossier + frozen source payload
+input: claim + locator + excerpt + content hash
+action: verify → gate → apply attempt
+oracle: claim alignment must be EXACT and quote verbatim
+expected: ADJACENT source is rejected; no page write; repair job emitted
+artifacts: gate-result.json + event + rollback/no-write proof</pre>
+      </section>
+
+      <section id="scope">
+        <div class="section-head"><div class="section-index">03 / 12</div><div><h2>范围、风险与优先级</h2><p class="lead">测试优先级由“错误是否可能污染权威库、是否静默、影响范围是否跨行业”决定，而不是由实现复杂度决定。</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>等级</th><th>定义</th><th>典型风险</th><th>准入要求</th></tr></thead><tbody>
+          <tr><td><span class="risk p0">P0</span></td><td>可能错误发布、丢数据或伪造证明</td><td>越权写入、旧 Gate 复用、哈希漂移、错误 reviewed</td><td>每次提交阻断；必须全自动</td></tr>
+          <tr><td><span class="risk p1">P1</span></td><td>结果错误但可被后续 Gate 阻断</td><td>错绑、漏 claim、预算失控、错误修复路由</td><td>PR 阻断或 nightly</td></tr>
+          <tr><td><span class="risk p2">P2</span></td><td>展示、可用性、性能或低影响退化</td><td>章节顺序、Dashboard、非关键性能</td><td>发布前完成</td></tr>
+        </tbody></table></div>
+        <h3>首批最高风险</h3>
+        <div class="grid-2">
+          <article class="card"><h3>状态与写入</h3><ul><li>非法状态跳转</li><li>并发重复 Apply</li><li>commit 中断未回滚</li><li>preview 污染 production</li></ul></article>
+          <article class="card"><h3>证据与语义</h3><ul><li>source verified 冒充 claim verified</li><li>ADJACENT 冒充 EXACT</li><li>excerpt 混入模型总结</li><li>本地文件冒充外部证据</li></ul></article>
+          <article class="card"><h3>覆盖与报告</h3><ul><li>应处理 claim 静默移出分母</li><li>抽样结果外推全页/全行业</li><li>Gate PASS 超范围解释</li><li>旧 Artifact 被新任务复用</li></ul></article>
+          <article class="card"><h3>运行与自治</h3><ul><li>实际模型/工具权限漂移</li><li>无限重试和成本失控</li><li>自动修复从错误阶段开始</li><li>高风险错误未进入异常队列</li></ul></article>
+        </div>
+      </section>
+
+      <section id="environment">
+        <div class="section-head"><div class="section-index">04 / 12</div><div><h2>测试环境与测试数据</h2><p class="lead">所有测试默认离线、无生产写权限；真实 Search/LLM 只允许在专门 canary 环境中运行，并冻结完整 attestation。</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>环境</th><th>用途</th><th>数据</th><th>副作用</th></tr></thead><tbody>
+          <tr><td>Unit Sandbox</td><td>函数、Schema、属性测试</td><td>内存对象 / tmp_path</td><td>无</td></tr>
+          <tr><td>Integration Sandbox</td><td>SQLite、CAS、事务、CLI</td><td>临时仓库 fixture</td><td>仅临时目录</td></tr>
+          <tr><td>Replay Lab</td><td>Workflow、失败恢复、缺陷复现</td><td>冻结历史 Artifact</td><td>无生产写入</td></tr>
+          <tr><td>Shadow</td><td>真实 Agent 运行但不 Apply</td><td>生产只读快照</td><td>只写运行 Artifact</td></tr>
+          <tr><td>Canary</td><td>小批 draft-only / 低风险发布</td><td>白名单节点</td><td>受控事务写入</td></tr>
+          <tr><td>Production Verify</td><td>发布后校验和漂移检测</td><td>正式 release</td><td>只读，发现问题触发回滚</td></tr>
+        </tbody></table></div>
+        <h3>Fixture 家族</h3>
+        <ul class="checklist">
+          <li>最小合法 Graph：1 Activity + reference Product + background input</li>
+          <li>含 D/E 冲突的 Graph candidate</li>
+          <li>Wiki Product / Activity Golden</li>
+          <li>句号后脚注、多句共享脚注、未引用事实句</li>
+          <li>EXACT / ADJACENT / CONTRADICTED 来源包</li>
+          <li>正常、中断、重复提交的 transaction journal</li>
+          <li>跨行业唯一母行业 / 冲突 / no_node registry</li>
+          <li>BOM Exact / Coarse / Gap 混合样本</li>
+          <li>LCA Exact / Proxy / C0–C2 / rejection 样本</li>
+          <li>运行模型、工具、argv、费用漂移 attestation</li>
+        </ul>
+        <h3>测试数据纪律</h3>
+        <p>禁止测试直接读取完整行业大图；使用最小 fixture、精简索引或按节点提取。真实来源快照保存最小必要摘录和 hash，不保存敏感凭据。任何基于历史事故的 fixture 必须标注来源复盘、预期阻断层和影响版本。</p>
+      </section>
+
+      <section id="traceability">
+        <div class="section-head"><div class="section-index">05 / 12</div><div><h2>架构—风险—测试追踪矩阵</h2><p class="lead">每条架构决策必须对应至少一个正向测试、一个负向测试和一个故障恢复测试。</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>架构要求</th><th>主要风险</th><th>测试套件</th><th>质量证据</th></tr></thead><tbody>
+          <tr><td>Job 驱动</td><td>隐式任务、无法重放</td><td>CTL、WF</td><td>Job schema + replay report</td></tr>
+          <tr><td>Agent 无直接写入</td><td>越权污染权威库</td><td>AGT、SEC、REL</td><td>tool deny + no-write proof</td></tr>
+          <tr><td>不可变 Artifact</td><td>结果被覆盖或错绑</td><td>ART、WF、REL</td><td>CAS hash + lineage</td></tr>
+          <tr><td>模块 Event 交互</td><td>共享文件隐式耦合</td><td>EVT、DOM</td><td>event contract + consumer idempotency</td></tr>
+          <tr><td>分层 Gate</td><td>PASS 超范围外推</td><td>GATE、MUT</td><td>scoped GateResult + mutation score</td></tr>
+          <tr><td>自动修复</td><td>错误阶段重试、无限循环</td><td>REP、WF</td><td>repair lineage + retry cap</td></tr>
+          <tr><td>原子发布</td><td>部分写入、旧状态升级</td><td>REL</td><td>transaction journal + post-verify</td></tr>
+          <tr><td>自治分级</td><td>未达质量门自动发布</td><td>SLO、E2E</td><td>promotion decision + audit sample</td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section id="catalog">
+        <div class="section-head"><div class="section-index">06 / 12</div><div><h2>核心测试用例目录</h2><p class="lead">以下 96 个核心用例构成平台第一版准入基线。可使用搜索和筛选快速定位；打印时全部展开。</p></div></div>
+
+        <div class="filterbar" aria-label="测试用例筛选">
+          <input id="caseSearch" type="search" placeholder="搜索 ID、场景或预期结果…">
+          <select id="suiteFilter" aria-label="测试套件"><option value="all">全部套件</option><option>CTL</option><option>ART</option><option>EVT</option><option>CAP</option><option>WF</option><option>AGT</option><option>GRF</option><option>WIKI</option><option>XLC</option><option>BOM</option><option>REL</option><option>E2E</option></select>
+          <select id="priorityFilter" aria-label="优先级"><option value="all">全部优先级</option><option>P0</option><option>P1</option><option>P2</option></select>
+          <div class="filter-count" id="caseCount">96 / 96</div>
+        </div>
+
+        <details class="suite" data-suite="CTL" open><summary><span class="suite-code">CTL</span><span class="suite-title">控制平面与状态机</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>CTL-001</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>创建缺少目标、输入哈希或 policy version 的 Job。</td><td>Job.v1 Schema 拒绝；不入队；记录 protocol error。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>CTL-002</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>尝试 planned→published、failed 无 resume 直接恢复。</td><td>非法状态跳转全部拒绝，原状态不变。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>CTL-003</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>两个 Worker 同时领取同一 ready Job。</td><td>只有一个 lease 成功；另一个得到 conflict，不执行副作用。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>CTL-004</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Worker 心跳停止且 lease 超时。</td><td>Job 回到 ready 或 repairable；旧 Worker 后续提交被拒绝。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>CTL-005</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>相同幂等键重复提交 Job。</td><td>返回同一 Job 或显式 deduplicated，不创建重复工作。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>CTL-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>预算耗尽后 Planner 仍尝试调度 Agent step。</td><td>任务进入 blocked_budget；不产生模型调用。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>CTL-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>依赖 Artifact stale 或上游 release 被撤销。</td><td>下游 Job 不可 ready；自动生成 replan 事件。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>CTL-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>并发执行 status、inspect、reconcile 等只读命令。</td><td>输出一致且无状态副作用。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="ART" open><summary><span class="suite-code">ART</span><span class="suite-title">Artifact Store 与 Lineage</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>ART-001</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>写入相同内容两次。</td><td>产生相同 SHA-256 和同一 CAS 对象，不重复存储。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>ART-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>磁盘内容与登记 hash 不一致。</td><td>读取 fail closed；Artifact 标 corrupt；下游任务阻断。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>ART-003</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>Candidate 尝试覆盖 published Artifact URI。</td><td>拒绝原地覆盖；要求生成新版本和新 hash。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>ART-004</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>构造缺 producer、schema 或 parent edges 的 Artifact manifest。</td><td>协议门拒绝，不登记 lineage。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>ART-005</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>修改上游 graph release hash。</td><td>所有依赖 Wiki/cross-link/binding 自动标 stale。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>ART-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Artifact GC 遇到被 release、decision 或 exception 引用对象。</td><td>对象保留；仅无引用临时对象可清理。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>ART-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>从 release 反向查询完整依赖图。</td><td>能追溯所有输入、Run、Gate 和政策版本，无断边。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>ART-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>大批小 Artifact 并发读取。</td><td>在性能门限内，内容和 hash 一致。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="EVT"><summary><span class="suite-code">EVT</span><span class="suite-title">Event、Decision 与 Memory</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>EVT-001</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>Event 缺 event_id、schema、producer 或 causal run。</td><td>拒绝发布事件；不触发消费者。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>EVT-002</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>同一 event 重投两次。</td><td>消费者幂等；只生成一个 downstream Job。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>EVT-003</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>事件引用不存在或 hash 不匹配 Artifact。</td><td>事件隔离；生成 integrity exception。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>EVT-004</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Decision.v1 supersedes 旧 ADR。</td><td>新任务使用新政策；历史 Run 仍保留旧版本解释。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>EVT-005</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>政策变化影响 Wiki EXACT 定义。</td><td>影响分析生成重审任务，不静默改历史 verdict。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>EVT-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Agent 临时上下文尝试写入 Decision Memory。</td><td>拒绝；只有受控 decision capability 可提交。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>EVT-007</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>对同一 run 重放事件流。</td><td>恢复的聚合状态与 State DB 快照一致。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>EVT-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>从结构化 ADR 生成方法文档规则表。</td><td>引用版本一致，不丢 rationale/supersedes。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="CAP"><summary><span class="suite-code">CAP</span><span class="suite-title">Capability、Script 与 Executor</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>CAP-001</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>Workflow 引用未注册或 deprecated capability。</td><td>编译失败；不进入运行。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>CAP-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>声明 side_effects=none 的脚本修改仓库文件。</td><td>运行沙箱检测并失败；变更回滚。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>CAP-003</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>输出不符合 manifest 的 output_schema。</td><td>Artifact 不登记；step failed_protocol。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>CAP-004</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>幂等 capability 对同一输入执行两次。</td><td>确定性输出 hash 相同；无额外副作用。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>CAP-005</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>脚本超时或退出码与状态不一致。</td><td>Executor 终止进程，记录 stdout/stderr/timeout，不误报 PASS。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>CAP-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>dry-run capability 执行。</td><td>完成全部预检且零写入，返回预期 diff/plan。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>CAP-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>旧 capability version 接收新 schema。</td><td>兼容矩阵明确拒绝或通过 adapter 转换。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>CAP-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>Capability inventory 对仓库生产脚本扫描。</td><td>所有生产入口有 owner、schema、side effect 和状态。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="WF" open><summary><span class="suite-code">WF</span><span class="suite-title">Workflow、调度与恢复</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>WF-001</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>Workflow DAG 含循环、缺依赖或多个同名 step。</td><td>编译期拒绝。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>WF-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>Gate 失败后强制执行 publish step。</td><td>条件表达式和发布管理器双重拒绝。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>WF-003</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>步骤完成后崩溃，状态尚未持久化。</td><td>根据输出 Artifact 和幂等键恢复，不重复副作用。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>WF-004</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>foreach 节点并发执行，一个节点失败。</td><td>其他节点隔离完成；失败节点进入 repair，不污染批次集合账。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>WF-005</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>尝试复用不同 node_ref 的 Verify runtime。</td><td>节点、evidence、runtime 三方 hard join 失败。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>WF-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>retryable 错误连续超过策略上限。</td><td>转为 quarantined；停止自动调用；生成 exception。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>WF-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>从历史 frozen Artifact 完整 replay。</td><td>确定性步骤 hash 一致，Agent 步骤使用冻结结果。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>WF-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>Workflow 版本升级但仍有旧 run 在执行。</td><td>旧 run 固定旧版本；新 Job 使用新版本，互不串扰。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="AGT" open><summary><span class="suite-code">AGT</span><span class="suite-title">Agent Runtime 与语义边界</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>AGT-001</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>实际模型或 reasoning effort 与 agent definition 不符。</td><td>G0 失败；产物不可进入后续步骤。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>AGT-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>Nomination/Verify Agent 尝试联网或写仓库。</td><td>工具级 deny；attestation 记录拒绝；run failed_policy。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>AGT-003</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>输出 node ID 添加前缀、换节点或使用旧 spine hash。</td><td>G1 hard fail；禁止“自动纠正后继续”。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>AGT-004</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>Agent excerpt 包含中文解释，非 payload 原文子串。</td><td>证据门拒绝；重新由确定性代码截取。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>AGT-005</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>相邻节点资料支持宽泛行业事实。</td><td>最多 ADJACENT，不能 CONFIRMED 目标节点。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>AGT-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">EVAL</span></td><td>证据不足、冲突或对象不确定。</td><td>Agent 应输出 INSUFFICIENT/CONTRADICTED，而非强行确认。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>AGT-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">EVAL</span></td><td>同一任务重复评测与邻居陷阱集。</td><td>准确率、错升格率、弃权率达到 agent SLO。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>AGT-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>usage 缺 search_requests、cost 或 context 信息。</td><td>运行证明不完整；发布资格 false。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="GRF"><summary><span class="suite-code">GRF</span><span class="suite-title">名称图与接口契约</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>GRF-001</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">GATE</span></td><td>最小合法图运行 A–E 11 项 Gate。</td><td>11/11；输出稳定 report。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>GRF-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>注入孤儿产品、无 reference 产出或悬空输入。</td><td>A/B/C 分别准确报错，禁止发布。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>GRF-003</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>身份键碰撞、未声明刻面或词表越界。</td><td>D/E 准确报错，不允许模型汇报替代代码 Gate。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>GRF-004</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>背景节点按 identity_scope 豁免 D/E。</td><td>仅合法背景豁免，前景伪装背景被拒绝。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>GRF-005</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>接口契约中存在未响应 expectation。</td><td>Conventions freeze 失败；必须 accept/out_of_scope/redirect。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>GRF-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Gate 失败时已有正式图存在。</td><td>正式图字节不变；candidate 留作诊断或按政策清理。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>GRF-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>分类覆盖差集含已解释 out-of-scope。</td><td>已解释项不算未解决，理由和 redirect 可追溯。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>GRF-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>Graph release 后构建 JSON/HTML/index。</td><td>投影使用同一 release hash；导航和计数一致。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="WIKI" open><summary><span class="suite-code">WIKI</span><span class="suite-title">Evidence 与节点 Wiki</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>WIKI-001</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">HISTORY</span></td><td>引用 verified source，但 claim 未逐条核验。</td><td>不得升级 reviewed；source/claim 状态保持分离。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>WIKI-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">HISTORY</span></td><td>句号后脚注、多句段末共享脚注。</td><td>所有事实句进入 claims 分母，无静默漏出。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>WIKI-003</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td><code>file://</code>、localhost、私网地址作为外部来源。</td><td>Search/Fetch 与 result protocol 双重拒绝。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>WIKI-004</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>重复“证据不足”模板壳填满十节。</td><td>Draft Content Gate 在写入前 NO_GO，原页不变。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>WIKI-005</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>Product 页出现 Activity flows/emissions 或分配。</td><td>类型合同失败；必须重新组装。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>WIKI-006</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>Claim coverage 中删除 budget-skipped、NOT_FOUND 或未映射 claim。</td><td>集合守恒失败；reviewed_upgrade_allowed=false。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>WIKI-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>候选内容相较 Golden 缩短章节、表行或建模判断。</td><td>非退化 Gate 拒绝，即使重新计算了所有 hash。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>WIKI-008</td><td><span class="risk p2">P2</span></td><td><span class="risk fixture">FAULT</span></td><td>源 Markdown 章节正确但最终 HTML 被重排。</td><td>章节顺序/唯一性 Gate 报错；preview 不冒充 production。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="XLC"><summary><span class="suite-code">XLC</span><span class="suite-title">跨行业与 LCA 数据集绑定</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>XLC-001</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>同一背景产品绑定两个母行业。</td><td>cross_link_lint 单母行业 Gate 失败。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>XLC-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>resolves_to 指向不存在或非前景 GPID。</td><td>解析闭合失败；不发布 registry。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>XLC-003</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">HISTORY</span></td><td>Exact 产品 GPID 绑定，但 LCA 数据集是 weak proxy。</td><td>身份解析保持 Exact，dataset_readiness 保持 weak/blocked。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>XLC-004</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>分类码相同但交付状态、技术路线不同。</td><td>不能仅凭 CPC/HS 给 Exact。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>XLC-005</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>消费端项目资料用于证明供应端生产负担。</td><td>最多支持接口事实，供应端 claim 不确认。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>XLC-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Judge 输出 no_node。</td><td>记录 gap ledger 并生成母行业 graph job，不静默 placeholder。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>XLC-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Binding candidate 的 I/O、对象类型或边界不完整。</td><td>按 C0/C1/C2 规则降级并给出可操作诊断。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>XLC-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>Registry release 后同步 Wiki binding 状态。</td><td>只更新投影字段，不改变正文证明和 readiness。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="BOM"><summary><span class="suite-code">BOM</span><span class="suite-title">BOM 探针与产品系统模型</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>BOM-001</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>相同 BOM 输入和骨架 release 重放。</td><td>桶、候选、裁决和分数完全可重放。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>BOM-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>LLM 提名不存在的节点 ID 或错误行业。</td><td>代码裁决拒绝，不计入 Exact/Coarse。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>BOM-003</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>同一 BOM 行具有多个重复候选。</td><td>按身份和质量权重去重，分母不重复计算。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>BOM-004</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>Coarse 匹配被误报为 Exact。</td><td>身份刻面差异触发降级；理由可审计。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>BOM-005</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Gap proposal 进入 Portfolio。</td><td>生成 graph backlog，不直接修改权威图。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>BOM-006</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>产品系统递归遇到环和共享上游。</td><td>防无限递归；共享节点引用化且不丢路径。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>BOM-007</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>背景节点未绑定母行业。</td><td>树上保留显式 unresolved，不伪造上游。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>BOM-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>质量加权覆盖率复算。</td><td>Exact/Coarse/Gap 数量和权重账一致。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="REL" open><summary><span class="suite-code">REL</span><span class="suite-title">发布、事务、安全与回滚</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>REL-001</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>Apply 写入页面后、registry 提交前崩溃。</td><td>事务 journal 驱动同步回滚或恢复提交，不留部分状态。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>REL-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>计划生成后目标文件 hash 变化。</td><td>Apply 拒绝 stale plan，要求重新计划。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>REL-003</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>旧 GateResult 或不同 candidate 的 PASS 被复用。</td><td>输入 hash hard bind 失败，不允许发布。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>REL-004</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">AUTO</span></td><td>Preview 命令、文件名和路由。</td><td>不修改 journal/reviewed/publish；不能覆盖 production。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>REL-005</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>Release manifest 缺 rollback target、usage 或 policy。</td><td>发布资格 false。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>REL-006</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>发布后 post-verify 发现投影计数或 hash 不一致。</td><td>Release 标 defective，自动回滚并产生 repair job。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>REL-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">SEC</span></td><td>路径穿越、凭据 URL、非标准端口、私网重绑定。</td><td>运行和 Fetch 层全部 fail closed，日志不泄露凭据。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>REL-008</td><td><span class="risk p2">P2</span></td><td><span class="risk auto">AUTO</span></td><td>从发布 manifest 重建所有投影。</td><td>字节或规范化内容一致，正式源无额外输入。</td></tr>
+        </tbody></table></div></details>
+
+        <details class="suite" data-suite="E2E" open><summary><span class="suite-code">E2E</span><span class="suite-title">端到端、自治修复与 SLO</span><span class="suite-count">8 CASES</span></summary><div class="suite-body"><table class="case-table"><thead><tr><th>ID</th><th>优先级</th><th>类型</th><th>场景 / 操作</th><th>预期结果</th></tr></thead><tbody>
+          <tr class="case-row" data-priority="P0"><td>E2E-001</td><td><span class="risk p0">P0</span></td><td><span class="risk auto">REPLAY</span></td><td>Wiki Golden 节点从 plan 到 publish 全链离线重放。</td><td>状态、Artifact、Gate、事务和发布 lineage 完整。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>E2E-002</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>在 Verify 阶段注入 ADJACENT 证据。</td><td>G4 失败→新 nomination job→新 evidence→重新 Gate；旧证据不复用。</td></tr>
+          <tr class="case-row" data-priority="P0"><td>E2E-003</td><td><span class="risk p0">P0</span></td><td><span class="risk fixture">FAULT</span></td><td>在 Apply 阶段注入 commit failure。</td><td>自动回滚；resume 后仅完成未提交事务；零重复写入。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>E2E-004</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">SHADOW</span></td><td>一个行业 Wiki 小批 shadow，与人工结果对比。</td><td>无生产写入；输出准确率、弃权率、成本和差异报告。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>E2E-005</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">CANARY</span></td><td>白名单低风险节点 draft-only canary。</td><td>只发布 draft preview；reviewed 保持不变。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>E2E-006</td><td><span class="risk p1">P1</span></td><td><span class="risk fixture">FAULT</span></td><td>发现一个历史 defect 影响同版本 20 页。</td><td>回滚/降级当前页并追溯生成 20 个 audit jobs。</td></tr>
+          <tr class="case-row" data-priority="P1"><td>E2E-007</td><td><span class="risk p1">P1</span></td><td><span class="risk auto">AUTO</span></td><td>连续 20 批计算自治晋级指标。</td><td>仅全部 SLO 达标才允许 L2→L3；决策可审计。</td></tr>
+          <tr class="case-row" data-priority="P2"><td>E2E-008</td><td><span class="risk p2">P2</span></td><td><span class="risk manual">MANUAL</span></td><td>专家处理 policy conflict 异常包。</td><td>问题、证据、选项、推荐、影响范围和恢复点完整。</td></tr>
+        </tbody></table></div></details>
+      </section>
+
+      <section id="mutation">
+        <div class="section-head"><div class="section-index">07 / 12</div><div><h2>缺陷语料与变异测试</h2><p class="lead">正确样本能通过 Gate，只证明 Gate 不会误杀；必须主动注入错误，才能证明 Gate 有能力保护生产。</p></div></div>
+        <h3>首批 Mutation Operators</h3>
+        <div class="table-wrap"><table><thead><tr><th>Mutation</th><th>注入方式</th><th>预期阻断层</th></tr></thead><tbody>
+          <tr><td>M-ID-SWAP</td><td>把 P042 替换为 P040 或添加行业前缀</td><td>G1 协议</td></tr>
+          <tr><td>M-SPINE-STALE</td><td>修改节点刻面但保留旧 dossier/hash</td><td>G1 / G6</td></tr>
+          <tr><td>M-LOCAL-EVIDENCE</td><td>把 URL 替换为 file://、localhost 或私网</td><td>G0 / G3</td></tr>
+          <tr><td>M-EXCERPT-SUMMARY</td><td>将原文摘录替换为模型中文总结</td><td>G3</td></tr>
+          <tr><td>M-ADJACENT</td><td>用 DRAM 资料支持 HBM、PCB 支持 PCBA</td><td>G4</td></tr>
+          <tr><td>M-COVERAGE-DROP</td><td>从分母删除 NOT_FOUND、budget-skipped、未映射 claim</td><td>G2 / G7</td></tr>
+          <tr><td>M-REHASH-DEGRADE</td><td>删减正文后重新计算所有 hash</td><td>G5</td></tr>
+          <tr><td>M-GATE-REUSE</td><td>复用其他 candidate 或旧 release 的 PASS</td><td>G7</td></tr>
+          <tr><td>M-PARTIAL-COMMIT</td><td>页面写入后令 registry commit 失败</td><td>事务 / post-verify</td></tr>
+          <tr><td>M-MODEL-DRIFT</td><td>实际模型/effort 与 manifest 不一致</td><td>G0</td></tr>
+          <tr><td>M-POLICY-SKIP</td><td>绕过高风险人工批准直接 publish</td><td>G7 / Release</td></tr>
+          <tr><td>M-RETRY-LOOP</td><td>让同一错误持续返回 retryable</td><td>Repair Controller</td></tr>
+        </tbody></table></div>
+        <h3>Mutation Score</h3>
+        <pre>Gate Mutation Score = 被 Gate 成功阻断的注入错误数 / 总注入错误数
+
+P0 operators: 100% 必须被阻断
+全部 operators: 初始 ≥95%
+survived mutation: 必须登记缺陷、补 Gate 或明确接受理由</pre>
+        <p>每个复盘发现的逃逸错误必须进入 <code>tests/defects/</code>，并标注受影响版本。修复当前页面不算完成；还要针对同脚本、同 Prompt、同政策版本生成追溯审计。</p>
+      </section>
+
+      <section id="pipeline">
+        <div class="section-head"><div class="section-index">08 / 12</div><div><h2>CI、Nightly 与发布门</h2><p class="lead">测试应按成本和风险分层，不让真实联网/LLM 成为每次提交的阻塞瓶颈，也不让离线测试替代真实 canary。</p></div></div>
+        <div class="pipeline">
+          <div class="stage"><b>PR-1</b><span>Static、Schema、Unit、Property</span></div>
+          <div class="stage"><b>PR-2</b><span>Contract、Integration、现有 Gate</span></div>
+          <div class="stage"><b>PR-3</b><span>Workflow Replay、Defect Corpus</span></div>
+          <div class="stage"><b>NIGHTLY</b><span>Full Mutation、性能、影响扫描</span></div>
+          <div class="stage"><b>RC</b><span>Agent Eval、Shadow、Canary</span></div>
+          <div class="stage"><b>POST</b><span>Release Verify、Drift Monitor</span></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>阶段</th><th>阻断条件</th><th>主要输出</th></tr></thead><tbody>
+          <tr><td>每次提交</td><td>P0/P1 单元、协议、事务、确定性 Gate 失败</td><td>JUnit + coverage + GateResult</td></tr>
+          <tr><td>每次 PR</td><td>Workflow replay、defect fixture 或 P0 mutation 存活</td><td>Replay report + mutation delta</td></tr>
+          <tr><td>Nightly</td><td>全量 mutation 低于阈值、性能/影响范围退化</td><td>趋势和追溯任务</td></tr>
+          <tr><td>Release Candidate</td><td>Agent SLO、成本、shadow/canary 不达标</td><td>Attestation + evaluation report</td></tr>
+          <tr><td>Production</td><td>Post-verify 失败</td><td>Rollback event + repair jobs</td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section id="defects">
+        <div class="section-head"><div class="section-index">09 / 12</div><div><h2>缺陷分类、恢复与回归</h2><p class="lead">缺陷处理不是“让原 Agent 再想一次”，而是根据错误代码回到最早污染阶段并重建全部下游证明。</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>错误类别</th><th>恢复策略</th><th>必须回归的测试</th></tr></thead><tbody>
+          <tr><td>Transient</td><td>冻结输入下有限重试</td><td>幂等、预算、retry cap</td></tr>
+          <tr><td>Protocol</td><td>废弃错误输出，重跑当前 step</td><td>Schema、ID、hash、no-write</td></tr>
+          <tr><td>Evidence</td><td>回到 nomination/search，不复用失败 evidence</td><td>locator、excerpt、alignment、coverage</td></tr>
+          <tr><td>Content</td><td>回到 assemble，保留非退化基线</td><td>内容合同、引用、Golden</td></tr>
+          <tr><td>Transaction</td><td>journal 驱动 rollback/resume</td><td>部分提交、重复执行、stale hash</td></tr>
+          <tr><td>Policy</td><td>Quarantine + 人工 Decision</td><td>影响分析、版本兼容、历史解释</td></tr>
+          <tr><td>Escaped defect</td><td>发布标 defective、回滚、追溯同版本</td><td>新增 fixture + mutation + 全仓扫描</td></tr>
+        </tbody></table></div>
+        <h3>缺陷完成定义</h3>
+        <ul class="checklist">
+          <li>当前错误已修复且回滚/恢复完成</li><li>根因阶段被识别而非只修最终文本</li>
+          <li>增加最小复现 fixture</li><li>增加能失败后通过的回归测试</li>
+          <li>新增或强化对应 Gate</li><li>完成受影响版本追溯扫描</li>
+          <li>更新 ADR/Policy（如需要）</li><li>验证无质量或内容退化</li>
+        </ul>
+      </section>
+
+      <section id="acceptance">
+        <div class="section-head"><div class="section-index">10 / 12</div><div><h2>验收标准与自治 SLO</h2><p class="lead">自动化权限按任务类型逐步晋级；测试通过只是必要条件，真实批次表现和逃逸缺陷同样参与决策。</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>指标</th><th>L1/L2 准入</th><th>L3 自动发布准入</th></tr></thead><tbody>
+          <tr><td>P0 测试</td><td>100% PASS</td><td>100% PASS</td></tr>
+          <tr><td>Artifact lineage</td><td>100%</td><td>100%</td></tr>
+          <tr><td>Claim coverage 守恒</td><td>100%</td><td>100%</td></tr>
+          <tr><td>P0 Mutation</td><td>100% killed</td><td>100% killed</td></tr>
+          <tr><td>总 Mutation Score</td><td>≥95%</td><td>≥98%</td></tr>
+          <tr><td>P0/P1 逃逸缺陷</td><td>Shadow 中 0</td><td>连续 20 批为 0</td></tr>
+          <tr><td>人工抽检准确率</td><td>≥95%</td><td>≥98%</td></tr>
+          <tr><td>自动修复成功率</td><td>可观测</td><td>≥90%</td></tr>
+          <tr><td>无限重试/未声明写入</td><td>0</td><td>0</td></tr>
+          <tr><td>回滚演练</td><td>通过</td><td>周期性通过</td></tr>
+        </tbody></table></div>
+        <p>新刻面、行业边界、母行业归属、定量代表值和专家签字不因自动化测试通过而自动授权发布；这些任务保持高风险政策门。</p>
+      </section>
+
+      <section id="implementation">
+        <div class="section-head"><div class="section-index">11 / 12</div><div><h2>测试实施顺序</h2><p class="lead">测试与平台重构同步建设，不能先实现全部模块、最后再补测试。</p></div></div>
+        <div class="grid-3">
+          <article class="card"><div class="tagline">SPRINT / 01</div><h3>协议与 Kernel</h3><p>实现 Job、Artifact、Event、GateResult、State DB、CAS 和状态机测试；先建立 P0 写入护栏。</p></article>
+          <article class="card"><div class="tagline">SPRINT / 02</div><h3>Wiki 缺陷语料</h3><p>把三份复盘错误、现有 107 个 pytest 和 Golden 固化为 replay/defect/mutation 基线。</p></article>
+          <article class="card"><div class="tagline">SPRINT / 03</div><h3>Workflow 与恢复</h3><p>覆盖 lease、断点恢复、有限重试、transaction rollback 和发布 manifest。</p></article>
+          <article class="card"><div class="tagline">SPRINT / 04</div><h3>Agent Runtime</h3><p>验证模型、工具、argv、usage、Schema、独立 Verify 和语义陷阱集。</p></article>
+          <article class="card"><div class="tagline">SPRINT / 05</div><h3>图、跨链、LCA、BOM</h3><p>将现有 Gate 包装成 capability contract，并补领域集成与事件测试。</p></article>
+          <article class="card"><div class="tagline">SPRINT / 06</div><h3>Shadow 与 Canary</h3><p>建立真实质量指标、回滚演练和自治晋级报告。</p></article>
+        </div>
+        <h3>第一版 Definition of Done</h3>
+        <ol>
+          <li>96 个核心用例中 P0/P1 全部自动化或有明确 canary 执行器。</li>
+          <li>现有 107 个 pytest 纳入统一 CI，零回归。</li>
+          <li>三份 Wiki 复盘的逃逸错误全部能由 defect fixture 重现并被 Gate 阻断。</li>
+          <li>Wiki Golden 全链可离线 replay；事务中断可自动恢复。</li>
+          <li>所有生产 capability 有 contract test。</li>
+          <li>发布候选具有 mutation、Agent eval、shadow/canary 和 rollback 证据。</li>
+        </ol>
+      </section>
+
+      <section id="baseline">
+        <div class="section-head"><div class="section-index">12 / 12</div><div><h2>现有测试资产映射</h2><p class="lead">截至 2026-08-09，仓库有 15 个测试文件、107 个 pytest 用例；它们是重构的回归基线，不应在迁移时丢失。</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>现有测试</th><th>覆盖能力</th><th>目标套件</th></tr></thead><tbody>
+          <tr><td><code>test_wiki_batch.py</code></td><td>页面路由、slot、extract/rebuild/audit</td><td>WIKI / WF</td></tr>
+          <tr><td><code>test_wiki_batch_release.py</code></td><td>状态机、Gate 顺序、usage、事务、rollback、publish</td><td>CTL / WF / REL</td></tr>
+          <tr><td><code>test_wiki_claim_coverage.py</code></td><td>coverage 守恒、hash、引用、reviewed proof</td><td>WIKI / ART</td></tr>
+          <tr><td><code>test_wiki_source_discovery.py</code></td><td>Search/Fetch、SSRF、预算、缓存、EXACT/ADJACENT</td><td>AGT / WIKI / REL</td></tr>
+          <tr><td><code>test_wiki_provenance_tools.py</code></td><td>协议、URL、模型政策、合并、stale、manual review</td><td>AGT / WIKI / CAP</td></tr>
+          <tr><td><code>test_wiki_research_ready.py</code></td><td>研究准备、外部槽、runtime tamper</td><td>WF / AGT</td></tr>
+          <tr><td><code>test_wiki_draft_content_gate.py</code></td><td>模板壳、丰富候选、写前 Gate</td><td>WIKI / MUT</td></tr>
+          <tr><td><code>test_wiki_golden*.py</code></td><td>Golden replay、rehashed excerpt、内容非退化</td><td>WIKI / E2E</td></tr>
+          <tr><td><code>test_wiki_preview.py</code></td><td>Preview 隔离、路由、freshness、只读</td><td>REL</td></tr>
+          <tr><td><code>test_lca_match_grading.py</code></td><td>C0/C1/C2、对象和边界诊断</td><td>XLC</td></tr>
+          <tr><td><code>test_lca_registry_metadata.py</code></td><td>Catalog 计数与冻结来源</td><td>XLC / ART</td></tr>
+        </tbody></table></div>
+        <h3>当前主要空白</h3>
+        <ul class="checklist">
+          <li>通用 Job/Run/Event/Artifact/GateResult Schema</li><li>全局 Planner、Queue、Lease 和 Reconciler</li>
+          <li>Capability Registry 与 side-effect contract</li><li>跨模块失效传播和影响分析</li>
+          <li>名称图/跨链/BOM 的 pytest fixture 化</li><li>统一 mutation runner 与 score</li>
+          <li>自动修复路由和 quarantine</li><li>全局 release manifest 与 post-verify</li>
+        </ul>
+        <div class="statement"><strong>实施建议：</strong>先以 Wiki 作为第一条垂直测试切片，因为它已有真实事故、状态机、事务和 100+ 回归测试；平台 Kernel 验证稳定后，再把名称图、跨链、LCA 和 BOM 的脚本 Gate 注册进同一测试与发布体系。</div>
+      </section>
+
+      <footer class="footer">lca-cornerstone · 骨架数据库自治生产平台 · 测试策略与测试用例 v1.0 · 2026-08-09</footer>
+    </article>
+  </main>
+
+  <div class="tools">
+    <button class="tool mobile-nav" id="navButton" aria-label="打开目录" title="目录">☰</button>
+    <button class="tool" id="expandButton" aria-label="展开或收起全部套件" title="展开/收起">±</button>
+    <button class="tool" id="printButton" aria-label="打印或导出 PDF" title="打印">⎙</button>
+    <button class="tool" id="topButton" aria-label="返回顶部" title="顶部">↑</button>
+  </div>
+
+  <script>
+    (() => {
+      const links = [...document.querySelectorAll('#toc a')];
+      const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+      const rows = [...document.querySelectorAll('.case-row')];
+      const suites = [...document.querySelectorAll('.suite')];
+      const search = document.getElementById('caseSearch');
+      const suiteFilter = document.getElementById('suiteFilter');
+      const priorityFilter = document.getElementById('priorityFilter');
+      const count = document.getElementById('caseCount');
+
+      function setActive() {
+        let active = sections[0];
+        for (const section of sections) if (section.getBoundingClientRect().top <= 120) active = section;
+        links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + active.id));
+      }
+      function applyFilter() {
+        const query = search.value.trim().toLowerCase();
+        const selectedSuite = suiteFilter.value;
+        const selectedPriority = priorityFilter.value;
+        let visible = 0;
+        suites.forEach(suite => {
+          const suiteName = suite.dataset.suite;
+          let suiteVisible = 0;
+          suite.querySelectorAll('.case-row').forEach(row => {
+            const match = (!query || row.textContent.toLowerCase().includes(query)) &&
+              (selectedSuite === 'all' || suiteName === selectedSuite) &&
+              (selectedPriority === 'all' || row.dataset.priority === selectedPriority);
+            row.classList.toggle('hidden', !match);
+            if (match) { visible++; suiteVisible++; }
+          });
+          suite.classList.toggle('hidden', suiteVisible === 0);
+          if ((query || selectedSuite !== 'all' || selectedPriority !== 'all') && suiteVisible) suite.open = true;
+        });
+        count.textContent = `${visible} / ${rows.length}`;
+      }
+      window.addEventListener('scroll', setActive, { passive: true });
+      [search, suiteFilter, priorityFilter].forEach(el => el.addEventListener('input', applyFilter));
+      document.getElementById('navButton').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+      links.forEach(a => a.addEventListener('click', () => document.body.classList.remove('nav-open')));
+      let expanded = false;
+      document.getElementById('expandButton').addEventListener('click', () => { expanded = !expanded; suites.forEach(s => s.open = expanded); });
+      document.getElementById('printButton').addEventListener('click', () => { suites.forEach(s => s.open = true); window.print(); });
+      document.getElementById('topButton').addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') document.body.classList.remove('nav-open'); });
+      setActive(); applyFilter();
+    })();
+  </script>
+</body>
+</html>
