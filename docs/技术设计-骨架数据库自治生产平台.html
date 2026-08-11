@@ -596,6 +596,24 @@
     .decision dt { color: var(--cyan-dark); font-family: var(--mono); font-size: 10px; }
     .decision dd { margin: 0; font-size: 13px; }
 
+    .revision-log { display: grid; gap: 14px; margin-top: 28px; }
+    .revision-entry {
+      display: grid;
+      grid-template-columns: 138px 1fr;
+      gap: 22px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan-dark);
+      border-radius: 0 14px 14px 0;
+      background: rgba(255,253,247,.82);
+      box-shadow: 0 10px 26px rgba(26,46,47,.05);
+    }
+    .revision-entry.current { border-left-color: var(--amber); }
+    .revision-version { color: var(--cyan-dark); font-family: var(--mono); font-size: 11px; letter-spacing: .08em; }
+    .revision-date { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
+    .revision-entry h3 { margin: 0 0 8px; font-size: 20px; }
+    .revision-entry p { margin: 0; color: var(--muted); font-size: 13px; }
+
     .footer {
       margin-top: 90px;
       padding: 36px 0 10px;
@@ -661,6 +679,7 @@
       h1 { font-size: 44px; }
       .content { padding-inline: 18px; }
       .decision { grid-template-columns: 1fr; gap: 6px; }
+      .revision-entry { grid-template-columns: 1fr; gap: 10px; }
     }
 
     @media print {
@@ -708,6 +727,7 @@
         <a href="#acceptance"><span>13</span>验收指标</a>
         <a href="#decisions"><span>14</span>架构决策</a>
         <a href="#appendix"><span>15</span>现有资产映射</a>
+        <a href="#changelog"><span>16</span>修改日志</a>
       </nav>
       <div class="sidebar-note">
         <strong>文档定位</strong><br>
@@ -717,7 +737,7 @@
 
     <main class="main">
       <header class="hero">
-        <div class="eyebrow">lca-cornerstone · Architecture Specification · v1.0</div>
+        <div class="eyebrow">lca-project · Architecture Specification · v1.1</div>
         <h1>
           骨架数据库<br>自治生产平台
           <small>自动化与工程化重构技术设计</small>
@@ -725,9 +745,9 @@
         <div class="hero-grid">
           <p class="hero-thesis">把 Agent 从“流程的主人”降级为“状态机中的受限语义计算节点”，把项目主导权交给持久化状态、版本化协议、确定性 Gate 和自动修复循环。</p>
           <div class="hero-meta" aria-label="文档元数据">
-            <div class="meta-cell"><div class="meta-label">STATUS</div><div class="meta-value">PROPOSED</div></div>
-            <div class="meta-cell"><div class="meta-label">VERSION</div><div class="meta-value">1.0</div></div>
-            <div class="meta-cell"><div class="meta-label">DATE</div><div class="meta-value">2026-08-07</div></div>
+            <div class="meta-cell"><div class="meta-label">STATUS</div><div class="meta-value">IMPLEMENTED / VALIDATING</div></div>
+            <div class="meta-cell"><div class="meta-label">VERSION</div><div class="meta-value">1.1</div></div>
+            <div class="meta-cell"><div class="meta-label">DATE</div><div class="meta-value">2026-08-11</div></div>
             <div class="meta-cell"><div class="meta-label">SCOPE</div><div class="meta-value">全仓工程化重构</div></div>
           </div>
         </div>
@@ -736,7 +756,7 @@
       <article class="content">
         <section id="executive">
           <div class="section-head">
-            <div class="section-no">01 / 15</div>
+            <div class="section-no">01 / 16</div>
             <div>
               <h2>执行摘要</h2>
               <p class="section-lead">项目应从“人通过对话临时编排 Agent 和脚本”升级为“目标驱动、事件驱动、Artifact 驱动”的自治知识生产系统。</p>
@@ -781,7 +801,7 @@
 
         <section id="context">
           <div class="section-head">
-            <div class="section-no">02 / 15</div>
+            <div class="section-no">02 / 16</div>
             <div>
               <h2>背景与问题定义</h2>
               <p class="section-lead">方法论和局部 Workflow 已较成熟，但执行仍依赖人在对话中维持全局上下文，导致规则落实、状态连续性和错误恢复缺乏系统保证。</p>
@@ -826,7 +846,7 @@
 
         <section id="principles">
           <div class="section-head">
-            <div class="section-no">03 / 15</div>
+            <div class="section-no">03 / 16</div>
             <div>
               <h2>目标、非目标与设计原则</h2>
               <p class="section-lead">所有模块、Skill、Workflow、脚本和 Agent 都必须服从同一组项目级不变量。</p>
@@ -863,7 +883,7 @@
 
         <section id="architecture">
           <div class="section-head">
-            <div class="section-no">04 / 15</div>
+            <div class="section-no">04 / 16</div>
             <div>
               <h2>总体架构</h2>
               <p class="section-lead">架构按入口、控制、执行、领域、保障、数据与发布六个平面分离，模块之间只交换版本化 Artifact 和 Event。</p>
@@ -928,7 +948,7 @@ Release</pre>
 
         <section id="modules">
           <div class="section-head">
-            <div class="section-no">05 / 15</div>
+            <div class="section-no">05 / 16</div>
             <div>
               <h2>领域模块设计</h2>
               <p class="section-lead">领域模块拥有自己的业务不变量和发布物，但不拥有全局调度权。</p>
@@ -965,7 +985,7 @@ Release</pre>
 
         <section id="interaction">
           <div class="section-head">
-            <div class="section-no">06 / 15</div>
+            <div class="section-no">06 / 16</div>
             <div>
               <h2>模块交互与统一协议</h2>
               <p class="section-lead">所有交互通过版本化 Event 和不可变 Artifact 完成，不允许模块通过直接编辑共享文件实现“隐式通信”。</p>
@@ -1018,7 +1038,7 @@ Release</pre>
 
         <section id="unification">
           <div class="section-head">
-            <div class="section-no">07 / 15</div>
+            <div class="section-no">07 / 16</div>
             <div>
               <h2>Skills、Memory、脚本与 Workflow 的统一管理</h2>
               <p class="section-lead">四类组件必须拥有清晰的职责和唯一权威来源，避免同一规则散落在 AGENTS、Skill、方法文档、Prompt 和脚本中。</p>
@@ -1040,7 +1060,13 @@ Release</pre>
           </div>
 
           <h3>Skill：薄入口</h3>
-          <p>未来 <code>generate-node-wiki</code> 等 Skill 只负责识别任务并调用 <code>workflow://wiki-node-production@v3</code>。Skill 可以解释前置条件和异常，但不能保存状态机、重复生产规则或自行 Apply。</p>
+          <p>当前 <code>generate-node-wiki</code> Skill 只负责校验节点参数并提交持久化 Job，绑定 <code>workflow://wiki-node-production@6</code>。它不解释方法论后临场选择脚本，不轮询长进程，不决定重试，也不保存状态机或自行 Apply。面向人的触发说明保留在标准 <code>SKILL.md</code>，机器路由独立存放于 <code>skill.manifest.json</code>；route manifest、请求 schema 和 policy 均作为冻结输入进入 Job lineage，实际步骤由 Orchestrator 物化。</p>
+          <ul>
+            <li><strong>一节点一 Job：</strong><code>wiki-production-request-v2</code> 强制一次只接受一个 <code>P###</code> 或 <code>A###</code>，不同节点不共享 Verify、预算、重试或发布资格。</li>
+            <li><strong>安全默认值：</strong>未明确要求正式审核发布时，<code>publication_mode</code> 默认为 <code>preview</code>。</li>
+            <li><strong>权限声明：</strong>route manifest 明确 Skill 可以创建 Job，但不能执行 capability、Apply 或 Publish。</li>
+            <li><strong>双哈希输入：</strong>请求 Artifact 与 route Artifact 同时进入 Job input hashes，Skill 路由变化会产生新的幂等身份。</li>
+          </ul>
 
           <h3>Memory：四层分离</h3>
           <div class="two-col">
@@ -1066,30 +1092,29 @@ status: supported</pre>
 
           <h3>声明式 Workflow</h3>
           <pre>id: wiki-node-production
-version: 3
+version: 6
+policy: wiki-production-v3
 steps:
-  - id: plan
-    uses: wiki.plan@2
-  - id: nominate
-    uses: agent.wiki_nominate@3
-    foreach: nodes
-  - id: search_fetch
-    uses: evidence.discover@2
-  - id: verify
-    uses: agent.wiki_verify@3
-    foreach: nodes
-  - id: assemble
-    uses: wiki.assemble@2
-  - id: draft_gate
-    uses: wiki.draft_gate@3
-  - id: apply_draft
-    uses: wiki.apply@2
-    when: draft_gate.pass
-  - id: release_gate
-    uses: wiki.release_gate@3
-  - id: publish
-    uses: wiki.publish@2
-    when: release_gate.pass</pre>
+  plan → prepare
+  → nomination [terra-worker]
+  → verify [sol-verifier]
+  → freeze → content_blueprint
+  ├─ content_compose [terra-worker]
+  │  → editorial_review [sol-checker]
+  │  → draft_content_gate → draft_apply
+  └─ table_collect [terra-worker]
+     → table_verify [sol-verifier]
+  → table_population_gate → table_apply
+  → preview → release_gate
+  → reviewed_apply → publish</pre>
+
+          <div class="callout">
+            <strong>运行时路由已经机器化</strong><br>
+            <code>runtime-routing-v1</code> 固定 propose 类任务使用 Terra/medium，证据核验使用 Sol/medium，最终语义审稿使用 Sol/high。主对话模型不再充当生产 Worker；模型选择属于 Workflow task input，并由 conformance Gate 检查。
+          </div>
+
+          <h3>正文与定量表分流</h3>
+          <p>Version 6 在 Verify 后生成节点特定 Content Blueprint。正文叙事和定量表采集是两条独立证据流：正文可以使用已确认外部事实、内部图谱事实与显式建模判断；表格数值必须具有冻结参考配置、来源身份、单位和适用范围，并通过独立 Table Population Gate。两条流只在 draft apply 后按哈希汇合，避免“正文写得深”被误认为“数值已经可靠”。</p>
 
           <h3>规则的单向生成关系</h3>
           <pre>Machine Policy / Schema / Gate
@@ -1104,7 +1129,7 @@ Skill 操作说明 + Agent Prompt
 
         <section id="data">
           <div class="section-head">
-            <div class="section-no">08 / 15</div>
+            <div class="section-no">08 / 16</div>
             <div>
               <h2>状态、Artifact 与数据模型</h2>
               <p class="section-lead">运行状态不能继续由聊天和目录命名承载。第一阶段采用 SQLite + 本地内容寻址 Artifact Store，后续可平滑迁移 PostgreSQL 和对象存储。</p>
@@ -1149,14 +1174,14 @@ artifact://gate/wiki-release/run_01@sha256:...</pre>
 
         <section id="assurance">
           <div class="section-head">
-            <div class="section-no">09 / 15</div>
+            <div class="section-no">09 / 16</div>
             <div>
               <h2>质量保障与自治修复</h2>
               <p class="section-lead">系统不假设 Agent 正确，而是将错误限制在 candidate 区，并用独立证据、分层 Gate、故障注入和回滚形成闭环。</p>
             </div>
           </div>
 
-          <h3>七层 Gate</h3>
+          <h3>发布 Gate 栈</h3>
           <div class="table-wrap">
             <table>
               <thead><tr><th>层</th><th>检查内容</th><th>主要发现</th></tr></thead>
@@ -1166,8 +1191,11 @@ artifact://gate/wiki-release/run_01@sha256:...</pre>
                 <tr><td>G2 输入覆盖</td><td>节点、章节、claim 集合守恒</td><td>原子化漏句、静默跳过</td></tr>
                 <tr><td>G3 证据一致性</td><td>URL、locator、excerpt、content hash</td><td>摘录污染、引用错位</td></tr>
                 <tr><td>G4 语义一致性</td><td>目标节点 EXACT 对齐、原文蕴含</td><td>相邻对象错绑、过度外推</td></tr>
-                <tr><td>G5 内容合同</td><td>章节、表归属、节点特异性、非退化</td><td>薄页、模板壳、Product/Activity 混写</td></tr>
-                <tr><td>G6–G7 全局与发布</td><td>图、跨链、coverage、风险、hash lock</td><td>抽样冒充全量、旧报告复用、跨模块冲突</td></tr>
+                <tr><td>G5 编辑合同</td><td>段落中心、相邻句逻辑、术语身份、重复与引用可读性</td><td>claim 拼接、章节错位、身份漂移、机械堆句</td></tr>
+                <tr><td>G6 Draft Content</td><td>完整 candidate、章节深度、Golden 非退化、coverage</td><td>薄页、模板壳、Product/Activity 混写</td></tr>
+                <tr><td>G6T / G6P 表格</td><td>来源裁决、参考配置、单位、显式缺口、hash lock</td><td>空表伪完成、相邻型号数值错绑、单位漂移</td></tr>
+                <tr><td>G7 Release</td><td>preview、图与跨链、全量 lint、质量合同</td><td>抽样冒充全量、旧报告复用、跨模块冲突</td></tr>
+                <tr><td>G8 Reviewed Apply</td><td>候选哈希与 Gate receipt 一致，发布资格未失效</td><td>审后改稿、陈旧 candidate、越权升级</td></tr>
               </tbody>
             </table>
           </div>
@@ -1209,11 +1237,14 @@ artifact://gate/wiki-release/run_01@sha256:...</pre>
           </div>
 
           <p>自动尝试必须有上限。同一根因重复两到三次后进入 quarantine，避免无限烧钱；修复后完整重跑全部下游 Gate，不能只复跑失败项。</p>
+
+          <h3>编辑审查的分节执行</h3>
+          <p>长正文不再一次性送入单个 reviewer。系统按 Content Blueprint 的九节确定性切分，使用受控并发执行只读 Sol/high 审查，再按原章节顺序聚合 verdict。传输错误只重试同一份哈希锁定正文；只有 reviewer 给出带章节、段落和修复指令的 <code>NO_GO</code>，才创建 Terra 段落修复任务。这样既缩短墙钟时间，也避免因重试审稿而重复生成正文。</p>
         </section>
 
         <section id="release">
           <div class="section-head">
-            <div class="section-no">10 / 15</div>
+            <div class="section-no">10 / 16</div>
             <div>
               <h2>发布、运行与可观测性</h2>
               <p class="section-lead">所有领域采用统一的两阶段发布模型，并把发布后的漂移和逃逸缺陷纳入正常运行。</p>
@@ -1228,7 +1259,7 @@ artifact://gate/wiki-release/run_01@sha256:...</pre>
           <ul>
             <li>输入和输出 Artifact 哈希；</li>
             <li>Workflow、Capability、Agent 和 Policy 版本；</li>
-            <li>G0–G7 Gate 报告；</li>
+            <li>G0–G8 及 G6T/G6P 表格 Gate 报告；</li>
             <li>模型、搜索、费用和运行 attestation；</li>
             <li>发布范围、Git commit 和回滚目标；</li>
             <li>已解释并允许保留的缺口；</li>
@@ -1236,16 +1267,39 @@ artifact://gate/wiki-release/run_01@sha256:...</pre>
           </ul>
 
           <h3>运行命令面</h3>
-          <pre>lca init
-lca reconcile
-lca worker --forever
-lca run industry steel
-lca run wiki oil_refining --nodes A017
-lca status
-lca inspect run_01...
-lca exceptions
-lca release show rel_01...
-lca rollback rel_01...</pre>
+          <pre>lca-platform init
+lca-platform validate
+lca-platform start generate-node-wiki --request request.json
+lca-platform materialize job_...
+lca-platform wiki-sync run_... batch_dir
+lca-platform supervise stage-plan.json
+lca-platform workflow-status run_...
+lca-platform conformance --workflow wiki-node-production@6
+lca-platform inspect job job_...
+lca-platform exceptions</pre>
+
+          <h3>Stage Supervisor：压平 Agent 编排开销</h3>
+          <p>复盘显示，长任务的主要耗时不是测试或单个脚本，而是数百次“模型判断 → 小工具 → 等待 → 再判断”的串行往返，以及 10–15 秒间隔的长进程轮询。当前由 <code>StageSupervisor</code> 接管一个冻结阶段：命令顺序、重试、预期产物和输入哈希写入 plan；监督器使用阻塞式子进程等待，在内部完成循环，最终只返回一次 terminal summary。</p>
+          <div class="three-col">
+            <div class="panel"><h3>硬预算</h3><p>默认最多 100 个模型调用单位、100 个子进程和 7200 秒；第 101 次启动前强制 checkpoint。</p></div>
+            <div class="panel"><h3>零短轮询</h3><p>执行层只使用有 timeout 的阻塞式 subprocess；不向 Agent 暴露 poll handle，不以日志片段驱动下一步。</p></div>
+            <div class="panel"><h3>可交接终态</h3><p>成功、失败或预算停止都写入 SQLite、Event、CAS 和阶段专属 checkpoint，记录下一命令与冻结 plan hash。</p></div>
+          </div>
+          <pre>stage-plan-v1
+  stage_id / run_id / workspace
+  frozen_inputs: path → sha256
+  limits:
+    max_model_calls: 100
+    max_processes: 100
+    max_elapsed_seconds: 7200
+    max_compactions: 0
+  commands[]:
+    argv / timeout / max_attempts
+    model_call_units / expected_outputs</pre>
+          <div class="callout">
+            <strong>宿主边界</strong><br>
+            项目进程不能自行感知 Codex 宿主发生 context compaction，也不能自行创建新的桌面任务。宿主必须把压缩次数通过 <code>--compactions-observed</code> 注入；一旦大于预算，监督器在启动任何子进程前生成 checkpoint。真正的新任务由桌面端或上层调度器创建，并消费该 checkpoint。
+          </div>
 
           <h3>关键可观测指标</h3>
           <div class="table-wrap">
@@ -1257,7 +1311,22 @@ lca rollback rel_01...</pre>
                 <tr><td>可靠性</td><td>任务成功率、重试率、恢复时间、quarantine 年龄</td></tr>
                 <tr><td>Agent</td><td>Schema 合规、主动弃权、语义复核通过、模型与工具漂移</td></tr>
                 <tr><td>成本</td><td>每节点费用、Search 请求、上下文、缓存命中和预算利用率</td></tr>
+                <tr><td>编排性能</td><td>每阶段模型调用、子进程调用、主 Agent 往返、轮询唤醒、非工具阻塞时间、阶段墙钟时间</td></tr>
                 <tr><td>发布</td><td>发布频率、回滚率、stale artifact、发布后验证失败</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>A039 真实验证：正确停止也是通过</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>验证项</th><th>结果</th><th>系统行为</th></tr></thead>
+              <tbody>
+                <tr><td>正文 Golden 定量 Gate</td><td><span class="badge">PASS</span> 7647 字、102 断言、34 段、88 建模判断、近重复率 0.5139</td><td>保留哈希锁定 candidate</td></tr>
+                <tr><td>未确认外部 claim</td><td><span class="badge">FIXED</span> 在写作输入前确定性剔除，不计入覆盖分母</td><td>避免靠提示词要求模型自律</td></tr>
+                <tr><td>整页 Sol/high 审稿</td><td><span class="badge warn">TRANSPORT FAIL</span> 同一正文重试两次后耗尽预算</td><td>不重写正文，checkpoint 后转分节审稿</td></tr>
+                <tr><td>九节并发语义审稿</td><td><span class="badge risk">NO_GO</span> 发现 11 项章节错位、无依据融合、重复、过渡和身份问题</td><td>journal 保持 frozen，禁止 Apply / Publish</td></tr>
+                <tr><td>工程回归</td><td><span class="badge">PASS</span> 121 tests + validate + v6 conformance</td><td>证明执行机制，不替代开放式语义审查</td></tr>
               </tbody>
             </table>
           </div>
@@ -1280,7 +1349,7 @@ lca rollback rel_01...</pre>
 
         <section id="repository">
           <div class="section-head">
-            <div class="section-no">11 / 15</div>
+            <div class="section-no">11 / 16</div>
             <div>
               <h2>目标仓库结构</h2>
               <p class="section-lead">先建立统一协议和包装层，再渐进迁移目录。现有权威文件在迁移期保持兼容。</p>
@@ -1358,7 +1427,7 @@ sources/    # 冻结来源与摘录</pre>
 
         <section id="roadmap">
           <div class="section-head">
-            <div class="section-no">12 / 15</div>
+            <div class="section-no">12 / 16</div>
             <div>
               <h2>渐进迁移路线</h2>
               <p class="section-lead">避免大爆炸式重写。先包装现有执行核，用最容易暴露问题的 Wiki 流程验证平台，再逐步接入图、跨链、LCA 和 BOM。</p>
@@ -1368,7 +1437,7 @@ sources/    # 冻结来源与摘录</pre>
           <div class="roadmap">
             <article class="phase"><b>PHASE 0</b><h3>资产冻结与分类</h3><ul><li>Capability inventory</li><li>production/pilot/legacy 标记</li><li>一次性脚本迁移登记</li><li>复盘缺陷语料化</li></ul></article>
             <article class="phase"><b>PHASE 1</b><h3>平台 Kernel</h3><ul><li>SQLite State Store</li><li>Artifact CAS</li><li>Event Log 与 Executor</li><li>统一 CLI 与 Release Manager</li></ul></article>
-            <article class="phase"><b>PHASE 2</b><h3>Wiki 垂直切片</h3><ul><li>包装 wiki_batch</li><li>Proof-carrying claim</li><li>G0–G7 Gate</li><li>mutation 与 auto-repair</li></ul></article>
+            <article class="phase"><b>PHASE 2 · ACTIVE</b><h3>Wiki 垂直切片</h3><ul><li>wiki-node-production@6</li><li>Content Blueprint + 表格分流</li><li>G0–G8 Gate</li><li>Stage Supervisor + 分节 reviewer</li></ul></article>
             <article class="phase"><b>PHASE 3</b><h3>名称图与跨链</h3><ul><li>Graph release</li><li>Interface contract 自动闭环</li><li>Cross-link release</li><li>失效传播</li></ul></article>
             <article class="phase"><b>PHASE 4</b><h3>LCA 与 BOM</h3><ul><li>绑定协议统一</li><li>BOM 缺口事件化</li><li>产品系统模型发布</li><li>Portfolio 全局覆盖</li></ul></article>
             <article class="phase"><b>PHASE 5</b><h3>持续自治运行</h3><ul><li>reconcile + worker</li><li>风险分级自动发布</li><li>异常队列</li><li>自治等级晋级</li></ul></article>
@@ -1388,7 +1457,7 @@ sources/    # 冻结来源与摘录</pre>
 
         <section id="acceptance">
           <div class="section-head">
-            <div class="section-no">13 / 15</div>
+            <div class="section-no">13 / 16</div>
             <div>
               <h2>验收指标与 SLO</h2>
               <p class="section-lead">是否允许更高程度的自动化，由持续质量数据决定，而不是由设计文档或一次成功演示决定。</p>
@@ -1408,6 +1477,9 @@ sources/    # 冻结来源与摘录</pre>
                 <tr><td>自动修复成功率</td><td>≥90%</td><td>不含政策冲突和专家裁决</td></tr>
                 <tr><td>人工抽检准确率</td><td>≥98%</td><td>按任务类型校准</td></tr>
                 <tr><td>无限重试</td><td>0</td><td>重复失败必须 quarantine</td></tr>
+                <tr><td>单阶段模型调用预算</td><td>≤100</td><td>第 101 次调用前必须 checkpoint</td></tr>
+                <tr><td>短周期进程轮询</td><td>0</td><td>长进程由 supervisor 阻塞等待并一次汇总</td></tr>
+                <tr><td>首次 compaction 后继续扩展</td><td>0</td><td>宿主上报后立即 checkpoint 并交接新任务</td></tr>
                 <tr><td>未声明直接写入</td><td>0</td><td>所有副作用必须通过 Release Manager</td></tr>
               </tbody>
             </table>
@@ -1419,7 +1491,7 @@ sources/    # 冻结来源与摘录</pre>
 
         <section id="decisions">
           <div class="section-head">
-            <div class="section-no">14 / 15</div>
+            <div class="section-no">14 / 16</div>
             <div>
               <h2>关键架构决策</h2>
               <p class="section-lead">以下决策应进一步拆成版本化 ADR，并成为重构期间的边界护栏。</p>
@@ -1436,12 +1508,16 @@ sources/    # 冻结来源与摘录</pre>
             <div class="decision"><dt>ADR-007</dt><dd>Gate 必须声明证明范围；总发布资格由多个 Gate 组合计算。</dd></div>
             <div class="decision"><dt>ADR-008</dt><dd>复盘缺陷永久进入测试和追溯扫描，不允许只修当前样本。</dd></div>
             <div class="decision"><dt>ADR-009</dt><dd>人在主流程中逐步退出，但政策变更、身份边界和定量专家签署长期保留人工责任。</dd></div>
+            <div class="decision"><dt>ADR-010</dt><dd>长阶段必须由非轮询 Stage Supervisor 执行；主 Agent 只规划、读取终态与组织最终验收。</dd></div>
+            <div class="decision"><dt>ADR-011</dt><dd>单阶段硬上限为 100 个模型调用单位或首次宿主 compaction；超限生成 CAS checkpoint，不允许提示词软约束继续运行。</dd></div>
+            <div class="decision"><dt>ADR-012</dt><dd>模型路由属于 Workflow：Terra 生产候选，Sol 执行证据核验和最终只读审查，禁止主会话隐式承担 Worker。</dd></div>
+            <div class="decision"><dt>ADR-013</dt><dd>长正文最终审查采用确定性分节、受控并发和代码聚合；传输重试不得触发正文重写。</dd></div>
           </dl>
         </section>
 
         <section id="appendix">
           <div class="section-head">
-            <div class="section-no">15 / 15</div>
+            <div class="section-no">15 / 16</div>
             <div>
               <h2>现有资产到目标模块的映射</h2>
               <p class="section-lead">重构以复用为主。已有执行核优先包装，不重复实现已经验证过的确定性能力。</p>
@@ -1474,10 +1550,44 @@ sources/    # 冻结来源与摘录</pre>
           </div>
         </section>
 
+        <section id="changelog">
+          <div class="section-head">
+            <div class="section-no">16 / 16</div>
+            <div>
+              <h2>修改日志</h2>
+              <p class="section-lead">技术设计的演进必须与实现、复盘、测试证据和未解决风险共同记录；修改日志只描述已经落地或明确验证过的事实。</p>
+            </div>
+          </div>
+
+          <div class="revision-log">
+            <article class="revision-entry current">
+              <div><span class="revision-version">v1.1</span><span class="revision-date">2026-08-11</span></div>
+              <div><h3>同步 Wiki v6、Skill 路由与性能工程重构</h3><p>将文档状态从 proposed 更新为 implemented / validating；把标准 SKILL.md 与机器 route manifest 分离、一节点一 Job、请求/路由双哈希、18 步 wiki-node-production@6、Content Blueprint、正文/表格双证据流、G0–G8、Terra/Sol 显式路由、Stage Supervisor、100 次硬预算、compaction checkpoint 和分节 reviewer 写入权威设计。加入 A039 验证：正文定量 Gate 通过，但语义审稿 NO_GO 11 项，因此未 Apply、未 Publish。</p></div>
+            </article>
+            <article class="revision-entry">
+              <div><span class="revision-version">v1.0</span><span class="revision-date">2026-08-07</span></div>
+              <div><h3>初版自治生产平台设计</h3><p>定义统一 Kernel、Capability Registry、声明式 Workflow、Artifact/Event 协议、分层 Gate、Repair Controller、发布模型、仓库重组和渐进迁移路线，确立“Agent 是受限语义节点而非流程主人”的基本原则。</p></div>
+            </article>
+          </div>
+
+          <h3>本次修订依据</h3>
+          <ul>
+            <li><code>P003节点Wiki生产全流程复盘与Golden-Case工作流</code>：正文拼凑、引用呈现、表格缺口和多轮失败根因。</li>
+            <li>A039 production checkpoint：正文 Gate、整页 reviewer 传输失败、分节 reviewer 的 11 项 NO_GO。</li>
+            <li><code>skill.manifest.json</code>、<code>wiki-production-request-v2</code>、<code>runtime-routing-v1</code>、<code>wiki-node-production@6</code>、<code>stage_supervisor.py</code> 和自动化测试。</li>
+            <li>长任务性能分析：数百次串行模型往返、高频轮询、超长旧会话和软预算失效。</li>
+          </ul>
+
+          <div class="callout dark">
+            <strong>日志维护规则</strong><br>
+            后续凡是改变 Workflow 步骤、模型路由、Gate 语义、发布资格、状态模型或硬预算的修改，必须在同一 commit 中更新本节；单纯实现细节和不改变合同的修复记录在 Git commit 与测试中。每条日志必须区分“设计决定”“已实现”“已验证”和“仍受阻”。
+          </div>
+        </section>
+
         <footer class="footer">
           <div class="footer-grid">
             <span>lca-cornerstone · 骨架数据库自治生产平台</span>
-            <span>Technical Design · v1.0 · 2026-08-07</span>
+            <span>Technical Design · v1.1 · 2026-08-11</span>
           </div>
         </footer>
       </article>
