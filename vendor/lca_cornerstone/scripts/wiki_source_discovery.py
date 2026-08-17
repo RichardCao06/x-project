@@ -600,6 +600,12 @@ def extract_excerpt(
             ranked_windows.append((score, start, window))
     if ranked_windows:
         windows: list[str] = []
+        # Preserve the document opening alongside locator-ranked windows.  It
+        # commonly contains the definition sentence needed by a source-specific
+        # identity/process claim, while ranked terms may otherwise select only
+        # a later repeated occurrence.
+        if excerpt:
+            windows.append(excerpt[:min(7000, max_chars)])
         for _, _, window in sorted(ranked_windows, key=lambda row: (-row[0], row[1])):
             if any(window in selected or selected in window for selected in windows):
                 continue
@@ -623,7 +629,20 @@ def command_plan(args: argparse.Namespace) -> int:
     max_fetches = int(bounded(args.max_fetches, ABS_MAX_FETCHES, "max_fetches"))
     max_candidates = int(bounded(args.max_candidates_per_claim, ABS_MAX_CANDIDATES_PER_CLAIM, "max_candidates_per_claim"))
     allowlist = normalized_domains(args.allow_domain)
+    if not allowlist and not args.open_discovery:
+        raise ValueError("plan 必须提供 --allow-domain，或显式启用 --open-discovery")
 
+    research_plan = read_json(args.research_plan.resolve()) if args.research_plan else None
+    if research_plan is not None:
+        if (research_plan.get("protocol") != "wiki-research-plan-v1"
+                or not str(research_plan.get("node_id", "")).strip()):
+            raise ValueError("--research-plan 必须是 wiki-research-plan-v1")
+        terminology = research_plan.get("terminology") or {}
+        languages = research_plan.get("languages") or []
+        questions = research_plan.get("research_questions") or []
+        source_classes = research_plan.get("source_classes") or []
+        if not ({"zh", "en"} <= set(languages)) or not questions or not source_classes:
+            raise ValueError("research plan 缺少中英双语、research_questions 或 source_classes")
     # Internal graph facts, modeling judgments and explicit evidence gaps are
     # not external research failures and consume no query/fetch budget.
     # Preserve them separately so run/materialize can
@@ -644,7 +663,7 @@ def command_plan(args: argparse.Namespace) -> int:
         for item in external[max_claims:]
     ]
     source_slots: set[str] = set()
-    for claim in selected:
+    for claim_index, claim in enumerate(selected):
         query = query_for_claim(claim)
         search_key = stable_hash("source-search-v3", query)
         if search_key not in source_slots and len(source_slots) >= max_searches:
@@ -652,11 +671,26 @@ def command_plan(args: argparse.Namespace) -> int:
             deferred.append({"claim": claim, "disposition": "batch_search_budget"})
             continue
         source_slots.add(search_key)
+        research_tracks = []
+        if research_plan is not None:
+            language = "zh" if claim_index % 2 == 0 else "en"
+            canonical = str(terminology.get(f"canonical_{language}", "")).strip()
+            aliases = terminology.get(f"candidate_aliases_{language}") or []
+            alias = str(aliases[claim_index % len(aliases)]).strip() if aliases else ""
+            question = str(questions[claim_index % len(questions)])
+            source_class = str(source_classes[claim_index % len(source_classes)])
+            track_query = normalize_source(" ".join(x for x in (
+                canonical, alias, question.replace("_", " "), source_class.replace("_", " ")
+            ) if x))
+            research_tracks.append({"language": language, "query": track_query,
+                                    "research_question": question, "source_class": source_class,
+                                    "terms": [x for x in (canonical, alias) if x]})
         queue.append({
             "query_id": stable_hash(str(claim["claim_id"]), search_key)[:24],
             "claim": claim,
             "query": query,
             "search_hash": search_key,
+            "research_tracks": research_tracks,
         })
 
     output = (args.output or input_path.parent / "source-query-queue.json").resolve()
@@ -667,12 +701,14 @@ def command_plan(args: argparse.Namespace) -> int:
         "claims_total": len(claims),
         "claim_order": [str(item["claim_id"]) for item in claims],
         "claims_scope_sha256": claims_scope_hash(claims),
+        "research_plan": file_record(args.research_plan.resolve()) if args.research_plan else None,
         "hard_limits": {
             "max_claims": max_claims,
             "max_searches": max_searches,
             "max_fetches": max_fetches,
             "max_candidates_per_claim": max_candidates,
             "allowed_domains": allowlist,
+            "discovery_mode": "open" if args.open_discovery else "allowlist",
         },
         "queries": queue,
         "non_external_claims": [
@@ -834,6 +870,12 @@ def execute_queue(
     items = queue.get("queries")
     if not isinstance(items, list):
         raise ValueError("queue.queries 必须是数组")
+    research_plan_record = queue.get("research_plan")
+    if research_plan_record is not None:
+        plan_path = assert_file_record(research_plan_record, "queue research plan")
+        plan = read_json(plan_path)
+        if plan.get("protocol") != "wiki-research-plan-v1":
+            raise ValueError("queue research plan protocol 非法")
     frozen = queue.get("hard_limits") or {}
     if len(items) > int(frozen.get("max_claims", len(items))):
         raise ValueError("queue claims 超过冻结硬限制")
@@ -851,6 +893,15 @@ def execute_queue(
         expected_query = query_for_claim(claim)
         expected_hash = stable_hash("source-search-v3", expected_query)
         expected_id = stable_hash(claim_id, expected_hash)[:24]
+        tracks = item.get("research_tracks", [])
+        if research_plan_record is not None and (
+            not isinstance(tracks, list) or not tracks
+            or any(not isinstance(track, dict)
+                   or track.get("language") not in {"zh", "en"}
+                   or not str(track.get("query", "")).strip()
+                   for track in tracks)
+        ):
+            raise ValueError(f"queue.queries[{index}] research_tracks 非法")
         if (
             item.get("query") != expected_query
             or item.get("search_hash") != expected_hash
@@ -964,15 +1015,18 @@ def execute_queue(
             if safe_url in seen:
                 continue
             seen.add(safe_url)
-            candidates.append({"url": safe_url, "title": str(result.get("title", ""))})
+            candidates.append({"url": safe_url, "title": str(result.get("title", "")),
+                               "locator": str(result.get("locator", "")),
+                               "provider": str(result.get("provider", ""))})
             if len(candidates) == max_candidates_per_claim:
                 break
         candidate_urls[str(item["query_id"])] = candidates
 
     locator_by_url: dict[str, list[str]] = defaultdict(list)
     for item in items:
-        locator = str((item.get("claim") or {}).get("believed_locator", ""))
+        claim_locator = str((item.get("claim") or {}).get("believed_locator", ""))
         for candidate in candidate_urls[str(item["query_id"])]:
+            locator = str(candidate.get("locator") or claim_locator)
             if locator and locator not in locator_by_url[candidate["url"]]:
                 locator_by_url[candidate["url"]].append(locator)
 
@@ -1047,12 +1101,13 @@ def execute_queue(
             # the URL-level excerpt would silently bind them all to one window.
             payload_path = fetch_cache / f"{identity}.payload"
             payload = payload_path.read_bytes()
+            evidence_locator = str(candidate.get("locator") or claim_locator)
             media_type, excerpt = extract_excerpt(
                 str(fetched.get("url", candidate["url"])),
                 payload,
                 str(fetched.get("content_type", "")),
                 max_excerpt_chars,
-                claim_locator,
+                evidence_locator,
             )
             if not excerpt:
                 locator_miss = locator_miss or bool(claim_locator)
@@ -1065,7 +1120,8 @@ def execute_queue(
                 **fetched,
                 "content_type": media_type,
                 "excerpt": excerpt,
-                "excerpt_locator": claim_locator,
+                "excerpt_locator": evidence_locator,
+                "search_provider": candidate.get("provider", ""),
             })
         search_record = searches[str(item["search_hash"])]
         evidence_item = {
@@ -1175,6 +1231,13 @@ def command_run(args: argparse.Namespace) -> int:
     ):
         raise ValueError("queue 与冻结 input claims 漂移")
     frozen_domains = normalized_domains((queue.get("hard_limits") or {}).get("allowed_domains", []))
+    discovery_mode = str((queue.get("hard_limits") or {}).get("discovery_mode", "allowlist"))
+    if discovery_mode not in {"allowlist", "open"}:
+        raise ValueError("queue discovery_mode 非法")
+    if discovery_mode == "allowlist" and not frozen_domains:
+        raise ValueError("allowlist discovery queue 必须冻结非空域名白名单")
+    if discovery_mode == "open" and frozen_domains:
+        raise ValueError("open discovery queue 不得同时冻结域名白名单")
     requested_domains = normalized_domains(args.allow_domain)
     if requested_domains and requested_domains != frozen_domains:
         raise ValueError("run 的域名白名单必须与冻结 queue 完全一致")
@@ -1204,6 +1267,7 @@ def command_run(args: argparse.Namespace) -> int:
         frozen_search_cost_usd=imported_cost,
     )
     evidence["source_queue"] = file_record(queue_path)
+    evidence["hard_limits"]["discovery_mode"] = discovery_mode
     evidence["input_claims"] = dict(queue["input_record"])
     if search_results_path is not None:
         evidence["frozen_search_results"] = file_record(search_results_path)
@@ -1401,10 +1465,16 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--max-fetches", type=int, default=40)
     plan.add_argument("--max-candidates-per-claim", type=int, default=2)
     plan.add_argument(
-        "--allow-domain", action="append", required=True,
+        "--allow-domain", action="append",
         help="生产抓取域名白名单；可重复传入",
     )
+    plan.add_argument(
+        "--open-discovery", action="store_true",
+        help="显式允许在安全 URL 校验和抓取预算内发现任意公开域名",
+    )
     plan.add_argument("--output", type=Path)
+    plan.add_argument("--research-plan", type=Path,
+                      help="冻结的 wiki-research-plan-v1，用于生成中英双语发现轨道")
     plan.set_defaults(handler=command_plan)
 
     run = sub.add_parser("run", help="执行确定性 Search/Fetch 并冻结 evidence")

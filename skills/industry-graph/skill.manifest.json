@@ -1,0 +1,1 @@
+{"schema_version":"lca-skill-route-v1","name":"industry-graph","version":"2","workflow":"workflow://graph-industry-production@1","input_schema":"graph-production-request-v1","policy":"graph-quality-v1","job_granularity":"one-industry-per-job","authority":{"may_create_job":true,"may_execute_capability":false,"may_apply":false,"may_publish":false}}

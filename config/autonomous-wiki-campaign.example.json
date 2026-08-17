@@ -1,0 +1,16 @@
+{
+  "schema_version": "autonomous-job-campaign-v1",
+  "name": "ICT Wiki autonomous validation",
+  "skill": "generate-node-wiki",
+  "requests": [
+    {
+      "industry": "ict_equipment",
+      "nodes": ["A001"],
+      "publication_mode": "preview"
+    }
+  ],
+  "max_concurrency": 1,
+  "max_auto_repairs_per_job": 3,
+  "poll_seconds": 2,
+  "stop_on_failure": false
+}

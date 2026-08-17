@@ -1,0 +1,20 @@
+{
+  "protocol":"graph-production-profile-v1",
+  "methodology":"name-graph-sop",
+  "models":{"reason":"gpt-5.6-sol","recall":"gpt-5.6-terra"},
+  "sources":[
+    {"key":"LCA databases","instruction":"参考 ecoinvent、GaBi 等活动/参考产品命名与系统边界，枚举主流和长尾节点。"},
+    {"key":"CPC and HS","instruction":"按产品分类枚举产品族、加工状态和商品形态，记录分类候选，不确定时留空。"},
+    {"key":"ISIC and NACE","instruction":"按经济活动分类枚举转化路线、服务活动和供应活动。"},
+    {"key":"BREF and engineering","instruction":"按行业工程流程、BAT/BREF 工序和共产品关系补充技术路线。"}
+  ],
+  "classifiers":["CPC/HS product coverage","ISIC/NACE activity coverage","industry technology checklist"],
+  "review_lenses":["process engineer","LCA database curator","classification auditor","adversarial completeness reviewer"],
+  "identity_rules":[
+    "产品和活动身份由 conventions 中声明的 facets 决定",
+    "地理、年份和系统模型默认不是身份",
+    "每个活动恰有一个 reference output",
+    "背景产品给名不展开并声明 home_industry",
+    "Agent 不生成稳定 ID 和 edges；由 materialize.py 派生"
+  ]
+}

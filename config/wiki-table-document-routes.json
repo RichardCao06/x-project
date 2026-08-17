@@ -1,0 +1,172 @@
+{
+  "protocol": "wiki-table-document-routes-v1",
+  "routes": [
+    {
+      "id": "cn-smt-environmental-impact-assessment",
+      "node_type": "activity",
+      "node_name_contains": ["SMT", "回流焊"],
+      "language": "zh",
+      "document_type": "environmental_impact_assessment",
+      "query": "SMT PCBA 通信设备主板 环境影响报告 年产量 原辅材料 无铅锡膏 电耗 焊接废气 废电路板",
+      "targets": [
+        {"table": "flows", "field_contains": "PCB裸板"},
+        {"table": "flows", "field_contains": "无铅焊料锡膏"},
+        {"table": "flows", "field_contains": "中压电力"},
+        {"table": "flows", "field_contains": "报废PCBA"},
+        {"table": "emissions", "field": "空气排放"},
+        {"table": "emissions", "field": "水体排放"},
+        {"table": "indicators", "field": "单位产品装配电耗"},
+        {"table": "params", "field": "有效运行时间"},
+        {"table": "params", "field": "生产负荷与良率"}
+      ],
+      "seed_candidates": [
+        {
+          "url": "https://sthjj.cq.gov.cn/zwgk_249/zfxxgkzl/fdzdgknr/hjyxpj/pzgcxx/sljsxmhpxxgg/201904/P020220408536185250718.pdf",
+          "title": "重庆帕弛科技有限公司 SMT 智能制造项目环境影响报告表",
+          "source_class": "government_or_regulator"
+        }
+      ]
+    },
+    {
+      "id": "int-smt-process-lca",
+      "node_type": "activity",
+      "node_name_contains": ["SMT", "回流焊"],
+      "language": "en",
+      "document_type": "process_lca",
+      "query": "PCB assembly SMT line reflow oven life cycle assessment energy consumption per functional unit kWh",
+      "targets": [
+        {"table": "flows", "field_contains": "中压电力"},
+        {"table": "indicators", "field": "单位产品装配电耗"}
+      ],
+      "seed_candidates": [
+        {
+          "url": "https://odr.chalmers.se/bitstreams/a3062731-f2b2-4e85-b0c2-0ba4201ce2d5/download",
+          "title": "Life Cycle Assessment of Printed Circuit Board Assembly",
+          "source_class": "academic_institutional_research"
+        }
+      ]
+    },
+    {
+      "id": "server-product-carbon-footprint",
+      "node_type": "activity",
+      "node_name_contains": ["主板PCBA", "服务器"],
+      "language": "en",
+      "document_type": "product_carbon_footprint",
+      "query": "server motherboard product carbon footprint PCF EPD manufacturing configuration",
+      "targets": [
+        {"table": "props", "field": "参考产品完整型号与配置版本"}
+      ],
+      "seed_candidates": [
+        {
+          "url": "https://www.h3c.com/cn/d_202403/2074580_30008_0.htm",
+          "title": "H3C UniServer B5700 G6 产品碳足迹资料",
+          "source_class": "manufacturer_or_other_technical"
+        }
+      ]
+    },
+    {
+      "id": "a039-system-integration-manufacturing-records",
+      "node_type": "activity",
+      "node_name_contains": ["系统集成", "刀片式"],
+      "language": "en",
+      "document_type": "system_integration_manufacturing_record",
+      "query": "blade server final assembly manufacturing record batch output operating hours yield rework electricity testing",
+      "targets": [
+        {"table": "params", "field": "工艺路线与设备配置", "field_family": "manufacturing_process"},
+        {"table": "params", "field": "装配批次产量", "field_family": "manufacturing_process"},
+        {"table": "params", "field": "有效运行时间", "field_family": "manufacturing_process"},
+        {"table": "params", "field": "生产负荷与良率", "field_family": "manufacturing_process"},
+        {"table": "params", "field": "装配地点与代表期", "field_family": "representativeness"},
+        {"table": "params", "field": "共享能源与辅助系统边界", "field_family": "manufacturing_process"},
+        {"table": "indicators", "field": "一次装配良率", "field_family": "manufacturing_performance"},
+        {"table": "indicators", "field": "返工率", "field_family": "manufacturing_performance"},
+        {"table": "indicators", "field": "单位产品装配电耗", "field_family": "manufacturing_energy"}
+      ],
+      "seed_candidates": [
+        {
+          "url": "https://www.h3c.com/cn/Products_And_Solution/Server/H3C/Products/BladeServer/Products_Series/Node/B5700_G6/",
+          "title": "H3C UniServer B5700 G6 official technical resources",
+          "source_class": "manufacturer_or_other_technical"
+        }
+      ]
+    },
+    {
+      "id": "a039-manufacturer-specifications-and-bom",
+      "node_type": "activity",
+      "node_name_contains": ["系统集成", "刀片式"],
+      "language": "en",
+      "document_type": "manufacturer_specification_bom",
+      "query": "blade server manufacturer specification configuration bill of materials component count net weight datasheet PDF",
+      "targets": [
+        {"table": "flows", "field_contains": "主板PCBA", "field_family": "component_bom"},
+        {"table": "flows", "field_contains": "DIMM", "field_family": "component_bom"},
+        {"table": "flows", "field_contains": "SSD", "field_family": "component_bom"},
+        {"table": "flows", "field_contains": "PSU", "field_family": "component_bom"},
+        {"table": "flows", "field_contains": "机箱/导轨", "field_family": "component_bom"},
+        {"table": "flows", "field_contains": "散热器", "field_family": "component_bom"},
+        {"table": "flows", "field_contains": "风扇模组", "field_family": "component_bom"},
+        {"table": "flows", "field_contains": "导热", "field_family": "component_bom"},
+        {"table": "flows", "field_contains": "刀片式", "field_family": "reference_product"},
+        {"table": "props", "field_contains": "参考产品身份", "field_family": "reference_product"},
+        {"table": "props", "field": "参考产品完整型号与配置版本", "field_family": "reference_product"},
+        {"table": "props", "field": "参考产品单件净质量", "field_family": "reference_product"},
+        {"table": "props", "field": "参考产品交接状态", "field_family": "reference_product"},
+        {"table": "props", "field": "参考产品规格或质量口径", "field_family": "reference_product"},
+        {"table": "props", "field": "参考产品包装前边界", "field_family": "reference_product"},
+        {"table": "quality", "field": "BOM质量闭合", "field_family": "data_quality"},
+        {"table": "quality", "field": "输入输出质量闭合", "field_family": "data_quality"},
+        {"table": "quality", "field": "供应商覆盖", "field_family": "data_quality"}
+      ],
+      "seed_candidates": [
+        {
+          "url": "https://www.h3c.com/cn/Products_And_Solution/Server/H3C/Products/BladeServer/Products_Series/Node/B5700_G6/",
+          "title": "H3C UniServer B5700 G6 product page and user guide",
+          "source_class": "manufacturer_or_other_technical"
+        }
+      ]
+    },
+    {
+      "id": "a039-environmental-and-carbon-reports",
+      "node_type": "activity",
+      "node_name_contains": ["系统集成", "刀片式"],
+      "language": "en",
+      "document_type": "environmental_report",
+      "query": "blade server manufacturing environmental report product carbon footprint assembly location electricity emissions reference year PDF",
+      "targets": [
+        {"table": "flows", "field_contains": "中压电力", "field_family": "manufacturing_energy"},
+        {"table": "emissions", "field": "空气排放", "field_family": "elementary_flows"},
+        {"table": "emissions", "field": "水体排放", "field_family": "elementary_flows"},
+        {"table": "emissions", "field": "土壤排放", "field_family": "elementary_flows"},
+        {"table": "params", "field": "装配地点与代表期", "field_family": "representativeness"},
+        {"table": "quality", "field": "地理与时间代表性", "field_family": "representativeness"},
+        {"table": "quality", "field": "代理选择与失效条件", "field_family": "data_quality"}
+      ],
+      "seed_candidates": [
+        {
+          "url": "https://www.h3c.com/cn/d_202403/2074580_30008_0.htm",
+          "title": "H3C UniServer B5700 G6 product carbon footprint statement",
+          "source_class": "manufacturer_or_other_technical"
+        }
+      ]
+    },
+    {
+      "id": "a039-system-assembly-process-lca",
+      "node_type": "activity",
+      "node_name_contains": ["系统集成", "刀片式"],
+      "language": "en",
+      "document_type": "process_lca",
+      "query": "blade server final system assembly process life cycle assessment electricity per assembled unit testing rework LCA PDF",
+      "targets": [
+        {"table": "flows", "field_contains": "中压电力", "field_family": "manufacturing_energy"},
+        {"table": "indicators", "field": "单位产品装配电耗", "field_family": "manufacturing_energy"}
+      ],
+      "seed_candidates": [
+        {
+          "url": "https://odr.chalmers.se/bitstreams/a3062731-f2b2-4e85-b0c2-0ba4201ce2d5/download",
+          "title": "Life Cycle Assessment of Printed Circuit Board Assembly",
+          "source_class": "academic_institutional_research"
+        }
+      ]
+    }
+  ]
+}

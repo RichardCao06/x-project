@@ -434,9 +434,9 @@ def main(graph, wikidir, regpath, coverage_path=None):
     }
     REQUIRED_TABLES={
         "product":{"props","params","quality"},
-        "activity":{"flows","emissions","indicators","params","quality"},
+        "activity":{"flows","props","params","emissions","indicators","quality"},
     }
-    OPTIONAL_TABLES={"product":set(),"activity":{"props"}}
+    OPTIONAL_TABLES={"product":set(),"activity":set()}
     coverage_ids=set()
     if coverage_path:
         try:

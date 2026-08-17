@@ -42,6 +42,7 @@ from merge_wiki_ku import (
     apply_text_transaction,
     plan_extract_merge,
     plan_merge,
+    rehydrate_committed_plan,
 )
 from prep_node_wiki import atomize, splice
 from validate_wiki_workflow import (
@@ -158,6 +159,7 @@ def transition_journal(
     resume: bool = False,
     dry_run: bool = False,
     detail: str = "",
+    repair_rewind: bool = False,
 ) -> dict[str, Any]:
     journal = read_journal(batch_dir)
     old_state = journal["state"]
@@ -198,6 +200,22 @@ def transition_journal(
             if not dry_run:
                 write_json(journal_path_for(batch_dir), journal)
             return journal
+    if repair_rewind and resume and new_state in LINEAR_STATES and transition_base in LINEAR_STATES \
+            and LINEAR_STATES.index(new_state) < LINEAR_STATES.index(transition_base):
+        journal["state"] = new_state
+        journal.pop("resume_from", None)
+        if artifacts:
+            journal.setdefault("artifacts", {}).update(artifacts)
+        journal.setdefault("history", []).append({
+            "from": old_state,
+            "to": new_state,
+            "at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "command": command,
+            "detail": detail or f"repair rewind from {transition_base}",
+        })
+        if not dry_run:
+            write_json(journal_path_for(batch_dir), journal)
+        return journal
     if new_state not in LEGAL_TRANSITIONS.get(transition_base, set()):
         raise ValueError(f"非法状态转移: {old_state}(resume_from={transition_base}) -> {new_state}")
     journal["state"] = new_state
@@ -1105,8 +1123,15 @@ def command_research_ready(args: argparse.Namespace) -> int:
         if not isinstance(hard_limits, dict) or not isinstance(embedded_usage, dict):
             raise ValueError("evidence 必须冻结 hard_limits 与 usage")
         allowed_domains = hard_limits.get("allowed_domains")
-        if not isinstance(allowed_domains, list) or not allowed_domains:
-            raise ValueError("production evidence 必须冻结非空 allowed_domains 白名单")
+        discovery_mode = hard_limits.get("discovery_mode", "allowlist")
+        if discovery_mode == "allowlist":
+            if not isinstance(allowed_domains, list) or not allowed_domains:
+                raise ValueError("allowlist production evidence 必须冻结非空 allowed_domains 白名单")
+        elif discovery_mode == "open":
+            if allowed_domains != []:
+                raise ValueError("open production evidence 必须冻结空 allowed_domains")
+        else:
+            raise ValueError("production evidence discovery_mode 非法")
         for aliases, limit_key, total_key in (
             (("network_queries", "search_requests", "searches"), "max_searches", "network_queries"),
             (("network_fetches", "fetch_requests", "fetches"), "max_fetches", "network_fetches"),
@@ -1189,6 +1214,7 @@ def command_research_ready(args: argparse.Namespace) -> int:
         transition_journal(
             batch_dir, "research_ready", "research-ready", resume=args.resume,
             artifacts={"research_ready": file_record(output)},
+            repair_rewind=args.repair_rewind,
         )
     print(json.dumps({"research_ready": str(output), "dry_run": args.dry_run}, ensure_ascii=False))
     return 0
@@ -1226,6 +1252,12 @@ def validate_verify_rows(
         if len(selected) != 1:
             raise ValueError(f"{claim_id} evidence_id 不解析到唯一冻结候选")
         candidate = selected[0]
+        nominated = [
+            item for item in candidates
+            if item.get("search_provider") in {"research_scout", "research_plan_advisory"}
+        ]
+        if nominated and candidate not in nominated:
+            raise ValueError(f"{claim_id} Verify 选择了提名来源之外的替代证据")
         for key in ("url", "excerpt", "content_sha256", "evidence_id"):
             if fetch.get(key) != candidate.get(key):
                 raise ValueError(f"{claim_id} fetchResult.{key} 与冻结 evidence 漂移")
@@ -1798,11 +1830,27 @@ def command_apply(args: argparse.Namespace) -> int:
         effective_state = str(journal.get("resume_from") or "")
     if effective_state == "frozen":
         prior_content = journal.get("artifacts", {}).get("content_apply")
-        remediation = bool(prior_content and args.resume and args.plan)
+        rehydrate = bool(prior_content and args.resume and args.rehydrate)
+        remediation = bool(prior_content and args.resume and args.plan and not rehydrate)
         if prior_content:
             prior_path = _assert_frozen_record(prior_content, "content apply")
-            if not remediation:
+            if not remediation and not rehydrate:
                 if args.resume:
+                    # A journal receipt is not proof that the materialized
+                    # target still exists.  Fail closed on drift and require
+                    # an explicit, hash-bound rehydrate operation.
+                    plan_value = read_json(_assert_frozen_record(
+                        journal.get("artifacts", {}).get("frozen", {}), "frozen"
+                    )).get("batch_merge_plan")
+                    plan_value_path = ROOT / str(plan_value) if plan_value else None
+                    recovered = committed_transaction(
+                        batch_dir / "apply-transaction.json",
+                        expected_plan=plan_value_path,
+                    ) if plan_value_path else None
+                    if recovered is None:
+                        raise ValueError(
+                            "content apply materialization is missing; rerun with --rehydrate"
+                        )
                     artifact = read_json(prior_path)
                     artifact["resume"] = "no-op; content 已应用，请生成 post-apply coverage 后运行 go-no-go"
                     print(json.dumps(artifact, ensure_ascii=False))
@@ -1814,11 +1862,19 @@ def command_apply(args: argparse.Namespace) -> int:
         )
         if plan_path is None:
             raise ValueError("批次没有可应用的 batch merge plan")
-        draft_gate_path = batch_dir / "draft-content-gate.json"
-        draft_gate = gate_merge_plan(plan_path)
-        if not args.dry_run:
-            write_json(draft_gate_path, draft_gate)
-        if not draft_gate["go"]:
+        draft_gate_path = (args.draft_gate.resolve() if args.draft_gate
+                           else batch_dir / "draft-content-gate.json")
+        if args.draft_gate:
+            draft_gate = read_json(draft_gate_path)
+            if (draft_gate.get("pipeline_continue", draft_gate.get("go")) is not True
+                    or Path(str(draft_gate.get("plan") or "")).resolve() != plan_path
+                    or draft_gate.get("plan_sha256") != sha256(plan_path.read_text(encoding="utf-8"))):
+                raise ValueError("frozen draft content gate cannot continue or does not bind the current plan")
+        else:
+            draft_gate = gate_merge_plan(plan_path)
+            if not args.dry_run:
+                write_json(draft_gate_path, draft_gate)
+        if not draft_gate.get("pipeline_continue", draft_gate.get("go", False)):
             artifact = {
                 "protocol": {"version": BATCH_PROTOCOL, "kind": "content-apply-report"},
                 "plan": file_record(plan_path),
@@ -1841,8 +1897,11 @@ def command_apply(args: argparse.Namespace) -> int:
             return 2
         recovered = committed_transaction(
             batch_dir / "apply-transaction.json", expected_plan=plan_path
-        ) if args.resume and not remediation and not args.dry_run else None
-        report = ({
+        ) if args.resume and not remediation and not rehydrate and not args.dry_run else None
+        report = (rehydrate_committed_plan(
+            plan_path, allow_partial=args.allow_partial,
+            lease_seconds=args.lease_seconds,
+        ) if rehydrate and not args.dry_run else {
             "files": len(recovered["targets"]),
             "dry_run": False,
             "transaction": "committed",
@@ -1863,6 +1922,7 @@ def command_apply(args: argparse.Namespace) -> int:
             "report": report,
             "next": "重新生成 post-apply claim coverage，再运行 go-no-go",
             "remediation": remediation,
+            "rehydration": rehydrate,
         }
         if not args.dry_run:
             write_json(output, artifact)
@@ -2244,6 +2304,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     research.add_argument("--output", type=Path)
     research.add_argument("--resume", action="store_true")
+    research.add_argument(
+        "--repair-rewind", action="store_true",
+        help="经 Orchestrator Repair Plan 授权后，将后续/失败 journal 回退到 research_ready",
+    )
     research.add_argument("--dry-run", action="store_true")
     research.set_defaults(handler=command_research_ready)
 
@@ -2289,11 +2353,17 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd = sub.add_parser("apply")
     apply_cmd.add_argument("prepared", type=Path)
     apply_cmd.add_argument("--plan", type=Path)
+    apply_cmd.add_argument("--draft-gate", type=Path,
+                           help="frozen GO draft-content gate bound to the current plan")
     apply_cmd.add_argument("--coverage", type=Path, help="可选复核路径；production 实际使用 journal 冻结 coverage")
     apply_cmd.add_argument("--allow-partial", action="store_true")
     apply_cmd.add_argument("--lease-seconds", type=int, default=300)
     apply_cmd.add_argument("--output", type=Path)
     apply_cmd.add_argument("--resume", action="store_true")
+    apply_cmd.add_argument(
+        "--rehydrate", action="store_true",
+        help="仅当所有目标仍等于原事务 old_sha256 时重放冻结计划",
+    )
     apply_cmd.add_argument("--dry-run", action="store_true")
     apply_cmd.set_defaults(handler=command_apply)
 

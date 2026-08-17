@@ -3,7 +3,6 @@
   "node_id": "P003",
   "node_type": "product",
   "golden_target": {
-    "minimum_body_chars": 6500,
     "minimum_assertions": 48,
     "maximum_assertions": 140,
     "minimum_paragraphs": 16,

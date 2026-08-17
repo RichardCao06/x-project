@@ -106,7 +106,7 @@ def validate_collection(collection: dict[str, Any], root: Path) -> dict[str, int
             if digest_path(path) != expected:
                 raise ValueError(f"冻结来源文件 hash 漂移: {sid}")
     node_type = str(collection.get("node_type") or ("activity" if str(collection["node_id"]).startswith("A") else "product"))
-    required_kinds = (["flows", "emissions", "indicators", "params", "quality"]
+    required_kinds = (["flows", "props", "params", "emissions", "indicators", "quality"]
                       if node_type == "activity" else ["props", "params", "quality"])
     metrics: dict[str, int] = {}
     tables = collection.get("tables") or {}
@@ -126,8 +126,20 @@ def validate_collection(collection: dict[str, Any], root: Path) -> dict[str, int
             seen.add(field)
             if row.get("status") not in {"populated", "explicit_gap", "assessed"}:
                 raise ValueError(f"{kind}.{field} status 非法")
+            gap_required = bool(collection.get("gap_provenance_required"))
+            gap_by_track = row.get("gap_evidence_by_track") or {}
             for key in keys:
                 if key.endswith("source") or key == "source":
+                    value_key = ("value" if key == "source" else key.removesuffix("_source") + "_value")
+                    value_is_gap = is_gap(str(row.get(value_key) or ""))
+                    if gap_required and value_is_gap and not str(row[key]).strip():
+                        track = "value" if key == "source" else key.removesuffix("_source")
+                        gap = gap_by_track.get(track) or row.get("gap_evidence") or {}
+                        if (gap.get("protocol") != "wiki-table-gap-evidence-v1"
+                                or not gap.get("reason") or not gap.get("matrix_sha256")
+                                or not gap.get("query_hashes")):
+                            raise ValueError(f"{kind}.{field}.{track} 显式缺口缺少检索证据")
+                        continue
                     if str(row[key]) not in ids:
                         raise ValueError(f"{kind}.{field} 来源未冻结: {row[key]}")
         metrics[f"{kind}_rows"] = len(rows)
@@ -143,7 +155,7 @@ def validate_collection(collection: dict[str, Any], root: Path) -> dict[str, int
         r["status"] == "populated" and not is_gap(r["cn_value"])
         for r in tables["params"]
     )
-    metrics["quality_assessed"] = sum(r["status"] in {"assessed", "explicit_gap"} for r in tables["quality"])
+    metrics["quality_assessed"] = sum(r["status"] == "assessed" for r in tables["quality"])
     return metrics
 
 
@@ -186,6 +198,25 @@ def replace_table(page: str, kind: str, rendered: str) -> str:
     return pattern.sub(rf"\1\n{rendered}\n\2", page, count=1)
 
 
+def ensure_activity_props_marker(page: str) -> str:
+    """Upgrade a legacy five-table activity page before table replacement."""
+    if page.count("<!-- EV:props:START -->") == page.count("<!-- EV:props:END -->") == 1:
+        return page
+    if "<!-- EV:props:START -->" in page or "<!-- EV:props:END -->" in page:
+        raise ValueError("页面 props marker 不成对或不唯一")
+    anchor = re.search(r"(?m)^## [^\n]+\n\n(?=<!-- EV:params:START -->)", page)
+    if not anchor:
+        raise ValueError("旧活动页缺少可定位的 params 区段，无法迁移六表合同")
+    shell = (
+        "## 参考产品性质与交接状态\n\n"
+        "<!-- EV:props:START -->\n"
+        "| property | condition | unit | 值 | 源 | pedigree |\n"
+        "|---|---|---|---|---|---|\n"
+        "<!-- EV:props:END -->\n\n"
+    )
+    return page[:anchor.start()] + shell + page[anchor.start():]
+
+
 def set_frontmatter(page: str, key: str, value: str) -> str:
     pattern = re.compile(rf"(?m)^{re.escape(key)}:\s*.*$")
     if not pattern.search(page):
@@ -221,11 +252,13 @@ def build_candidate(collection: dict[str, Any], page: str, registry: dict[str, A
     if not re.search(rf"(?m)^id:\s*{re.escape(node_id)}\s*$", page):
         raise ValueError("collection 与页面 node_id 不一致")
     candidate = page
+    if collection.get("node_type") == "activity" and "props" in collection["tables"]:
+        candidate = ensure_activity_props_marker(candidate)
     for kind in collection["tables"]:
         candidate = replace_table(candidate, kind, render_table(kind, collection["tables"][kind]))
     # Typed tables supersede the retired monolithic quantity shell.
     candidate = re.sub(
-        r"\n## 🔒 数量（待挂 · NOT POPULATED）\n.*?(?=\n## 产品性质与交付状态\n)",
+        r"\n## 🔒 数量（待挂 · NOT POPULATED）\n.*?(?=\n## |\Z)",
         "\n", candidate, flags=re.S,
     )
     candidate = set_frontmatter(candidate, "quantity_status", "partial")
@@ -233,13 +266,24 @@ def build_candidate(collection: dict[str, Any], page: str, registry: dict[str, A
     fm_match = re.search(r"(?m)^provenance_refs:\s*(.*)$", candidate)
     if not fm_match:
         raise ValueError("frontmatter 缺 provenance_refs")
-    refs = [x for x in parse_list(fm_match.group(1)) if x != "internal-review"]
-    refs = sorted(set(refs) | source_ids(collection))
+    body = re.search(r"<!-- BODY:START -->(.*?)<!-- BODY:END -->", candidate, re.S)
+    body_refs = set(re.findall(r"\[\^([a-z0-9-]+)\](?!:)", body.group(1) if body else ""))
+    table_refs = {
+        str(value).split("#", 1)[0].strip()
+        for rows in collection.get("tables", {}).values()
+        for row in rows
+        for key, value in row.items()
+        if (key == "source" or key.endswith("_source")) and str(value).strip()
+    }
+    refs = sorted(body_refs | table_refs)
     candidate = re.sub(
         r"(?m)^provenance_refs:\s*.*$",
         "provenance_refs: [" + ", ".join(refs) + "]",
         candidate, count=1,
     )
+    if re.search(r"(?m)^schema_version:\s*wiki-v2\s*$", candidate):
+        candidate = set_frontmatter(candidate, "provenance_status", "source_verified")
+        candidate = set_frontmatter(candidate, "claim_verification_status", "partial")
     log_heading, log = render_change_log(collection)
     marker = "<!-- CHANGELOG:START -->\n## 修改日志\n"
     if marker not in candidate:
@@ -252,7 +296,17 @@ def build_candidate(collection: dict[str, Any], page: str, registry: dict[str, A
         sid = source["id"]
         incoming = registry_entry(source)
         if sid in entries and entries[sid] != incoming:
-            raise ValueError(f"registry source 冲突: {sid}")
+            current = entries[sid]
+            if current.get("url") != incoming.get("url") or current.get("title") != incoming.get("title"):
+                raise ValueError(f"registry source 冲突: {sid}")
+            incoming["excerpt_seeds"] = list(dict.fromkeys(
+                [*current.get("excerpt_seeds", []), *incoming.get("excerpt_seeds", [])]
+            ))
+            incoming["locator"] = "; ".join(dict.fromkeys(
+                part.strip() for part in [str(current.get("locator", "")), str(incoming.get("locator", ""))]
+                if part.strip()
+            ))
+            incoming["ref_count"] = max(int(current.get("ref_count", 1)), int(incoming.get("ref_count", 1)))
         entries[sid] = incoming
     return candidate, staged_registry
 

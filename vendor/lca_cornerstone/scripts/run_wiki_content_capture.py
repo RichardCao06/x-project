@@ -85,9 +85,12 @@ def validate_result(path: Path, blueprint: dict, rows: list[dict]) -> dict:
     for section in sections:
         heading = section["heading"]
         parts = section.get("paragraphs") or []
-        minimum = int(blueprint["sections"][heading]["minimum_paragraphs"])
-        if len(parts) < minimum:
-            raise ValueError(f"{heading} 段落不足: {len(parts)}<{minimum}")
+        # Section presence is a schema invariant. Paragraph volume is a
+        # quality signal, not a publication-safety invariant. Legacy
+        # blueprints may still carry minimum_paragraphs, but it must not force
+        # prose padding or a needless whole-document retry.
+        if not parts:
+            raise ValueError(f"{heading} 缺少正文段落")
         paragraphs += len(parts)
         for paragraph in parts:
             focus = re.sub(r"\s+", " ", str(paragraph.get("focus", ""))).strip()
@@ -138,10 +141,10 @@ def validate_result(path: Path, blueprint: dict, rows: list[dict]) -> dict:
                         raise ValueError(f"未 CONFIRMED 的外部 claim 不得进入事实正文: {source_id}")
                     used.append(str(source_id))
     use_counts = Counter(used)
-    missing = sorted(eligible - set(use_counts))
+    unused = sorted(eligible - set(use_counts))
     overused = sorted(source_id for source_id, count in use_counts.items() if count > 3)
-    if missing or overused:
-        raise ValueError(f"冻结研究 claim 必须至少映射一次、最多三次: missing={missing}, overused={overused}")
+    if overused:
+        raise ValueError(f"冻结研究 claim 最多映射三次: overused={overused}")
     target = blueprint["golden_target"]
     duplicate_limit = float(target.get("maximum_near_duplicate_ratio", 1.0))
     worst_duplicate = 0.0
@@ -160,24 +163,40 @@ def validate_result(path: Path, blueprint: dict, rows: list[dict]) -> dict:
             f"正文存在近重复句: ratio={worst_duplicate:.3f}>{duplicate_limit}; sections={duplicate_pair}"
         )
     body = "\n".join(rendered)
+    identity_tokens = list(blueprint.get("identity_tokens") or
+                           list(blueprint.get("required_tokens", []))[:2])
+    advisory_tokens = list(blueprint.get("advisory_tokens") or
+                           blueprint.get("required_tokens", []))
     checks = {
-        "body_chars": len(body) >= int(target["minimum_body_chars"]),
-        "assertions": len(rendered) >= int(target["minimum_assertions"]),
         "assertions_not_stuffed": len(rendered) <= int(target.get("maximum_assertions", 10**9)),
-        "paragraphs": paragraphs >= int(target["minimum_paragraphs"]),
-        "modeling": kinds.get("modeling_judgment", 0) >= int(target["minimum_modeling_judgments"]),
         "modeling_not_stuffed": kinds.get("modeling_judgment", 0) <= int(target.get("maximum_modeling_judgments", 10**9)),
         "single_sentence_ratio": (single / paragraphs if paragraphs else 1) <= float(target["maximum_single_sentence_paragraph_ratio"]),
         "paragraph_focuses_unique": len(focuses) == paragraphs,
         "near_duplicate_free": worst_duplicate <= duplicate_limit,
-        "required_tokens": all(token in body for token in blueprint.get("required_tokens", [])),
+        "identity_tokens": all(token in body for token in identity_tokens),
         "forbidden_phrases": not any(phrase in body for phrase in blueprint.get("forbidden_phrases", [])),
     }
     if not all(checks.values()):
         raise ValueError(f"Content Golden contract 失败: {checks}")
+    recommended_assertions = int(target.get("recommended_assertions",
+                                            target.get("minimum_assertions", 0)))
+    recommended_paragraphs = int(target.get("recommended_paragraphs",
+                                            target.get("minimum_paragraphs", 0)))
+    recommended_modeling = int(target.get("recommended_modeling_judgments",
+                                          target.get("minimum_modeling_judgments", 0)))
+    advisories = {
+        "recommended_assertions": not recommended_assertions or len(rendered) >= recommended_assertions,
+        "recommended_paragraphs": not recommended_paragraphs or paragraphs >= recommended_paragraphs,
+        "recommended_modeling_judgments": not recommended_modeling or
+            kinds.get("modeling_judgment", 0) >= recommended_modeling,
+        "advisory_tokens": all(token in body for token in advisory_tokens),
+        "claim_coverage": not unused,
+    }
     return {"body_chars": len(body), "assertions": len(rendered), "paragraphs": paragraphs,
             "modeling_judgments": kinds.get("modeling_judgment", 0),
-            "maximum_near_duplicate_ratio": round(worst_duplicate, 4), "checks": checks}
+            "maximum_near_duplicate_ratio": round(worst_duplicate, 4), "checks": checks,
+            "advisories": advisories, "unused_claim_ids": unused,
+            "unused_claim_reason": "not_selected_for_prose"}
 
 
 def main() -> int:
@@ -210,6 +229,7 @@ def main() -> int:
                     or (r.get("verify") or {}).get("verdict") == "CONFIRMED"]
     forbidden_ids = sorted({r["claim"]["claim_id"] for r in rows} -
                            {r["claim"]["claim_id"] for r in allowed_rows})
+    expected_headings = list(blueprint["sections"])
     claims_prompt = [{"claim_id": r["claim"]["claim_id"], "section": r["claim"]["section"],
                       "claim_kind": r["claim"]["claim_kind"], "claim_text": r["claim"]["claim_text"]} for r in allowed_rows]
     feedback = ""
@@ -219,18 +239,23 @@ def main() -> int:
     prompt = (
         "你是节点 Wiki Content Architect。不得读取文件、调用工具、联网、搜索、调用浏览器或其他 agent。"
         "只根据下面冻结的 Content Blueprint 和已裁决 claim ledger 形成 Golden-depth 中文正文结构。"
-        "九节标题和顺序必须与 blueprint 完全一致。研究 claim 是证据账，不是正文句：禁止逐条照抄或按输入顺序罗列。"
-        "每条输入中的可用 claim 必须通过 evidence_claim_ids 至少映射一次、最多三次；同一证据可在相关章节复用，语义重复或互补的 claim 应融合成一条自然正文句，"
+        "sections 必须精确包含九个对象。每个 sections[i].heading 必须逐字复制 EXPECTED_SECTION_HEADINGS[i]；"
+        "不得调换、重复、改写或遗漏标题，也不得把章节标题写入 paragraph.focus 来代替 section 对象。"
+        "研究 claim 是证据账，不是正文句：禁止逐条照抄或按输入顺序罗列。"
+        "只选用与段落论点直接相关的 claim；未选用的 claim 可以留在证据账中，不得为追求覆盖率强塞进正文。"
+        "选用的 claim 通过 evidence_claim_ids 映射且最多出现三次；同一证据可在相关章节复用，语义重复或互补的 claim 应融合成一条自然正文句，"
         "一条句子可映射多条 claim，但不得扩大外部事实含义。新增判断的 evidence_claim_ids=[]，只能标为 modeling_judgment"
         "或 evidence_gap。不能编造 LCI 数值、型号参数、法规要求或供应商事实。"
         "每段先写唯一、具体的 focus；2-4 句且第一句 rhetorical_role=thesis。其余句必须解释、限定、应用或说明该 thesis 的 LCA 含义，"
         "禁止把互不相干的字段句并排。每段最多一个 external_fact 事实锚点；需要两条来源时应在不扩大语义的前提下融合为一句并列引用。"
         "先统一术语和产品层级，尤其不得把同义的‘刀片服务器/服务器刀片’虚构成两个层级。"
-        "字符深度是硬约束：按所有 sentence.text 拼接后的中文字符数至少 6800（为 6500 Gate 留出缓冲），但总断言不得超过 blueprint 上限；"
+        "正文不设最低字符数；优先满足段落中心、证据映射、主题覆盖和断言上限，不得为扩充长度堆句；"
         "建模句通常应有 55-100 个中文字符，围绕段落 focus 具体交代对象、理由、记录字段、适用条件或失效条件。"
         "证据缺口必须明确：身份事实已有核验，缺的是型号级 BOM、质量、制造、运输或共享资源分配等前景 LCI；"
-        "不得笼统写没有节点证据。达到 blueprint 的全部定量阈值、主题词和禁用短语约束。输出只匹配 JSON schema。\n"
+        "不得笼统写没有节点证据。数量目标和 advisory_tokens 仅用于质量提示，不得为达到数量目标填充内容；"
+        "必须满足身份、事实映射、上限和禁用短语约束。输出只匹配 JSON schema。\n"
         f"BLUEPRINT={json.dumps(blueprint, ensure_ascii=False, separators=(',', ':'))}\n"
+        f"EXPECTED_SECTION_HEADINGS={json.dumps(expected_headings, ensure_ascii=False, separators=(',', ':'))}\n"
         f"CLAIMS={json.dumps(claims_prompt, ensure_ascii=False, separators=(',', ':'))}\n"
         f"FORBIDDEN_EVIDENCE_CLAIM_IDS={json.dumps(forbidden_ids, ensure_ascii=False)}；这些 ID 已被确定性过滤，绝不能出现在 evidence_claim_ids 中。{feedback}"
     )

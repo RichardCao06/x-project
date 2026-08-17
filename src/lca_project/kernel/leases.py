@@ -52,3 +52,11 @@ class LeaseManager:
         row = self.state._connection().execute("SELECT * FROM leases WHERE resource=?", (lease.resource,)).fetchone()
         if row is None or row["holder"] != lease.holder or row["fencing_token"] != lease.fencing_token or row["expires_at"] <= utcnow():
             raise LeaseLost(f"lease lost: {lease.resource}")
+
+    def release(self, lease: Lease) -> bool:
+        """Release only the holder/token pair that acquired this lease."""
+        with self.state.transaction() as conn:
+            return conn.execute(
+                "DELETE FROM leases WHERE resource=? AND holder=? AND fencing_token=?",
+                (lease.resource, lease.holder, lease.fencing_token),
+            ).rowcount == 1

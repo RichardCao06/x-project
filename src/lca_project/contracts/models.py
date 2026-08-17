@@ -24,9 +24,12 @@ def load_json(path: str | Path) -> dict[str, Any]:
 
 class JobState(StrEnum):
     PLANNED = "planned"; READY = "ready"; LEASED = "leased"; RUNNING = "running"
+    STALLED = "stalled"; PAUSED = "paused"
+    DIAGNOSTIC_PREVIEW = "diagnostic_preview"; EVIDENCE_LIMITED = "evidence_limited"
     CANDIDATE = "candidate"; GATED = "gated"; APPLIED = "applied"; PUBLISHED = "published"
     RETRYABLE = "retryable"; REPAIRABLE = "repairable"; QUARANTINED = "quarantined"
-    BLOCKED_BUDGET = "blocked_budget"; FAILED = "failed"; SUPERSEDED = "superseded"
+    BLOCKED_BUDGET = "blocked_budget"; MANUAL_REVIEW = "manual_review"
+    FAILED = "failed"; SUPERSEDED = "superseded"
 
 
 class RunStatus(StrEnum):

@@ -203,6 +203,30 @@ def render_evidence_tables(node_type, dossier):
 {flow_rows}
 <!-- EV:flows:END -->
 
+## 参考产品性质与交接状态
+
+<!-- EV:props:START -->
+| property | condition | unit | 值 | 源 | pedigree |
+|---|---|---|---|---|---|
+| 参考产品身份 | 活动交接点 | — | {anchor} | internal-graph | 4,4,4,4,4 |
+| 参考产品完整型号与配置 | 活动交接点 | — | 待采 | internal-review | 待评 |
+| 参考产品净质量或数量基准 | 活动交接点 | 待采 | 待采 | internal-review | 待评 |
+| 参考产品规格、质量与交接状态 | 活动交接点 | — | 待采 | internal-review | 待评 |
+<!-- EV:props:END -->
+
+## 活动规格与地区参数
+
+<!-- EV:params:START -->
+| parameter | geo | unit | basis | 国际值 INT | 国际源 INT | 中国值 CN | 中国源 CN | pedigree |
+|---|---|---|---|---|---|---|---|---|
+| 技术路线与设备配置 | target | — | reference | 待采 | internal-review | 待采 | internal-review | 待评 |
+| 参考单位与产量分母 | target | — | reference | 待采 | internal-review | 待采 | internal-review | 待评 |
+| 物料投入与损耗 | target | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待评 |
+| 能源与公用工程 | target | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待评 |
+| 直接排放与废物去向 | target | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待评 |
+| 场址、代表期与分配规则 | target | — | reference | 待采 | internal-review | 待采 | internal-review | 待评 |
+<!-- EV:params:END -->
+
 ## 直接排放与废物流
 
 <!-- EV:emissions:START -->
@@ -222,19 +246,6 @@ def render_evidence_tables(node_type, dossier):
 | 良率、返工率与报废率 | process | % | calculated | 待算 | internal-review | 待算 | internal-review | 待映射 | 待评 |
 | 能源、公用工程与设备工时 | process | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待映射 | 待评 |
 <!-- EV:indicators:END -->
-
-## 活动规格与地区参数
-
-<!-- EV:params:START -->
-| parameter | geo | unit | basis | 国际值 INT | 国际源 INT | 中国值 CN | 中国源 CN | pedigree |
-|---|---|---|---|---|---|---|---|---|
-| 技术路线与设备配置 | target | — | reference | 待采 | internal-review | 待采 | internal-review | 待评 |
-| 参考单位与产量分母 | target | — | reference | 待采 | internal-review | 待采 | internal-review | 待评 |
-| 物料投入与损耗 | target | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待评 |
-| 能源与公用工程 | target | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待评 |
-| 直接排放与废物去向 | target | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待评 |
-| 场址、代表期与分配规则 | target | — | reference | 待采 | internal-review | 待采 | internal-review | 待评 |
-<!-- EV:params:END -->
 
 ## 数据质量与代表性
 

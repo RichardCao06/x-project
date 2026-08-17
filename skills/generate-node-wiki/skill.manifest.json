@@ -1,0 +1,18 @@
+{
+  "schema_version": "lca-skill-route-v1",
+  "name": "generate-node-wiki",
+  "version": "11",
+  "workflow": "workflow://wiki-node-production@9",
+  "input_schema": "wiki-production-request-v2",
+  "policy": "wiki-production-v4",
+  "job_granularity": "one-node-per-job",
+  "defaults": {
+    "publication_mode": "preview"
+  },
+  "authority": {
+    "may_create_job": true,
+    "may_execute_capability": false,
+    "may_apply": false,
+    "may_publish": false
+  }
+}

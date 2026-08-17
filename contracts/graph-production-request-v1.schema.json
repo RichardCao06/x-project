@@ -1,1 +1,1 @@
-{"type":"object","required":["industry"],"properties":{"industry":{"type":"string"}},"additionalProperties":false}
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"graph-production-request-v1","type":"object","required":["industry"],"properties":{"industry":{"type":"string","pattern":"^[a-z0-9][a-z0-9_-]{1,63}$"},"display_name":{"type":"string","minLength":1},"generated":{"type":"string","pattern":"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},"interface_contract":{"type":"object"}},"additionalProperties":false}

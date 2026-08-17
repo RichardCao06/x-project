@@ -14,9 +14,11 @@ from .registry import Capability
 
 
 class ExecutionError(RuntimeError):
-    def __init__(self, code: str, message: str, *, stdout: str = "", stderr: str = "") -> None:
+    def __init__(self, code: str, message: str, *, stdout: str = "", stderr: str = "",
+                 failure: dict[str, Any] | None = None) -> None:
         super().__init__(message)
         self.code, self.stdout, self.stderr = code, stdout, stderr
+        self.failure = failure
 
 
 @dataclass(frozen=True)
@@ -95,14 +97,28 @@ class SandboxedExecutor:
                 # bind the runtime package that owns this executor, not the fixture.
                 source_root = str(Path(__file__).resolve().parents[2])
                 env["PYTHONPATH"] = source_root + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+                # Read-only capabilities may import validators from protected
+                # protocol roots. Bytecode caches are still filesystem writes
+                # and would correctly trip the side-effect guard.
+                env["PYTHONDONTWRITEBYTECODE"] = "1"
                 proc = subprocess.run(command, cwd=workspace, text=True, capture_output=True,
                                       timeout=capability.timeout_seconds, check=False, env=env)
             except subprocess.TimeoutExpired as exc:
                 raise ExecutionError("TIMEOUT", f"{capability.id} timed out", stdout=exc.stdout or "", stderr=exc.stderr or "") from exc
             after = self._snapshot(self.protected_roots, self.scratch_root.resolve()) if capability.side_effects == "none" else before
             if after != before:
+                changed = sorted(
+                    str(path) for path in set(before) | set(after)
+                    if before.get(path) != after.get(path)
+                )
                 self._restore(self.protected_roots, before, self.scratch_root.resolve())
-                raise ExecutionError("SIDE_EFFECT", f"{capability.id} modified a protected root", stdout=proc.stdout, stderr=proc.stderr)
+                detail = ", ".join(changed[:5])
+                raise ExecutionError(
+                    "SIDE_EFFECT",
+                    f"{capability.id} modified a protected root: {detail}",
+                    stdout=proc.stdout,
+                    stderr=proc.stderr,
+                )
             if proc.returncode != 0:
                 raise ExecutionError("PROCESS_EXIT", f"{capability.id} exited {proc.returncode}", stdout=proc.stdout, stderr=proc.stderr)
             if not output_path.is_file():

@@ -30,7 +30,6 @@
       },
       "contract": {
         "node_type": "activity",
-        "minimum_body_chars": 5800,
         "minimum_assertions": 50,
         "minimum_cited_assertions": 30,
         "minimum_distinct_inline_sources": 18,

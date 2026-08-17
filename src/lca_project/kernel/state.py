@@ -111,6 +111,11 @@ class StateStore:
                 );
             """
         )
+        # Import lazily to avoid a module cycle while keeping the database
+        # upgrade attached to the single StateStore construction boundary.
+        from .migrations import migrate
+        with self.transaction() as conn:
+            migrate(conn)
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:

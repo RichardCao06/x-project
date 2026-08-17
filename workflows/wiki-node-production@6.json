@@ -18,7 +18,7 @@
     {"id": "table_verify", "capability": "agent.review", "inputs": {"action": "table_verify", "runtime_profile": "sol-verifier"}, "needs": ["table_collect"], "gate": "G6T", "output": "wiki-table-source-verdict-v1"},
     {"id": "table_population_gate", "capability": "wiki.batch", "inputs": {"action": "table_population_gate"}, "needs": ["draft_apply", "table_verify"], "gate": "G6P", "output": "wiki-table-population-gate-v1"},
     {"id": "table_apply", "capability": "release.apply", "inputs": {"action": "table_apply"}, "needs": ["table_population_gate"], "output": "wiki-table-apply-v1"},
-    {"id": "preview", "capability": "wiki.batch", "inputs": {"action": "preview"}, "needs": ["table_apply"], "output": "wiki-preview-v5"},
+    {"id": "preview", "capability": "wiki.batch", "inputs": {"action": "preview"}, "needs": ["table_apply"], "max_attempts": 4, "output": "wiki-preview-v5"},
     {"id": "release_gate", "capability": "wiki.batch", "inputs": {"action": "release_gate"}, "needs": ["preview"], "gate": "G7", "output": "quality-gate-v5"},
     {"id": "reviewed_apply", "capability": "release.apply", "inputs": {"action": "reviewed_apply"}, "needs": ["release_gate"], "gate": "G8", "output": "wiki-reviewed-v5"},
     {"id": "publish", "capability": "release.apply", "inputs": {"action": "publish"}, "needs": ["reviewed_apply"], "output": "release-record-v1"}

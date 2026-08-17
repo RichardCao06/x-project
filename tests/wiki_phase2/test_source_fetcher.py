@@ -16,6 +16,56 @@ def source_module():
     return module
 
 
+def test_plan_requires_allowlist_or_explicit_open_discovery() -> None:
+    parser = source_module().build_parser()
+    restricted = parser.parse_args(["plan", "claims.json", "--allow-domain", "example.com"])
+    assert restricted.allow_domain == ["example.com"] and restricted.open_discovery is False
+    opened = parser.parse_args(["plan", "claims.json", "--open-discovery"])
+    assert opened.allow_domain is None and opened.open_discovery is True
+
+
+def test_domain_policy_accepts_only_explicit_unambiguous_modes() -> None:
+    module = source_module()
+    assert module.normalized_domains([]) == []
+    assert module.domain_allowed("public.example", []) is True
+    assert module.domain_allowed("a.example.com", ["example.com"]) is True
+    assert module.domain_allowed("example.net", ["example.com"]) is False
+
+
+def test_research_plan_expands_bilingual_discovery_tracks(tmp_path: Path) -> None:
+    module = source_module()
+    claims = {
+        "protocol": {"mode": "extract"},
+        "claims": [
+            {"claim_id": "P030-0", "node_id": "P030", "industry": "ict_equipment",
+             "section": "identity", "claim_text": "x", "claim_kind": "external_fact",
+             "node_identity": {"display_name": "共生焊料浮渣", "node_type": "product",
+                               "facets": {}, "boundary": "foreground"},
+             "believed_source": "candidate source", "believed_locator": "tin dross"},
+            {"claim_id": "P030-1", "node_id": "P030", "industry": "ict_equipment",
+             "section": "process", "claim_text": "y", "claim_kind": "external_fact",
+             "node_identity": {"display_name": "共生焊料浮渣", "node_type": "product",
+                               "facets": {}, "boundary": "foreground"},
+             "believed_source": "candidate source", "believed_locator": "wave solder"},
+        ],
+    }
+    plan = {"protocol": "wiki-research-plan-v1", "node_id": "P030",
+            "languages": ["zh", "en"], "research_questions": ["identity", "process"],
+            "source_classes": ["government", "technical"],
+            "terminology": {"canonical_zh": "共生焊料浮渣", "candidate_aliases_zh": ["锡渣"],
+                            "canonical_en": "solder dross", "candidate_aliases_en": ["tin dross"]}}
+    claims_path, plan_path, output = tmp_path / "claims.json", tmp_path / "plan.json", tmp_path / "queue.json"
+    claims_path.write_text(__import__("json").dumps(claims, ensure_ascii=False), encoding="utf-8")
+    plan_path.write_text(__import__("json").dumps(plan, ensure_ascii=False), encoding="utf-8")
+    args = module.build_parser().parse_args(["plan", str(claims_path), "--open-discovery",
+                                             "--research-plan", str(plan_path), "--output", str(output)])
+    assert module.command_plan(args) == 0
+    queue = __import__("json").loads(output.read_text(encoding="utf-8"))
+    assert [row["research_tracks"][0]["language"] for row in queue["queries"]] == ["zh", "en"]
+    assert "锡渣" in queue["queries"][0]["research_tracks"][0]["query"]
+    assert "solder dross" in queue["queries"][1]["research_tracks"][0]["query"]
+
+
 def test_eu_annex_locator_builds_structural_and_topic_anchors() -> None:
     anchors = source_module()._locator_anchors(
         "Annex II point 3.1(o), compatible chassis"

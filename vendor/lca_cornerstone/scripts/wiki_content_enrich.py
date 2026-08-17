@@ -25,6 +25,10 @@ def render_evidence_tables(blueprint: dict) -> str:
             f"| {_cell(label)} | 待核 | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待评 |"
             for label in tables["flows"]
         )
+        props = "\n".join(
+            f"| {_cell(label)} | {node_id} 参考产品交接点 | — | 待核 | internal-review | 待评 |"
+            for label in tables["props"]
+        )
         emissions = "\n".join(
             f"| {_cell(label)} | 待核 | 待核 | 待采 | measured_average | 待采 | internal-review | 待采 | internal-review | 待评 |"
             for label in tables["emissions"]
@@ -49,6 +53,22 @@ def render_evidence_tables(blueprint: dict) -> str:
 {flows}
 <!-- EV:flows:END -->
 
+## 参考产品性质与交接状态
+
+<!-- EV:props:START -->
+| property | condition | unit | 值 | 源 | pedigree |
+|---|---|---|---|---|---|
+{props}
+<!-- EV:props:END -->
+
+## 工艺与地区参数
+
+<!-- EV:params:START -->
+| parameter | geo | unit | basis | 国际值 INT | 国际源 INT | 中国值 CN | 中国源 CN | pedigree |
+|---|---|---|---|---|---|---|---|---|
+{params}
+<!-- EV:params:END -->
+
 ## 直接排放与废物
 
 <!-- EV:emissions:START -->
@@ -64,14 +84,6 @@ def render_evidence_tables(blueprint: dict) -> str:
 |---|---|---|---|---|---|---|---|---|---|
 {indicators}
 <!-- EV:indicators:END -->
-
-## 工艺与地区参数
-
-<!-- EV:params:START -->
-| parameter | geo | unit | basis | 国际值 INT | 国际源 INT | 中国值 CN | 中国源 CN | pedigree |
-|---|---|---|---|---|---|---|---|---|
-{params}
-<!-- EV:params:END -->
 
 ## 数据质量与代表性
 
@@ -122,17 +134,73 @@ def render_product_tables(blueprint: dict) -> str:
     return render_evidence_tables(blueprint)
 
 
-def enrich(verify_path: Path, content_path: Path, blueprint_path: Path, editorial_review_path: Path) -> dict:
-    blueprint = json.loads(blueprint_path.read_text(encoding="utf-8"))
+def validate_editorial_policy(
+    content_path: Path,
+    blueprint: dict,
+    editorial_review_path: Path,
+    editorial_policy_path: Path,
+    publication_mode: str,
+) -> tuple[dict, dict]:
+    """Validate the effective editorial decision and all of its input bindings."""
     editorial_review = json.loads(editorial_review_path.read_text(encoding="utf-8"))
-    if (
-        editorial_review.get("protocol") != "wiki-editorial-review-v1"
-        or editorial_review.get("node_id") != blueprint["node_id"]
-        or editorial_review.get("verdict") != "GO"
-        or editorial_review.get("issues")
-        or not all((editorial_review.get("checks") or {}).values())
-    ):
-        raise ValueError("内容没有通过独立 Editorial Review GO，不得进入确定性组装")
+    editorial_policy = json.loads(editorial_policy_path.read_text(encoding="utf-8"))
+    review_sha256 = hashlib.sha256(editorial_review_path.read_bytes()).hexdigest()
+    content_sha256 = hashlib.sha256(content_path.read_bytes()).hexdigest()
+    valid_review_identity = (
+        editorial_review.get("protocol") == "wiki-editorial-review-v1"
+        and editorial_review.get("node_id") == blueprint["node_id"]
+    )
+    valid_policy_binding = (
+        publication_mode in {"preview", "reviewed"}
+        and editorial_policy.get("protocol") == "wiki-editorial-policy-decision-v1"
+        and editorial_policy.get("publication_mode") == publication_mode
+        and editorial_policy.get("content_sha256") == content_sha256
+        and editorial_policy.get("raw_review_sha256") == review_sha256
+        and editorial_policy.get("review_sha256") == review_sha256
+    )
+    decision = editorial_policy.get("decision")
+    issues = editorial_review.get("issues")
+    checks = editorial_review.get("checks")
+    strict_raw_go = (
+        editorial_review.get("verdict") == "GO"
+        and isinstance(issues, list) and not issues
+        and isinstance(checks, dict) and bool(checks)
+        and all(value is True for value in checks.values())
+    )
+    if decision == "accept":
+        valid_decision = (
+            strict_raw_go
+            and editorial_policy.get("advisory_count") == 0
+            and editorial_policy.get("blocking_count") == 0
+        )
+    elif decision == "accept_with_advisories":
+        valid_decision = (
+            publication_mode == "preview"
+            and editorial_review.get("verdict") != "GO"
+            and isinstance(issues, list)
+            and editorial_policy.get("advisory_count") == len(issues)
+            and editorial_policy.get("blocking_count") == 0
+        )
+    else:
+        valid_decision = False
+    if not (valid_review_identity and valid_policy_binding and valid_decision):
+        raise ValueError("内容没有通过哈希绑定的 Editorial Policy，不得进入确定性组装")
+    return editorial_review, editorial_policy
+
+
+def enrich(
+    verify_path: Path,
+    content_path: Path,
+    blueprint_path: Path,
+    editorial_review_path: Path,
+    editorial_policy_path: Path,
+    publication_mode: str,
+) -> dict:
+    blueprint = json.loads(blueprint_path.read_text(encoding="utf-8"))
+    editorial_review, editorial_policy = validate_editorial_policy(
+        content_path, blueprint, editorial_review_path, editorial_policy_path,
+        publication_mode,
+    )
     rows = _claims(verify_path, blueprint["node_id"])
     scorecard = validate_result(content_path, blueprint, rows)
     content = json.loads(content_path.read_text(encoding="utf-8"))
@@ -237,6 +305,10 @@ def enrich(verify_path: Path, content_path: Path, blueprint_path: Path, editoria
             "protocol": editorial_review["protocol"],
             "verdict": editorial_review["verdict"],
             "sha256": hashlib.sha256(editorial_review_path.read_bytes()).hexdigest(),
+            "policy_protocol": editorial_policy["protocol"],
+            "policy_decision": editorial_policy["decision"],
+            "publication_mode": editorial_policy["publication_mode"],
+            "policy_sha256": hashlib.sha256(editorial_policy_path.read_bytes()).hexdigest(),
         },
         "nodes": {blueprint["node_id"]: {
             "body": body,
@@ -246,7 +318,9 @@ def enrich(verify_path: Path, content_path: Path, blueprint_path: Path, editoria
             "research_claim_ids": sorted(base),
             "content_claim_ids": [row["claim"]["claim_id"] for row in added],
             "scorecard": {**scorecard, "research_claims": len(rows), "content_claims": len(added),
-                          "total_claims": len(all_rows), "editorial_review": "GO"},
+                          "total_claims": len(all_rows),
+                          "editorial_review": editorial_review["verdict"],
+                          "editorial_policy": editorial_policy["decision"]},
         }},
     }
 
@@ -257,10 +331,13 @@ def main() -> int:
     parser.add_argument("content_result", type=Path)
     parser.add_argument("blueprint", type=Path)
     parser.add_argument("editorial_review", type=Path)
+    parser.add_argument("editorial_policy", type=Path)
+    parser.add_argument("publication_mode", choices=("preview", "reviewed"))
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
     result = enrich(args.verify_output.resolve(), args.content_result.resolve(), args.blueprint.resolve(),
-                    args.editorial_review.resolve())
+                    args.editorial_review.resolve(), args.editorial_policy.resolve(),
+                    args.publication_mode)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     node = next(iter(result["nodes"].values()))

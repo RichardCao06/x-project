@@ -737,17 +737,17 @@
 
     <main class="main">
       <header class="hero">
-        <div class="eyebrow">lca-project · Architecture Specification · v1.1</div>
+        <div class="eyebrow">lca-project · Architecture Specification · v1.5</div>
         <h1>
           骨架数据库<br>自治生产平台
           <small>自动化与工程化重构技术设计</small>
         </h1>
         <div class="hero-grid">
-          <p class="hero-thesis">把 Agent 从“流程的主人”降级为“状态机中的受限语义计算节点”，把项目主导权交给持久化状态、版本化协议、确定性 Gate 和自动修复循环。</p>
+          <p class="hero-thesis">把 Agent 从“流程的主人”降级为“状态机中的受限语义计算节点”，把项目主导权交给持久化状态、版本化目标契约、确定性 Gate，以及能够发现目标偏离、受控修复并验证晋级的自我迭代循环。</p>
           <div class="hero-meta" aria-label="文档元数据">
-            <div class="meta-cell"><div class="meta-label">STATUS</div><div class="meta-value">IMPLEMENTED / VALIDATING</div></div>
-            <div class="meta-cell"><div class="meta-label">VERSION</div><div class="meta-value">1.1</div></div>
-            <div class="meta-cell"><div class="meta-label">DATE</div><div class="meta-value">2026-08-11</div></div>
+            <div class="meta-cell"><div class="meta-label">STATUS</div><div class="meta-value">IMPLEMENTED / DESIGN EXTENSION PENDING</div></div>
+            <div class="meta-cell"><div class="meta-label">VERSION</div><div class="meta-value">1.5</div></div>
+            <div class="meta-cell"><div class="meta-label">DATE</div><div class="meta-value">2026-08-17</div></div>
             <div class="meta-cell"><div class="meta-label">SCOPE</div><div class="meta-value">全仓工程化重构</div></div>
           </div>
         </div>
@@ -792,8 +792,9 @@
                 <tr><td>Agent 角色</td><td>兼任计划、执行、检查和汇报</td><td>只做候选生成或独立语义裁决</td></tr>
                 <tr><td>运行状态</td><td>散落在聊天、文件名和局部 journal</td><td>统一 State DB + Event Log</td></tr>
                 <tr><td>产物</td><td>脚本直接写共享目录</td><td>不可变 Artifact，经 Gate 后原子发布</td></tr>
-                <tr><td>失败处理</td><td>人阅读日志后重新发起对话</td><td>错误分类、自动重试、回滚、修复或隔离</td></tr>
+                <tr><td>失败处理</td><td>人阅读日志后重新发起对话</td><td>执行自愈、目标偏离诊断、最小重放或隔离</td></tr>
                 <tr><td>质量声明</td><td>多个局部 PASS 容易被外推为整体完成</td><td>每个 Gate 明示证明范围，发布资格独立计算</td></tr>
+                <tr><td>系统迭代</td><td>用户反馈后人工修改 Gate 或脚本</td><td>偏离聚类、隔离变更、Golden/Mutation/Canary 验证后晋级</td></tr>
               </tbody>
             </table>
           </div>
@@ -905,6 +906,13 @@
               <div class="arch-box"><strong>Repair Controller</strong><small>重试、回滚、隔离、升级</small></div>
             </div>
             <div class="arch-row">
+              <div class="arch-label">Alignment</div>
+              <div class="arch-box accent"><strong>Goal Registry</strong><small>版本化目的、成熟度与不可变边界</small></div>
+              <div class="arch-box"><strong>Deviation Detector</strong><small>False Pass、False Block、质量退化</small></div>
+              <div class="arch-box"><strong>Quality Trajectory</strong><small>单 Job 与 Cohort 多维趋势</small></div>
+              <div class="arch-box"><strong>Change Controller</strong><small>Sandbox、Shadow、Canary、回滚</small></div>
+            </div>
+            <div class="arch-row">
               <div class="arch-label">Execution</div>
               <div class="arch-box span-2"><strong>Deterministic Runtime</strong><small>脚本、构建器、校验器、事务 Apply</small></div>
               <div class="arch-box span-2"><strong>Agent Runtime</strong><small>冻结模型、Prompt、工具、输入输出与 usage</small></div>
@@ -942,7 +950,12 @@ Artifact
     ↓
 Gate
     ↓
-Release</pre>
+Maturity / Goal Alignment
+    ↓
+Release
+
+Goal Contract ──→ Deviation Detector ──→ L0/L1 Repair
+                         └──────────────→ L2 System Change Candidate</pre>
           <p>禁止反向依赖：Agent 不改变 Workflow 状态；Skill 不直接编辑 Wiki；构建脚本不升级 reviewed；领域模块不绕过 Release Manager 写其他模块的权威文件。</p>
         </section>
 
@@ -965,6 +978,7 @@ Release</pre>
             <article class="module-card" data-module="07"><div class="module-type">EXTERNAL PROBE</div><h3>BOM / Product System</h3><p>映射真实 BOM，展开无数值产品系统树，并反向暴露骨架缺口。</p><ul><li>Exact / Coarse / Gap</li><li>递归上游展开</li><li>只提交 gap proposal</li></ul></article>
             <article class="module-card" data-module="08"><div class="module-type">PROJECTION</div><h3>Publication</h3><p>从已发布 Artifact 生成 JSON、HTML、Wiki bundle、索引和 Dashboard。</p><ul><li>Preview 与 production 隔离</li><li>原子发布和回滚</li><li>生成物不是业务真相</li></ul></article>
             <article class="module-card" data-module="09"><div class="module-type">ASSURANCE</div><h3>Evaluation / Governance</h3><p>管理 Golden、缺陷语料、mutation、自动化等级和专家签署。</p><ul><li>Gate Mutation Score</li><li>逃逸缺陷追踪</li><li>自治权限晋级</li></ul></article>
+            <article class="module-card" data-module="10"><div class="module-type">GOAL ALIGNMENT</div><h3>Self-healing / Evolution</h3><p>比较目标、Gate 声明与实际 Artifact，驱动有限修复和受控系统迭代。</p><ul><li>Goal Contract 与质量轨迹</li><li>False Pass / False Block 检测</li><li>Sandbox、Shadow、Canary 晋级</li></ul></article>
           </div>
 
           <h3>模块所有权与主要发布物</h3>
@@ -1116,6 +1130,37 @@ steps:
           <h3>正文与定量表分流</h3>
           <p>Version 6 在 Verify 后生成节点特定 Content Blueprint。正文叙事和定量表采集是两条独立证据流：正文可以使用已确认外部事实、内部图谱事实与显式建模判断；表格数值必须具有冻结参考配置、来源身份、单位和适用范围，并通过独立 Table Population Gate。两条流只在 draft apply 后按哈希汇合，避免“正文写得深”被误认为“数值已经可靠”。</p>
 
+          <h3>面向 LCA 建模的证据工程管线</h3>
+          <div class="callout">
+            <strong>DESIGN EXTENSION · 2026-08-17 · IMPLEMENTATION PENDING</strong><br>
+            Wiki 字段不能直接作为开放检索词。研究必须先冻结参考产品、功能单位、单元过程边界和 LCA Evidence Requirement Matrix，再按来源角色与文档类型检索、冻结全文、提取字段观测、归一化并评价代表性。现有 Hash、来源冻结和显式缺口能力继续保留，但检索目标从“找到网页”升级为“形成可追溯、可比较、可入模的 EvidenceObservation”。
+          </div>
+          <pre>Node + reference product + unit-process boundary
+  → LCA Evidence Requirement Matrix
+  → document-role routing
+  → multi-provider retrieval + quality reranking
+  → full text / attachment / PDF / OCR / table freeze
+  → field-level EvidenceObservation
+  → boundary / technology / geography / time / denominator review
+  → unit normalization + derivation + uncertainty
+  → Evidence Graph + LCA candidate dataset
+  → modeling-ready gate | Research Triage | data request</pre>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>对象</th><th>必须冻结的内容</th><th>禁止的替代做法</th></tr></thead>
+              <tbody>
+                <tr><td>Evidence Requirement</td><td>可观测问题、单位、功能单位/分母、边界、允许来源、代理政策、关键性</td><td>用 Wiki 展示字段和内部 P/A 编号直接拼查询</td></tr>
+                <tr><td>Document Route</td><td>过程族、文档类型、来源角色、查询模板、附件和全文获取策略</td><td>以“搜索结果非空”作为停止条件</td></tr>
+                <tr><td>EvidenceObservation</td><td>值、单位、参考产品、边界、地域、时间、页码/表格/原文、内容 Hash、公式、分配、不确定性</td><td>只有 URL 或只有摘录就把数值写入 LCI</td></tr>
+                <tr><td>Comparability</td><td>身份、技术、边界、分母、地域、时间、来源独立性、提取可信度</td><td>来源权威性代替节点适用性，或只用固定数值差阈值判断真伪</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>证据按 A–E 分级：A 为同工厂同产品同边界的一手数据，B 为同型号或同企业过程资料，C 为同工艺相似产品代理，D 为多来源工程推导，E 为已证明的公共证据缺口。C/D 可以进入候选模型和敏感性分析，但必须显式显示代理角色、调整方法、失效条件和不确定性；E 必须生成企业数据请求，不能被空表或普通成功状态掩盖。</p>
+
+          <h3>过程族文档路由</h3>
+          <p>检索能力按过程族复用，而不是为每个节点手工堆查询。以 A039 所属的 <code>server_final_assembly</code> 为首个垂直样板，至少覆盖制造商 QuickSpecs/配置指南、维护与拆装手册、产品 PCF/EPD 技术附件、工厂环评与排污许可、过程 LCA/制造研究、Open Compute 与拆解报告。产品级 PCF 可作为质量和材料约束，但在无法分解时不得冒充整机总装单元过程。</p>
+
           <h3>规则的单向生成关系</h3>
           <pre>Machine Policy / Schema / Gate
     ↓ 编译
@@ -1195,9 +1240,128 @@ artifact://gate/wiki-release/run_01@sha256:...</pre>
                 <tr><td>G6 Draft Content</td><td>完整 candidate、章节深度、Golden 非退化、coverage</td><td>薄页、模板壳、Product/Activity 混写</td></tr>
                 <tr><td>G6T / G6P 表格</td><td>来源裁决、参考配置、单位、显式缺口、hash lock</td><td>空表伪完成、相邻型号数值错绑、单位漂移</td></tr>
                 <tr><td>G7 Release</td><td>preview、图与跨链、全量 lint、质量合同</td><td>抽样冒充全量、旧报告复用、跨模块冲突</td></tr>
-                <tr><td>G8 Reviewed Apply</td><td>候选哈希与 Gate receipt 一致，发布资格未失效</td><td>审后改稿、陈旧 candidate、越权升级</td></tr>
+                <tr><td>G8 Editorial</td><td>原始审查不可变、局部修复、连贯性和身份一致性</td><td>审查结果篡改、无依据融合、机械拼接</td></tr>
+                <tr><td>G9 Maturity</td><td>Goal 维度聚合、语义冲突、证据与数据就绪度</td><td>Run succeeded 冒充 Candidate、低证据误晋级</td></tr>
+                <tr><td>G9R Research Utility</td><td>查询—抓取—观测—接受—入模漏斗、查询质量、提取覆盖、关键字段覆盖</td><td>大量搜索零产出、错误术语、缺少文档路由、零数据伪完成</td></tr>
+                <tr><td>G10 / G11 Release</td><td>候选哈希、Gate receipt、目标旧哈希与发布权限</td><td>审后改稿、陈旧 candidate、越权升级</td></tr>
               </tbody>
             </table>
+          </div>
+
+          <h3>Goal Contract：Gate 的上位合同</h3>
+          <p>系统不能把“所有 Gate 变绿”当作最终目标。每个领域必须维护独立、版本化的 <code>goal-contract-v1</code>，定义产物要服务的决策、必要结果、禁止结果、成熟度、观测信号、修复权限和评估 Cohort。Gate 是 Goal Contract 的可执行传感器和许可，不得反过来成为系统为提高通过率而追逐的代理目标。</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Goal Contract 维度</th><th>Wiki 目标</th><th>不能用来替代目标的单一指标</th></tr></thead>
+              <tbody>
+                <tr><td>身份与边界</td><td>准确说明节点、相邻对象、输入输出和 LCA 作用</td><td>章节存在、术语出现次数</td></tr>
+                <tr><td>证据</td><td>身份、边界、相邻区分、地域与定量来源角色充分</td><td>来源总数、引用总数</td></tr>
+                <tr><td>内容</td><td>外部事实、图谱事实、建模判断和证据缺口语义闭合</td><td>固定正文长度</td></tr>
+                <tr><td>研究过程完整性</td><td>查询、抓取、拒绝和显式缺口可审计</td><td>把检索执行过解释为数据已就绪</td></tr>
+                <tr><td>证据产出与关键字段</td><td>外部资料形成字段观测，关键 LCA 字段达到过程族最低覆盖</td><td>候选网页数、表格行数</td></tr>
+                <tr><td>建模就绪度</td><td>值、代理、范围、边界、公式和不确定性可进入模型或敏感性分析</td><td><code>no_eligible_public_data</code>、缺口被占位</td></tr>
+                <tr><td>成熟度</td><td>diagnostic、evidence-limited、candidate、reviewed 诚实分级</td><td>Run succeeded</td></tr>
+                <tr><td>读者效用</td><td>能够支持理解、建模、数据采集和审查决策</td><td>Schema 合规</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>三层自我修复与迭代闭环</h3>
+          <div class="callout"><strong>IMPLEMENTED · 2026-08-14</strong><p>Goal Alignment 已接入生产控制平面：migration v6 持久化 Goal、质量观测、偏离、诊断、修复、变更、验证与晋升凭证；migration v7 增加有限 Autonomous Campaign；migration v8 增加持久化 System Repair Agent Run；migration v9 增加未知故障的只读 Failure Triage Agent Run。Supervisor 只能经注册 Skill 幂等创建 Job，并自动物化、执行、审计、预算内修复和验证。Dashboard/CLI 提供自治创建、暂停、恢复、Triage、编码修复状态和审计入口。A037 的翻译假阻塞已由 L1 自动回退修复；A040 假通过已固化为 mutation 回归；A039 的 Editorial 合同错配及 table_collect 启动死锁均已完成自主诊断、编码、分层验证和原节点续跑。</p></div>
+          <div class="callout"><strong>IMPLEMENTED · 2026-08-17 · GOAL-PROGRESS SELF-HEALING</strong><p>Research Outcome Evaluator 已接入 Goal Alignment：即使所有 Task 成功，只要字段级证据产出与建模就绪度为零，也会形成持久 <code>low_research_utility</code> 偏离并启动只读 Triage。<code>no_eligible_public_data</code> 不再计为 data readiness 通过；Autonomous Campaign 通过 <code>completion_goal</code> 区分 <code>lca_modeling_ready</code> 与 <code>workflow_delivery</code>，前者不会把 <code>evidence_limited</code> 聚合为完成。Triage 必须输出目标判断、原因、下一次因果输入变化和可量化 Proof Contract；编码 Agent 必须把这些变化绑定到实际 Snapshot Diff，并为每个证明指标声明产物与测试。</p></div>
+          <div class="three-col">
+            <div class="panel"><h3>L0 · 执行自愈</h3><p>处理 Worker、Lease、Provider、缓存、I/O 和暂时性基础设施故障，不改变业务语义；每次恢复生成新的 Attempt 和证明。</p></div>
+            <div class="panel"><h3>L1 · Job 目标回归</h3><p>自动补查询、查询级翻译、局部正文修复、表格缺口证明，并从最小失效节点重放；质量无改善时停止。</p></div>
+            <div class="panel"><h3>L2 · 系统自我迭代</h3><p>将跨 Job 重复偏离升级为 Gate、Policy、Prompt、配置或代码变更候选，在隔离环境验证后逐步晋级。</p></div>
+          </div>
+
+          <h3>L2 编码 Agent 的受治理执行链</h3>
+          <pre>Execution failure → deterministic fast path | read-only Failure Triage Agent
+Successful low-utility research → Research Outcome Evaluator → read-only Research Triage Agent
+        → evidence-backed causal route + questions + expected metric delta
+        → System Change Candidate
+        → disposable repository snapshot → coding Agent patch + regression tests
+        → deterministic diff / protected-path check / integrity anchor refresh
+        → focused Sandbox → Shadow → full Canary → post-promotion regression
+        → low-risk promotion → workspace refresh → original Task rewind</pre>
+          <p>编码 Agent 只写一次性快照，不能编辑 Goal Contract、修复权限、发布能力、密钥或生成的完整性清单；它也不能签发 Validation Certificate。控制平面独立计算补丁哈希和证书。中高风险候选即使测试通过也停在待批准状态；低风险候选才可自动晋级。验证或合入后回归失败时恢复原文件并记录拒绝/回滚凭证。</p>
+          <p>规则库不是修复入口白名单：已知模式用于低延迟确定性处理，未知失败自动进入 migration v9 持久化的只读 Agent Triage。首次未知失败的调查意图会持久化，即使快速重试暂时隐藏失败形态，下一次自治监督仍会消费；Triage 完成前不得生成猜测性的通用变更候选，并发监督也不得重启正在调查的 Run。Triage 基于冻结 dossier、DAG、上下游前置条件、Artifact、Goal Contract 与源码，自主输出问题类别、因果链、证据、修复层级、风险、恢复 Task、实现目标和 focused tests。指纹只用于去重与经验复用；写权限仍只在受治理的 L2 编码沙箱内授予。</p>
+
+          <h3>偏离检测：目标、声明与实际结果三方比较</h3>
+          <pre>Goal Contract 期望结果
+        ↕ compare
+Gate / Policy 声称的结果
+        ↕ compare
+Artifact + Cohort 趋势 + 用户反馈显示的实际结果</pre>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>偏离模式</th><th>信号</th><th>控制动作</th></tr></thead>
+              <tbody>
+                <tr><td>False Pass</td><td>Gate PASS，但身份冲突、引用覆盖下降、表格无有效数据</td><td>降低成熟度，生成 Gate 覆盖缺陷和系统变更候选</td></tr>
+                <tr><td>False Block</td><td>产物可支持目标，却被固定字数、未知翻译片段等代理指标阻塞</td><td>执行有界 L1 修复，并审查 Gate 合理性</td></tr>
+                <tr><td>Repair Ineffective</td><td>失败指纹、质量向量和来源集合在重试后没有改善</td><td>停止盲重试，升级根因分析</td></tr>
+                <tr><td>Local Fix Recurrence</td><td>相同 failure code 或质量缺陷跨多个节点重复</td><td>聚类为 L2 System Change Candidate</td></tr>
+                <tr><td>Success Without Maturity</td><td>Run succeeded，但 maturity 仍为 diagnostic 或 evidence-limited</td><td>诚实终止，不授予 Wiki Candidate 资格</td></tr>
+                <tr><td>Low Evidence Yield</td><td>抓取候选很多，但字段观测、接受证据和关键字段填值接近零</td><td>启动 Research Triage，区分查询、路由、获取、提取、适用性和真实数据缺口</td></tr>
+                <tr><td>Search Strategy Mismatch</td><td>开放查询包含内部 ID、英文轨含未审计中文、过程族文档路由为空</td><td>L1 改写批次研究计划；跨 Job 复发升级 L2 公共能力</td></tr>
+                <tr><td>Extractor Coverage Gap</td><td>目标字段远多于提取规则，全文已抓取但观测为零</td><td>提出提取能力变更并在 Sandbox/Shadow/Canary 验证</td></tr>
+                <tr><td>False Terminal Low Utility</td><td>LCA 建模资料目标以 evidence-limited 或零填值结束</td><td>改为 needs_research；策略耗尽后转 data_required/needs_attention</td></tr>
+                <tr><td>User Escape Report</td><td>用户指出事实混淆、空表、引用或完整度下降</td><td>冻结偏离样本，回扫同类产物并新增 Mutation</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Wiki Gate 目标偏离实例</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>案例</th><th>偏离</th><th>系统应检测的证据</th><th>行为回归路径</th></tr></thead>
+              <tbody>
+                <tr><td>A040</td><td><span class="badge risk">FALSE PASS</span></td><td>笔记本输出混入服务器主板、散热器和机箱；来源角色不足；六表有效公开数据为零；Run succeeded 与 Candidate 目标不一致</td><td>增加产品族冲突、来源角色、语义闭合和 Maturity Gate；降为 diagnostic_preview；用 A040 Mutation 与 Golden 验证不过度放宽</td></tr>
+                <tr><td>A037</td><td><span class="badge warn">FALSE BLOCK</span></td><td>“机架 PDU”已有部分英文查询，但 unmatched_fragments=[机架]；第一次失败即被判预算耗尽；尚未进入 Search</td><td>生成 rack-mounted PDU 查询级翻译；修复 Repair Budget 边界；重放 research_plan；通过回归、Golden 与 Canary 后晋级公共行为</td></tr>
+                <tr><td>A039</td><td><span class="badge risk">LOW UTILITY</span></td><td>66 条查询、329 个候选，但确认来源 0、观测 0、关键字段填值 0；英文查询保留中文和内部编号；document routes=0；提取器覆盖不足</td><td>产生复合偏离；Research Triage 提出问题并区分失败层级；L1 重写查询/路由，L2 补提取能力；仅以证据漏斗和关键字段正向增量验证修复</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Research Triage 的问题合同与修复路由</h3>
+          <p>研究结果低效用时不能重复执行相同搜索。只读 Triage 必须回答：公开资料确实不存在还是当前路线不可达；哪些关键字段可由产品规格、维护手册、EPD/PCF、环评、过程 LCA 或拆解资料获得；数据丢失发生在查询、抓取、提取、换算还是适用性审核；下一次尝试将改变哪个因果输入；哪些字段最终必须请求企业记录。</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>失败层级</th><th>典型动态证据</th><th>允许动作</th></tr></thead>
+              <tbody>
+                <tr><td>Query</td><td>内部 ID、语言混用、候选主题漂移</td><td>L1 批次级术语与查询改写，重放 Research Plan</td></tr>
+                <tr><td>Route</td><td>过程族无目标文档类型，候选以普通网页为主</td><td>L1 扩展本次路由；复发后 L2 增加公共过程族路由</td></tr>
+                <tr><td>Fetch</td><td>附件、PDF、扫描件或表格未冻结</td><td>附件发现、PDF/OCR/表格获取和有界重试</td></tr>
+                <tr><td>Extract</td><td>全文已抓取但字段观测为零</td><td>L2 增加确定性或语义提取器及 focused tests</td></tr>
+                <tr><td>Applicability</td><td>存在数值但分母、边界或参考产品不一致</td><td>形成 C/D 级代理、范围和失效条件，不放松校验</td></tr>
+                <tr><td>True data gap</td><td>多种独立策略无增量，字段要求节点内部记录</td><td>生成结构化企业数据请求并进入 data_required</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>每个 Repair Plan 必须冻结基线漏斗、拟改变的因果输入、预期指标增量和停止条件。修复后只有新增独立来源、字段观测、可接受证据或关键字段覆盖才算改善；相同查询、相同路由和相同提取能力的重复运行属于无效修复。</p>
+
+          <h3>Goal 相关终态</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>状态</th><th>含义</th><th>对 LCA 建模资料 Campaign 的处理</th></tr></thead>
+              <tbody>
+                <tr><td><code>modeling_ready</code></td><td>关键字段达到过程族合同，所有值、代理和公式可追溯</td><td>完成并交付建模接口</td></tr>
+                <tr><td><code>needs_research</code></td><td>结果低效用，但存在尚未尝试的安全研究路径</td><td>自动启动 Research Triage 和有界 L1/L2 修复</td></tr>
+                <tr><td><code>data_required</code></td><td>公共研究策略已审计耗尽，关键字段依赖内部记录</td><td>生成数据请求，Campaign 进入 needs_attention</td></tr>
+                <tr><td><code>diagnostic_preview</code></td><td>仅供结构和故障诊断</td><td>不计为资料完成</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><code>evidence_limited</code> 是否可结束必须由 Goal Contract 决定：生成诚实 Wiki 草稿时可以是合法终态；目标是 LCA 建模资料包时不能被 Autonomous Supervisor 聚合为 <code>completed</code>。</p>
+
+          <h3>系统行为变更状态机</h3>
+          <div class="state-machine">
+            <span class="state">observed</span><span class="state">diagnosed</span><span class="state">change proposed</span><span class="state">sandbox validated</span><span class="state">shadowed</span><span class="state">canary passed</span><span class="state">promoted</span><span class="state">monitored / rollback</span>
+          </div>
+          <p>普通 Job 不能直接修改线上代码、Goal Contract 或发布权限。低风险执行恢复可自动完成；查询级翻译和局部 Patch 必须重跑目标 Gate；词典、Prompt、阈值和 Repair Budget 需要 Sandbox、Shadow、Canary；节点身份、六表合同、Graph 边、Goal Contract 和发布权限长期保留人工批准。</p>
+          <div class="callout dark">
+            <strong>自我迭代的反偏离约束</strong><br>
+            负责生成系统变更的 Agent 不能签发自己的验证证书；不得通过把失败检查改写为 true、缩小分母或只优化完成率来减少失败。每个变更必须同时验证触发样本、Golden、反例 Mutation 和随机 Cohort，并证明已通过的质量维度没有退化；Canary 恶化时自动回滚到上一冻结版本。
           </div>
 
           <h3>Proof-carrying Claim</h3>
@@ -1259,7 +1423,7 @@ artifact://gate/wiki-release/run_01@sha256:...</pre>
           <ul>
             <li>输入和输出 Artifact 哈希；</li>
             <li>Workflow、Capability、Agent 和 Policy 版本；</li>
-            <li>G0–G8 及 G6T/G6P 表格 Gate 报告；</li>
+            <li>G0–G11、Maturity 及表格合同/数据就绪 Gate 报告；</li>
             <li>模型、搜索、费用和运行 attestation；</li>
             <li>发布范围、Git commit 和回滚目标；</li>
             <li>已解释并允许保留的缺口；</li>
@@ -1274,7 +1438,7 @@ lca-platform materialize job_...
 lca-platform wiki-sync run_... batch_dir
 lca-platform supervise stage-plan.json
 lca-platform workflow-status run_...
-lca-platform conformance --workflow wiki-node-production@6
+lca-platform conformance --workflow wiki-node-production@9
 lca-platform inspect job job_...
 lca-platform exceptions</pre>
 
@@ -1364,6 +1528,13 @@ lca-platform exceptions</pre>
     scheduler.py
     executor.py
     release_manager.py
+    goal_alignment/
+      goal_registry.py
+      deviation_detector.py
+      causal_analyzer.py
+      repair_planner.py
+      quality_trajectory.py
+      change_controller.py
   domains/
     portfolio/
     graph/
@@ -1377,6 +1548,7 @@ lca-platform exceptions</pre>
 
 contracts/
   jobs/  events/  artifacts/  gates/  agents/
+  goals/  deviations/  repair-plans/  change-candidates/  promotion-receipts/
 
 policies/
   graph/  wiki/  cross_link/  lca_binding/  release/  runtime/
@@ -1437,10 +1609,10 @@ sources/    # 冻结来源与摘录</pre>
           <div class="roadmap">
             <article class="phase"><b>PHASE 0</b><h3>资产冻结与分类</h3><ul><li>Capability inventory</li><li>production/pilot/legacy 标记</li><li>一次性脚本迁移登记</li><li>复盘缺陷语料化</li></ul></article>
             <article class="phase"><b>PHASE 1</b><h3>平台 Kernel</h3><ul><li>SQLite State Store</li><li>Artifact CAS</li><li>Event Log 与 Executor</li><li>统一 CLI 与 Release Manager</li></ul></article>
-            <article class="phase"><b>PHASE 2 · ACTIVE</b><h3>Wiki 垂直切片</h3><ul><li>wiki-node-production@6</li><li>Content Blueprint + 表格分流</li><li>G0–G8 Gate</li><li>Stage Supervisor + 分节 reviewer</li></ul></article>
+            <article class="phase"><b>PHASE 2 · ACTIVE</b><h3>Wiki + LCA 证据垂直切片</h3><ul><li>wiki-node-production@9</li><li>Content Blueprint + 六表分流</li><li>A039 server_final_assembly 证据工程样板</li><li>Research Utility Gate + Goal-related terminal</li></ul></article>
             <article class="phase"><b>PHASE 3</b><h3>名称图与跨链</h3><ul><li>Graph release</li><li>Interface contract 自动闭环</li><li>Cross-link release</li><li>失效传播</li></ul></article>
             <article class="phase"><b>PHASE 4</b><h3>LCA 与 BOM</h3><ul><li>绑定协议统一</li><li>BOM 缺口事件化</li><li>产品系统模型发布</li><li>Portfolio 全局覆盖</li></ul></article>
-            <article class="phase"><b>PHASE 5</b><h3>持续自治运行</h3><ul><li>reconcile + worker</li><li>风险分级自动发布</li><li>异常队列</li><li>自治等级晋级</li></ul></article>
+            <article class="phase"><b>PHASE 5</b><h3>目标对齐与持续自治</h3><ul><li>Goal Registry + Research Outcome Evaluator</li><li>Failure / Research Triage</li><li>L0/L1 有界自愈 + L2 Sandbox</li><li>证据增量验证、Canary 与自动回滚</li></ul></article>
           </div>
 
           <h3>第一条生产切片的完成条件</h3>
@@ -1475,6 +1647,17 @@ sources/    # 冻结来源与摘录</pre>
                 <tr><td>Gate Mutation Score</td><td>≥95%</td><td>按领域和 Gate 单独统计</td></tr>
                 <tr><td>P0/P1 逃逸缺陷</td><td>连续 20 批为 0</td><td>达到后才允许低风险自动发布</td></tr>
                 <tr><td>自动修复成功率</td><td>≥90%</td><td>不含政策冲突和专家裁决</td></tr>
+                <tr><td>False Pass 逃逸率</td><td>0</td><td>Gate PASS 但目标不达成的产物不得晋级</td></tr>
+                <tr><td>Candidate 成熟度误标率</td><td>0</td><td>diagnostic / evidence-limited 不得混入 Candidate</td></tr>
+                <tr><td>修复后质量退化率</td><td>0</td><td>触发维度改善且既有通过维度不得下降</td></tr>
+                <tr><td>重复故障跨 Job 复发率</td><td>持续下降</td><td>同类偏离必须升级为系统变更候选</td></tr>
+                <tr><td>低效用研究自动建案率</td><td>100%</td><td>外部来源或关键字段为零时必须产生持久偏离，不依赖用户先发现</td></tr>
+                <tr><td>关键 LCA 字段覆盖</td><td>达到过程族 Goal Contract</td><td>按字段关键性和证据等级统计，不用总表行数替代</td></tr>
+                <tr><td>入模值孤儿率</td><td>0</td><td>每个值可追到原文、页码/表格、内容 Hash、公式、边界和质量向量</td></tr>
+                <tr><td>查询外部术语合规率</td><td>100%</td><td>开放查询不得包含内部节点 ID，语言轨不得保留未审计混用</td></tr>
+                <tr><td>过程族文档路由覆盖</td><td>100% 或显式豁免</td><td>已知生产过程必须有至少一个适配文档路由</td></tr>
+                <tr><td>修复因果输入变化率</td><td>100%</td><td>相同查询、路由和提取能力的重复执行不得计为新修复</td></tr>
+                <tr><td>用户反馈回归转化率</td><td>100%</td><td>每个有效逃逸报告形成 fixture、mutation 或 cohort 规则</td></tr>
                 <tr><td>人工抽检准确率</td><td>≥98%</td><td>按任务类型校准</td></tr>
                 <tr><td>无限重试</td><td>0</td><td>重复失败必须 quarantine</td></tr>
                 <tr><td>单阶段模型调用预算</td><td>≤100</td><td>第 101 次调用前必须 checkpoint</td></tr>
@@ -1512,6 +1695,11 @@ sources/    # 冻结来源与摘录</pre>
             <div class="decision"><dt>ADR-011</dt><dd>单阶段硬上限为 100 个模型调用单位或首次宿主 compaction；超限生成 CAS checkpoint，不允许提示词软约束继续运行。</dd></div>
             <div class="decision"><dt>ADR-012</dt><dd>模型路由属于 Workflow：Terra 生产候选，Sol 执行证据核验和最终只读审查，禁止主会话隐式承担 Worker。</dd></div>
             <div class="decision"><dt>ADR-013</dt><dd>长正文最终审查采用确定性分节、受控并发和代码聚合；传输重试不得触发正文重写。</dd></div>
+            <div class="decision"><dt>ADR-014</dt><dd>Goal Contract 是 Gate 的上位合同；Gate 只提供目标观测与执行许可，不能自行定义业务目标。</dd></div>
+            <div class="decision"><dt>ADR-015</dt><dd>自我修复分为 L0 执行自愈、L1 Job 目标回归和 L2 系统迭代；运行中的 Job 不得直接修改线上代码、Goal Contract 或发布权限。</dd></div>
+            <div class="decision"><dt>ADR-016</dt><dd>L2 行为变化必须生成独立验证证书，经过触发样本、Golden、Mutation、Shadow 与 Canary；质量退化自动回滚。</dd></div>
+            <div class="decision"><dt>ADR-017</dt><dd>研究过程完整性与建模数据就绪度必须独立表达；<code>no_eligible_public_data</code> 不能计为 data ready，<code>evidence_limited</code> 的终态含义由具体 Goal Contract 决定。</dd></div>
+            <div class="decision"><dt>ADR-018</dt><dd>LCA 外部资料检索以 Evidence Requirement Matrix、过程族 Document Route 和字段级 EvidenceObservation 为核心；修复必须改变因果输入，并用证据漏斗和关键字段覆盖的正向增量证明有效。</dd></div>
           </dl>
         </section>
 
@@ -1561,6 +1749,22 @@ sources/    # 冻结来源与摘录</pre>
 
           <div class="revision-log">
             <article class="revision-entry current">
+              <div><span class="revision-version">v1.5</span><span class="revision-date">2026-08-17</span></div>
+              <div><h3>补充 LCA 证据工程与成功但低效用的自动发现、提问和修复设计</h3><p>基于 A039 的最终产出复盘，明确区分 research process integrity、evidence yield、critical field coverage 与 model data readiness；禁止把 <code>no_eligible_public_data</code> 解释为建模就绪。新增 Evidence Requirement Matrix、过程族文档路由、EvidenceObservation、A–E 证据等级、查询—抓取—观测—接受—入模漏斗、Research Outcome Evaluator、Research Triage 问题合同、查询/路由/获取/提取/适用性/真实缺口六类修复路由，以及 modeling_ready / needs_research / data_required 的目标相关终态。其中 Research Outcome Evaluator、成功但低效用的自动建案、只读 Triage 强制问题合同、Proof Contract、基于目标增益的偏差关闭条件和 Campaign <code>completion_goal</code> 已实现；过程族定向路由与通用语义提取器继续按 L2 候选逐步落地。</p></div>
+            </article>
+            <article class="revision-entry">
+              <div><span class="revision-version">v1.4</span><span class="revision-date">2026-08-14</span></div>
+              <div><h3>未知故障自动进入问题驱动的只读 Agent Triage</h3><p>新增 migration v9、Failure Triage Contract/Run、未知失败 dossier、问题类别与动态 L0/L1/L2 路由；规则和指纹降级为快速路径与经验缓存。以 A039 table_collect 未知故障真实验证：Agent 自主发现启动死锁并选择低风险代码修复，14/14 focused、32/32 Shadow、268/268 Canary、268/268 post-promotion；原节点 Attempt 3 成功，66/66 专项查询成功、抓取 257 份 payload，后续搜索执行 Gate PASS。</p></div>
+            </article>
+            <article class="revision-entry">
+              <div><span class="revision-version">v1.3</span><span class="revision-date">2026-08-14</span></div>
+              <div><h3>接入受治理的自主编码、验证与原 Job 恢复闭环</h3><p>新增 migration v8 与 System Repair Agent Run；将 L2 偏离连接到固定模型的一次性仓库快照，加入受保护路径、补丁哈希、完整性锚点生成、Sandbox/Shadow/Canary/合入后回归、风险分级晋级、失败恢复和候选修订链；Dashboard/CLI 可查看修复状态。以 A039 Editorial Policy 合同错配完成真实端到端验证：20/20 focused、28/28 Shadow、263/263 Canary、263/263 post-promotion，并在原 draft_content_gate 新 Attempt 中通过。</p></div>
+            </article>
+            <article class="revision-entry">
+              <div><span class="revision-version">v1.2</span><span class="revision-date">2026-08-14</span></div>
+              <div><h3>纳入目标对齐、自我修复与系统迭代控制平面</h3><p>同步 wiki-node-production@9；新增 Goal Registry、Deviation Detector、Quality Trajectory 和 Change Controller；将 Gate 明确为 Goal Contract 的传感器而非最终目标；定义 L0 执行自愈、L1 Job 目标回归和 L2 系统行为迭代；补充 False Pass、False Block、无效修复和跨 Job 复发检测；以 A040 低质量误晋级和 A037 翻译/预算误阻塞为示例；冻结 Sandbox、Golden、Mutation、Shadow、Canary、Promotion 与自动回滚路径。</p></div>
+            </article>
+            <article class="revision-entry">
               <div><span class="revision-version">v1.1</span><span class="revision-date">2026-08-11</span></div>
               <div><h3>同步 Wiki v6、Skill 路由与性能工程重构</h3><p>将文档状态从 proposed 更新为 implemented / validating；把标准 SKILL.md 与机器 route manifest 分离、一节点一 Job、请求/路由双哈希、18 步 wiki-node-production@6、Content Blueprint、正文/表格双证据流、G0–G8、Terra/Sol 显式路由、Stage Supervisor、100 次硬预算、compaction checkpoint 和分节 reviewer 写入权威设计。加入 A039 验证：正文定量 Gate 通过，但语义审稿 NO_GO 11 项，因此未 Apply、未 Publish。</p></div>
             </article>
@@ -1572,6 +1776,10 @@ sources/    # 冻结来源与摘录</pre>
 
           <h3>本次修订依据</h3>
           <ul>
+            <li><code>系统自我修复与目标对齐架构</code>：Goal Contract、偏离检测、三层闭环、行为晋级证据和安全边界。</li>
+            <li>A039 研究效用审计：66 条查询、329 个候选、确认外部来源 0、关键字段填值 0、document routes 为空，以及查询外部术语和提取器覆盖缺陷。</li>
+            <li>LCA 建模资料目标：准确、丰富、可追溯的外部资料与引用数据，以及值—公式—原文—定位—内容 Hash 的反向追溯要求。</li>
+            <li>A040 / A037 生产反馈：分别固化 Gate False Pass 与 False Block 的目标偏离案例。</li>
             <li><code>P003节点Wiki生产全流程复盘与Golden-Case工作流</code>：正文拼凑、引用呈现、表格缺口和多轮失败根因。</li>
             <li>A039 production checkpoint：正文 Gate、整页 reviewer 传输失败、分节 reviewer 的 11 项 NO_GO。</li>
             <li><code>skill.manifest.json</code>、<code>wiki-production-request-v2</code>、<code>runtime-routing-v1</code>、<code>wiki-node-production@6</code>、<code>stage_supervisor.py</code> 和自动化测试。</li>
@@ -1587,7 +1795,7 @@ sources/    # 冻结来源与摘录</pre>
         <footer class="footer">
           <div class="footer-grid">
             <span>lca-cornerstone · 骨架数据库自治生产平台</span>
-            <span>Technical Design · v1.1 · 2026-08-11</span>
+            <span>Technical Design · v1.5 · 2026-08-17</span>
           </div>
         </footer>
       </article>

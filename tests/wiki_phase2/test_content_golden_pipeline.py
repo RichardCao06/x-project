@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 from pathlib import Path
+import subprocess
+import sys
 
 from wiki_claim_coverage import body_of
 from wiki_content_enrich import render_product_tables
@@ -12,6 +15,13 @@ from run_wiki_content_capture import validate_result
 
 ROOT = Path(__file__).resolve().parents[2]
 VENDOR = ROOT / "vendor/lca_cornerstone"
+_NORMALIZER_SPEC = importlib.util.spec_from_file_location(
+    "normalize_wiki_content_claims", ROOT / "scripts/normalize_wiki_content_claims.py"
+)
+assert _NORMALIZER_SPEC and _NORMALIZER_SPEC.loader
+_NORMALIZER = importlib.util.module_from_spec(_NORMALIZER_SPEC)
+_NORMALIZER_SPEC.loader.exec_module(_NORMALIZER)
+normalize_sections = _NORMALIZER.normalize_sections
 
 
 def test_old_p003_fixture_is_a_negative_golden_case() -> None:
@@ -22,7 +32,7 @@ def test_old_p003_fixture_is_a_negative_golden_case() -> None:
     )
     checks, _ = _blueprint_checks(text, body_of(text), blueprint)
     assert not all(checks.values())
-    assert not checks["content_blueprint_body_depth"]
+    assert "content_blueprint_body_depth" not in checks
     assert not checks["content_blueprint_required_topics"]
     assert not checks["content_blueprint_node_specific_tables"]
 
@@ -40,12 +50,38 @@ def test_p003_blueprint_tables_are_node_specific_and_lint_safe() -> None:
     assert rendered.count("<!-- EV:quality:START -->") == 1
 
 
+def test_normalizer_recovers_semantically_merged_activity_sections() -> None:
+    blueprint = {
+        "sections": {
+            "定义与参考活动": {"topics": ["转换动作和技术路线"]},
+            "参考产品与参考单位": {"topics": ["参考产品身份", "按台交接的参考单位"]},
+            "单元过程边界": {"topics": ["纳入的装配、连接、配置与测试"]},
+            "技术路线与相邻活动区分": {"topics": ["返工和内部循环的处理"]},
+        },
+    }
+    document = {"sections": [
+        {"heading": "定义与参考活动", "paragraphs": [
+            {"focus": "A015转换动作"}, {"focus": "参考产品身份"},
+            {"focus": "按台交接的参考单位"},
+        ]},
+        {"heading": "单元过程边界", "paragraphs": [
+            {"focus": "纳入的装配连接"}, {"focus": "返工和内部循环的处理"},
+        ]},
+    ]}
+
+    normalize_sections(document, blueprint)
+
+    assert [section["heading"] for section in document["sections"]] == list(blueprint["sections"])
+    assert [row["focus"] for row in document["sections"][1]["paragraphs"]] == [
+        "参考产品身份", "按台交接的参考单位",
+    ]
+
+
 def _editorial_contract() -> tuple[dict, list[dict]]:
     blueprint = {
         "node_id": "P003",
         "sections": {"性质与形态": {"minimum_paragraphs": 1}},
         "golden_target": {
-            "minimum_body_chars": 1,
             "minimum_assertions": 2,
             "maximum_assertions": 4,
             "minimum_paragraphs": 1,
@@ -148,4 +184,91 @@ def test_nonconfirmed_external_claim_is_not_required_and_graph_fact_can_ground_j
         ]}]}]}
     path = tmp_path / "content.json"
     path.write_text(json.dumps(content, ensure_ascii=False), encoding="utf-8")
-    assert validate_result(path, blueprint, rows)["checks"]["required_tokens"]
+    assert validate_result(path, blueprint, rows)["checks"]["identity_tokens"]
+
+
+def test_unused_confirmed_claim_and_legacy_quantity_minima_are_advisory(tmp_path: Path) -> None:
+    blueprint, rows = _editorial_contract()
+    blueprint["golden_target"].update({
+        "minimum_assertions": 48,
+        "minimum_paragraphs": 18,
+        "minimum_modeling_judgments": 32,
+    })
+    content = {
+        "protocol": "wiki-content-draft-v2",
+        "node_id": "P003",
+        "sections": [{
+            "heading": "性质与形态",
+            "paragraphs": [{
+                "focus": "刀片服务器产品身份和证据适用边界",
+                "sentences": [
+                    {"text": "刀片服务器至少包含处理器和系统内存。",
+                     "claim_kind": "external_fact", "rhetorical_role": "thesis",
+                     "evidence_claim_ids": ["P003-4"]},
+                    {"text": "该事实用于确认产品身份，不用于推断具体型号配置。",
+                     "claim_kind": "modeling_judgment", "rhetorical_role": "boundary",
+                     "evidence_claim_ids": []},
+                ],
+            }],
+        }],
+    }
+    path = tmp_path / "content.json"
+    path.write_text(json.dumps(content, ensure_ascii=False), encoding="utf-8")
+
+    score = validate_result(path, blueprint, rows)
+
+    assert score["unused_claim_ids"] == ["P003-5"]
+    assert score["unused_claim_reason"] == "not_selected_for_prose"
+    assert not score["advisories"]["claim_coverage"]
+    assert not score["advisories"]["recommended_assertions"]
+    assert all(score["checks"].values())
+
+
+def test_normalizer_persists_repairs_and_hands_residual_issue_to_model(tmp_path: Path) -> None:
+    verify = tmp_path / "verify.json"
+    blueprint = tmp_path / "blueprint.json"
+    runtime = tmp_path / "content-runtime"
+    content = runtime / "content-result.json"
+    usage = runtime / "content-usage.json"
+    validator = tmp_path / "validator.py"
+    runtime.mkdir()
+    verify.write_text(json.dumps({"claims": [{
+        "claim": {"claim_id": "A040-29", "node_id": "A040", "section": "定义",
+                  "claim_kind": "modeling_judgment", "claim_text": "冻结建模判断"},
+        "verify": {"verdict": "CONFIRMED"},
+    }]}), encoding="utf-8")
+    blueprint.write_text(json.dumps({
+        "sections": {"定义": {"topics": []}},
+        "golden_target": {"maximum_modeling_judgments": 20},
+    }), encoding="utf-8")
+    content.write_text(json.dumps({"sections": [{"heading": "定义", "paragraphs": [{
+        "focus": "测试", "sentences": [{
+            "text": f"句子 {index}", "claim_kind": "modeling_judgment",
+            "evidence_claim_ids": ["A040-29"], "rhetorical_role": "boundary",
+        } for index in range(4)],
+    }]}]}), encoding="utf-8")
+    usage.write_text(json.dumps({"validation_error": "overused=['A040-29']"}),
+                     encoding="utf-8")
+    validator.write_text(
+        "def validate_result(*args):\n"
+        "    raise ValueError(\"Content Golden contract 失败: {'identity_tokens': False}\")\n",
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run([
+        sys.executable, str(ROOT / "scripts/normalize_wiki_content_claims.py"),
+        str(verify), str(blueprint), str(content), str(validator),
+    ], text=True, capture_output=True, check=False)
+
+    assert completed.returncode == 2
+    repaired = json.loads(content.read_text(encoding="utf-8"))
+    uses = sum(
+        sentence["evidence_claim_ids"].count("A040-29")
+        for section in repaired["sections"]
+        for paragraph in section["paragraphs"]
+        for sentence in paragraph["sentences"]
+    )
+    assert uses == 3
+    residual = json.loads(usage.read_text(encoding="utf-8"))
+    assert residual["normalization_status"] == "residual_issues"
+    assert "identity_tokens" in residual["validation_error"]

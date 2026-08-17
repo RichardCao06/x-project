@@ -13,16 +13,17 @@ def module():
     return value
 
 
-def test_activity_blueprint_renders_all_five_required_table_contracts() -> None:
+def test_activity_blueprint_renders_all_six_required_table_contracts() -> None:
     blueprint = {"node_id": "A039", "node_type": "activity", "evidence_tables": {
         "flows": ["P003 output", "parts input", "electricity", "packaging"],
+        "props": ["identity", "model", "mass", "handoff"],
         "emissions": ["air", "water", "waste"],
         "indicators": ["yield", "rework", "energy"],
         "params": ["p1", "p2", "p3", "p4", "p5", "p6"],
         "quality": ["q1", "q2", "q3", "q4", "q5"],
     }}
     rendered = module().render_evidence_tables(blueprint)
-    for kind in ("flows", "emissions", "indicators", "params", "quality"):
+    for kind in ("flows", "props", "params", "emissions", "indicators", "quality"):
         assert f"<!-- EV:{kind}:START -->" in rendered
     assert "P003 成品级刀片服务器边界" not in rendered
     assert "A039 单元过程数据" in rendered

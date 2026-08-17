@@ -12,10 +12,9 @@ from pathlib import Path
 from run_wiki_content_capture import DISABLED, _claims, sanitize_output_schema, validate_result
 
 
-def section_target(heading: str) -> tuple[int, int]:
-    if heading in {"区域化补充要求", "数据适用状态与缺口"}:
-        return 680, 6
-    return 780, 6
+def section_minimum_sentences(heading: str) -> int:
+    # A section needs a coherent paragraph, not a fixed amount of padding.
+    return 2
 
 
 def generate_section(
@@ -36,7 +35,7 @@ def generate_section(
     effective_schema["properties"]["heading"] = {"type": "string", "const": heading}
     schema_path = section_dir / "schema.json"
     schema_path.write_text(json.dumps(effective_schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    target_chars, target_sentences = section_target(heading)
+    target_sentences = section_minimum_sentences(heading)
     claim_payload = [{
         "claim_id": row["claim"]["claim_id"],
         "claim_kind": row["claim"]["claim_kind"],
@@ -45,12 +44,13 @@ def generate_section(
     } for row in claims]
     prompt = (
         "你是节点 Wiki 的章节编辑。无工具、无网络，只写一个中文技术百科章节。"
-        "研究 claim 是证据账，不得逐条照抄或按输入顺序罗列；本节给出的 claim 必须通过 evidence_claim_ids 至少映射一次、最多三次，"
+        "研究 claim 是证据账，不得逐条照抄或按输入顺序罗列；只选用与本节论点直接相关的 claim，未选用项保留在证据账中；"
+        "选用的 claim 通过 evidence_claim_ids 映射且最多出现三次，"
         "语义重复或互补者应融合成一句自然事实句，一句可映射多 claim，但不得扩大原义。"
         "每段有唯一 focus、2-4 句、第一句为唯一 thesis，后句必须解释、限定、应用或给出 LCA 含义；"
         "每段最多一个 external_fact，新增内容只能是 modeling_judgment/evidence_gap 且 evidence_claim_ids=[]。"
         "统一产品身份和术语；不得把刀片服务器与服务器刀片虚构成不同层级。"
-        f"本节至少 {target_chars} 个中文字符、至少 {target_sentences} 句，优先保证逻辑密度而非堆句。"
+        f"本节至少形成一个完整段落（不少于 {target_sentences} 句），优先保证逻辑密度；不设最低字符数且不得堆句。"
         "不得编造数值、法规、供应商事实或具名型号。输出只匹配 schema。\n"
         f"NODE_ID={node_id}\nHEADING={heading}\nCONTRACT={json.dumps(contract, ensure_ascii=False)}\n"
         f"CLAIMS={json.dumps(claim_payload, ensure_ascii=False)}"
@@ -78,7 +78,7 @@ def generate_section(
             value = json.loads(raw.read_text(encoding="utf-8"))
             text_chars = sum(len(sentence["text"]) for paragraph in value["paragraphs"] for sentence in paragraph["sentences"])
             sentence_count = sum(len(paragraph["sentences"]) for paragraph in value["paragraphs"])
-            if text_chars >= target_chars and sentence_count >= target_sentences:
+            if sentence_count >= target_sentences:
                 final = section_dir / "section.json"
                 raw.replace(final)
                 return {"heading": heading, "exit_code": 0, "path": str(final),

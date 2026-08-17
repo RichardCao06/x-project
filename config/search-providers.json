@@ -1,0 +1,220 @@
+{
+  "schema_version": "lca-search-providers-v1",
+  "enabled": true,
+  "secret_file": ".env.search.local",
+  "network": {
+    "allow_synthetic_proxy_dns": true
+  },
+  "query_policy": {
+    "required_languages": [
+      "zh",
+      "en"
+    ],
+    "expand_research_plan": true,
+    "candidate_aliases_are_discovery_only": true,
+    "source_hint_mode": "advisory_nonexclusive",
+    "max_queries_per_provider": 20,
+    "max_results_per_query": 10,
+    "timeout_seconds": 30
+    ,"global_concurrency": 6
+    ,"provider_concurrency": 2
+    ,"query_cache_ttl_seconds": 86400
+    ,"fetch_cache_ttl_seconds": 604800
+  },
+  "routing": {
+    "zh": [
+      "baidu_qianfan",
+      "firecrawl",
+      "exa",
+      "duckduckgo_html",
+      "google_browser"
+    ],
+    "en": [
+      "exa",
+      "firecrawl",
+      "baidu_qianfan",
+      "duckduckgo_html",
+      "google_browser"
+    ],
+    "technical": [
+      "exa",
+      "firecrawl",
+      "baidu_qianfan",
+      "duckduckgo_html",
+      "google_browser"
+    ],
+    "government_cn": [
+      "baidu_qianfan",
+      "firecrawl",
+      "exa",
+      "duckduckgo_html",
+      "google_browser"
+    ]
+  },
+  "fallback_policy": {
+    "continue_on": [
+      "timeout",
+      "provider_error",
+      "backend_blocked",
+      "not_found",
+      "zero_results"
+    ],
+    "stop_on": [
+      "invalid_query",
+      "budget_exhausted",
+      "security_rejection"
+    ],
+    "minimum_successful_providers": 1,
+    "minimum_distinct_domains": 2,
+    "freeze_every_attempt": true,
+    "never_treat_challenge_as_not_found": true
+  },
+  "providers": {
+    "baidu_qianfan": {
+      "enabled": true,
+      "tier": "primary",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "endpoint": "https://qianfan.baidubce.com/v2/ai_search/web_search",
+      "method": "POST",
+      "auth": {
+        "type": "bearer",
+        "header": "X-Appbuilder-Authorization",
+        "api_key_env": "QIANFAN_SEARCH_API_KEY"
+      },
+      "request_defaults": {
+        "search_source": "baidu_search_v2",
+        "resource_type_filter": [
+          {
+            "type": "web",
+            "top_k": 10
+          }
+        ],
+        "safe_search": false
+      },
+      "cost_control": {
+        "max_requests_per_job": 20
+      }
+    },
+    "exa": {
+      "enabled": true,
+      "tier": "primary",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "endpoint": "https://api.exa.ai/search",
+      "method": "POST",
+      "auth": {
+        "type": "api_key",
+        "header": "x-api-key",
+        "api_key_env": "EXA_API_KEY"
+      },
+      "request_defaults": {
+        "type": "auto",
+        "numResults": 10,
+        "contents": {
+          "highlights": true,
+          "text": false
+        }
+      },
+      "cost_control": {
+        "max_requests_per_job": 20
+      }
+    },
+    "firecrawl": {
+      "enabled": true,
+      "tier": "secondary",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "endpoint": "https://api.firecrawl.dev/v2/search",
+      "method": "POST",
+      "auth": {
+        "type": "bearer",
+        "header": "Authorization",
+        "api_key_env": "FIRECRAWL_API_KEY"
+      },
+      "request_defaults": {
+        "limit": 10,
+        "sources": [
+          "web"
+        ],
+        "timeout": 30000,
+        "ignoreInvalidURLs": false
+      },
+      "cost_control": {
+        "max_requests_per_job": 20
+      }
+    },
+    "duckduckgo_html": {
+      "enabled": true,
+      "tier": "fallback",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "endpoint": "https://html.duckduckgo.com/html/",
+      "method": "GET",
+      "auth": {
+        "type": "none"
+      },
+      "execution_mode": "best_effort_http",
+      "request_defaults": {
+        "allow_synthetic_proxy_dns": true,
+        "max_results": 10
+      },
+      "response_policy": {
+        "challenge_markers": [
+          "anomaly-modal",
+          "Unfortunately, bots use DuckDuckGo too",
+          "challenge-form"
+        ],
+        "challenge_status": "backend_blocked"
+      },
+      "cost_control": {
+        "max_requests_per_job": 5
+      }
+    },
+    "google_browser": {
+      "enabled": true,
+      "tier": "last_resort",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "execution_mode": "browser_handoff",
+      "query_url_template": "https://www.google.com/search?q={urlencoded_query}",
+      "auth": {
+        "type": "browser_session"
+      },
+      "automation_policy": {
+        "background_serp_scraping": false,
+        "requires_human_handoff": true,
+        "freeze_selected_results_before_fetch": true
+      },
+      "cost_control": {
+        "max_requests_per_job": 5
+      }
+    }
+  },
+  "output_contract": {
+    "protocol": "wiki-frozen-search-v1",
+    "required_result_fields": [
+      "provider",
+      "query_id",
+      "query",
+      "language",
+      "status",
+      "title",
+      "url",
+      "snippet",
+      "rank",
+      "requested_at",
+      "response_sha256"
+    ]
+  }
+}

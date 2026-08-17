@@ -76,7 +76,8 @@ def main() -> int:
     prompt = (
         f"你是独立 Verify Agent。只读取 {evidence}。不得联网、搜索、调用浏览器、"
         f"补充来源或修改文件。只裁决 candidates 非空的 {external_count} 条断言；每条必须选择唯一冻结 "
-        "evidence_id。CONFIRMED/CONTRADICTED 的 supporting_quote 必须是对应 excerpt 的逐字连续子串；"
+        "evidence_id。CONFIRMED/CONTRADICTED 的 supporting_quote 必须从对应 excerpt 原样复制为逐字连续子串，"
+        "不得改写、合并、删除或规范化空格；只引用足以支持裁决的最短原文片段，避免跨句长引文；"
         "先把候选原文对象与 claim.node_identity 对齐为 EXACT/ADJACENT/UNRELATED；只有 EXACT 才能 CONFIRMED。"
         "机箱与刀片服务器模块、裸板与PCBA、上游组件与整机、相邻工艺均只能判 ADJACENT；"
         "若原文仅支持部分或断言含原文未支持的推论，裁决 INSUFFICIENT 且 supporting_quote 可为空。"

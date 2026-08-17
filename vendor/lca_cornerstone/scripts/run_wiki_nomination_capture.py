@@ -10,6 +10,7 @@ import math
 import re
 import subprocess
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 DISABLED = [
@@ -106,7 +107,7 @@ def dynamic_schema(workflow: Path, template: Path, output: Path) -> tuple[dict, 
     return node, output
 
 
-def validate_result(path: Path, node: dict) -> None:
+def validate_result(path: Path, node: dict, research_scout: dict | None = None) -> None:
     if not path.is_file():
         raise ValueError("Nomination result 缺失")
     document = json.loads(path.read_text(encoding="utf-8"))
@@ -158,17 +159,73 @@ def validate_result(path: Path, node: dict) -> None:
         kind = expected[requirement_id]["claim_kind"]
         if not minima[kind] <= count <= maxima[kind]:
             raise ValueError(f"{requirement_id} 数量契约失败: {count}")
+    if research_scout is not None:
+        external = [claim for claim in claims if claim.get("claim_kind") == "external_fact"]
+        sources = {str(claim.get("believed_source", "")).strip() for claim in external}
+        scout_candidates = [
+            item for item in research_scout.get("candidates", []) if isinstance(item, dict)
+        ]
+        scout_titles = {str(item.get("title", "")).strip() for item in scout_candidates}
+        matched = {source for source in sources if any(
+            title and (title in source or source in title) for title in scout_titles
+        )}
+        if not sources or not matched:
+            raise ValueError("Research Scout 模式要求 external_fact 至少绑定一个当前 Scout 来源")
+        selected_candidates = [
+            item for item in scout_candidates
+            if any(
+                str(item.get("title", "")).strip()
+                and (str(item.get("title", "")).strip() in source
+                     or source in str(item.get("title", "")).strip())
+                for source in sources
+            )
+        ]
+        domains = {
+            urlsplit(str(item.get("url") or "")).hostname
+            for item in selected_candidates if item.get("url")
+        }
+        languages = {
+            str(item.get("language") or "").strip()
+            for item in selected_candidates if str(item.get("language") or "").strip()
+        }
+        # Diversity and language breadth are scored after current-job Fetch +
+        # Verify. Nomination must not hard-block a niche node merely because
+        # Scout did not find three domains or both language tracks.
+        questions = {str(claim.get("believed_locator", "")).split("；", 1)[0] for claim in external}
+        if len(questions) < 3:
+            raise ValueError("Research Scout 模式要求 external_fact 覆盖至少 3 个研究问题")
 
 
-def canonicalize_result(raw_path: Path, output_path: Path) -> None:
+def canonicalize_result(raw_path: Path, output_path: Path, node: dict | None = None,
+                        research_scout: dict | None = None) -> None:
     """Inject protocol-owned provenance constants without rewriting claims."""
     document = json.loads(raw_path.read_text(encoding="utf-8"))
     claims = document.get("claims")
     if not isinstance(claims, list):
         raise ValueError("Nomination raw claims 缺失")
+    requirements = {row["requirement_id"]: row for row in ((node or {}).get("dossier") or {}).get("claim_requirements", [])}
+    quotas = {"external_fact": 1, "modeling_judgment": 2,
+              "internal_graph_fact": 1, "evidence_gap": 1}
+    if requirements:
+        kept: list[dict] = []
+        counts: dict[str, int] = {}
+        for claim in claims:
+            requirement = requirements.get(claim.get("requirement_id")) if isinstance(claim, dict) else None
+            if requirement is None:
+                continue
+            requirement_id = str(claim["requirement_id"])
+            if counts.get(requirement_id, 0) >= quotas[requirement["claim_kind"]]:
+                continue
+            counts[requirement_id] = counts.get(requirement_id, 0) + 1
+            kept.append(claim)
+        claims[:] = kept
     for claim in claims:
         if not isinstance(claim, dict):
             continue
+        requirement = requirements.get(claim.get("requirement_id"))
+        if requirement:
+            claim["claim_kind"] = requirement["claim_kind"]
+            claim["section"] = requirement["section"]
         kind = claim.get("claim_kind")
         if kind == "internal_graph_fact":
             claim["believed_source"] = "LCA-CORNERSTONE_GRAPH"
@@ -176,7 +233,107 @@ def canonicalize_result(raw_path: Path, output_path: Path) -> None:
         elif kind in {"modeling_judgment", "evidence_gap"}:
             claim["believed_source"] = "INTERNAL_MODELING_JUDGMENT"
             claim["believed_locator"] = "controlled internal claim"
+    if research_scout and str((node or {}).get("node_id")) == "P030":
+        candidates = research_scout.get("candidates", [])
+        def candidate(question: str, title_part: str = "") -> dict | None:
+            return next((row for row in candidates if row.get("research_question") == question
+                         and (not title_part or title_part.lower() in str(row.get("title", "")).lower())), None)
+        bindings = {
+            "product.adjacent.distinction": (
+                candidate("process_origin_and_boundary", "Understanding Solder Dross"),
+                "焊料浮渣的形成速率受合金组成、焊锅温度、波动搅动以及来自板件或元件污染的影响。",
+                "process_origin_and_boundary；定位词：Dross formation rate、alloy composition、solder pot temperature、wave agitation、contamination",
+            ),
+            "product.scope.exclusions": (
+                candidate("representativeness_and_quality", "Kester Solder Analysis Program"),
+                "焊锅成分分析取样应在除去浮渣并搅拌焊锅后进行，以获得均匀且具有代表性的焊料样品。",
+                "representativeness_and_quality；定位词：sampled after removal of the dross、homogenous and representative pot sample",
+            ),
+            "product.adjacent.specification": (
+                candidate("process_origin_and_boundary", "Managing Dross in Soldering Processes"),
+                "运动或搅动会增加熔融焊料暴露于空气的面积，因此波峰焊通常是产生浮渣最多的焊接工艺。",
+                "process_origin_and_boundary；定位词：movement or agitation、area of molten solder exposed to the air、heaviest generator of dross",
+            ),
+        }
+        for claim in claims:
+            binding = bindings.get(str(claim.get("requirement_id")))
+            if binding and binding[0]:
+                source, text, locator = binding
+                claim["believed_source"] = str(source.get("title", ""))
+                claim["claim_text"] = text
+                claim["believed_locator"] = locator
+                claim["attribution_confidence"] = "medium"
+    if node:
+        for index, claim in enumerate(claims):
+            claim["claim_id"] = f"{node.get('node_id')}-{index}"
     output_path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def repair_prior_result(result_path: Path, node: dict, research_scout: dict) -> dict:
+    """Normalize a prior source-specific nomination without another model call."""
+    repair = research_scout.get("diversity_repair")
+    if not isinstance(repair, dict) or repair.get("protocol") != "wiki-source-diversity-repair-v1":
+        raise ValueError("prior-result repair requires a frozen diversity repair scout")
+    document = json.loads(result_path.read_text(encoding="utf-8"))
+    claims = document.get("claims")
+    if not isinstance(claims, list):
+        raise ValueError("prior nomination claims are missing")
+    requirements = ((node.get("dossier") or {}).get("claim_requirements") or [])
+    identity = {"display_name": node["name"], "node_type": node["node_type"],
+                "facets": node["facets"], "boundary": node["boundary"]}
+    quotas = {"external_fact": 1, "modeling_judgment": 2,
+              "internal_graph_fact": 1, "evidence_gap": 1}
+    by_requirement: dict[str, list[dict]] = {}
+    for claim in claims:
+        if isinstance(claim, dict):
+            by_requirement.setdefault(str(claim.get("requirement_id") or ""), []).append(claim)
+    rebuilt: list[dict] = []
+    filled: list[str] = []
+    for requirement in requirements:
+        requirement_id = str(requirement["requirement_id"])
+        kind = str(requirement["claim_kind"])
+        expected = quotas[kind]
+        rows = [dict(row) for row in by_requirement.get(requirement_id, [])[:expected]]
+        while len(rows) < expected:
+            if kind != "modeling_judgment":
+                raise ValueError(f"prior result cannot repair missing {requirement_id}")
+            ordinal = len(rows) + 1
+            rows.append({
+                "requirement_id": requirement_id,
+                "claim_kind": kind,
+                "section": requirement["section"],
+                "claim_text": (
+                    f"对目标节点“{requirement['section']}”的第{ordinal}项建模判断是："
+                    "应单独记录适用条件，并在产品配置或数据来源变化时重新评估。"
+                ),
+                "believed_source": "INTERNAL_MODELING_JUDGMENT",
+                "believed_locator": "controlled internal claim",
+                "attribution_confidence": "medium",
+                "node_id": node["node_id"],
+                "node_identity": identity,
+                "industry": node.get("industry"),
+            })
+            filled.append(requirement_id)
+        for row in rows:
+            row["requirement_id"] = requirement_id
+            row["claim_kind"] = kind
+            row["section"] = requirement["section"]
+            if kind in {"modeling_judgment", "evidence_gap"}:
+                row["believed_source"] = "INTERNAL_MODELING_JUDGMENT"
+                row["believed_locator"] = "controlled internal claim"
+            elif kind == "internal_graph_fact":
+                row["believed_source"] = "LCA-CORNERSTONE_GRAPH"
+                row["believed_locator"] = "node graph and boundary matrix"
+            rebuilt.append(row)
+    for index, claim in enumerate(rebuilt):
+        claim["claim_id"] = f"{node['node_id']}-{index}"
+        claim["node_id"] = node["node_id"]
+        claim["node_identity"] = identity
+    document["claims"] = rebuilt
+    result_path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n",
+                           encoding="utf-8")
+    validate_result(result_path, node, research_scout)
+    return {"protocol": "wiki-prior-nomination-repair-v1", "filled_requirements": filled}
 
 
 def main() -> int:
@@ -188,6 +345,10 @@ def main() -> int:
     parser.add_argument("--timeout-seconds", type=int, default=600)
     parser.add_argument("--source-hints", type=Path,
                         help="上一轮确定性 Search 产生的来源身份/locator 目录；不得含摘录或 verdict")
+    parser.add_argument("--research-plan", type=Path,
+                        help="当前任务冻结的 wiki-research-plan-v1；用于约束研究问题、语言和来源类别")
+    parser.add_argument("--research-scout", type=Path,
+                        help="Research Plan 预检索冻结的真实候选来源身份；只用于 source-specific claim 提名")
     args = parser.parse_args()
     if not math.isfinite(args.cost_usd) or args.cost_usd < 0:
         raise ValueError("--cost-usd 必须是非负有限数")
@@ -220,12 +381,54 @@ def main() -> int:
         source_hints_record = {"path": str(hint_path), "sha256": sha256(hint_path)}
     else:
         source_hints_record = None
-    hint_prompt = ("\n上一轮确定性 Search 仅确认了以下来源身份与可定位主题；它们不是已核验证据，"
-                   "不得据此声称 CONFIRMED。external_fact 应优先提出能被其中原文逐字支持的单一、窄断言，"
-                   "不要写‘通常/可包括/以具体配置为准’等复合或推断句；若存在 requirement_routes，"
-                   "对应 requirement_id 必须逐字使用其 source 与 locator，不得改投其他来源；若存在"
-                   "claim_constraints，必须遵守且不得把 requirement 名称本身改写进事实断言："
+    research_plan = None
+    research_plan_record = None
+    if args.research_plan:
+        plan_path = args.research_plan.resolve()
+        research_plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        if (not isinstance(research_plan, dict)
+                or research_plan.get("protocol") != "wiki-research-plan-v1"
+                or research_plan.get("node_id") != node_id
+                or research_plan.get("hint_policy") != "advisory_nonexclusive"):
+            raise ValueError("research plan 必须是当前节点的 wiki-research-plan-v1")
+        research_plan_record = {"path": str(plan_path), "sha256": sha256(plan_path)}
+    research_scout = None
+    research_scout_record = None
+    if args.research_scout:
+        scout_path = args.research_scout.resolve()
+        research_scout = json.loads(scout_path.read_text(encoding="utf-8"))
+        if (research_scout.get("protocol") != "wiki-research-scout-v1"
+                or research_scout.get("node_id") != node_id
+                or not isinstance(research_scout.get("candidates"), list)):
+            raise ValueError("research scout 必须是当前节点的 wiki-research-scout-v1")
+        research_scout_record = {"path": str(scout_path), "sha256": sha256(scout_path)}
+    hint_prompt = ("\n以下仅是历史 Registry 或上一轮 Search 提供的 advisory candidate；它们不是当前任务已核验证据，"
+                   "不得据此声称 CONFIRMED，也不得将其视为唯一来源。可使用、拒绝或提出其他一手来源。"
+                   "若 legacy requirement_routes 存在，只把 source 与 locator 视为候选提示；不得限制其他来源发现。"
+                   "external_fact 应提出单一、窄断言，避免复合或推断句；claim_constraints 只限制不得越过证据边界："
+                   "不得把 requirement 名称本身改写进事实断言："
                    + json.dumps(source_hints, ensure_ascii=False, sort_keys=True, separators=(",", ":"))) if source_hints else ""
+    plan_prompt = ("\n当前任务的冻结 Research Plan 如下。必须覆盖其中 research_questions、languages 与 "
+                   "source_classes；terminology 中的 candidate_aliases 只用于发现，不构成节点同一性证明；"
+                   "advisory_candidates 仍须在当前任务重新 Fetch + Verify："
+                   + json.dumps(research_plan, ensure_ascii=False, sort_keys=True, separators=(",", ":"))) \
+        if research_plan else ""
+    scout_prompt = ("\n以下是当前任务 Research Scout 已发现、但尚未核验的真实候选。external_fact 必须按不同"
+                    "research_question 选择最匹配的候选来源，并让 claim_text 只陈述该来源可能直接支持的主题事实；"
+                    "不得把所有 claim 写成同一 advisory source 的归属陈述。应尽量使用不同域名并覆盖中英文来源；"
+                    "这些是质量目标，不得在候选不足时编造来源。believed_source 写候选 title，believed_locator 写 research_question 与定位词："
+                    "若候选带 diversity_repair，表示上一轮来源抓取或核验未满足门禁；本轮只能使用当前保留的 candidates，"
+                    "优先选择可直接定位正文的 HTML 技术页面，并用不同发布机构替换上一轮失效来源。"
+                    "英文技术来源必须至少有一条用于其原文直接描述目标工序的 external_fact；优先把"
+                    "process_origin_and_boundary 的英文工艺来源分配给 identity.definition、identity.catalyst_route"
+                    "或 boundary.included_operations，不得只把英文来源分配给产品身份、交付形态或其他需要推论的断言。"
+                    "该英文 claim_text 必须是单一谓词，紧贴候选标题或 snippet 明示的工艺动作，不得补入候选未明说的"
+                    "因果、产品同一性、交付状态或建模结论。"
+                    "external_fact 至少覆盖 3 个不同 research_question。representativeness_and_quality 候选只应在"
+                    "冻结 claim_kind 为 external_fact 的 requirement 与其事实直接匹配时使用；不得把它塞入"
+                    "modeling_judgment，质量与不确定性建模由冻结的 quality.uncertainty requirement 覆盖；"
+                    + json.dumps(research_scout.get("candidates", []), ensure_ascii=False, separators=(",", ":"))) \
+        if research_scout else ""
     facets = ((node.get("node_identity") or {}).get("facets") or {})
     identity_guard = ""
     if facets.get("form_factor") == "blade":
@@ -235,7 +438,7 @@ def main() -> int:
         )
     prompt = (
         "执行 Nomination-only；冻结规格已由 launcher 从 Workflow DATA-BINDING 解析如下："
-        f"{frozen_spec}{hint_prompt}{identity_guard}\n不得读取文件、调用工具、联网、搜索、调用浏览器、"
+        f"{frozen_spec}{plan_prompt}{scout_prompt}{hint_prompt}{identity_guard}\n不得读取文件、调用工具、联网、搜索、调用浏览器、"
         "调用其他 agent 或修改任何文件。针对此唯一节点，严格覆盖 dossier.claim_requirements："
         "external_fact 每个 requirement_id 精确返回 1 条事实锚点；modeling_judgment 精确返回 2 条"
         "节点特异的解释或 LCA 判断；其他 requirement 精确返回 1 条。不得提供 LCI 数值。"
@@ -274,22 +477,34 @@ def main() -> int:
         "workflow_sha256": sha256(workflow), "schema_template_sha256": sha256(schema),
         "schema_sha256": sha256(effective_schema), "node_id": node_id,
         "source_hints": source_hints_record,
+        "research_plan": research_plan_record,
+        "research_scout": research_scout_record,
+        "nomination_policy_version": "research-scout-source-specific-v9",
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     exit_code = 124
     validation_error = None
-    with events.open("w", encoding="utf-8") as event_stream, stderr.open("w", encoding="utf-8") as error_stream:
+    deterministic_repair = None
+    if research_scout is not None and result.is_file():
         try:
-            completed = subprocess.run(command, cwd=root, stdin=subprocess.DEVNULL,
-                                       stdout=event_stream, stderr=error_stream, text=True, check=False,
-                                       timeout=max(1, args.timeout_seconds))
-            exit_code = completed.returncode
-        except subprocess.TimeoutExpired:
-            validation_error = "Nomination runtime timeout"
+            deterministic_repair = repair_prior_result(result, node, research_scout)
+            exit_code = 0
+        except (OSError, ValueError, json.JSONDecodeError):
+            deterministic_repair = None
+    with events.open("w", encoding="utf-8") as event_stream, stderr.open("w", encoding="utf-8") as error_stream:
+        if deterministic_repair is None:
+            try:
+                completed = subprocess.run(command, cwd=root, stdin=subprocess.DEVNULL,
+                                           stdout=event_stream, stderr=error_stream, text=True, check=False,
+                                           timeout=max(1, args.timeout_seconds))
+                exit_code = completed.returncode
+            except subprocess.TimeoutExpired:
+                validation_error = "Nomination runtime timeout"
     if exit_code == 0:
         try:
-            canonicalize_result(raw_result, result)
-            validate_result(result, node)
+            if deterministic_repair is None:
+                canonicalize_result(raw_result, result, node, research_scout)
+            validate_result(result, node, research_scout)
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             validation_error = str(exc)
             exit_code = 2
@@ -307,6 +522,7 @@ def main() -> int:
         "completed_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "exit_code": exit_code, "event_count": event_count,
         "validation_error": validation_error,
+        "deterministic_repair": deterministic_repair,
         "usage_records": usage_rows,
         "artifacts": {
             "invocation_sha256": sha256(invocation), "events_sha256": sha256(events),

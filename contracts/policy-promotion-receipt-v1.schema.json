@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"policy-promotion-receipt-v1","type":"object","required":["schema_version","receipt_id","candidate_id","action","from_status","to_status","reason"],"properties":{"schema_version":{"const":"policy-promotion-receipt-v1"},"action":{"enum":["advance","promote","rollback"]}},"additionalProperties":true}

@@ -33,8 +33,8 @@ PROTOCOL = "wiki-draft-content-gate-v1"
 CITE_RE = re.compile(r"\[\^([a-z0-9-]+)\](?!:)")
 GENERIC_GAP = "该 claim slot 的目标节点特异性外部证据尚未达到 CONFIRMED"
 MINIMUMS = {
-    "product": {"body_chars": 2800, "assertions": 24, "cited": 14, "sources": 4},
-    "activity": {"body_chars": 3200, "assertions": 24, "cited": 16, "sources": 4},
+    "product": {"assertions": 24, "cited": 14, "sources": 4},
+    "activity": {"assertions": 24, "cited": 16, "sources": 4},
 }
 
 
@@ -150,7 +150,6 @@ def _blueprint_checks(candidate: str, body: str, blueprint: dict[str, Any]) -> t
         label for labels in blueprint.get("evidence_tables", {}).values() for label in labels
     ]
     checks = {
-        "content_blueprint_body_depth": len(body) >= int(target["minimum_body_chars"]),
         "content_blueprint_assertion_depth": assertions >= int(target["minimum_assertions"]),
         "content_blueprint_assertion_not_stuffed": assertions <= int(target.get("maximum_assertions", 10**9)),
         "content_blueprint_paragraph_depth": paragraph_count >= int(target["minimum_paragraphs"]),
@@ -215,7 +214,6 @@ def gate_page(
             and fm.get("body_status") == "draft"
             and fm.get("content_maturity") == "candidate"
         ),
-        "body_rich_enough": metrics["body_chars"] >= thresholds["body_chars"],
         "assertions_rich_enough": metrics["assertions"] >= thresholds["assertions"],
         "cited_content_rich_enough": metrics["cited_assertions"] >= thresholds["cited"],
         "source_diversity": metrics["distinct_external_sources"] >= thresholds["sources"],
@@ -251,7 +249,6 @@ def gate_page(
     if old_is_rich and write_mode != "rebuild":
         previous = _metrics(original, node_type)
         checks["repair_non_degradation"] = all((
-            metrics["body_chars"] >= previous["body_chars"],
             metrics["assertions"] >= previous["assertions"],
             metrics["cited_assertions"] >= previous["cited_assertions"],
             all(

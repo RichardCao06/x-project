@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -54,6 +55,68 @@ def test_isolated_mixed_cohort_runs_plan_prepare_validate_without_source_tree(tm
     assert oil_prepared["full_claim_counts"] == {"A017": 39}
     assert ict_prepared["sampled_claim_counts"]["P031"] == 31
     assert any(item.get("mode") == "nomination" for item in ict_prepared["workflows"])
+
+
+def test_workspace_refresh_repairs_incomplete_managed_tree(tmp_path: Path) -> None:
+    workspace = tmp_path / "refresh"
+    builder = WikiWorkspaceBuilder()
+    builder.build(workspace)
+    profile = workspace / "profiles/wiki-node-production-profile-v1.json"
+    manifest = workspace / "workspace-manifest.json"
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    profile.unlink()
+    document["files"] = [row for row in document["files"] if row["path"] != profile.relative_to(workspace).as_posix()]
+    manifest.write_text(json.dumps(document), encoding="utf-8")
+    generated = workspace / "runs/keep.json"
+    generated.parent.mkdir(parents=True)
+    generated.write_text("{}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="manifest tree drift"):
+        builder.verify(workspace)
+    builder.refresh(workspace)
+    assert profile.is_file()
+    assert generated.is_file()
+
+
+def test_workspace_refresh_preserves_task_owned_page_and_registry(tmp_path: Path) -> None:
+    workspace = tmp_path / "mutable-refresh"
+    builder = WikiWorkspaceBuilder()
+    builder.build(workspace)
+    page = next((workspace / "wiki/ict_equipment/activities").glob("A039--*.md"))
+    registry = workspace / "sources/ict_equipment/registry.json"
+    page.write_text(page.read_text(encoding="utf-8") + "\n<!-- task-owned -->\n",
+                    encoding="utf-8")
+    registry.write_text(registry.read_text(encoding="utf-8") + "\n",
+                        encoding="utf-8")
+    page_before, registry_before = page.read_bytes(), registry.read_bytes()
+
+    builder.refresh(workspace)
+
+    assert page.read_bytes() == page_before
+    assert registry.read_bytes() == registry_before
+    builder.verify(workspace)
+
+
+def test_workspace_selective_refresh_only_projects_changed_vendor_inputs(tmp_path: Path) -> None:
+    vendor = tmp_path / "vendor"
+    shutil.copytree(ROOT / "vendor/lca_cornerstone", vendor)
+    workspace = tmp_path / "selective-refresh"
+    builder = WikiWorkspaceBuilder(vendor)
+    builder.build(workspace)
+    selected = vendor / "scripts/wiki_batch.py"
+    untouched = vendor / "scripts/wiki_table_population.py"
+    selected.write_text(selected.read_text(encoding="utf-8") + "\n# selected\n",
+                        encoding="utf-8")
+    untouched.write_text(untouched.read_text(encoding="utf-8") + "\n# not selected\n",
+                         encoding="utf-8")
+
+    builder.refresh(
+        workspace,
+        vendor_paths=["vendor/lca_cornerstone/scripts/wiki_batch.py"],
+    )
+
+    assert (workspace / "scripts/wiki_batch.py").read_bytes() == selected.read_bytes()
+    assert (workspace / "scripts/wiki_table_population.py").read_bytes() != untouched.read_bytes()
 
 
 def test_production_viewer_is_built_with_the_bundle_in_an_isolated_workspace(tmp_path: Path) -> None:

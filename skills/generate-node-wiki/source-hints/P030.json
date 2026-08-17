@@ -1,0 +1,80 @@
+{
+  "protocol": "wiki-source-hints-v1",
+  "node_id": "P030",
+  "generated_from": "frozen ICT source registry and failed production Search routing analysis",
+  "terminology": {
+    "canonical_zh": "共生焊料浮渣",
+    "synonyms_zh": ["锡渣", "焊料浮渣", "焊锡渣", "波峰焊锡渣", "焊锡炉浮渣"],
+    "canonical_en": "solder dross",
+    "synonyms_en": ["tin dross", "solder pot dross", "wave solder dross", "solder skimmings"],
+    "related_terms": ["共晶焊料浮渣", "solder oxidation residue", "solder waste", "spent solder"],
+    "excluded_terms": ["助焊剂残渣", "废锡膏", "焊接废水", "flux residue", "solder paste waste", "electronic scrap"]
+  },
+  "claim_constraints": {
+    "product.identity.definition": "只陈述官方批复将锡渣列为该电子产品项目产生的固废，不推断化学组成",
+    "product.identity.product_class": "只陈述锡渣属于该项目列示的固废类别",
+    "product.form.physical_state": "只陈述锡渣作为需要分类收集的废物流出现，不推断颗粒、片状或结块形态",
+    "product.form.delivery_state": "只陈述锡渣分类收集后外售",
+    "product.reference.flow_identity": "只陈述生产工艺和固废管理之间可识别的锡渣流，不引入质量或产率",
+    "product.reference.handoff_unit": "只陈述分类收集和外售这一交接状态，不推断包装或计量单位",
+    "product.adjacent.distinction": "只陈述官方批复分别列出锡渣与废电路板、元器件，不推断材料组成",
+    "product.adjacent.specification": "只陈述批复使用‘锡渣’这一名称，不推断合金牌号或氧化程度",
+    "product.scope.classification": "只陈述锡渣出现在含回流焊、波峰焊的项目固废管理要求中，不推断具体工序贡献",
+    "product.scope.exclusions": "只陈述来源不能证明纯回流焊路线的锡渣产率，必须写成证据边界而不是外部事实"
+  },
+  "requirement_routes": {
+    "product.identity.definition": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "固废，废包装箱、锡渣分类收集后外售"
+    },
+    "product.identity.product_class": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "固废"
+    },
+    "product.form.physical_state": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "锡渣分类收集"
+    },
+    "product.form.delivery_state": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "锡渣分类收集后外售"
+    },
+    "product.reference.flow_identity": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "废包装箱、锡渣分类收集后外售"
+    },
+    "product.reference.handoff_unit": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "分类收集后外售"
+    },
+    "product.adjacent.distinction": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "废电路板、元器件"
+    },
+    "product.adjacent.specification": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "锡渣"
+    },
+    "product.scope.classification": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "回流焊、波峰焊"
+    },
+    "product.scope.exclusions": {
+      "source": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "locator": "生产工艺流程"
+    }
+  },
+  "sources": [
+    {
+      "name": "许昌市生态环境局，许昌钠日电子年产100万套电子产品项目环境影响报告表批复",
+      "authority_domain": "sthjj.xuchang.gov.cn",
+      "canonical_url": "https://sthjj.xuchang.gov.cn/yghb/001001/20180809/ba8ecd15-a38a-4d59-821c-afd6ece39c19.html",
+      "locator_topics": [
+        "生产工艺流程",
+        "回流焊、波峰焊",
+        "废包装箱、锡渣分类收集后外售",
+        "废电路板、元器件"
+      ]
+    }
+  ]
+}

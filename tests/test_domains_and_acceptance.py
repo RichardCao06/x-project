@@ -25,7 +25,7 @@ def test_project_configuration_compiles_every_workflow() -> None:
     compiled = [compile_workflow(WorkflowSpec.from_mapping(json.loads(path.read_text())),
                                  {item.id for item in registry.all()})
                 for path in (ROOT / "workflows").glob("*.json")]
-    assert len(compiled) == 6 and all(item.order for item in compiled)
+    assert len(compiled) == 9 and all(item.order for item in compiled)
 
 
 def test_migration_hashes_match_source_and_vendored_assets() -> None:
@@ -57,7 +57,9 @@ def test_domain_adapters_reject_missing_external_inputs_without_source_write(tmp
 def test_grf_001_graph_gate_is_declared_as_a_capability() -> None:
     raw = json.loads((ROOT / "capabilities" / "graph.gate@1.json").read_text())
     assert raw["side_effects"] == "staged_apply"
-    assert raw["entrypoint"] == "vendor/lca_cornerstone/scripts/gate.py"
+    assert raw["production_ready"] is True
+    assert raw["entrypoint"] == "lca_project.capability_runtime"
+    assert {"{input}", "{output}"} <= set(raw["command"])
 
 
 def test_wiki_003_adapter_only_accepts_local_manifest_files(tmp_path: Path) -> None:

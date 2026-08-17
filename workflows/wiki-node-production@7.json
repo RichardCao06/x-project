@@ -1,0 +1,31 @@
+{
+  "workflow_id": "wiki-node-production",
+  "version": "7",
+  "description": "Research-plan-first multilingual Wiki production with advisory historical candidates, executed Search gates, source diversity checks, separate table evidence, and hash-locked apply.",
+  "policy_version": "wiki-production-v4",
+  "steps": [
+    {"id":"plan","capability":"wiki.batch","inputs":{"action":"plan"},"needs":[],"output":"wiki-plan-v5"},
+    {"id":"prepare","capability":"wiki.batch","inputs":{"action":"prepare"},"needs":["plan"],"output":"node-dossier-v5"},
+    {"id":"research_plan","capability":"wiki.batch","inputs":{"action":"research_plan"},"needs":["prepare"],"output":"wiki-research-plan-v1"},
+    {"id":"research_ready","capability":"agent.propose","inputs":{"action":"nomination","runtime_profile":"terra-worker"},"needs":["research_plan"],"output":"wiki-proposal-v1"},
+    {"id":"search_execution_gate","capability":"wiki.batch","inputs":{"action":"search_execution_gate"},"needs":["research_ready"],"gate":"G0S","output":"wiki-search-execution-gate-v1"},
+    {"id":"verify","capability":"agent.review","inputs":{"action":"verify","runtime_profile":"sol-verifier"},"needs":["search_execution_gate"],"gate":"G4","output":"wiki-verdict-v1"},
+    {"id":"terminology_verify","capability":"wiki.batch","inputs":{"action":"terminology_verify"},"needs":["verify"],"output":"wiki-terminology-verdict-v1"},
+    {"id":"source_diversity_gate","capability":"wiki.batch","inputs":{"action":"source_diversity_gate"},"needs":["terminology_verify"],"gate":"G4D","output":"wiki-source-diversity-gate-v1"},
+    {"id":"freeze","capability":"wiki.batch","inputs":{"action":"freeze"},"needs":["source_diversity_gate"],"output":"wiki-attestation-v1"},
+    {"id":"content_blueprint","capability":"wiki.batch","inputs":{"action":"content_blueprint"},"needs":["freeze"],"output":"wiki-content-blueprint-v1"},
+    {"id":"content_compose","capability":"agent.propose","inputs":{"action":"content_compose","runtime_profile":"terra-worker"},"needs":["content_blueprint"],"output":"wiki-content-draft-v2"},
+    {"id":"editorial_review","capability":"agent.review","inputs":{"action":"editorial_review","runtime_profile":"sol-checker"},"needs":["content_compose"],"gate":"G5","output":"wiki-editorial-review-v1"},
+    {"id":"draft_content_gate","capability":"wiki.batch","inputs":{"action":"draft_content_gate"},"needs":["editorial_review"],"gate":"G6","output":"draft-content-gate-v5"},
+    {"id":"draft_apply","capability":"release.apply","inputs":{"action":"draft_apply"},"needs":["draft_content_gate"],"output":"wiki-draft-v5"},
+    {"id":"table_collect","capability":"agent.propose","inputs":{"action":"table_collect","runtime_profile":"terra-worker"},"needs":["freeze"],"output":"wiki-table-evidence-v2"},
+    {"id":"table_search_execution_gate","capability":"wiki.batch","inputs":{"action":"table_search_execution_gate"},"needs":["table_collect"],"gate":"G6TS","output":"wiki-table-search-execution-gate-v1"},
+    {"id":"table_verify","capability":"agent.review","inputs":{"action":"table_verify","runtime_profile":"sol-verifier"},"needs":["table_search_execution_gate"],"gate":"G6T","output":"wiki-table-source-verdict-v2"},
+    {"id":"table_population_gate","capability":"wiki.batch","inputs":{"action":"table_population_gate"},"needs":["draft_apply","table_verify"],"gate":"G6P","output":"wiki-table-population-gate-v1"},
+    {"id":"table_apply","capability":"release.apply","inputs":{"action":"table_apply"},"needs":["table_population_gate"],"output":"wiki-table-apply-v1"},
+    {"id":"preview","capability":"wiki.batch","inputs":{"action":"preview"},"needs":["table_apply"],"max_attempts":4,"output":"wiki-preview-v5"},
+    {"id":"release_gate","capability":"wiki.batch","inputs":{"action":"release_gate"},"needs":["preview"],"gate":"G7","output":"quality-gate-v5"},
+    {"id":"reviewed_apply","capability":"release.apply","inputs":{"action":"reviewed_apply"},"needs":["release_gate"],"gate":"G8","output":"wiki-reviewed-v5"},
+    {"id":"publish","capability":"release.apply","inputs":{"action":"publish"},"needs":["reviewed_apply"],"output":"release-record-v1"}
+  ]
+}

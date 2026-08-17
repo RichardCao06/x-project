@@ -5,6 +5,7 @@ import copy
 
 from wiki_lint import is_null_value
 from wiki_table_population import build_candidate, is_gap, population_floor_checks, render_table
+from wiki_table_population import validate_collection
 
 
 def _collection() -> dict:
@@ -63,6 +64,38 @@ def test_explicit_gap_is_not_counted_as_a_value() -> None:
     assert not is_null_value("3.0")
 
 
+def test_new_contract_requires_search_provenance_for_explicit_gaps(tmp_path) -> None:
+    collection = _collection()
+    collection["protocol"] = {
+        "version": "wiki-table-evidence-v1", "kind": "node-table-collection",
+    }
+    collection["node_type"] = "product"
+    collection["reference_configuration"] = {
+        "manufacturer": "test", "model": "test", "scope": "test",
+        "freeze_rule": "test",
+    }
+    collection["sources"][0].update({
+        "title": "Manufacturer specification", "type": "manufacturer_spec",
+        "version": "2026-01", "locator": "p.1", "authority": "manufacturer",
+        "sha256": "", "excerpt_seeds": ["3.0 kg"], "region": "INT",
+        "verified_via": "official_url", "url": "https://example.test/spec.pdf",
+        "status": "verified",
+    })
+    collection["gap_provenance_required"] = True
+    collection["tables"]["props"][0]["status"] = "populated"
+    collection["tables"]["quality"][0]["status"] = "assessed"
+    collection["tables"]["params"][0]["status"] = "explicit_gap"
+    collection["tables"]["params"][0]["int_value"] = "缺口：无国际值"
+    collection["tables"]["params"][0]["int_source"] = ""
+    collection["tables"]["params"][0]["cn_source"] = ""
+    try:
+        validate_collection(collection, tmp_path)
+    except ValueError as exc:
+        assert "显式缺口缺少检索证据" in str(exc)
+    else:
+        raise AssertionError("explicit gap without frozen search provenance must fail")
+
+
 def test_candidate_replaces_tables_and_retires_quantity_shell() -> None:
     collection = _collection()
     registry = {"sources": {}}
@@ -83,6 +116,79 @@ def test_candidate_replaces_tables_and_retires_quantity_shell() -> None:
     assert "dataset_readiness: reference_configuration_only" in candidate
     assert "internal-review" not in candidate
     assert staged_registry["sources"]["manufacturer-spec"]["status"] == "verified"
+
+
+def test_v2_candidate_normalizes_honest_limited_status_vocabulary() -> None:
+    collection = copy.deepcopy(_collection())
+    collection["sources"][0].update({
+        "title": "Manufacturer specification", "type": "manufacturer_spec",
+        "version": "2026-01", "locator": "p.1", "authority": "manufacturer",
+        "sha256": "", "excerpt_seeds": ["3.0 kg"], "region": "INT",
+        "verified_via": "official_url", "url": "https://example.test/spec.pdf",
+    })
+    page = _page().replace(
+        "id: P003\n",
+        "id: P003\nschema_version: wiki-v2\n"
+        "provenance_status: evidence_insufficient\n"
+        "claim_verification_status: not_verified\n",
+    )
+
+    candidate, _ = build_candidate(collection, page, {"sources": {}})
+
+    assert "provenance_status: source_verified" in candidate
+    assert "claim_verification_status: partial" in candidate
+
+
+def test_activity_candidate_retires_quantity_shell_before_flow_section() -> None:
+    collection = copy.deepcopy(_collection())
+    collection["sources"][0].update({
+        "title": "Manufacturer specification", "type": "manufacturer_spec",
+        "version": "2026-01", "locator": "p.1", "authority": "manufacturer",
+        "sha256": "", "excerpt_seeds": ["3.0 kg"], "region": "INT",
+        "verified_via": "official_url", "url": "https://example.test/spec.pdf",
+    })
+    activity_page = _page().replace("## 产品性质与交付状态", "## 投入产出流")
+    candidate, _ = build_candidate(collection, activity_page, {"sources": {}})
+    assert "NOT POPULATED" not in candidate
+    assert "## 投入产出流" in candidate
+
+
+def test_activity_candidate_upgrades_legacy_five_table_page_with_props() -> None:
+    collection = copy.deepcopy(_collection())
+    collection["node_id"] = "A001"
+    collection["node_type"] = "activity"
+    collection["sources"][0].update({
+        "title": "Manufacturer specification", "type": "manufacturer_spec",
+        "version": "2026-01", "locator": "p.1", "authority": "manufacturer",
+        "sha256": "", "excerpt_seeds": ["reference product"], "region": "INT",
+        "verified_via": "official_url", "url": "https://example.test/spec.pdf",
+    })
+    props = collection["tables"]["props"]
+    collection["tables"] = {"props": props}
+    page = (_page().replace("id: P003", "id: A001")
+            .replace("<!-- EV:props:START -->\nold\n<!-- EV:props:END -->\n", "")
+            .replace("<!-- EV:params:START -->", "## 工艺与地区参数\n\n<!-- EV:params:START -->")
+            .replace("## 产品性质与交付状态", "## 投入产出流"))
+    candidate, _ = build_candidate(collection, page, {"sources": {}})
+    assert candidate.count("<!-- EV:props:START -->") == 1
+    assert "## 参考产品性质与交接状态" in candidate
+    assert "| 产品质量 | 参考配置 | kg/台 | 3.0 | manufacturer-spec |" in candidate
+
+
+def test_candidate_drops_stale_frontmatter_sources() -> None:
+    collection = copy.deepcopy(_collection())
+    collection["sources"][0].update({
+        "title": "Manufacturer specification", "type": "manufacturer_spec",
+        "version": "2026-01", "locator": "p.1", "authority": "manufacturer",
+        "sha256": "", "excerpt_seeds": ["3.0 kg"], "region": "INT",
+        "verified_via": "official_url", "url": "https://example.test/spec.pdf",
+    })
+    page = (_page().replace("provenance_refs: [internal-review]",
+                            "provenance_refs: [internal-review, stale-source]")
+            + "\n[^stale-source]: definition without inline use\n")
+    candidate, _ = build_candidate(collection, page, {"sources": {}})
+    frontmatter = candidate.split("---", 2)[1]
+    assert "stale-source" not in frontmatter
 
 
 def test_table_renderer_escapes_markdown_pipe() -> None:
@@ -118,6 +224,27 @@ def test_collection_change_log_is_data_driven_and_idempotent() -> None:
     second, _ = build_candidate(collection, first, registry)
     assert first.count("### 2026-08-11 · 中国公开型号回填") == 1
     assert second.count("### 2026-08-11 · 中国公开型号回填") == 1
+
+
+def test_existing_same_source_merges_evidence_instead_of_conflicting() -> None:
+    collection = copy.deepcopy(_collection())
+    collection["sources"][0].update({
+        "title": "Manufacturer specification", "type": "manufacturer_spec",
+        "version": "2026-01", "locator": "p.2", "authority": "manufacturer",
+        "sha256": "", "excerpt_seeds": ["new quote"], "region": "INT",
+        "verified_via": "official_url", "url": "https://example.test/spec.pdf",
+    })
+    registry = {"sources": {"manufacturer-spec": {
+        "title": "Manufacturer specification", "type": "manufacturer_spec",
+        "version": "2026-01", "locator": "p.1", "authority": "manufacturer",
+        "hash": "", "ref_count": 1, "excerpt_seeds": ["old quote"],
+        "status": "verified", "region": "INT", "verified_via": "official_url",
+        "url": "https://example.test/spec.pdf",
+    }}}
+    _, staged = build_candidate(collection, _page(), registry)
+    source = staged["sources"]["manufacturer-spec"]
+    assert source["excerpt_seeds"] == ["old quote", "new quote"]
+    assert source["locator"] == "p.1; p.2"
 
 
 def test_activity_flow_and_emission_tables_use_activity_contract_headers() -> None:

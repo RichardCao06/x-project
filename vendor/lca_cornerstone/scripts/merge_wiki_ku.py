@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import time
@@ -255,8 +256,12 @@ def force_partial_draft(text: str) -> str:
         raise MergeError("Wiki 页面缺少 frontmatter")
     block = match.group(1)
     verified_claim_refs = set(re.findall(r"\[\^(ku-[a-z0-9-]+)\](?!:)", text))
-    provenance_status = "source_verified" if verified_claim_refs else "evidence_insufficient"
-    claim_status = "partial" if verified_claim_refs else "not_verified"
+    # Draft materialization always retains the verified internal graph/review
+    # provenance even when no external KU citation was confirmed.  The v2
+    # status vocabulary represents that honest limited state as
+    # source_verified/partial; claim_verified/complete remains privileged.
+    provenance_status = "source_verified"
+    claim_status = "partial"
     updates = {
         "schema_version": "wiki-v2",
         "body_status": "draft",
@@ -854,6 +859,59 @@ def apply_plan(
             transaction["error"] = str(exc)
             _write_transaction(transaction_path, transaction)
             raise MergeError(f"Apply 事务失败并已回滚: {exc}") from exc
+
+
+def rehydrate_committed_plan(
+    plan_path: Path, *, allow_partial: bool = False, lease_seconds: int = 300
+) -> dict[str, Any]:
+    """Replay a lost materialization only from its hash-bound commit."""
+    plan_path = plan_path.resolve()
+    transaction_path = plan_path.parent / "apply-transaction.json"
+    if not transaction_path.is_file():
+        raise MergeError("rehydrate requires the original committed transaction")
+    original_text = transaction_path.read_text(encoding="utf-8")
+    original = json.loads(original_text)
+    if (original.get("state") != "committed"
+            or Path(str(original.get("plan", ""))).resolve() != plan_path):
+        raise MergeError("rehydrate transaction is not committed for the frozen plan")
+    targets = original.get("targets")
+    if not isinstance(targets, list) or not targets:
+        raise MergeError("rehydrate transaction has no targets")
+    states: list[str] = []
+    expected_new: dict[Path, str] = {}
+    for item in targets:
+        target = Path(str(item.get("target", ""))).resolve()
+        if not target.is_file() or target.is_symlink():
+            raise MergeError(f"rehydrate target is missing or unsafe: {target}")
+        current = sha256(target.read_text(encoding="utf-8"))
+        old, new = str(item.get("old_sha256", "")), str(item.get("new_sha256", ""))
+        if current == new:
+            states.append("materialized")
+        elif current == old:
+            states.append("seed")
+        else:
+            raise MergeError(f"rehydrate target has an unrecognized hash: {target}")
+        expected_new[target] = new
+    if set(states) == {"materialized"}:
+        return {"files": len(targets), "transaction": "committed",
+                "rehydrated": False, "already_materialized": True}
+    if set(states) != {"seed"}:
+        raise MergeError("rehydrate targets are in a mixed state")
+
+    preserved = plan_path.parent / "apply-transaction-pre-rehydrate.json"
+    if preserved.exists() and preserved.read_text(encoding="utf-8") != original_text:
+        raise MergeError("a different pre-rehydrate transaction is already preserved")
+    if not preserved.exists():
+        shutil.copy2(transaction_path, preserved)
+    report = apply_plan(
+        plan_path, allow_partial=allow_partial, dry_run=False,
+        lease_seconds=lease_seconds,
+    )
+    for target, expected in expected_new.items():
+        if sha256(target.read_text(encoding="utf-8")) != expected:
+            raise MergeError(f"rehydrate result does not match original commit: {target}")
+    return {**report, "rehydrated": True, "already_materialized": False,
+            "original_transaction_sha256": sha256(original_text)}
 
 
 def main() -> int:

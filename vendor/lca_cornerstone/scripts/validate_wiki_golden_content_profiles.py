@@ -88,7 +88,6 @@ def validate_profile(profile_id: str, profile: dict) -> dict:
     ]
     inline_sources = set(CITE_RE.findall(body))
     checks = {
-        "body_chars": len(body) >= int(contract.get("minimum_body_chars", 0)),
         "assertions": len(assertions) >= int(contract.get("minimum_assertions", 0)),
         "cited_assertions": len(cited) >= int(contract.get("minimum_cited_assertions", 0)),
         "distinct_inline_sources": len(inline_sources)

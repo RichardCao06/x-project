@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "failure-triage-result-v1",
+  "type": "object",
+  "required": [
+    "problem_class", "cause_code", "summary", "causal_chain", "evidence",
+    "repair_level", "repair_action", "recovery_task", "risk", "confidence",
+    "requires_external_authority", "implementation_targets", "validation_tests",
+    "goal_assessment", "causal_input_changes", "proof_contract", "actions",
+    "safe_autonomous_actions_remaining"
+  ],
+  "properties": {
+    "problem_class": {
+      "enum": [
+        "implementation_defect", "process_deadlock", "contract_mismatch",
+        "evidence_gap", "external_dependency", "transient_infrastructure",
+        "governance_decision", "unknown"
+      ]
+    },
+    "cause_code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,80}$"},
+    "summary": {"type": "string", "minLength": 1},
+    "goal_assessment": {
+      "type": "object",
+      "required": ["result_finished", "closer_to_goal", "why_not_closer"],
+      "properties": {
+        "result_finished": {"type": "boolean"},
+        "closer_to_goal": {"type": "boolean"},
+        "why_not_closer": {
+          "type": "array", "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      },
+      "additionalProperties": false
+    },
+    "causal_chain": {
+      "type": "array", "minItems": 2,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "evidence": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "required": ["fact", "source"],
+        "properties": {
+          "fact": {"type": "string", "minLength": 1},
+          "source": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "repair_level": {"enum": ["L0", "L1", "L2", "manual"]},
+    "repair_action": {
+      "enum": [
+        "retry_task", "rewind_task", "expand_research",
+        "propose_code_change", "propose_gate_change", "propose_policy_change",
+        "record_evidence_limited", "request_operator"
+      ]
+    },
+    "recovery_task": {"type": "string", "pattern": "^$|^[a-z][a-z0-9_]{0,79}$"},
+    "risk": {"enum": ["low", "medium", "high", "critical"]},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "requires_external_authority": {"type": "boolean"},
+    "causal_input_changes": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["target", "change", "expected_effect"],
+        "properties": {
+          "target": {"type": "string", "minLength": 1},
+          "change": {"type": "string", "minLength": 1},
+          "expected_effect": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "proof_contract": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["metric", "baseline", "target", "evidence_artifact"],
+        "properties": {
+          "metric": {"type": "string", "minLength": 1},
+          "baseline": {"type": ["number", "string", "boolean"]},
+          "target": {"type": ["number", "string", "boolean"]},
+          "evidence_artifact": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "target", "authority"],
+        "properties": {
+          "kind": {
+            "enum": [
+              "propose_code_change", "propose_gate_change", "propose_policy_change",
+              "rehydrate_materialized_output", "retry_task", "rewind_task",
+              "resume_campaign", "request_operator"
+            ]
+          },
+          "target": {"type": "string"},
+          "authority": {
+            "enum": ["automatic", "automatic_analysis_and_validation", "operator"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "safe_autonomous_actions_remaining": {"type": "boolean"},
+    "implementation_targets": {
+      "type": "array", "items": {"type": "string"}
+    },
+    "validation_tests": {
+      "type": "array", "items": {"type": "string", "pattern": "^tests/"}
+    }
+  },
+  "additionalProperties": false
+}

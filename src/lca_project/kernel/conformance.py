@@ -18,8 +18,10 @@ from .workflow import WorkflowSpec, compile_workflow
 
 
 WIKI_ACTIONS = {
-    "wiki.batch": {"plan", "prepare", "freeze", "content_blueprint", "draft_content_gate",
-                   "table_population_gate", "preview", "release_gate"},
+    "wiki.batch": {"plan", "prepare", "research_plan", "research_plan_gate", "search_execution_gate",
+                   "terminology_verify", "source_diversity_gate", "freeze", "content_blueprint", "draft_content_gate",
+                   "content_closure_gate", "table_search_execution_gate", "table_population_gate",
+                   "maturity_gate", "preview", "release_gate"},
     "agent.propose": {"nomination", "content_compose", "table_collect"},
     "agent.review": {"verify", "editorial_review", "table_verify"},
     "release.apply": {"draft_apply", "table_apply", "reviewed_apply", "publish"},
@@ -29,6 +31,22 @@ WIKI_RUNTIME_PROFILES = {
     "nomination": "terra-worker", "content_compose": "terra-worker",
     "table_collect": "terra-worker", "verify": "sol-verifier",
     "editorial_review": "sol-checker", "table_verify": "sol-verifier",
+}
+
+GRAPH_ACTIONS = {
+    "graph.batch": {"plan", "materialize_reconcile"},
+    "graph.gate": {"validate_11"},
+    "agent.propose": {"graph_conventions", "graph_seed", "graph_build", "graph_closure",
+                      "graph_mapping", "graph_consolidate"},
+    "agent.review": {"graph_review", "graph_scorecard"},
+    "release.apply": {"graph_publish"},
+}
+
+GRAPH_RUNTIME_PROFILES = {
+    "graph_conventions": "sol-integrator", "graph_seed": "terra-worker",
+    "graph_build": "sol-integrator", "graph_closure": "sol-integrator",
+    "graph_mapping": "terra-worker", "graph_review": "sol-checker",
+    "graph_consolidate": "sol-integrator", "graph_scorecard": "terra-checker",
 }
 
 
@@ -58,6 +76,18 @@ def check_conformance(root: str | Path, *, workflow_ref: str | None = None) -> d
                         f"{task.id}: missing or invalid executable action for {task.capability}: {action!r}"
                     )
                 expected_profile = WIKI_RUNTIME_PROFILES.get(str(action))
+                if expected_profile and task.inputs.get("runtime_profile") != expected_profile:
+                    errors.append(
+                        f"{task.id}: runtime_profile must be {expected_profile!r}, got {task.inputs.get('runtime_profile')!r}"
+                    )
+        if spec.id == "graph-industry-production":
+            for task in spec.tasks:
+                action = task.inputs.get("action")
+                if action not in GRAPH_ACTIONS.get(task.capability, set()):
+                    errors.append(
+                        f"{task.id}: missing or invalid executable action for {task.capability}: {action!r}"
+                    )
+                expected_profile = GRAPH_RUNTIME_PROFILES.get(str(action))
                 if expected_profile and task.inputs.get("runtime_profile") != expected_profile:
                     errors.append(
                         f"{task.id}: runtime_profile must be {expected_profile!r}, got {task.inputs.get('runtime_profile')!r}"

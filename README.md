@@ -28,12 +28,21 @@ lca-platform validate
 lca-platform reconcile --once
 lca-platform wiki-rehearse
 lca-platform status
+lca-platform dashboard
 lca-platform supervise var/workspaces/<job>/stage-plan.json
 pytest
 ```
 
 By default local state is stored in `var/state.db`, content-addressed artifacts in
 `var/artifacts`, and execution workspaces in `var/workspaces`.
+
+Search provider routing is declared in `config/search-providers.json`. Copy
+`config/search-providers.env.example` to `.env.search.local` and fill the local
+API keys there; the secret file is ignored by Git. The declared order uses Baidu
+Qianfan, Exa and Firecrawl as API providers, with DuckDuckGo HTML as best-effort
+fallback and Google as a browser handoff only. This file is the provider policy
+and secret mapping; a provider adapter must still load it before the Worker can
+execute those APIs.
 
 `wiki-rehearse` runs the frozen A017/P031/P003 Phase-2 cohort in an isolated
 workspace, persists plan/prepare proof in the Kernel, and intentionally refuses
@@ -47,6 +56,14 @@ instead of continuing. The `model_calls` counter is a fail-closed reservation:
 for an internally batched command it records the declared worst case, not a
 claim that every reserved call was consumed.
 
+`dashboard` starts the local observability and control interface at
+`http://127.0.0.1:8765`. It projects Jobs, persistent Workflow DAGs, Tasks,
+Artifacts, Events, Gates, exceptions, budgets, leases, stages and registry
+conformance from the control-plane database. Job materialisation and repair
+actions go through the existing Orchestrator invariants; the UI never edits
+SQLite or production files directly. Binding to a non-loopback host requires an
+explicit `--allow-remote` flag.
+
 ## Repository layout
 
 | Path | Responsibility |
@@ -54,6 +71,7 @@ claim that every reserved call was consumed.
 | `src/lca_project/kernel` | state, events, CAS, orchestration, repair and release |
 | `src/lca_project/contracts` | versioned control-plane protocols |
 | `src/lca_project/domains` | graph, Wiki, cross-link, LCA and BOM adapters |
+| `src/lca_project/dashboard` | local read models, HTTP API and responsive control interface |
 | `capabilities` | deterministic executable inventory and side-effect contracts |
 | `workflows` | declarative versioned DAGs |
 | `agents` | frozen agent definitions, prompts and output contracts |
@@ -74,6 +92,28 @@ outputs in CAS and dispatches candidate-bound gates. Release then stages a hash-
 locked plan, applies it transactionally and performs post-verification. Any drift,
 protocol failure or exhausted retry becomes a structured exception instead of a
 silent publication.
+
+Above the execution control plane, the target architecture includes a goal-alignment
+loop. Versioned Goal Contracts define what useful and trustworthy domain output
+means independently of individual gates. A deviation detector compares those goals
+with Gate claims, artifacts, cohort trends and user feedback; bounded Job repairs
+are replayed locally, while system-level changes must pass sandbox regression,
+Golden, mutation, shadow and canary validation before promotion. See
+[`docs/系统自我修复与目标对齐架构.md`](docs/系统自我修复与目标对齐架构.md).
+
+Finite autonomous campaigns can now create Jobs through the registered Skill
+boundary, materialize their Workflows, execute and audit them, apply bounded
+L0/L1 repairs, and stop at an honest terminal or `needs_attention` state:
+
+```bash
+PYTHONPATH=src python -m lca_project.cli --root . autonomy-create \
+  config/autonomous-wiki-campaign.example.json --run
+```
+
+The Dashboard Job form exposes the same path through **交给自治 Supervisor**.
+Campaign requests are immutable and idempotent; concurrency and per-Job repair
+budgets are hard limits. Autonomous Jobs still cannot edit code, Goal Contracts,
+or publication authority.
 
 ## Definition of done
 

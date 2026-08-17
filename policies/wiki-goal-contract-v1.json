@@ -1,0 +1,36 @@
+{
+  "schema_version": "goal-contract-v1",
+  "goal_id": "wiki-node-goal-v1",
+  "version": "1.0.0",
+  "scope": "wiki-node-production",
+  "description": "Produce a useful, source-traceable and semantically faithful node Wiki; scarcity must be represented as an explicit evidence gap, never disguised as maturity.",
+  "quality_dimensions": {
+    "identity_fidelity": {"weight": 0.15, "minimum": 1.0},
+    "source_role_coverage": {"weight": 0.12, "minimum": 1.0},
+    "claim_provenance_coverage": {"weight": 0.13, "minimum": 1.0},
+    "semantic_closure": {"weight": 0.15, "minimum": 1.0},
+    "editorial_coherence": {"weight": 0.10, "minimum": 1.0},
+    "table_contract_validity": {"weight": 0.10, "minimum": 1.0},
+    "data_readiness": {"weight": 0.10, "minimum": 1.0},
+    "gap_provenance": {"weight": 0.08, "minimum": 1.0},
+    "reader_utility": {"weight": 0.07, "minimum": 1.0}
+  },
+  "maturity_policy": {
+    "candidate_requires_all_minima": true,
+    "allowed_non_candidate_states": ["diagnostic_preview", "evidence_limited"],
+    "forbid_success_without_maturity_gate": true
+  },
+  "repair_authority": {
+    "L0": ["retry", "recover_lost_worker"],
+    "L1": ["rewind_research_plan", "rewind_research", "rewind_content", "rewind_tables"],
+    "L2": ["propose_policy_change", "propose_gate_change", "propose_code_change"],
+    "running_job_may_edit_code": false,
+    "running_job_may_promote_policy": false
+  },
+  "promotion_policy": {
+    "required_phases": ["sandbox", "shadow", "canary"],
+    "required_suites": ["golden", "mutation", "regression"],
+    "automatic_risk_ceiling": "low",
+    "rollback_on_regression": true
+  }
+}

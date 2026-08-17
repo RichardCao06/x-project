@@ -7,7 +7,17 @@ shape, evidence-table floor, core evidence zones, or privileged-state rules.
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
+
+
+PROFILE_PATH = Path(__file__).resolve().parent.parent / "profiles/wiki-node-production-profile-v1.json"
+_PROFILE = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+if _PROFILE.get("schema_version") != "wiki-node-production-profile-v1":
+    raise RuntimeError("unsupported Wiki node production profile")
+NODE_PROFILES = _PROFILE["node_types"]
+PROFILE_VERSION = str(_PROFILE["version"])
 
 
 CLAIM_KINDS = {
@@ -26,30 +36,15 @@ MIN_CLAIMS_PER_EXTERNAL_REQUIREMENT = 1
 MIN_CLAIMS_PER_MODELING_REQUIREMENT = 2
 MIN_CLAIMS_PER_CONTROLLED_REQUIREMENT = 1
 
-SECTIONS = {
-    "product": [
-        "定义与产品身份", "性质与形态", "参考流与交接边界", "规格与相邻节点区分",
-        "在系统中的角色", "分类与适用范围", "节点特定采集字段", "区域化补充要求",
-        "数据适用状态与缺口", "出处",
-    ],
-    "activity": [
-        "定义与参考活动", "参考产品与参考单位", "单元过程边界", "技术路线与相邻活动区分",
-        "投入产出与脊边对账", "直接排放、废物与监测指标边界", "节点特定采集字段",
-        "区域化补充要求", "数据适用状态与缺口", "出处",
-    ],
-}
+SECTIONS = {key: list(value["sections"]) for key, value in NODE_PROFILES.items()}
 
-EVIDENCE_TABLES = {
-    "product": ["props", "params", "quality"],
-    "activity": ["flows", "emissions", "indicators", "params", "quality"],
-}
+EVIDENCE_TABLES = {key: list(value["evidence_tables"])
+                   for key, value in NODE_PROFILES.items()}
 
 # Rich, node-specific tables may extend the mandatory floor.  They must never
 # be deleted merely because the generic v2 renderer does not populate them.
-OPTIONAL_EVIDENCE_TABLES = {
-    "product": [],
-    "activity": ["props"],
-}
+OPTIONAL_EVIDENCE_TABLES = {key: list(value.get("optional_evidence_tables", []))
+                            for key, value in NODE_PROFILES.items()}
 
 
 CLAIM_REQUIREMENTS = {
@@ -101,23 +96,14 @@ CLAIM_REQUIREMENTS = {
     ],
 }
 
-TABLE_MIN_ROWS = {
-    "product": {"props": 4, "params": 6, "quality": 5},
-    "activity": {"flows": 4, "emissions": 3, "indicators": 3, "params": 6, "quality": 5},
-}
+TABLE_MIN_ROWS = {key: dict(value["table_min_rows"])
+                  for key, value in NODE_PROFILES.items()}
 
 # A generic source count is not enough.  These identity/boundary zones must be
 # independently supported for the page to be called research-ready.
 CORE_EVIDENCE_ZONES = {
-    "product": {
-        "identity": {"定义与产品身份"},
-        "handoff": {"参考流与交接边界"},
-    },
-    "activity": {
-        "identity": {"定义与参考活动"},
-        "reference": {"参考产品与参考单位"},
-        "boundary": {"单元过程边界"},
-    },
+    key: {zone: set(sections) for zone, sections in value["core_evidence_zones"].items()}
+    for key, value in NODE_PROFILES.items()
 }
 
 
@@ -125,6 +111,7 @@ def contract_for(node_type: str) -> dict[str, Any]:
     if node_type not in SECTIONS:
         raise ValueError(f"未知 Wiki node_type: {node_type!r}")
     return {
+        "profile_version": PROFILE_VERSION,
         "node_type": node_type,
         "sections": list(SECTIONS[node_type]),
         "evidence_tables": list(EVIDENCE_TABLES[node_type]),

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "autonomous-job-campaign-v1",
+  "type": "object",
+  "required": ["schema_version", "name", "skill", "requests"],
+  "properties": {
+    "schema_version": {"const": "autonomous-job-campaign-v1"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 120},
+    "skill": {"type": "string", "minLength": 1},
+    "requests": {
+      "type": "array", "minItems": 1, "maxItems": 100,
+      "items": {"type": "object", "minProperties": 1}
+    },
+    "max_concurrency": {"type": "integer", "minimum": 1, "maximum": 8, "default": 1},
+    "max_auto_repairs_per_job": {"type": "integer", "minimum": 0, "maximum": 20, "default": 3},
+    "completion_goal": {
+      "enum": ["lca_modeling_ready", "workflow_delivery"],
+      "default": "lca_modeling_ready"
+    },
+    "poll_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 300, "default": 2},
+    "stop_on_failure": {"type": "boolean", "default": false}
+  },
+  "additionalProperties": false
+}

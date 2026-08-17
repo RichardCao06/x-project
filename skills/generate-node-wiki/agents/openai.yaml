@@ -1,0 +1,6 @@
+interface:
+  display_name: "生成节点 Wiki"
+  short_description: "创建受证据门禁约束的 LCA 节点 Wiki 生产任务"
+  default_prompt: "使用 $generate-node-wiki 创建、补全、修复或审计一个 LCA 节点 Wiki。"
+policy:
+  allow_implicit_invocation: true

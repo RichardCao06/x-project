@@ -1,0 +1,26 @@
+{
+  "schema_version": "wiki-node-production-profile-v1",
+  "version": "wiki-node-production-profile-v1",
+  "node_types": {
+    "product": {
+      "sections": ["定义与产品身份", "性质与形态", "参考流与交接边界", "规格与相邻节点区分", "在系统中的角色", "分类与适用范围", "节点特定采集字段", "区域化补充要求", "数据适用状态与缺口", "出处"],
+      "evidence_tables": ["props", "params", "quality"],
+      "optional_evidence_tables": [],
+      "table_min_rows": {"props": 4, "params": 6, "quality": 5},
+      "core_evidence_zones": {"identity": ["定义与产品身份"], "handoff": ["参考流与交接边界"]}
+    },
+    "activity": {
+      "sections": ["定义与参考活动", "参考产品与参考单位", "单元过程边界", "技术路线与相邻活动区分", "投入产出与脊边对账", "直接排放、废物与监测指标边界", "节点特定采集字段", "区域化补充要求", "数据适用状态与缺口", "出处"],
+      "evidence_tables": ["flows", "props", "params", "emissions", "indicators", "quality"],
+      "optional_evidence_tables": [],
+      "table_min_rows": {"flows": 4, "props": 4, "params": 6, "emissions": 3, "indicators": 3, "quality": 5},
+      "core_evidence_zones": {"identity": ["定义与参考活动"], "reference": ["参考产品与参考单位"], "boundary": ["单元过程边界"]}
+    }
+  },
+  "activity_flow_contract": {
+    "required_collections": ["flows", "props", "params", "emissions", "indicators", "quality"],
+    "waste_is_elementary_emission": false,
+    "allowed_compartments": ["air", "water", "soil"],
+    "require_graph_spine_reconciliation": true
+  }
+}

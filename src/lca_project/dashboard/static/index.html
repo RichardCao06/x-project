@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>LCA Control Atlas</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#/overview" aria-label="LCA Control Atlas 首页">
+        <span class="brand-mark"><i></i><i></i><i></i></span>
+        <span><b>LCA</b><small>CONTROL ATLAS</small></span>
+      </a>
+      <nav class="nav" aria-label="主导航">
+        <a href="#/overview" data-route="overview"><span>01</span>总览</a>
+        <a href="#/jobs" data-route="jobs"><span>02</span>任务</a>
+        <a href="#/workflows" data-route="workflows"><span>03</span>工作流</a>
+        <a href="#/artifacts" data-route="artifacts"><span>04</span>产物账本</a>
+        <a href="#/events" data-route="events"><span>05</span>事件流</a>
+        <a href="#/exceptions" data-route="exceptions"><span>06</span>异常</a>
+        <a href="#/system" data-route="system"><span>07</span>系统</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="pulse"><i></i><span>LOCAL CONTROL PLANE</span></div>
+        <button class="quiet-button" id="refresh-toggle" type="button">自动刷新 · 开</button>
+      </div>
+    </aside>
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="page-index">CONTROL / 01</p>
+          <h1 id="page-title">运行总览</h1>
+        </div>
+        <div class="top-actions">
+          <span class="clock" id="clock">--:--:--</span>
+          <button class="icon-button" id="refresh" type="button" title="刷新数据" aria-label="刷新数据">↻</button>
+        </div>
+      </header>
+      <main id="app" tabindex="-1">
+        <div class="loading-stage"><span></span><p>正在读取控制平面…</p></div>
+      </main>
+    </section>
+  </div>
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="drawer" id="drawer" aria-label="详情" aria-hidden="true">
+    <button class="drawer-close" id="drawer-close" type="button" aria-label="关闭">×</button>
+    <div id="drawer-content"></div>
+  </aside>
+  <div class="toast-stack" id="toasts" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

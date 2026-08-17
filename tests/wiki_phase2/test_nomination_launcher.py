@@ -121,6 +121,134 @@ def test_canonicalization_moves_protocol_owned_provenance_out_of_agent_control(t
     assert claims[2]["believed_source"] == "Official source"
 
 
+def test_canonicalization_trims_requirement_overflow_to_frozen_quota(tmp_path: Path) -> None:
+    raw, output = tmp_path / "raw.json", tmp_path / "canonical.json"
+    node = {"node_id": "P030", "dossier": {"claim_requirements": [{
+        "requirement_id": "product.quality.uncertainty",
+        "claim_kind": "modeling_judgment", "section": "数据适用状态与缺口",
+    }]}}
+    raw.write_text(json.dumps({"claims": [{
+        "requirement_id": "product.quality.uncertainty", "claim_kind": "modeling_judgment",
+        "section": "wrong", "believed_source": "agent", "claim_text": str(index),
+    } for index in range(3)]}), encoding="utf-8")
+    launcher_module().canonicalize_result(raw, output, node)
+    claims = json.loads(output.read_text(encoding="utf-8"))["claims"]
+    assert len(claims) == 2
+    assert [claim["claim_id"] for claim in claims] == ["P030-0", "P030-1"]
+    assert all(claim["believed_source"] == "INTERNAL_MODELING_JUDGMENT" for claim in claims)
+
+
+def test_diversity_repair_fills_missing_second_modeling_judgment(tmp_path: Path) -> None:
+    node = frozen_node("A015")
+    node["dossier"]["claim_requirements"] = [
+        {"requirement_id": f"external-{index}", "claim_kind": "external_fact",
+         "section": f"section-{index}"} for index in range(3)
+    ] + [{"requirement_id": "model", "claim_kind": "modeling_judgment",
+          "section": "model section"}]
+    identity = {"display_name": node["name"], "node_type": node["node_type"],
+                "facets": node["facets"], "boundary": node["boundary"]}
+    claims = []
+    for index in range(3):
+        claims.append({
+            "requirement_id": f"external-{index}", "section": f"section-{index}",
+            "claim_kind": "external_fact", "node_id": "A015", "industry": "ict_equipment",
+            "node_identity": identity, "claim_id": f"A015-{index}",
+            "claim_text": f"external fact {index}", "believed_source": f"Source {index}",
+            "believed_locator": f"question-{index}；locator", "attribution_confidence": "medium",
+        })
+    claims.append({
+        "requirement_id": "model", "section": "model section",
+        "claim_kind": "modeling_judgment", "node_id": "A015", "industry": "ict_equipment",
+        "node_identity": identity, "claim_id": "A015-3", "claim_text": "first judgment",
+        "believed_source": "INTERNAL_MODELING_JUDGMENT",
+        "believed_locator": "controlled internal claim", "attribution_confidence": "medium",
+    })
+    result = tmp_path / "result.json"
+    result.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"}, "claims": claims,
+    }), encoding="utf-8")
+    scout = {
+        "diversity_repair": {"protocol": "wiki-source-diversity-repair-v1"},
+        "candidates": [
+            {"title": f"Source {index}", "url": f"https://domain{index}.example/source",
+             "language": "zh" if index == 0 else "en"}
+            for index in range(3)
+        ],
+    }
+
+    repaired = launcher_module().repair_prior_result(result, node, scout)
+
+    assert repaired["filled_requirements"] == ["model"]
+    assert len(json.loads(result.read_text(encoding="utf-8"))["claims"]) == 5
+
+
+def test_research_scout_requires_three_external_questions_without_forcing_quality_slot(tmp_path: Path) -> None:
+    node = frozen_node()
+    node["dossier"]["claim_requirements"] = [
+        {"requirement_id": "identity", "claim_kind": "external_fact", "section": "identity"},
+        {"requirement_id": "handoff", "claim_kind": "external_fact", "section": "handoff"},
+        {"requirement_id": "boundary", "claim_kind": "external_fact", "section": "boundary"},
+        {"requirement_id": "quality", "claim_kind": "modeling_judgment", "section": "quality"},
+    ]
+    claims = valid_claims(node)
+    questions = iter(["identity_and_terminology", "collection_and_handoff", "recovery_and_destination"])
+    scout_candidates = []
+    for claim in claims:
+        claim.update({
+            "claim_text": f"node-specific claim {claim['claim_id']}",
+            "attribution_confidence": "medium",
+        })
+        if claim["claim_kind"] == "external_fact":
+            question = next(questions)
+            claim["believed_source"] = f"Scout source {question}"
+            claim["believed_locator"] = f"{question}；locator"
+            scout_candidates.append({
+                "title": claim["believed_source"],
+                "url": f"https://source{len(scout_candidates)}.example/evidence",
+                "language": "zh" if not scout_candidates else "en",
+            })
+        else:
+            claim["believed_source"] = "INTERNAL_MODELING_JUDGMENT"
+            claim["believed_locator"] = "controlled internal claim"
+    result = tmp_path / "result.json"
+    result.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": claims,
+    }), encoding="utf-8")
+    launcher_module().validate_result(result, node, {"candidates": scout_candidates})
+
+
+def test_research_scout_rejects_fewer_than_three_external_questions(tmp_path: Path) -> None:
+    node = frozen_node()
+    node["dossier"]["claim_requirements"] = [
+        {"requirement_id": "identity", "claim_kind": "external_fact", "section": "identity"},
+        {"requirement_id": "handoff", "claim_kind": "external_fact", "section": "handoff"},
+        {"requirement_id": "boundary", "claim_kind": "external_fact", "section": "boundary"},
+    ]
+    claims = valid_claims(node)
+    scout_candidates = []
+    for index, claim in enumerate(claims):
+        question = "identity_and_terminology" if index < 2 else "collection_and_handoff"
+        claim.update({
+            "claim_text": f"node-specific claim {claim['claim_id']}",
+            "believed_source": f"Scout source {index}",
+            "believed_locator": f"{question}；locator",
+            "attribution_confidence": "medium",
+        })
+        scout_candidates.append({
+            "title": claim["believed_source"],
+            "url": f"https://source{index}.example/evidence",
+            "language": "zh" if index == 0 else "en",
+        })
+    result = tmp_path / "result.json"
+    result.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": claims,
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="至少 3 个研究问题"):
+        launcher_module().validate_result(result, node, {"candidates": scout_candidates})
+
+
 def test_nomination_prompt_guards_target_product_against_adjacent_object_drift() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
     assert "不得把机箱、组件或系统集合写成目标节点" in source
@@ -128,5 +256,13 @@ def test_nomination_prompt_guards_target_product_against_adjacent_object_drift()
     assert "adjacent.specification 应提名目标本体" in source
     assert "scope.exclusions 应以目标本体为主语" in source
     assert "不表示刀片机箱，也不表示由多个 server blades 构成的集合" in source
-    assert "若存在 requirement_routes" in source
+    assert "legacy requirement_routes" in source
+    assert "不得限制其他来源发现" in source
+    assert "不得改投其他来源" not in source
     assert "不得把 requirement 名称本身改写进事实断言" in source
+    assert "不得把它塞入" in source
+    assert "质量与不确定性建模由冻结的 quality.uncertainty requirement 覆盖" in source
+    assert "process_origin_and_boundary 的英文工艺来源" in source
+    assert "不得只把英文来源分配给产品身份、交付形态" in source
+    assert "必须是单一谓词" in source
+    assert "research-scout-source-specific-v9" in source

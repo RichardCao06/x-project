@@ -215,7 +215,7 @@ def render_typed(t):
     if node_type=='product':
         kinds=('props','params','quality')
     elif node_type=='activity':
-        kinds=('flows','emissions','indicators','params','quality')
+        kinds=('flows','props','params','emissions','indicators','quality')
     else:
         kinds=('flows','emissions','indicators','props','params','quality')
     for kind in kinds:

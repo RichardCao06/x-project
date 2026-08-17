@@ -1,0 +1,9 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"wiki-editorial-paragraph-repair-v1",
+  "type":"object","additionalProperties":false,
+  "required":["issue_id","section_id","paragraph_id","target_hash","replacements","preserved_claim_ids"],
+  "properties":{"issue_id":{"type":"string"},"section_id":{"type":"string"},"paragraph_id":{"type":"string"},
+    "target_hash":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},
+    "replacements":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object"}},
+    "preserved_claim_ids":{"type":"array","items":{"type":"string"},"uniqueItems":true}}
+}

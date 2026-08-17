@@ -1,0 +1,12 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"wiki-editorial-patch-review-v1",
+  "type":"object","additionalProperties":false,"required":["protocol","node_id","verdict","issues"],
+  "properties":{"protocol":{"const":"wiki-editorial-patch-review-v1"},"node_id":{"type":"string"},
+    "verdict":{"enum":["GO","NO_GO"]},"issues":{"type":"array","items":{"type":"object","additionalProperties":false,
+      "required":["issue_id","section_id","paragraph_id","target_hash","type","operation","instruction","facts_must_preserve","tokens_must_preserve"],
+      "properties":{"issue_id":{"type":"string","minLength":1},"section_id":{"type":"string","minLength":1},
+        "paragraph_id":{"type":"string","minLength":1},"target_hash":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},
+        "type":{"type":"string"},"operation":{"enum":["replace","split_replace"]},"instruction":{"type":"string","minLength":1},
+        "facts_must_preserve":{"type":"array","items":{"type":"string"},"uniqueItems":true},
+        "tokens_must_preserve":{"type":"array","items":{"type":"string","minLength":1},"uniqueItems":true}}}}}
+}

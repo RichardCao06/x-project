@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wiki-table-evidence-selection-v1",
+  "type": "object",
+  "required": ["protocol", "node_id", "outcome", "reason_counts", "matrix_sha256", "counts", "fields", "accepted_evidence", "candidate_audits"],
+  "properties": {
+    "protocol": {"const": "wiki-table-evidence-selection-v1"},
+    "node_id": {"type": "string", "pattern": "^[PA]\\d{3}$"},
+    "outcome": {"enum": ["NO_ELIGIBLE_PUBLIC_DATA", "PARTIALLY_POPULATED", "FULLY_POPULATED"]},
+    "reason_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "matrix_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "counts": {
+      "type": "object",
+      "required": ["fields", "populated", "explicit_gaps", "candidate_audits"],
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "fields": {"type": "array"},
+    "accepted_evidence": {"type": "array"},
+    "candidate_audits": {"type": "array"}
+  },
+  "additionalProperties": false
+}

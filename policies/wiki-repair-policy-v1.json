@@ -1,0 +1,26 @@
+{
+  "schema_version": "wiki-repair-policy-v1",
+  "version": "wiki-repair-policy-v1",
+  "unknown_failure_action": "quarantine",
+  "rules": {
+    "RESEARCH_PLAN_INVALID": {"action":"repair","repairer_capability":"wiki.research.plan","max_automatic_attempts":1,"invalidates":["research_plan","research_plan_gate"],"preserves":["plan","prepare"],"allowed_actors":["worker"],"exhausted_state":"manual_review"},
+    "CONTENT_SECTION_BINDING_DRIFT": {"action":"repair","repairer_capability":"wiki.content.normalize","max_automatic_attempts":3,"invalidates":["content_compose","editorial_review"],"preserves":["research_ready","verify","content_blueprint"],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "CONTENT_CLAIM_KIND_INVALID": {"action":"repair","repairer_capability":"wiki.content.normalize","max_automatic_attempts":3,"invalidates":["content_compose","editorial_review"],"preserves":["research_ready","verify","content_blueprint"],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "CONTENT_LOCAL_ISSUES": {"action":"repair","repairer_capability":"wiki.content.patch","max_automatic_attempts":8,"invalidates":["content_compose","editorial_review"],"preserves":["research_ready","verify","content_blueprint"],"allowed_actors":["worker"],"exhausted_state":"manual_review"},
+    "CONTENT_DUPLICATION_HIGH": {"action":"repair","repairer_capability":"wiki.content.patch","max_automatic_attempts":3,"invalidates":["content_compose","editorial_review"],"preserves":["research_ready","verify","content_blueprint"],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "EDITORIAL_LOCAL_ISSUES": {"action":"repair","repairer_capability":"wiki.content.patch","max_automatic_attempts":3,"invalidates":["content_compose","editorial_review"],"preserves":["research_ready","verify","content_blueprint"],"allowed_actors":["worker"],"exhausted_state":"manual_review"},
+    "EDITORIAL_BUDGET_EXHAUSTED": {"action":"manual_review","max_automatic_attempts":0,"invalidates":["editorial_review"],"preserves":["research_ready","verify","content_blueprint","content_compose"],"allowed_actors":["worker"],"exhausted_state":"manual_review"},
+    "TABLE_NODE_TYPE_MISMATCH": {"action":"repair","repairer_capability":"wiki.table.rebuild","max_automatic_attempts":2,"invalidates":["table_collect","table_verify","table_population_gate","table_apply","preview"],"preserves":["research_ready","verify"],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "TABLE_QUERY_ALIAS_MISSING": {"action":"repair","repairer_capability":"wiki.table.query_alias","max_automatic_attempts":2,"invalidates":["table_collect","table_verify","table_population_gate","table_apply","preview"],"preserves":["research_ready","verify"],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "TABLE_FLOW_CONTRACT_DRIFT": {"action":"repair","repairer_capability":"wiki.table.rebuild","max_automatic_attempts":2,"invalidates":["table_collect","table_verify","table_population_gate","table_apply","preview"],"preserves":["research_ready","verify"],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "PREVIEW_PROVENANCE_MISMATCH": {"action":"repair","repairer_capability":"wiki.preview.provenance_repair","max_automatic_attempts":3,"invalidates":["preview"],"preserves":["research_ready","verify","content_blueprint","content_compose","table_apply"],"allowed_actors":["worker"],"exhausted_state":"manual_review"},
+    "PROVIDER_TIMEOUT": {"action":"retry","max_automatic_attempts":2,"invalidates":[],"preserves":[],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "CAPABILITY_PROCESS_FAILED": {"action":"retry","max_automatic_attempts":4,"invalidates":[],"preserves":[],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "SOURCE_DIVERSITY_BLOCKED": {"action":"repair","repairer_capability":"wiki.research.diversity","max_automatic_attempts":3,"invalidates":["research_ready","search_execution_gate","verify","terminology_verify","source_diversity_gate"],"preserves":["plan","prepare","research_plan"],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "SEARCH_EXECUTION_BLOCKED": {"action":"repair","repairer_capability":"wiki.research.search","max_automatic_attempts":3,"invalidates":["research_ready","search_execution_gate"],"preserves":["plan","prepare","research_plan"],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "TIMEOUT": {"action":"retry","max_automatic_attempts":2,"invalidates":[],"preserves":[],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "PROCESS_EXIT": {"action":"retry","max_automatic_attempts":2,"invalidates":[],"preserves":[],"allowed_actors":["worker"],"exhausted_state":"quarantine"},
+    "WORKER_LOST": {"action":"recover","max_automatic_attempts":100,"invalidates":[],"preserves":[],"allowed_actors":["watchdog"],"exhausted_state":"quarantine"},
+    "ARTIFACT_HASH_MISMATCH": {"action":"quarantine","max_automatic_attempts":0,"invalidates":[],"preserves":[],"allowed_actors":["worker"],"exhausted_state":"quarantine"}
+  }
+}

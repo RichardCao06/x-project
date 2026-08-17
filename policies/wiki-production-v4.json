@@ -1,0 +1,6 @@
+{
+  "policy_id":"wiki-production",
+  "version":"wiki-production-v4",
+  "invariants":["research_plan_precedes_nomination","source_hints_are_advisory","search_execution_is_distinct_from_planning","historical_sources_are_current_job_candidates","multilingual_queries_are_executed","agent_proposes_only","independent_verify","source_diversity_gate","hash_locked_apply"],
+  "forbidden":["planned_query_as_executed","exclusive_source_hint","historical_verified_inheritance","unreviewed_repair_mutation","direct_page_write","agent_self_review"]
+}

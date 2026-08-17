@@ -42,6 +42,11 @@ def main() -> int:
     stderr = out / "editorial-review-stderr.log"
     invocation = out / "editorial-review-invocation.json"
     usage = out / "editorial-review-usage.json"
+    runtime_schema = out / "editorial-review-output.schema.json"
+    runtime_schema_doc = json.loads(schema_path.read_text(encoding="utf-8"))
+    runtime_schema_doc.get("properties", {}).get("reviewed_sections", {}).pop("uniqueItems", None)
+    runtime_schema.write_text(json.dumps(runtime_schema_doc, ensure_ascii=False, indent=2) + "\n",
+                              encoding="utf-8")
     prompt = (
         "你是独立的中文技术百科编辑，只审稿，不改稿，不读取文件、不调用工具、不联网。"
         "逐节逐段阅读 CONTENT。重点判断：每段是否只有一个中心；相邻句是否形成论点—证据—解释—边界/应用链；"
@@ -58,7 +63,7 @@ def main() -> int:
                "-s", "read-only", "-m", "gpt-5.6-sol", "-c", 'model_reasoning_effort="high"']
     for feature in DISABLED:
         command.extend(["--disable", feature])
-    command.extend(["--json", "--output-schema", str(schema_path), "-o", str(result), prompt])
+    command.extend(["--json", "--output-schema", str(runtime_schema), "-o", str(result), prompt])
     invocation.write_text(json.dumps({
         "protocol": "wiki-editorial-review-runtime-v1",
         "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -67,6 +72,7 @@ def main() -> int:
         "verify_sha256": sha256(verify_path),
         "blueprint_sha256": sha256(blueprint_path),
         "schema_sha256": sha256(schema_path),
+        "runtime_schema_sha256": sha256(runtime_schema),
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     exit_code = 124
     error = None
