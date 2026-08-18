@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="真实证据、独立核验、发布门禁、工程资产与源仓库保护的验收记录。">
+  <title>Phase 3 · Wiki 真实证据正式发布验收报告 · LCA 项目文档</title>
+  <style>
+    :root {
+      --ink: #132321; --muted: #60706c; --paper: #f2eee4; --panel: #fffdf7;
+      --line: #c9c2b2; --teal: #006f67; --teal-soft: #d9ebe5; --rust: #c54e2f;
+      --navy: #102b2d; --code: #102a2b; --code-ink: #e7f0e8;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; overflow-x: hidden; color: var(--ink); background:
+      linear-gradient(90deg, rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px,
+      linear-gradient(rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px, var(--paper);
+      font: 16px/1.78 var(--sans); }
+    a { color: var(--teal); text-underline-offset: .2em; }
+    .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; min-height: 58px; padding: .7rem clamp(1rem,4vw,3.5rem);
+      color: #eff8f2; background: rgba(16,43,45,.96); border-bottom: 3px solid #d98b45;
+      backdrop-filter: blur(12px); }
+    .topbar a { color: inherit; text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: .7rem; font-weight: 700; letter-spacing: .04em; }
+    .brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #8acbc1;
+      border-radius: 50%; color: #f2bd72; font: 700 12px var(--mono); }
+    .source-link { padding: .32rem .7rem; border: 1px solid rgba(255,255,255,.3); border-radius: 999px;
+      font: 12px var(--mono); }
+    .shell { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 850px); gap: clamp(2rem,5vw,5rem);
+      max-width: 1260px; margin: 0 auto; padding: clamp(2rem,5vw,5rem) clamp(1rem,4vw,3.5rem) 6rem; }
+    .toc { position: sticky; top: 90px; align-self: start; max-height: calc(100vh - 120px); overflow: auto;
+      padding: 1rem 1rem 1.2rem; background: rgba(255,253,247,.76); border: 1px solid var(--line);
+      box-shadow: 8px 8px 0 rgba(16,43,45,.07); }
+    .toc-label { margin: 0 0 .8rem; color: var(--rust); font: 700 11px var(--mono); letter-spacing: .16em; }
+    .toc ul { margin: 0; padding-left: 1rem; list-style: none; }
+    .toc > ul { padding-left: 0; }
+    .toc li { margin: .25rem 0; }
+    .toc a { display: block; padding: .22rem .35rem; color: #41534f; border-left: 2px solid transparent;
+      font-size: .82rem; line-height: 1.45; text-decoration: none; }
+    .toc a:hover { color: var(--teal); border-left-color: var(--rust); background: #fff; }
+    .document { min-width: 0; }
+    .document-meta { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 2rem; }
+    .chip { padding: .25rem .58rem; color: var(--teal); background: var(--teal-soft); border-radius: 999px;
+      font: 700 11px var(--mono); letter-spacing: .06em; }
+    article { padding: clamp(1.4rem,4vw,4rem); overflow-wrap: anywhere; background: rgba(255,253,247,.92); border: 1px solid var(--line);
+      box-shadow: 18px 22px 0 rgba(16,43,45,.07); }
+    h1, h2, h3, h4 { font-family: var(--serif); line-height: 1.24; text-wrap: balance; }
+    h1 { max-width: 17ch; margin: 0 0 1.8rem; font-size: clamp(2.25rem,6vw,4.7rem); letter-spacing: -.045em; }
+    h2 { margin: 3.5rem 0 1rem; padding-top: .75rem; border-top: 2px solid var(--navy);
+      font-size: clamp(1.55rem,3vw,2.2rem); }
+    h3 { margin-top: 2.4rem; color: #194c4a; font-size: 1.35rem; }
+    h4 { color: #344c48; }
+    .headerlink { margin-left: .35em; color: var(--teal); opacity: 0; font: .45em var(--mono); text-decoration: none; }
+    h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink, h4:hover .headerlink,
+    .headerlink:focus { opacity: .65; }
+    p, li { max-width: 78ch; }
+    strong { color: #0c4b47; }
+    blockquote { margin: 1.5rem 0; padding: .8rem 1.2rem; color: #374b47; background: #edf2e9;
+      border-left: 4px solid var(--rust); }
+    code { padding: .12em .34em; color: #8c311e; background: #eee5d8; border-radius: 3px; font: .88em var(--mono); }
+    pre { max-width: 100%; overflow: auto; padding: 1.2rem; color: var(--code-ink); background: var(--code);
+      border-left: 4px solid #d98b45; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    pre code { padding: 0; color: inherit; background: transparent; }
+    pre.mermaid { color: var(--ink); background: #f7f3e9; border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 1.4rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { color: #f5f7ef; background: var(--navy); text-align: left; }
+    th, td { padding: .65rem .75rem; border: 1px solid #bbb6aa; vertical-align: top; }
+    tr:nth-child(even) td { background: #f4f0e7; }
+    hr { margin: 3rem 0; border: 0; border-top: 1px solid var(--line); }
+    .footer { max-width: 1260px; margin: 0 auto; padding: 0 3.5rem 3rem; color: var(--muted); font-size: .8rem; }
+    @media (max-width: 860px) {
+      .shell { display: block; padding-top: 1.5rem; }
+      .toc { position: relative; top: auto; max-height: 18rem; margin-bottom: 1.5rem; }
+      article { padding: 1.25rem; box-shadow: 8px 10px 0 rgba(16,43,45,.07); }
+      h1 { font-size: clamp(2rem,12vw,3.25rem); }
+      .topbar { align-items: flex-start; }
+    }
+    @media print { .topbar, .toc { display: none; } .shell { display: block; max-width: none; padding: 0; }
+      article { border: 0; box-shadow: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+  <!-- Generated by scripts/build_docs_site.py; edit the Markdown source, not this file. -->
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">LCA</span><span>项目文档中心</span></a>
+    <a class="source-link" href="Phase3-Wiki真实证据正式发布验收报告.md">查看 Markdown 源文档</a>
+  </header>
+  <main class="shell">
+    <nav class="toc" aria-label="本文目录"><p class="toc-label">CONTENTS / 目录</p><div class="toc">
+<ul>
+<li><a href="#_1">验收结论</a></li>
+<li><a href="#_2">真实证据与独立核验</a></li>
+<li><a href="#_3">内容与发布门禁</a></li>
+<li><a href="#_4">为完整发布补齐的工程资产</a></li>
+<li><a href="#_5">自主发现与修复记录</a></li>
+<li><a href="#_6">项目回归与源仓库保护</a></li>
+<li><a href="#_7">关键产物</a></li>
+</ul>
+</div>
+</nav>
+    <section class="document">
+      <div class="document-meta"><span class="chip">验收</span><span class="chip">HTML MIRROR</span></div>
+      <article><h1 id="phase-3wiki">Phase 3：Wiki 真实证据到正式发布验收报告<a class="headerlink" href="#phase-3wiki" title="Permanent link">§</a></h1>
+<p>日期：2026-08-10</p>
+<h2 id="_1">验收结论<a class="headerlink" href="#_1" title="Permanent link">§</a></h2>
+<p><code>ict_equipment::P003</code> 已在目标项目的隔离生产工作区完成真实证据闭环，并正式发布。
+批次 <code>production-p003-v26</code> 的 journal 最终状态为 <code>published</code>，完整经过：</p>
+<pre><code class="language-text">planned → prepared → research_ready → verified → frozen
+→ content draft apply → apply_ready → gated → reviewed apply → published
+</code></pre>
+<p>原项目不是运行写入目标。最终批次位于：</p>
+<pre><code class="language-text">var/workspaces/wiki-production-20260810-v26/
+</code></pre>
+<h2 id="_2">真实证据与独立核验<a class="headerlink" href="#_2" title="Permanent link">§</a></h2>
+<ul>
+<li>Nomination：30 条声明，30 条唯一，逐 requirement 基数全部符合合同。</li>
+<li>外部事实：10 条；受控建模判断、内部图事实和显式缺口：20 条。</li>
+<li>确定性 Search/Fetch：8 次冻结查询、2 次页面抓取、0 次预算越界。</li>
+<li>权威域：<code>publications.europa.eu</code> 与 <code>www.ibm.com</code>，满足至少两个独立 authority。</li>
+<li>Verify-only：<code>gpt-5.6-sol / medium</code>，禁用 Web、浏览器、插件、App 和多 Agent。</li>
+<li>Verify 结果：10/10 <code>CONFIRMED</code>，10/10 <code>node_alignment=EXACT</code>。</li>
+<li>Runtime 证据完整冻结：invocation、events、stderr、verdicts、usage 均有 SHA-256。</li>
+</ul>
+<h2 id="_3">内容与发布门禁<a class="headerlink" href="#_3" title="Permanent link">§</a></h2>
+<p>Draft Content Gate 的结构、丰富度、来源多样性、核心章节证据、引用解析、证据表、
+非退化等检查全部通过；草稿事务提交 1 个文件、30 个操作、0 个 manual review。</p>
+<p>Claim coverage：</p>
+<pre><code class="language-text">total=30  eligible=30  confirmed=10  controlled_internal=20
+missing=0  unresolved=0  contradicted=0  manual_review=0  hash_drift=0
+coverage_rate=1.0  quote_compliance_rate=1.0
+</code></pre>
+<p>最终 Gate：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wiki v2 quality</td>
+<td>PASS（15 项检查全通过）</td>
+</tr>
+<tr>
+<td>Name graph</td>
+<td>PASS（11/11）</td>
+</tr>
+<tr>
+<td>Wiki lint + coverage</td>
+<td>PASS（31/31）</td>
+</tr>
+<tr>
+<td>LCA node search matrix</td>
+<td>PASS（6/6）</td>
+</tr>
+<tr>
+<td>LCA dataset association</td>
+<td>PASS（11/11）</td>
+</tr>
+<tr>
+<td>Go/No-Go</td>
+<td>GO</td>
+</tr>
+</tbody>
+</table></div>
+<p>Reviewed Apply 采用 coverage hash lock，事务提交后才执行 publish。正式 bundle 包含
+132/132 个 ICT 节点；P003 状态为：</p>
+<pre><code class="language-yaml">schema_version: wiki-v2
+body_status: reviewed
+claim_verification_status: complete
+provenance_status: claim_verified
+content_maturity: research_ready
+</code></pre>
+<h2 id="_4">为完整发布补齐的工程资产<a class="headerlink" href="#_4" title="Permanent link">§</a></h2>
+<p>早期隔离 fixture 只有 16 节点图、2 个页面和 2 个 sigil，导致行业级 preview
+无法代表真实生产范围。本阶段把原项目中明确属于 ICT 发布闭环的只读资产按需复制到
+目标 vendor snapshot：完整 132 节点图、132 个 Wiki 页面、132 个 sigil、来源注册表、
+LCA 注册表、viewer 模板和由当前图重新生成的 production name-graph HTML。</p>
+<p>补齐后，隔离工作区 manifest 从 61 个文件扩展到 346 个文件；preview 的 graph、
+wiki lint、bundle、viewer、preview name-graph、production overlay 六步全部通过。</p>
+<h2 id="_5">自主发现与修复记录<a class="headerlink" href="#_5" title="Permanent link">§</a></h2>
+<p>生产尝试没有用人工改 verdict 绕过错误：</p>
+<ol>
+<li>Verify 发现 IBM 的“模块化服务器系统”事实把整机与刀片模块混为相邻对象，判为
+   <code>ADJACENT/INSUFFICIENT</code>；系统停止在 <code>research_ready</code>。</li>
+<li>一条共享资源断言因证据窗口截断被判为 <code>INSUFFICIENT</code>；系统未写 Wiki。</li>
+<li>修复 source routing 与 claim constraint：IBM 仅支持目标本体的“亦称高密度服务器”，
+   物理形态、机箱使用和共享资源边界改用欧盟法规的可直接定位原文。</li>
+<li>新建冻结批次重新 Nomination、Search/Fetch、Verify，得到 10/10 EXACT。</li>
+<li>Preview 再发现 fixture 页面/sigil/registry/template 不完整；补齐生产快照并先在独立
+   workspace 验证六步 PASS，再启动最终 v26，而不是在冻结批次内篡改输入。</li>
+</ol>
+<h2 id="_6">项目回归与源仓库保护<a class="headerlink" href="#_6" title="Permanent link">§</a></h2>
+<pre><code class="language-text">pytest: 87 passed
+make validate: PASS
+capabilities: 7
+workflows: 5（Wiki workflow 11 steps）
+</code></pre>
+<p>源仓库 HEAD 仍为 <code>1a59503d3b6a86a0e58ca773de065266caf144bb</code>；tracked binary diff
+指纹与本阶段开始前一致：
+<code>92081cade4cdcc4e93ad42230dc7793047eab135354799aed3177a625ef2c467</code>。
+源仓库原有 dirty worktree 被保留，未被目标项目的生产 Apply 修改。</p>
+<h2 id="_7">关键产物<a class="headerlink" href="#_7" title="Permanent link">§</a></h2>
+<ul>
+<li><code>runs/wiki-batches/ict_equipment/production-p003-v26/journal.json</code></li>
+<li><code>runs/wiki-batches/ict_equipment/production-p003-v26/verify-runtime/</code></li>
+<li><code>runs/wiki-batches/ict_equipment/production-p003-v26/coverage.json</code></li>
+<li><code>runs/wiki-batches/ict_equipment/production-p003-v26/gate-report.json</code></li>
+<li><code>runs/wiki-batches/ict_equipment/production-p003-v26/publish-report.json</code></li>
+<li><code>wiki/ict_equipment/products/P003--服务器-通用计算-刀片式.md</code></li>
+<li><code>docs/ict_equipment-wiki-data.js</code></li>
+<li><code>docs/ict_equipment-wiki.html</code></li>
+</ul>
+<p>发布后检查发现旧 <code>publish</code> 只构建数据包、遗漏 HTML 查看器。现已补生成查看器，
+并把发布器修复为 bundle 与 viewer 必须同时 PASS；该缺陷已固化为隔离工作区回归测试。</p></article>
+    </section>
+  </main>
+  <footer class="footer">本页由 <code>scripts/build_docs_site.py</code> 从权威 Markdown 自动生成。</footer>
+
+</body>
+</html>

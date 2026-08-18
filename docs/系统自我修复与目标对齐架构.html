@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Goal Contract、三层闭环、Meta Supervisor、复合动作图与效果证明合同。">
+  <title>系统自我修复与目标对齐架构 · LCA 项目文档</title>
+  <style>
+    :root {
+      --ink: #132321; --muted: #60706c; --paper: #f2eee4; --panel: #fffdf7;
+      --line: #c9c2b2; --teal: #006f67; --teal-soft: #d9ebe5; --rust: #c54e2f;
+      --navy: #102b2d; --code: #102a2b; --code-ink: #e7f0e8;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; overflow-x: hidden; color: var(--ink); background:
+      linear-gradient(90deg, rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px,
+      linear-gradient(rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px, var(--paper);
+      font: 16px/1.78 var(--sans); }
+    a { color: var(--teal); text-underline-offset: .2em; }
+    .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; min-height: 58px; padding: .7rem clamp(1rem,4vw,3.5rem);
+      color: #eff8f2; background: rgba(16,43,45,.96); border-bottom: 3px solid #d98b45;
+      backdrop-filter: blur(12px); }
+    .topbar a { color: inherit; text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: .7rem; font-weight: 700; letter-spacing: .04em; }
+    .brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #8acbc1;
+      border-radius: 50%; color: #f2bd72; font: 700 12px var(--mono); }
+    .source-link { padding: .32rem .7rem; border: 1px solid rgba(255,255,255,.3); border-radius: 999px;
+      font: 12px var(--mono); }
+    .shell { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 850px); gap: clamp(2rem,5vw,5rem);
+      max-width: 1260px; margin: 0 auto; padding: clamp(2rem,5vw,5rem) clamp(1rem,4vw,3.5rem) 6rem; }
+    .toc { position: sticky; top: 90px; align-self: start; max-height: calc(100vh - 120px); overflow: auto;
+      padding: 1rem 1rem 1.2rem; background: rgba(255,253,247,.76); border: 1px solid var(--line);
+      box-shadow: 8px 8px 0 rgba(16,43,45,.07); }
+    .toc-label { margin: 0 0 .8rem; color: var(--rust); font: 700 11px var(--mono); letter-spacing: .16em; }
+    .toc ul { margin: 0; padding-left: 1rem; list-style: none; }
+    .toc > ul { padding-left: 0; }
+    .toc li { margin: .25rem 0; }
+    .toc a { display: block; padding: .22rem .35rem; color: #41534f; border-left: 2px solid transparent;
+      font-size: .82rem; line-height: 1.45; text-decoration: none; }
+    .toc a:hover { color: var(--teal); border-left-color: var(--rust); background: #fff; }
+    .document { min-width: 0; }
+    .document-meta { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 2rem; }
+    .chip { padding: .25rem .58rem; color: var(--teal); background: var(--teal-soft); border-radius: 999px;
+      font: 700 11px var(--mono); letter-spacing: .06em; }
+    article { padding: clamp(1.4rem,4vw,4rem); overflow-wrap: anywhere; background: rgba(255,253,247,.92); border: 1px solid var(--line);
+      box-shadow: 18px 22px 0 rgba(16,43,45,.07); }
+    h1, h2, h3, h4 { font-family: var(--serif); line-height: 1.24; text-wrap: balance; }
+    h1 { max-width: 17ch; margin: 0 0 1.8rem; font-size: clamp(2.25rem,6vw,4.7rem); letter-spacing: -.045em; }
+    h2 { margin: 3.5rem 0 1rem; padding-top: .75rem; border-top: 2px solid var(--navy);
+      font-size: clamp(1.55rem,3vw,2.2rem); }
+    h3 { margin-top: 2.4rem; color: #194c4a; font-size: 1.35rem; }
+    h4 { color: #344c48; }
+    .headerlink { margin-left: .35em; color: var(--teal); opacity: 0; font: .45em var(--mono); text-decoration: none; }
+    h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink, h4:hover .headerlink,
+    .headerlink:focus { opacity: .65; }
+    p, li { max-width: 78ch; }
+    strong { color: #0c4b47; }
+    blockquote { margin: 1.5rem 0; padding: .8rem 1.2rem; color: #374b47; background: #edf2e9;
+      border-left: 4px solid var(--rust); }
+    code { padding: .12em .34em; color: #8c311e; background: #eee5d8; border-radius: 3px; font: .88em var(--mono); }
+    pre { max-width: 100%; overflow: auto; padding: 1.2rem; color: var(--code-ink); background: var(--code);
+      border-left: 4px solid #d98b45; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    pre code { padding: 0; color: inherit; background: transparent; }
+    pre.mermaid { color: var(--ink); background: #f7f3e9; border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 1.4rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { color: #f5f7ef; background: var(--navy); text-align: left; }
+    th, td { padding: .65rem .75rem; border: 1px solid #bbb6aa; vertical-align: top; }
+    tr:nth-child(even) td { background: #f4f0e7; }
+    hr { margin: 3rem 0; border: 0; border-top: 1px solid var(--line); }
+    .footer { max-width: 1260px; margin: 0 auto; padding: 0 3.5rem 3rem; color: var(--muted); font-size: .8rem; }
+    @media (max-width: 860px) {
+      .shell { display: block; padding-top: 1.5rem; }
+      .toc { position: relative; top: auto; max-height: 18rem; margin-bottom: 1.5rem; }
+      article { padding: 1.25rem; box-shadow: 8px 10px 0 rgba(16,43,45,.07); }
+      h1 { font-size: clamp(2rem,12vw,3.25rem); }
+      .topbar { align-items: flex-start; }
+    }
+    @media print { .topbar, .toc { display: none; } .shell { display: block; max-width: none; padding: 0; }
+      article { border: 0; box-shadow: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+  <!-- Generated by scripts/build_docs_site.py; edit the Markdown source, not this file. -->
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">LCA</span><span>项目文档中心</span></a>
+    <a class="source-link" href="系统自我修复与目标对齐架构.md">查看 Markdown 源文档</a>
+  </header>
+  <main class="shell">
+    <nav class="toc" aria-label="本文目录"><p class="toc-label">CONTENTS / 目录</p><div class="toc">
+<ul>
+<li><a href="#1">1. 核心结论</a></li>
+<li><a href="#2">2. 三层闭环</a><ul>
+<li><a href="#21-l0">2.1 L0：执行自愈</a></li>
+<li><a href="#22-l1job">2.2 L1：Job 级目标回归</a></li>
+<li><a href="#23-l2">2.3 L2：系统级自我迭代</a></li>
+</ul>
+</li>
+<li><a href="#3-goal-contractgate">3. Goal Contract：Gate 的上位合同</a></li>
+<li><a href="#4-gate">4. 如何检测“Gate 通过但目标偏离”</a></li>
+<li><a href="#5-wiki-gate">5. Wiki Gate 偏离目标的完整示例</a><ul>
+<li><a href="#51-a040gate-false-pass">5.1 A040：Gate 放宽导致 False Pass</a></li>
+<li><a href="#52-a037gate-repair-false-block">5.2 A037：Gate 过严与 Repair 预算错误导致 False Block</a></li>
+<li><a href="#53-a039-lca">5.3 A039：流程成功但 LCA 研究效用为零</a></li>
+</ul>
+</li>
+<li><a href="#54-lca">5.4 面向 LCA 建模的证据检索闭环</a><ul>
+<li><a href="#541-evidence-requirement-matrix">5.4.1 Evidence Requirement Matrix</a></li>
+<li><a href="#542">5.4.2 文档类型路由</a></li>
+<li><a href="#543-evidenceobservation">5.4.3 EvidenceObservation 与证据等级</a></li>
+<li><a href="#544">5.4.4 研究效用闸门与终态</a></li>
+<li><a href="#545">5.4.5 研究修复路由</a></li>
+</ul>
+</li>
+<li><a href="#6">6. 系统如何安全地修改自身行为</a><ul>
+<li><a href="#61">6.1 自动权限分级</a></li>
+<li><a href="#62">6.2 晋级证据</a></li>
+</ul>
+</li>
+<li><a href="#7">7. 防止自我迭代偏离目标</a></li>
+<li><a href="#8">8. 与现有控制平面的集成</a></li>
+<li><a href="#81">8.1 任务生命周期与目标生命周期分离</a></li>
+<li><a href="#82-supervisor-wakeup">8.2 持久化 Supervisor Wakeup 协议</a></li>
+<li><a href="#83">8.3 修复部署与修复有效性分离</a></li>
+<li><a href="#84">8.4 人工审查只冻结失败分支</a></li>
+<li><a href="#85">8.5 多轮自治的预算与停止条件</a></li>
+<li><a href="#86">8.6 系统元控制面：自修复高于业务编排、低于治理内核</a></li>
+<li><a href="#87">8.7 复合修复动作图与最小权限边界</a></li>
+<li><a href="#9">9. 验收指标</a></li>
+<li><a href="#10">10. 分阶段落地</a></li>
+</ul>
+</div>
+</nav>
+    <section class="document">
+      <div class="document-meta"><span class="chip">设计</span><span class="chip">HTML MIRROR</span></div>
+      <article><h1 id="_1">系统自我修复与目标对齐架构<a class="headerlink" href="#_1" title="Permanent link">§</a></h1>
+<ul>
+<li>状态：执行故障、研究效用、持久化监督唤醒、修复效果回执与系统元监督已实现；LCA 证据覆盖仍需按过程族持续扩展</li>
+<li>适用范围：Graph、Wiki、Cross-link、LCA Binding、BOM 与 Publication 生产流程</li>
+<li>设计目标：把“人发现偏离—人诊断—人修复—人重跑”升级为可审计、有限权、可回滚的系统闭环</li>
+</ul>
+<h2 id="1">1. 核心结论<a class="headerlink" href="#1" title="Permanent link">§</a></h2>
+<p>系统不仅要监测 Job 是否失败，还必须监测以下三类偏离：</p>
+<ol>
+<li><strong>执行偏离</strong>：Job 无进展、Worker 失联、任务重复失败或修复预算异常耗尽；</li>
+<li><strong>产出偏离</strong>：Workflow 成功，但产物不满足业务目标，例如引用稀薄、身份混淆、数据表只有空缺；</li>
+<li><strong>控制偏离</strong>：Gate 与目标不再一致，例如不合理地阻塞有效产物，或放宽后让低质量产物成为 Candidate。</li>
+</ol>
+<p>因此，Gate 不是系统的最终目标。Gate 是目标契约在当前实现中的一组可执行传感器和执行许可。系统必须用独立、版本化的 Goal Contract 评价 Gate 本身。</p>
+<h2 id="2">2. 三层闭环<a class="headerlink" href="#2" title="Permanent link">§</a></h2>
+<pre class="mermaid">flowchart TB
+    GC[&quot;Goal Contract\n系统目标与不可变边界&quot;] --&gt; DD[&quot;Deviation Detector\n目标偏离检测&quot;]
+    JR[&quot;Job / Task / Attempt / Gate 事件&quot;] --&gt; DD
+    AR[&quot;Artifact / 用户反馈 / Cohort 指标&quot;] --&gt; DD
+
+    DD --&gt; CA[&quot;Causal Analyzer\n因果分类与影响范围&quot;]
+    CA --&gt; L0[&quot;L0 执行恢复\n重试、续租、Provider 切换&quot;]
+    CA --&gt; L1[&quot;L1 Job 行为修复\n补查询、局部重写、最小重放&quot;]
+    CA --&gt; L2[&quot;L2 系统迭代\nGate、Policy、Prompt、代码候选变更&quot;]
+
+    L0 --&gt; RV[&quot;Replay + Validation&quot;]
+    L1 --&gt; RV
+    L2 --&gt; SB[&quot;隔离 Sandbox&quot;]
+    SB --&gt; RG[&quot;Regression + Golden + Mutation + Canary&quot;]
+    RG --&gt;|通过且权限允许| PR[&quot;Policy Promotion / Deployment Receipt&quot;]
+    RG --&gt;|失败或高风险| HR[&quot;Human Review&quot;]
+    PR --&gt; RV
+    RV --&gt; DD
+</pre>
+<h3 id="21-l0">2.1 L0：执行自愈<a class="headerlink" href="#21-l0" title="Permanent link">§</a></h3>
+<p>处理不改变业务语义的故障：Worker 丢失、临时 I/O、Provider 超时、缓存损坏、Lease 过期。动作可以自动执行，但必须保留 Attempt、Failure Envelope 和重放证明。</p>
+<h3 id="22-l1job">2.2 L1：Job 级目标回归<a class="headerlink" href="#22-l1job" title="Permanent link">§</a></h3>
+<p>处理单个 Job 的可恢复偏离：</p>
+<ul>
+<li>中文术语缺少英文查询词；</li>
+<li>来源角色或语言轨缺失；</li>
+<li>正文某节没有外部事实或显式证据缺口；</li>
+<li>Editorial 指出局部身份漂移或断裂；</li>
+<li>表格某个单元格缺少检索证明；</li>
+<li>Preview 发现来源、正文或表格哈希不一致。</li>
+</ul>
+<p>修复必须选择最小失效点，只重放必要的下游任务；同类修复有固定预算，质量没有改善时停止。</p>
+<h3 id="23-l2">2.3 L2：系统级自我迭代<a class="headerlink" href="#23-l2" title="Permanent link">§</a></h3>
+<p>当相同偏离跨 Job 重复出现，或单个 Job 暴露公共合同缺陷时，问题应从 Job 事件升级为 System Improvement Candidate。系统可以自动提出对以下对象的修改：</p>
+<ul>
+<li>Goal 到 Gate 的映射；</li>
+<li>Gate 阈值与判定语义；</li>
+<li>Repair Policy 与预算；</li>
+<li>查询词典、Provider 路由和 Prompt；</li>
+<li>确定性验证脚本或 Workflow DAG；</li>
+<li>Golden、Defect Mutation 与回归测试。</li>
+</ul>
+<p>系统级变更只能在隔离工作区生成和验证，不能由运行中的 Job 直接修改线上代码或目标数据。</p>
+<p>L2 已接入受治理的编码 Agent 执行器：Deviation Detector 先冻结故障证据，Causal
+Analyzer 和 Repair Planner 生成系统变更候选；<code>SystemRepairAgent</code> 随后复制一次性仓库
+快照，调用固定模型在 <code>workspace-write</code> 边界内完成最小代码修改和回归测试。Agent 不能
+编辑 Goal Contract、治理权限、发布能力或完整性清单，也不能为自己签发证书。控制平面
+独立计算文件差异和补丁哈希，确定性刷新既有 vendor 完整性锚点，依次执行 focused
+Sandbox、Shadow、全量 Canary 和合入后全量回归；只有低风险且全部通过的候选才自动
+晋级。晋级后刷新原 Job 工作区并从故障 Task rewind；任一阶段失败均保留证据并拒绝合入。</p>
+<p>规则库只承担已知问题的确定性快速路径。对规则不能解释的失败，migration v9 持久化
+<code>failure_triage_runs</code>，并自动调用只读 <code>FailureTriageAgent</code>。该 Agent 在不获得写权限的
+仓库快照中读取冻结 dossier、Task DAG、上下游前置条件、Goal Contract、相关 Artifact
+和源码，自主区分实现缺陷、流程死锁、合同错配、真实证据缺口、外部依赖和治理决策，
+输出因果链、证据、风险、修复层级、恢复节点、实现目标与 focused tests。故障指纹仅用于
+去重、复发聚类和历史经验复用，不再是允许调查或修复的白名单。Triage 选择 L2 后才由
+编码 Agent 获得隔离快照写权限；选择证据不足或外部权限时必须诚实降级或请求人工裁决。
+首次未知失败即会形成持久待调查记录；即使快速重试把 Task 暂时改回 <code>ready</code>，下一次自治
+监督仍会消费该记录并启动 Triage。Triage 完成前不得回退生成猜测性的通用变更候选，且
+并发监督只观察 <code>investigating</code> Run，不得删除沙箱或重启同一调查。</p>
+<h2 id="3-goal-contractgate">3. Goal Contract：Gate 的上位合同<a class="headerlink" href="#3-goal-contractgate" title="Permanent link">§</a></h2>
+<p>每个领域必须定义独立的 <code>goal-contract-v1</code>，至少包含：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>purpose</code></td>
+<td>产物要帮助谁完成什么决策</td>
+</tr>
+<tr>
+<td><code>required_outcomes</code></td>
+<td>身份、证据、内容、数据、可用性等结果维度</td>
+</tr>
+<tr>
+<td><code>prohibited_outcomes</code></td>
+<td>不允许出现的身份混淆、伪来源、越权发布等</td>
+</tr>
+<tr>
+<td><code>maturity_levels</code></td>
+<td>diagnostic、evidence-limited、candidate、reviewed、published</td>
+</tr>
+<tr>
+<td><code>signals</code></td>
+<td>用哪些 Gate、指标、抽样和用户反馈观测目标</td>
+</tr>
+<tr>
+<td><code>repair_authority</code></td>
+<td>哪些行为可自动改变，哪些必须人工批准</td>
+</tr>
+<tr>
+<td><code>evaluation_cohorts</code></td>
+<td>Golden、普通样本、难例与 Mutation 集合</td>
+</tr>
+</tbody>
+</table></div>
+<p>Wiki 的 Goal Contract 不是“正文达到多少字”或“所有 Gate 都显示绿色”，而是：</p>
+<ol>
+<li>准确说明节点身份、边界、相邻对象和在 LCA 中的作用；</li>
+<li>外部事实可追溯，建模判断与证据缺口明确区分；</li>
+<li>正文结构在语义上闭合，能支持后续建模和数据采集；</li>
+<li>Product/Activity 表合同正确，数值、代理值和缺口都有真实来源或检索证明；</li>
+<li>成熟度诚实，低证据产物不得成为 Wiki Candidate；</li>
+<li>内容对读者有用，而不仅是机器合同形式完整。</li>
+</ol>
+<h2 id="4-gate">4. 如何检测“Gate 通过但目标偏离”<a class="headerlink" href="#4-gate" title="Permanent link">§</a></h2>
+<p>Deviation Detector 同时比较三个对象：</p>
+<pre><code class="language-text">Goal Contract 期望结果
+        vs
+Gate / Policy 声称的结果
+        vs
+Artifact 与用户反馈显示的实际结果
+</code></pre>
+<p>主要检测模式：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>偏离类型</th>
+<th>典型信号</th>
+<th>系统判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>False Pass</td>
+<td>Gate PASS，但身份冲突、引用覆盖下降或表格无数据</td>
+<td>Gate 对目标覆盖不足</td>
+</tr>
+<tr>
+<td>False Block</td>
+<td>内容满足目标，却因固定字数、未知翻译片段等被阻塞</td>
+<td>Gate 代理指标不合理</td>
+</tr>
+<tr>
+<td>Repair Ineffective</td>
+<td>重试后失败指纹、质量向量和来源集合没有改善</td>
+<td>修复行为无效，禁止继续盲重试</td>
+</tr>
+<tr>
+<td>Local Fix Recurrence</td>
+<td>同一失败码跨多个节点出现</td>
+<td>升级为系统变更候选</td>
+</tr>
+<tr>
+<td>Success Without Maturity</td>
+<td>Run succeeded，但 maturity 不是 candidate</td>
+<td>流程完成，不等于目标完成</td>
+</tr>
+<tr>
+<td>Low Evidence Yield</td>
+<td>已抓取大量候选，但可接受观测和关键字段填值接近零</td>
+<td>优先判定检索、路由、提取或适用性能力缺口，不能直接解释为公开数据稀缺</td>
+</tr>
+<tr>
+<td>Search Strategy Mismatch</td>
+<td>查询包含内部 ID、语言未翻译、过程族没有文档路由</td>
+<td>生成批次级研究计划修复；复发时升级系统能力变更</td>
+</tr>
+<tr>
+<td>Extractor Coverage Gap</td>
+<td>目标字段远多于可识别字段，全文中存在信息但无法结构化</td>
+<td>启动语义提取或 L2 提取器能力修复</td>
+</tr>
+<tr>
+<td>False Terminal Low Utility</td>
+<td><code>evidence_limited</code> 被当作建模资料任务的正常完成</td>
+<td>按 Goal Contract 改为 <code>needs_research</code> 或 <code>data_required</code></td>
+</tr>
+<tr>
+<td>User Escape Report</td>
+<td>用户指出事实混淆、空表或引用下降</td>
+<td>形成结构化偏离样本并回扫同类产物</td>
+</tr>
+</tbody>
+</table></div>
+<p>质量比较使用多维向量，不能压缩成一个容易被优化钻空子的总分：</p>
+<pre><code class="language-text">identity_fidelity
+source_role_coverage
+claim_provenance_coverage
+semantic_closure
+editorial_coherence
+table_contract_validity
+research_process_integrity
+evidence_yield
+critical_field_coverage
+model_data_readiness
+search_strategy_adequacy
+gap_provenance
+reader_utility
+</code></pre>
+<p><code>data_ready</code> 与 <code>no_eligible_public_data</code> 不得再映射为同一个质量结果。前者表示存在可用于模型的证据，后者最多证明检索流程完整、拒绝和缺口可审计。质量轨迹必须分别记录“研究是否合规完成”和“是否形成可入模数据”。</p>
+<p>任何修复都必须证明目标维度改善，且已通过维度没有退化。</p>
+<h2 id="5-wiki-gate">5. Wiki Gate 偏离目标的完整示例<a class="headerlink" href="#5-wiki-gate" title="Permanent link">§</a></h2>
+<h3 id="51-a040gate-false-pass">5.1 A040：Gate 放宽导致 False Pass<a class="headerlink" href="#51-a040gate-false-pass" title="Permanent link">§</a></h3>
+<p>目标对象是“笔记本电脑整机总装”，实际产物只有一个独立来源，并混入“通用服务器主板、服务器散热器、服务器机箱”等投入。旧流程通过降低来源和正文阈值让 Job 跑完，却使引用和内容完整度下降。</p>
+<p>监督系统应检测到：</p>
+<ul>
+<li>图谱输出产品族为 <code>laptop</code>，多个投入产品族为 <code>server</code>；</li>
+<li>来源域、来源角色和语言轨未达到 Candidate 目标；</li>
+<li>核心章节只有内部图谱事实或泛化判断；</li>
+<li>六表虽然结构存在，但有效公开数据为零；</li>
+<li>Run succeeded 与 <code>wiki_candidate</code> 目标不一致。</li>
+</ul>
+<p>因果分类为：<code>GATE_FALSE_PASS + GRAPH_SEMANTIC_CONFLICT + EVIDENCE_DEFICIT</code>。</p>
+<p>允许的系统行为修改：</p>
+<ol>
+<li>在 Blueprint 阶段增加产品族语义冲突检测；</li>
+<li>将来源“数量”升级为身份、边界、相邻区分、地域和定量角色覆盖；</li>
+<li>正文从固定字数改为逐句事实类型和核心章节闭合；</li>
+<li>增加最终 Maturity Gate；</li>
+<li>将该产物降为 <code>diagnostic_preview</code>，禁止 Candidate 晋级；</li>
+<li>用 A040 缺陷样本和 Golden Case 验证变更没有过度阻塞正常 Wiki。</li>
+</ol>
+<h3 id="52-a037gate-repair-false-block">5.2 A037：Gate 过严与 Repair 预算错误导致 False Block<a class="headerlink" href="#52-a037gate-repair-false-block" title="Permanent link">§</a></h3>
+<p>“机架 PDU”自动翻译得到 <code>PDU 1U</code>，但词典未覆盖“机架”，Research Plan Gate 因 <code>unmatched_fragments=[机架]</code> 阻塞；同时预算边界使第一次失败直接进入人工审核。</p>
+<p>监督系统应检测到：</p>
+<ul>
+<li>已存在可用英文查询，但翻译审计只因一个可翻译片段失败；</li>
+<li>Failure 第一次发生，Repair Policy 却声称预算耗尽；</li>
+<li>Job 未进入 Search，目标进展为零；</li>
+<li>同一输入通过通用翻译回退可以形成 <code>rack-mounted PDU</code>。</li>
+</ul>
+<p>因果分类为：<code>GATE_FALSE_BLOCK + TRANSLATION_COVERAGE_GAP + REPAIR_BUDGET_OFF_BY_ONE</code>。</p>
+<p>安全的 L1 行为是生成经审计的查询级翻译并重放 <code>research_plan</code>；L2 候选变更是补充通用翻译回退、修复预算边界，并增加 A037 回归。只有回归、Golden 和 Canary 均通过后才能晋级为新系统行为。</p>
+<h3 id="53-a039-lca">5.3 A039：流程成功但 LCA 研究效用为零<a class="headerlink" href="#53-a039-lca" title="Permanent link">§</a></h3>
+<p>A039 的任务、检索和表格合同均到达诚实终态，但实际结果为外部确认来源 0、关键字段填值 0、33 个字段全部为显式缺口。表格检索执行了 66 条查询并审核 329 个候选，因此不能把结果简单归因为“没有执行检索”。</p>
+<p>监督系统应在任务结束时计算研究漏斗：</p>
+<pre><code class="language-text">查询 → 搜索结果 → 成功抓取 → 字段观测 → 适用性通过 → LCA 字段填值
+ 66      329          多份          0           0              0
+</code></pre>
+<p>同时检查以下确定性信号：</p>
+<ul>
+<li>英文查询仍包含中文字段，且查询携带 <code>P018</code>、<code>P026</code> 等内部图谱编号；</li>
+<li>A039 的过程族没有命中任何 <code>document_route</code>；</li>
+<li>33 个字段中只有少量字段拥有确定性提取规则，专项解析器集中在 SMT 环评和 PCB 装配；</li>
+<li>搜索供应商返回任意命中后即停止扩展，停止条件是“有网页”而不是“有合格证据”；</li>
+<li><code>no_eligible_public_data</code> 被质量轨迹计为 data readiness 通过，<code>evidence_limited</code> 又被 Autonomous Campaign 计为完成。</li>
+</ul>
+<p>应产生复合偏离：</p>
+<pre><code class="language-text">LOW_EVIDENCE_YIELD
++ QUERY_EXTERNAL_VOCABULARY_MISMATCH
++ DOCUMENT_ROUTE_COVERAGE_GAP
++ EXTRACTOR_COVERAGE_GAP
++ FALSE_TERMINAL_LOW_UTILITY
+</code></pre>
+<p>这类偏离必须在没有 failed Task 的情况下也启动只读 <code>ResearchTriageAgent</code>。它需要回答：公开资料真的不存在，还是检索没有进入正确文档；哪些字段可由产品规格、维护手册、EPD/PCF、环评、过程 LCA 或拆解报告获得；失败位于查询、抓取、提取、归一化还是边界适用性；下一次尝试将改变什么因果输入；哪些剩余字段只能形成企业数据请求。</p>
+<h2 id="54-lca">5.4 面向 LCA 建模的证据检索闭环<a class="headerlink" href="#54-lca" title="Permanent link">§</a></h2>
+<p>研究流程必须从 LCA 证据需求出发，而不是从 Wiki 展示字段直接拼接查询：</p>
+<pre class="mermaid">flowchart LR
+    N[&quot;节点、参考产品与单元过程边界&quot;] --&gt; R[&quot;LCA Evidence Requirement Matrix&quot;]
+    R --&gt; Q[&quot;来源角色与文档类型路由&quot;]
+    Q --&gt; S[&quot;多 Provider 深度检索与质量重排&quot;]
+    S --&gt; F[&quot;全文、附件、PDF、OCR 与表格冻结&quot;]
+    F --&gt; O[&quot;字段级 EvidenceObservation&quot;]
+    O --&gt; C[&quot;边界、技术、地域、时间与分母比较&quot;]
+    C --&gt; U[&quot;单位统一、换算、代理与不确定性&quot;]
+    U --&gt; G[&quot;Evidence Graph 与 LCA 候选数据集&quot;]
+    G --&gt; D{&quot;关键字段覆盖达标？&quot;}
+    D --&gt;|是| M[&quot;建模接口与 Wiki 引用&quot;]
+    D --&gt;|否| T[&quot;Research Triage 与定向修复&quot;]
+    T --&gt; Q
+</pre>
+<h3 id="541-evidence-requirement-matrix">5.4.1 Evidence Requirement Matrix<a class="headerlink" href="#541-evidence-requirement-matrix" title="Permanent link">§</a></h3>
+<p>每个字段在搜索前必须冻结：可观测问题、目标单位、功能单位或分母、单元过程边界、允许的来源角色、代理政策、失效条件和关键性。A039 的关键需求至少包括参考型号与配置、产品净质量、核心部件数量、总装与测试电耗、良率/返工、地点、代表期和共享资源边界。</p>
+<h3 id="542">5.4.2 文档类型路由<a class="headerlink" href="#542" title="Permanent link">§</a></h3>
+<p>过程族 <code>server_final_assembly</code> 至少需要以下路由：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>路由</th>
+<th>主要文档</th>
+<th>可支持的数据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>manufacturer_product_spec</code></td>
+<td>QuickSpecs、技术规格、配置指南</td>
+<td>型号、质量、尺寸、配置</td>
+</tr>
+<tr>
+<td><code>maintenance_and_service_manual</code></td>
+<td>维护与拆装手册</td>
+<td>部件数量、装配顺序、交接状态</td>
+</tr>
+<tr>
+<td><code>product_pcf_or_epd</code></td>
+<td>PCF、EPD 及技术附件</td>
+<td>产品级材料和制造约束；不得直接冒充总装单元过程</td>
+</tr>
+<tr>
+<td><code>factory_eia_and_permit</code></td>
+<td>环评、排污许可、验收报告</td>
+<td>年产量、能源、废物、排放及归一化代理</td>
+</tr>
+<tr>
+<td><code>process_lca_and_manufacturing_research</code></td>
+<td>过程 LCA、制造研究</td>
+<td>装配、测试、返工能耗和范围</td>
+</tr>
+<tr>
+<td><code>open_hardware_and_teardown</code></td>
+<td>Open Compute、拆解报告</td>
+<td>参考配置、BOM 完整性与交叉校验</td>
+</tr>
+</tbody>
+</table></div>
+<p>查询必须使用外部世界中的产品族、型号、观测量和文档类型词；内部节点 ID 只用于结果回写，不得进入开放检索词。执行器应跨 Provider 聚合候选并按文档类型、来源角色、全文可得性和字段潜力重排，不能在第一个 Provider 返回任意网页时停止。</p>
+<h3 id="543-evidenceobservation">5.4.3 EvidenceObservation 与证据等级<a class="headerlink" href="#543-evidenceobservation" title="Permanent link">§</a></h3>
+<p>每个入模候选值必须保存数值、单位、功能单位、参考产品、过程边界、地域、代表期、来源组织、URL、页码/表格/原文、冻结内容 Hash、提取方法、换算公式、分配规则、质量向量、不确定性和使用等级。证据分级如下：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>等级</th>
+<th>含义</th>
+<th>建模用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>同工厂、同产品、同边界的一手数据</td>
+<td>基准值</td>
+</tr>
+<tr>
+<td>B</td>
+<td>同型号产品资料或同企业过程资料</td>
+<td>直接值或轻度调整</td>
+</tr>
+<tr>
+<td>C</td>
+<td>同工艺、相似产品的公开数据</td>
+<td>明示代理值</td>
+</tr>
+<tr>
+<td>D</td>
+<td>多来源工程推导</td>
+<td>情景与敏感性分析</td>
+</tr>
+<tr>
+<td>E</td>
+<td>公开资料仍不可得</td>
+<td>企业数据请求</td>
+</tr>
+</tbody>
+</table></div>
+<p>来源权威性不能替代节点适用性。质量评价至少独立表达身份、技术、边界、功能单位、地域、时间、来源独立性和提取可信度；两个不同域名只有在来源谱系独立时才算交叉证据，数值差异也不应仅以固定 2% 阈值决定真伪。</p>
+<h3 id="544">5.4.4 研究效用闸门与终态<a class="headerlink" href="#544" title="Permanent link">§</a></h3>
+<p>结构合法、检索已执行和缺口可审计属于 <code>research_process_integrity</code>；关键字段覆盖和可用于模型属于 <code>model_data_readiness</code>。两者必须分开判定：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+<th>Campaign 行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>modeling_ready</code></td>
+<td>关键字段达到 Goal Contract，所有值可追溯</td>
+<td>完成并进入建模接口</td>
+</tr>
+<tr>
+<td><code>needs_research</code></td>
+<td>当前策略产出低，但仍有未尝试的安全研究路径</td>
+<td>自动启动 Research Triage 和 L1/L2 修复</td>
+</tr>
+<tr>
+<td><code>data_required</code></td>
+<td>已证明公共检索策略耗尽，关键字段依赖内部记录</td>
+<td>生成企业数据请求并进入 <code>needs_attention</code></td>
+</tr>
+<tr>
+<td><code>diagnostic_preview</code></td>
+<td>仅用于查看结构或故障</td>
+<td>不计为建模资料完成</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>evidence_limited</code> 是否可作为完成必须由任务 Goal Contract 决定；对“生成诚实 Wiki 草稿”可以结束，对“形成 LCA 建模资料包”不能算成功。</p>
+<h3 id="545">5.4.5 研究修复路由<a class="headerlink" href="#545" title="Permanent link">§</a></h3>
+<p>Research Triage 必须先区分失败层级，再选择动作：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>失败层级</th>
+<th>典型证据</th>
+<th>修复动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>查询</td>
+<td>内部 ID、语言混用、结果主题漂移</td>
+<td>L1 重写术语、查询和站点/文件类型限定</td>
+</tr>
+<tr>
+<td>路由</td>
+<td>过程族没有目标文档类型</td>
+<td>L1 批次路由扩展；跨 Job 复发时 L2 公共路由</td>
+</tr>
+<tr>
+<td>获取</td>
+<td>附件、PDF 或扫描件未冻结</td>
+<td>重试附件、OCR、表格抽取</td>
+</tr>
+<tr>
+<td>提取</td>
+<td>候选很多但字段观测为零</td>
+<td>L2 增加语义/确定性提取能力</td>
+</tr>
+<tr>
+<td>适用性</td>
+<td>有数值但功能单位或边界不一致</td>
+<td>建立代理、范围和失效条件，不放松证据标准</td>
+</tr>
+<tr>
+<td>真实缺口</td>
+<td>多策略无增量且字段依赖内部记录</td>
+<td>生成结构化企业数据请求，停止盲重试</td>
+</tr>
+</tbody>
+</table></div>
+<p>每次修复都必须声明预期指标增量，并以修复前后漏斗比较验证。只重新执行相同查询、相同路由和相同提取器不构成修复；连续尝试没有新增独立来源、字段观测或关键字段覆盖时，必须停止并升级或进入 <code>data_required</code>。</p>
+<h2 id="6">6. 系统如何安全地修改自身行为<a class="headerlink" href="#6" title="Permanent link">§</a></h2>
+<p>行为变化必须经过以下状态机：</p>
+<pre><code class="language-text">observed
+  → diagnosed
+  → change_proposed
+  → sandbox_validated
+  → shadowed
+  → canary_passed
+  → promoted
+  → awaiting_outcome_validation
+  → effective | partially_effective | ineffective
+  → retained | next_repair_iteration | rolled_back
+</code></pre>
+<h3 id="61">6.1 自动权限分级<a class="headerlink" href="#61" title="Permanent link">§</a></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>风险</th>
+<th>例子</th>
+<th>默认权限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>低</td>
+<td>Provider 切换、缓存重建、相同合同下的局部重放</td>
+<td>自动执行</td>
+</tr>
+<tr>
+<td>中</td>
+<td>查询级翻译、缺失来源角色补检索、局部正文 Patch</td>
+<td>自动执行但必须重跑目标 Gate</td>
+</tr>
+<tr>
+<td>中高</td>
+<td>词典、Prompt、阈值、Repair Budget 变更</td>
+<td>Sandbox + Shadow + Canary 后晋级</td>
+</tr>
+<tr>
+<td>高</td>
+<td>Goal Contract、节点身份、六表合同、发布权限、Graph 边修改</td>
+<td>必须人工批准</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="62">6.2 晋级证据<a class="headerlink" href="#62" title="Permanent link">§</a></h3>
+<p>每个系统行为变更必须生成：</p>
+<ul>
+<li><code>deviation-report-v1</code>：目标、实际结果、偏离维度和证据 Hash；</li>
+<li><code>causal-diagnosis-v1</code>：根因、置信度、影响范围和反事实；</li>
+<li><code>repair-plan-v1</code>：最小失效点、预算、预期改善和回滚点；</li>
+<li><code>system-change-candidate-v1</code>：代码、Policy、Prompt 或配置 Diff；</li>
+<li><code>validation-certificate-v1</code>：回归、Golden、Mutation、Shadow、Canary 结果；</li>
+<li><code>policy-promotion-receipt-v1</code>：批准者、版本、部署和回滚 Hash。</li>
+<li><code>repair-validation-receipt-v1</code>：修复前基线、官方重放产物、目标指标变化和有效性结论。</li>
+</ul>
+<h2 id="7">7. 防止自我迭代偏离目标<a class="headerlink" href="#7" title="Permanent link">§</a></h2>
+<p>自我迭代系统本身也可能 Goodhart 化，因此必须满足：</p>
+<ol>
+<li>Goal Contract 与发布权限不能由普通 Job 或修复 Agent 修改；</li>
+<li>负责生成变更的 Agent 不能签发自己的 Validation Certificate；</li>
+<li>不允许为了提高通过率把失败检查改写为 true；</li>
+<li>不允许只以 Job 完成率、字数、来源数量等单一代理指标判定改善；</li>
+<li>每次变更必须同时跑触发样本、Golden、反例 Mutation 和随机 Cohort；</li>
+<li>已通过质量维度退化时，即使目标故障消失也不得晋级；</li>
+<li>Canary 指标恶化必须自动回滚到上一冻结版本；</li>
+<li>自动修复预算耗尽后必须生成可执行异常包，而不是无限重试。</li>
+</ol>
+<h2 id="8">8. 与现有控制平面的集成<a class="headerlink" href="#8" title="Permanent link">§</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现有组件</th>
+<th>新职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PersistentOrchestrator</code></td>
+<td>继续作为 Job/Task/Attempt 唯一状态事实源</td>
+</tr>
+<tr>
+<td>Event Ledger</td>
+<td>提供偏离检测所需的执行和 Gate 事件流</td>
+</tr>
+<tr>
+<td>Artifact CAS</td>
+<td>冻结目标、产物、诊断、变更和验证证书</td>
+</tr>
+<tr>
+<td>Worker + Repair Policy</td>
+<td>执行 L0/L1 有界修复，不承担系统目标定义</td>
+</tr>
+<tr>
+<td>Maturity Gate</td>
+<td>汇总单 Job 目标达成度，但不能独自修改 Goal Contract</td>
+</tr>
+<tr>
+<td>Research Outcome Evaluator</td>
+<td>计算查询—抓取—观测—接受—入模漏斗、查询质量、提取覆盖和关键字段覆盖</td>
+</tr>
+<tr>
+<td>Research Triage Agent</td>
+<td>调查成功但低效用的研究结果，提出问题、因果假设、定向研究或系统能力修复</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>展示目标偏离、修复轨迹、质量趋势和系统变更候选</td>
+</tr>
+<tr>
+<td>Reconcile Loop</td>
+<td>投影期望行为版本，触发 Shadow/Canary 和回滚</td>
+</tr>
+<tr>
+<td>Goal Wakeup Reconciler</td>
+<td>消费持久化目标偏差；原 Supervisor 已退出时重启对应 Campaign</td>
+</tr>
+<tr>
+<td>Release</td>
+<td>只接受绑定 Goal、Gate、Validation 和目标旧 Hash 的晋级凭证</td>
+</tr>
+</tbody>
+</table></div>
+<p>逻辑组件已落地在 <code>src/lca_project/kernel/goal_alignment/</code>：</p>
+<pre><code class="language-text">goal_registry.py          版本化 Goal Contract
+deviation_detector.py     单 Job 与 Cohort 偏离检测
+causal_analyzer.py        规则 + Agent 辅助的根因候选
+repair_planner.py         L0/L1/L2 路由与最小失效计划
+failure_triage_agent.py   未知故障的只读问题调查、因果链与动态修复路由
+change_controller.py      Sandbox、Shadow、Canary、Promotion
+system_repair_agent.py    隔离编码 Agent、补丁差异、验证、晋级、回滚与 Job rewind
+quality_trajectory.py     多维质量向量及退化检测
+research_outcome.py       检索漏斗、查询质量、字段产出与目标增益评估
+autonomous_supervisor.py  有限 Campaign 的 Job 创建、物化、执行与闭环监督
+store.py                  Supervisor Wakeup 与 Repair Validation Receipt 的幂等持久化
+action_graph.py           将复合 Triage 方案编译为逐动作权限、依赖和证明合同
+meta_supervisor.py        独立于业务 Workflow 的控制面偏差检测、修复与版本边界
+</code></pre>
+<p>2026-08-17 已落地第一阶段研究效用闭环。<code>ResearchOutcomeEvaluator</code> 在成熟度产物出现后
+分别记录 Workflow 是否结束、结果是否更接近建模目标，并从 Search Matrix、Evidence
+Selection、Source Diversity 与 Maturity Artifact 计算查询数、候选数、抓取数、字段观测、
+采纳证据、填充字段、确认来源、内部 ID 泄漏、英语查询中文残留和文档路由覆盖。零字段产出
+会形成单一持久化 <code>low_research_utility</code> 复合偏离，即使没有 failed Task 也会自动启动现有
+只读 <code>FailureTriageAgent</code>；该 Agent 在此场景承担 Research Triage 角色。</p>
+<p>Triage 输出合同现强制包含 <code>goal_assessment</code>、<code>causal_input_changes</code> 与 <code>proof_contract</code>：
+必须分别回答结果是否完成、是否更接近目标、为什么没有、下一轮具体改变哪个因果输入，以及
+以哪个 Artifact 中的基线/目标指标证明有效。缺少任一部分的结果会被拒绝，不能进入编码修复。
+编码 Agent 还必须把每个因果输入变化绑定到实际 Snapshot Diff，并为每个 Proof Contract
+指标声明产物与回归测试；声明与真实改动不一致时拒绝晋级。
+低效用偏离也不能因任务再次成功而关闭；只有 <code>closer_to_modelling_goal=true</code> 且采纳观测、
+填充字段或确认来源至少一项相对原始基线增长，Repair Plan 才可标记为 <code>validated</code>。</p>
+<p>同时已建立 migration v6 的八类目标对齐事实表、migration v7 Autonomous Campaign、
+migration v8 <code>system_repair_runs</code>、migration v9 <code>failure_triage_runs</code>、migration v10
+<code>goal_supervisor_wakeups</code> / <code>repair_validation_receipts</code>，以及 migration v11
+<code>system_meta_deviations</code> / <code>control_plane_repair_jobs</code>、migration v12
+<code>task_repair_epochs</code>，并提供版本化 JSON Contract、
+<code>goal-audit</code> / <code>goal-status</code> / <code>goal-feedback</code> / <code>failure-triage</code> / <code>system-change</code> /
+<code>system-repair</code> CLI，以及
+<code>/api/goal-alignment</code>、Job goal-audit 和 goal-feedback Dashboard API。Worker 会在
+Task 成功或失败后自动审计；失败形态先持久化再执行 rewind，避免自愈过程抹去学习证据。</p>
+<p>2026-08-14 的真实 A037 验证中，监督器识别出 <code>RESEARCH_PLAN_INVALID</code> false block，
+自动执行 L1 <code>rewind_research_plan</code>；“系统集成 | 机架PDU 1U”被审计翻译为
+<code>system integration rack-mounted power distribution unit 1U</code>，未匹配中文片段为 0，
+随后 <code>research_plan</code> 与 <code>research_plan_gate</code> 均通过并进入 <code>research_ready</code>。</p>
+<p>同日 A039 的真实验证中，系统自动识别 <code>editorial_review</code> 已按策略接受 advisory、但
+<code>draft_content_gate</code> 仍按原始 <code>NO_GO</code> 拒绝的跨阶段合同错配；编码 Agent 在隔离快照中
+补齐 policy decision 传递和哈希绑定校验，focused 20/20、Shadow 28/28、Canary
+263/263、合入后回归 263/263 均通过。低风险候选自动晋级后，原 A039 Run 从
+<code>draft_content_gate</code> rewind，并在新 Attempt 中验证成功。</p>
+<p>A039 随后暴露了此前未知的 <code>table_collect</code> 问题。系统没有增加错误文本或节点专用规则：
+通用 Triage Agent 从 <code>found=10</code>、<code>fetch=0</code>、<code>confirmed=0</code>、Workflow 依赖和源码自行发现
+“先要求确认来源、后生成能找到来源的专项搜索”的启动死锁，给出
+<code>TABLE_COLLECTION_BOOTSTRAP_DEADLOCK</code>（confidence 0.99）并选择低风险 L2 代码修复。
+编码 Agent 的 focused 14/14、Shadow 32/32、Canary 268/268 和合入后 268/268 均通过；
+原 <code>table_collect</code> Attempt 3 随后成功，66/66 查询到达成功终态、抓取 257 份 payload，
+<code>table_search_execution_gate</code> PASS，原偏离自动 resolved。</p>
+<p>自动创建能力通过 <code>autonomous-job-campaign-v1</code> 接入。Campaign 明确冻结 Skill、
+请求集合、并发上限、单 Job 自动修复预算、轮询间隔和失败停止策略；Supervisor 只能
+调用 <code>SkillInvoker</code> 创建 Job，不能直接写 Job 表。每个请求使用
+<code>autonomy:{campaign_id}:{item_id}</code> 幂等键，随后自动物化 Workflow、执行 Task、调用
+Goal Alignment 审计、执行白名单 L0/L1 修复并验证。成熟度终态的聚合必须服从 Goal
+Contract。Campaign 现在冻结 <code>completion_goal</code>：默认 <code>lca_modeling_ready</code> 只有实际成功结果
+才能标记 <code>completed</code>，<code>evidence_limited</code> 进入 <code>needs_attention</code>；明确选择
+<code>workflow_delivery</code> 时，诚实的 evidence-limited 流程产物才可算交付完成。<code>needs_research</code>
+会继续触发有界研究修复，<code>data_required</code>、预算耗尽、人工阻塞或失败均进入
+<code>needs_attention</code>。migration v7 已持久化 Campaign、Item 和 Supervisor Heartbeat；新增
+字段保存在版本化 Campaign payload 中，不修改既有表结构。</p>
+<h2 id="81">8.1 任务生命周期与目标生命周期分离<a class="headerlink" href="#81" title="Permanent link">§</a></h2>
+<p>原设计的问题在于把 Supervisor 的退出条件等同于目标的终止条件：一次 Workflow 到达
+<code>manual_review</code>、<code>evidence_limited</code> 或 <code>succeeded</code> 后，Campaign 线程可以结束；此后出现的
+新质量事实虽然能写入 Deviation Report，却没有活着的消费者去启动第二轮 Agent。于是系统
+“看见了问题”，但没有形成可执行工作。</p>
+<p>现在控制面明确维护两条不同的生命周期：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>生命周期</th>
+<th>结束条件</th>
+<th>是否可被新事实重开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Task / Workflow</td>
+<td>DAG 任务完成、失败、人工审查或诚实预览终态</td>
+<td>由 rewind 或独立分支继续</td>
+</tr>
+<tr>
+<td>Goal / Campaign</td>
+<td>Goal Contract 已有官方证明，或安全修复空间确实耗尽</td>
+<td>必须；新偏差和无效修复可重新激活</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>completed</code> 只是某一时刻基于已有证据的投影，不是不可变事实。对
+<code>completion_goal=lca_modeling_ready</code> 的 Campaign，后到达的高/严重偏差会撤销旧完成投影；
+对 <code>needs_attention</code>，只有新的未消费 Wakeup 才能重新激活，避免旧偏差造成空转。</p>
+<h2 id="82-supervisor-wakeup">8.2 持久化 Supervisor Wakeup 协议<a class="headerlink" href="#82-supervisor-wakeup" title="Permanent link">§</a></h2>
+<p>Worker 仍以 <code>auto_repair=false</code> 做观测，不能在 Task 提交事务中直接获得代码修改权限；但当
+审计形成偏差时，必须同时写入 <code>goal_supervisor_wakeups</code>：</p>
+<pre class="mermaid">sequenceDiagram
+    participant W as Worker
+    participant G as Goal Alignment
+    participant DB as Durable Control Plane
+    participant R as Wakeup Reconciler
+    participant S as Autonomous Supervisor
+    participant A as Triage/Coding Agent
+    W-&gt;&gt;G: Task 后审计
+    G-&gt;&gt;DB: Deviation + observation
+    G-&gt;&gt;DB: pending Supervisor Wakeup
+    Note over W,S: 原 Supervisor 可以已经退出
+    R-&gt;&gt;DB: 扫描未消费 Wakeup
+    R-&gt;&gt;S: 重启对应 Campaign
+    S-&gt;&gt;G: auto_repair=true 再审计
+    G-&gt;&gt;A: 启动 Triage / System Repair
+    S-&gt;&gt;DB: 成功审计后消费旧 Wakeup
+</pre>
+<p>Wakeup 的幂等键绑定 <code>job_id + run_id + reason + deviation_ids + observation_hash</code>。同一观测
+不会形成风暴，新观测或新的修复效果才会形成下一轮工作。消费发生在监督审计成功之后；
+审计过程中产生的“修复部分有效/无效”新 Wakeup 不会被同一轮误消费。</p>
+<p>当前有两条实际消费路径：</p>
+<ol>
+<li>长运行 Worker 在一次 Task 安全提交后尝试接管失去 Supervisor 的 Campaign；若原
+   Supervisor 仍持有 Lease，则不竞争，由原 Supervisor 下一轮消费；</li>
+<li>Dashboard 常驻 <code>Goal Wakeup Reconciler</code> 周期扫描待处理记录，重新启动已经
+   <code>completed</code> 或 <code>needs_attention</code> 的 Campaign。</li>
+</ol>
+<p>因此 Agent 的启动不再依赖用户打开页面、重新提问或旧线程继续存活。</p>
+<h2 id="83">8.3 修复部署与修复有效性分离<a class="headerlink" href="#83" title="Permanent link">§</a></h2>
+<p>过去 <code>SystemRepairAgent</code> 在测试通过并复制补丁后直接标记 <code>promoted</code>，Supervisor 随即把它
+计为一次成功修复。这只能证明“补丁可部署”，不能证明“结果更接近 LCA 建模目标”。新状态
+机把部署视为待验证假设：</p>
+<pre><code class="language-text">awaiting_approval（中高风险）
+        ↓
+awaiting_outcome_validation
+        ↓ 官方 recovery task 在 promoted_at 之后成功
+effective | partially_effective | ineffective
+</code></pre>
+<p>官方验证必须来自原 Job 的持久化 DAG 和 Artifact，临时目录中的孤立实验只能作为
+<code>provisional</code> 诊断，不能关闭偏差。研究修复优先等待 <code>maturity_gate</code>；其他修复等待其声明的
+<code>recovery_task</code>。每个结论写入 <code>repair_validation_receipts</code>，并同时冻结：</p>
+<ul>
+<li>修复前研究漏斗基线；</li>
+<li>当前官方漏斗和 Artifact Hash；</li>
+<li>证明任务及其时间，确保它晚于补丁部署；</li>
+<li>核心增量：<code>accepted_observations</code>、<code>populated_fields</code>、<code>confirmed_sources</code>；</li>
+<li>支撑增量：字段观测、抓取、文档路由，以及内部 ID/混合语言查询减少量；</li>
+<li><code>closer_to_modelling_goal</code> 和原 Proof Contract。</li>
+</ul>
+<p>只有目标已前进且至少一个核心指标改善才是 <code>effective</code>。字段观测从 0 增至 9、但采纳证据、
+填充字段和确认来源仍为 0，属于 <code>partially_effective</code>；完全无增量属于 <code>ineffective</code>。后两者
+会自动生成新 Wakeup，并在新的 System Change Candidate 中增加 <code>repair_iteration</code> 和
+<code>supersedes_candidate_id</code>，防止候选哈希去重把旧补丁当作新方案反复执行。</p>
+<h2 id="84">8.4 人工审查只冻结失败分支<a class="headerlink" href="#84" title="Permanent link">§</a></h2>
+<p><code>orchestrator_runs.status=manual_review</code> 不再使整个 Run 对 Worker 不可见。Worker 可以选择
+<code>ready</code> 或 <code>manual_review</code> Run，但 <code>PersistentOrchestrator.ready()</code> 仍严格检查 DAG 依赖：</p>
+<ul>
+<li>依赖失败 Task 的后代保持 <code>pending</code>，不能绕过人工审查；</li>
+<li>与失败 Task 无依赖、已经 <code>ready</code> 的研究或表格分支可以继续；</li>
+<li>修复晋级后只从声明的 recovery task rewind，不重做无关成功分支。</li>
+</ul>
+<p>这能直接避免 A039 中 <code>editorial_review</code> 的局部问题冻结已经具备执行条件的
+<code>table_collect</code> 分支，同时保留 fail-closed 语义。</p>
+<h2 id="85">8.5 多轮自治的预算与停止条件<a class="headerlink" href="#85" title="Permanent link">§</a></h2>
+<p>每轮必须遵循“观测 → 解释 → 改变因果输入 → 官方重放 → 效果回执”。允许下一轮的条件是：</p>
+<ol>
+<li>出现新的观测 Hash、部分有效或无效的 Repair Receipt；</li>
+<li>Triage 能声明与上一轮不同的因果输入变化；</li>
+<li>Campaign 仍有 <code>max_auto_repairs_per_job</code> 预算；</li>
+<li>动作仍在自动权限边界内。</li>
+</ol>
+<p>以下情况停止自治并进入 <code>needs_attention</code>：达到 Goal Contract；公共研究路径已被证明耗尽并
+转为 <code>data_required</code>；需要企业内部记录；达到预算；需要中高风险批准；或无法提出不同的
+因果输入。停止时必须保留最后的“为什么没有更接近目标、下一次应改变什么、需要什么证明”，
+不能只留下“任务没有执行完”。</p>
+<h2 id="86">8.6 系统元控制面：自修复高于业务编排、低于治理内核<a class="headerlink" href="#86" title="Permanent link">§</a></h2>
+<p>自修复不能继续作为普通业务 Workflow 的一个子步骤，否则 Planner、Supervisor 或
+Campaign 生命周期自身出现缺陷时，会要求有缺陷的组件先批准对自己的修复。系统采用三层
+控制关系：</p>
+<pre class="mermaid">flowchart TB
+    G[&quot;不可变治理内核&lt;br/&gt;Goal Contract、权限、审计、批准、回滚&quot;]
+    M[&quot;System Meta Supervisor&lt;br/&gt;观察并修复控制面&quot;]
+    C[&quot;普通控制面&lt;br/&gt;Planner、Supervisor、Orchestrator、Worker、Gate&quot;]
+    B[&quot;业务 Workflow&lt;br/&gt;Graph、Wiki、检索、LCA、发布&quot;]
+    G --&gt; M
+    M --&gt; C
+    M --&gt; B
+    C --&gt; B
+</pre>
+<p><code>SystemMetaSupervisor</code> 拥有独立 Lease、生命周期、偏差表和修复任务表，不依赖普通
+Campaign 处于 <code>running</code>，也不使用普通 Repair Planner 判断“是否允许修 Planner”。它能
+创建隔离代码候选、运行测试、推进独立 ready 分支和重建监督 Wakeup；但仍不能修改 Goal
+Contract、扩大自己的权限、删除审计或为自己签发证书。中高风险正式晋级仍停在最小人工
+边界。</p>
+<p>元监督当前强制检查四条不变量：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>元偏差</th>
+<th>判定</th>
+<th>自动处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>REPAIR_PLAN_PROJECTION_LOSS</code></td>
+<td>Triage 声明仍有安全动作，但 Planner 投影成纯人工或丢失动作</td>
+<td>绕过标量 Planner，建立控制面动作图</td>
+</tr>
+<tr>
+<td><code>PREMATURE_SUPERVISOR_TERMINATION</code></td>
+<td>Campaign 已 blocked/terminal，但 DAG 仍有 ready Task</td>
+<td>重新激活 Campaign 并执行一个独立安全分支</td>
+</tr>
+<tr>
+<td><code>ORPHANED_GOAL_WORK</code></td>
+<td>存在开放高/严重偏差，却没有 Wakeup 或活动 Supervisor</td>
+<td>重建幂等 Wakeup</td>
+</tr>
+<tr>
+<td><code>UNPROVEN_SYSTEM_REPAIR</code></td>
+<td>研究修复已 promoted，但没有官方效果回执</td>
+<td>转入 outcome validation，不允许当作成功</td>
+</tr>
+</tbody>
+</table></div>
+<p>Dashboard 常驻循环每轮先执行 Meta Supervisor，再处理普通 Goal Wakeup。命令行可用
+<code>meta-supervisor --audit-only</code> 查看元偏差，或用 <code>meta-supervisor</code> 推进一个有界元修复动作；
+当动作图停在中风险人工边界时，操作者使用
+<code>meta-supervisor --approve &lt;meta_repair_id&gt;</code> 批准该动作图，而不是绕过动作图直接修改 Job 状态。</p>
+<h2 id="87">8.7 复合修复动作图与最小权限边界<a class="headerlink" href="#87" title="Permanent link">§</a></h2>
+<p>Triage 的顶层 <code>repair_action</code> 只保留兼容性，不再代表整个方案。<code>actions[]</code> 会编译为
+<code>control-repair-action-graph-v1</code>；每个动作独立绑定：</p>
+<ul>
+<li><code>action_id</code> 与幂等 Graph Hash；</li>
+<li><code>kind</code> 和具体目标；</li>
+<li><code>authority</code>：自动、自动分析验证或人工；</li>
+<li><code>risk</code>；</li>
+<li><code>dependencies</code>；</li>
+<li>当前 <code>status</code>；</li>
+<li>原始 Proof Contract 和执行回执。</li>
+</ul>
+<p>因此，一个复合修复可以同时处于以下状态：</p>
+<pre><code class="language-text">completed              自动执行 table_collect
+completed              自动生成并验证中风险代码候选
+awaiting_authority      正式晋级中风险补丁
+awaiting_authority      rehydrate 冻结工作区
+awaiting_authority      rewind 已耗尽预算的内容分支
+</code></pre>
+<p>“需要人工批准”只阻塞依赖该批准的动作，不再把整个 Job 压缩为 <code>request_operator</code>。Planner
+对任何 <code>safe_autonomous_actions_remaining=true</code>、存在明确实现目标且声明
+<code>automatic_analysis_and_validation</code> 的代码动作，都可自动创建 L2 候选；风险由
+Change Controller 在晋级边界处理，而不是在分析和验证之前处理。</p>
+<p>Supervisor 在设置 <code>blocked</code> 前必须同时证明：没有 ready Task、没有 queued/running 元修复、
+没有 outcome validation、没有本轮修复。如果仍存在安全工作，Campaign 必须保持运行。
+另外，Triage 的 <code>recovery_task</code> 必须是冻结 DAG 中可验证的 Task ID，不能再用一段自然语言
+计划冒充恢复节点。</p>
+<p><code>control-repair-action-graph-v1</code> 在 Graph 顶层单独保存结构化 <code>recovery_task</code>。执行器优先使用该
+字段，不能从 <code>rewind_task.target</code> 的自然语言中任意挑选 Task 名；兼容旧记录时也只解析
+“rewind”子句并排除 <code>preserve</code> 子句。Triage 若返回语法合法但不存在于冻结 DAG 的伪 Task 名，
+会收敛到已知 <code>failed_task</code>，避免把“保留 freeze”误读成“从 freeze 回卷”。</p>
+<p>人工批准也不是一个无语义的布尔值。Meta Supervisor 必须从动作图中的 <code>rewind_task</code> 解析
+冻结 DAG Task ID，并把“补丁晋级、授权回卷点、实际失效 Task 集合、Campaign 恢复结果”写入
+同一份授权回执。编码 Agent 最初建议的恢复点与操作者实际批准的恢复点分开保存，避免为了
+修复协议缺陷却只重跑后置审查。例如 A039 的一对多段落修复必须从 <code>content_compose</code> 回卷，
+让确定性 patch 先生成新段落，再进入 <code>editorial_review</code>；只回卷后者无法改变被审查内容。
+晋级后状态不是 <code>completed</code>，而是 <code>awaiting_outcome_validation</code>，直到官方 Workflow 重放按
+原 Proof Contract 证明阻塞数、身份漂移、未命中段落 Hash、检索字段产出和终态都改善。</p>
+<p>质量轨迹比较必须发生在可比的 artifact lineage 内。Task 从 <code>succeeded</code> 因正式回卷变成
+<code>ready/pending</code>，或新版本首次排除过期 maturity artifact 时，分数下降代表“撤销虚高分并进入
+新恢复 epoch”，不能自动解释成业务质量回退。控制器在这两类情况下不生成
+<code>quality_regression</code>；真正的同 lineage 回退也必须先进入只读 Triage，获得具名因果输入和可度量
+Proof Contract 后，才允许创建编码修复。<code>SystemRepairAgent</code> 在启动编码模型前再次强制检查这两项，
+防止空的 <code>causal_input_changes</code> / <code>proof_contract</code> 获得修改权限。</p>
+<p>同一故障可能先产生首发 <code>unclassified_failure</code>，下一次又产生 <code>repeated_fault</code>。普通 Controller
+与 Meta Supervisor 创建系统修复时同时按 <code>triage_run_id</code> 和冻结
+<code>failure_fingerprint</code> 去重；已存在 queued/coding/validating/awaiting-outcome 的修复时直接复用，
+不再并行启动第二个编码 Agent。被抑制的候选保留 rejected/superseded 回执。</p>
+<p>Outcome Validator 按 Repair 自己的 Proof Contract 决定何时可以下结论。研究修复等待当前
+<code>maturity_gate</code>；含 <code>workflow_status=succeeded</code> 的内容或控制面修复必须等待官方 Run 真正成功，
+不能在 <code>freeze</code>、<code>content_compose</code> 等局部 Task 先成功时写 <code>ineffective</code>。非研究修复只有在
+声明的 Workflow/Task 证明满足且更新时间晚于 promotion 后才可标记 <code>effective</code>；补丁测试仍只
+代表可部署性，不代表目标效果。</p>
+<p>重试预算按修复 epoch 计算，而不是把 Job 全生命周期累计次数直接当作当前预算。普通 Worker
+重试和确定性内容修复仍累计 <code>orchestrator_tasks.attempt</code>，避免无限循环；只有经过验证并由操作者
+批准的系统修复，在正式 <code>rewind_from(..., reset_attempts=true)</code> 时写入 <code>task_repair_epochs</code> 的
+<code>base_attempt</code>，把策略看到的 epoch 内计数逻辑归零。<code>orchestrator_tasks.attempt</code> 继续单调递增，
+历史次数不删除，仍完整保存在 <code>orchestrator_attempts</code> 和事件流中。这样既不破坏
+<code>(run, task, attempt)</code> 唯一约束，新的因果输入也能获得一次受限重放。</p>
+<h2 id="9">9. 验收指标<a class="headerlink" href="#9" title="Permanent link">§</a></h2>
+<p>系统自我修复不能只看“自动修了多少次”，至少应持续报告：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>目标方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>首次通过率</td>
+<td>提升，但不得通过放宽目标实现</td>
+</tr>
+<tr>
+<td>有界自动恢复率</td>
+<td>提升</td>
+</tr>
+<tr>
+<td>False Pass 逃逸率</td>
+<td>接近 0</td>
+</tr>
+<tr>
+<td>False Block 率</td>
+<td>持续下降</td>
+</tr>
+<tr>
+<td>重复故障跨 Job 复发率</td>
+<td>持续下降</td>
+</tr>
+<tr>
+<td>修复后质量向量退化率</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Candidate 中 evidence-limited 混入率</td>
+<td>0</td>
+</tr>
+<tr>
+<td>关键字段覆盖率</td>
+<td>达到各过程族 Goal Contract 的最低值</td>
+</tr>
+<tr>
+<td>外部证据漏斗产出率</td>
+<td>持续提升；候选很多而观测为零必须告警</td>
+</tr>
+<tr>
+<td>入模值孤儿率</td>
+<td>0；每个值均可追到原文、定位、Hash 和换算公式</td>
+</tr>
+<tr>
+<td>查询外部术语合规率</td>
+<td>100%；开放查询不含内部节点 ID，语言轨无未审计混用</td>
+</tr>
+<tr>
+<td>过程族文档路由覆盖率</td>
+<td>100% 的生产节点至少拥有一个适配路由或显式豁免</td>
+</tr>
+<tr>
+<td>低效用结果自动建案率</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>修复因果输入变化率</td>
+<td>100%；不得用相同查询和能力冒充新修复</td>
+</tr>
+<tr>
+<td>人工介入率</td>
+<td>下降，语义与高风险决策除外</td>
+</tr>
+<tr>
+<td>系统变更回滚率</td>
+<td>可观察且原因可审计</td>
+</tr>
+<tr>
+<td>从用户反馈到回归样本的转化率</td>
+<td>100%</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="10">10. 分阶段落地<a class="headerlink" href="#10" title="Permanent link">§</a></h2>
+<ol>
+<li><strong>Observe（已实现）</strong>：Research Outcome Evaluator 生成证据漏斗、查询质量、提取覆盖、关键字段覆盖和 Deviation Report；</li>
+<li><strong>Question（已实现基础合同）</strong>：成功但低效用时启动只读 Triage，输出目标判断、原因、因果输入变化和可量化 Proof Contract；</li>
+<li><strong>Repair</strong>：开放 L0/L1 低风险修复、最小重放和自动验证；能力缺口进入受治理 L2；</li>
+<li><strong>Learn</strong>：跨 Job 聚类故障，沉淀过程族路由、提取器、测试与 System Change Candidate；</li>
+<li><strong>Shadow</strong>：候选行为与当前行为并行执行，不影响正式结果；</li>
+<li><strong>Canary</strong>：以 A039 等触发样本、Golden、Mutation 和随机 Cohort 验证并自动回滚；</li>
+<li><strong>Promote</strong>：只有证据产出改善且既有质量不退化，才成为新的默认 Workflow/Policy。</li>
+</ol>
+<p>最终目标不是让系统“永远不失败”，而是让失败能够被可靠观测、正确归因、有限修复、验证后沉淀为通用能力；同时确保系统为了减少失败而修改自身行为时，仍然受最初业务目标和发布权限约束。</p></article>
+    </section>
+  </main>
+  <footer class="footer">本页由 <code>scripts/build_docs_site.py</code> 从权威 Markdown 自动生成。</footer>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+</body>
+</html>

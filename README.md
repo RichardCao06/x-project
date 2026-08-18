@@ -7,6 +7,13 @@ The original repository is a read-only migration source. Runtime state, generate
 artifacts and releases belong to this repository and are never written back to the
 source tree.
 
+## Documentation
+
+The unified documentation entry is [`docs/index.html`](docs/index.html). For
+repository-native review and editing, use [`docs/README.md`](docs/README.md).
+Markdown remains the authoritative source for narrative documents; matching HTML
+pages are generated with `python scripts/build_docs_site.py`.
+
 ## Safety model
 
 - Agents may only produce proposals, verdicts and attestations.

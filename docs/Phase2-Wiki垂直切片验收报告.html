@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="A017、P031、P003 三节点的隔离演练、Gate 结果和未发布原因。">
+  <title>Phase 2 · Wiki 垂直切片验收报告 · LCA 项目文档</title>
+  <style>
+    :root {
+      --ink: #132321; --muted: #60706c; --paper: #f2eee4; --panel: #fffdf7;
+      --line: #c9c2b2; --teal: #006f67; --teal-soft: #d9ebe5; --rust: #c54e2f;
+      --navy: #102b2d; --code: #102a2b; --code-ink: #e7f0e8;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; overflow-x: hidden; color: var(--ink); background:
+      linear-gradient(90deg, rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px,
+      linear-gradient(rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px, var(--paper);
+      font: 16px/1.78 var(--sans); }
+    a { color: var(--teal); text-underline-offset: .2em; }
+    .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; min-height: 58px; padding: .7rem clamp(1rem,4vw,3.5rem);
+      color: #eff8f2; background: rgba(16,43,45,.96); border-bottom: 3px solid #d98b45;
+      backdrop-filter: blur(12px); }
+    .topbar a { color: inherit; text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: .7rem; font-weight: 700; letter-spacing: .04em; }
+    .brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #8acbc1;
+      border-radius: 50%; color: #f2bd72; font: 700 12px var(--mono); }
+    .source-link { padding: .32rem .7rem; border: 1px solid rgba(255,255,255,.3); border-radius: 999px;
+      font: 12px var(--mono); }
+    .shell { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 850px); gap: clamp(2rem,5vw,5rem);
+      max-width: 1260px; margin: 0 auto; padding: clamp(2rem,5vw,5rem) clamp(1rem,4vw,3.5rem) 6rem; }
+    .toc { position: sticky; top: 90px; align-self: start; max-height: calc(100vh - 120px); overflow: auto;
+      padding: 1rem 1rem 1.2rem; background: rgba(255,253,247,.76); border: 1px solid var(--line);
+      box-shadow: 8px 8px 0 rgba(16,43,45,.07); }
+    .toc-label { margin: 0 0 .8rem; color: var(--rust); font: 700 11px var(--mono); letter-spacing: .16em; }
+    .toc ul { margin: 0; padding-left: 1rem; list-style: none; }
+    .toc > ul { padding-left: 0; }
+    .toc li { margin: .25rem 0; }
+    .toc a { display: block; padding: .22rem .35rem; color: #41534f; border-left: 2px solid transparent;
+      font-size: .82rem; line-height: 1.45; text-decoration: none; }
+    .toc a:hover { color: var(--teal); border-left-color: var(--rust); background: #fff; }
+    .document { min-width: 0; }
+    .document-meta { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 2rem; }
+    .chip { padding: .25rem .58rem; color: var(--teal); background: var(--teal-soft); border-radius: 999px;
+      font: 700 11px var(--mono); letter-spacing: .06em; }
+    article { padding: clamp(1.4rem,4vw,4rem); overflow-wrap: anywhere; background: rgba(255,253,247,.92); border: 1px solid var(--line);
+      box-shadow: 18px 22px 0 rgba(16,43,45,.07); }
+    h1, h2, h3, h4 { font-family: var(--serif); line-height: 1.24; text-wrap: balance; }
+    h1 { max-width: 17ch; margin: 0 0 1.8rem; font-size: clamp(2.25rem,6vw,4.7rem); letter-spacing: -.045em; }
+    h2 { margin: 3.5rem 0 1rem; padding-top: .75rem; border-top: 2px solid var(--navy);
+      font-size: clamp(1.55rem,3vw,2.2rem); }
+    h3 { margin-top: 2.4rem; color: #194c4a; font-size: 1.35rem; }
+    h4 { color: #344c48; }
+    .headerlink { margin-left: .35em; color: var(--teal); opacity: 0; font: .45em var(--mono); text-decoration: none; }
+    h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink, h4:hover .headerlink,
+    .headerlink:focus { opacity: .65; }
+    p, li { max-width: 78ch; }
+    strong { color: #0c4b47; }
+    blockquote { margin: 1.5rem 0; padding: .8rem 1.2rem; color: #374b47; background: #edf2e9;
+      border-left: 4px solid var(--rust); }
+    code { padding: .12em .34em; color: #8c311e; background: #eee5d8; border-radius: 3px; font: .88em var(--mono); }
+    pre { max-width: 100%; overflow: auto; padding: 1.2rem; color: var(--code-ink); background: var(--code);
+      border-left: 4px solid #d98b45; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    pre code { padding: 0; color: inherit; background: transparent; }
+    pre.mermaid { color: var(--ink); background: #f7f3e9; border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 1.4rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { color: #f5f7ef; background: var(--navy); text-align: left; }
+    th, td { padding: .65rem .75rem; border: 1px solid #bbb6aa; vertical-align: top; }
+    tr:nth-child(even) td { background: #f4f0e7; }
+    hr { margin: 3rem 0; border: 0; border-top: 1px solid var(--line); }
+    .footer { max-width: 1260px; margin: 0 auto; padding: 0 3.5rem 3rem; color: var(--muted); font-size: .8rem; }
+    @media (max-width: 860px) {
+      .shell { display: block; padding-top: 1.5rem; }
+      .toc { position: relative; top: auto; max-height: 18rem; margin-bottom: 1.5rem; }
+      article { padding: 1.25rem; box-shadow: 8px 10px 0 rgba(16,43,45,.07); }
+      h1 { font-size: clamp(2rem,12vw,3.25rem); }
+      .topbar { align-items: flex-start; }
+    }
+    @media print { .topbar, .toc { display: none; } .shell { display: block; max-width: none; padding: 0; }
+      article { border: 0; box-shadow: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+  <!-- Generated by scripts/build_docs_site.py; edit the Markdown source, not this file. -->
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">LCA</span><span>项目文档中心</span></a>
+    <a class="source-link" href="Phase2-Wiki垂直切片验收报告.md">查看 Markdown 源文档</a>
+  </header>
+  <main class="shell">
+    <nav class="toc" aria-label="本文目录"><p class="toc-label">CONTENTS / 目录</p><div class="toc">
+<ul>
+<li><a href="#_1">验收结论</a></li>
+<li><a href="#_2">演练节点</a></li>
+<li><a href="#_3">本阶段实现</a></li>
+<li><a href="#_4">测试证据</a></li>
+<li><a href="#wiki">为什么没有发布 Wiki</a></li>
+<li><a href="#_5">下一生产动作</a></li>
+</ul>
+</div>
+</nav>
+    <section class="document">
+      <div class="document-meta"><span class="chip">验收</span><span class="chip">HTML MIRROR</span></div>
+      <article><h1 id="phase-2wiki">Phase 2：Wiki 垂直切片验收报告<a class="headerlink" href="#phase-2wiki" title="Permanent link">§</a></h1>
+<p>日期：2026-08-10</p>
+<h2 id="_1">验收结论<a class="headerlink" href="#_1" title="Permanent link">§</a></h2>
+<p>Phase 2 的工程执行边界和离线演练已通过；正式 reviewed/publish 尚未授权。
+平台能在完全不访问原仓库的隔离工作区中，对三种页面状态执行真实
+<code>plan → prepare → validate</code>，把每个节点的输入、输出、状态和证明写入
+SQLite、CAS 与 Event Ledger，并在缺少新一轮外部证据和 Verify attestation 时
+诚实停止在 <code>prepared</code>。这不是失败，而是“证明不足不得发布”原则的预期结果。</p>
+<h2 id="_2">演练节点<a class="headerlink" href="#_2" title="Permanent link">§</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>节点</th>
+<th>路由</th>
+<th>实际结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>oil_refining::A017</code></td>
+<td>current → audit</td>
+<td>39 repair claims；validate PASS</td>
+</tr>
+<tr>
+<td><code>ict_equipment::P031</code></td>
+<td>current → audit</td>
+<td>31 repair claims；validate PASS</td>
+</tr>
+<tr>
+<td><code>ict_equipment::P003</code></td>
+<td>legacy → rebuild</td>
+<td>nomination workflow 生成；validate PASS</td>
+</tr>
+</tbody>
+</table></div>
+<p>最新 rehearsal Artifact：</p>
+<pre><code class="language-text">sha256:7a5cb819c1959a2ca63e43ff4ffaa6f0dddd79858235be8d7b76265b0058fb12
+stopped_at: prepared
+publish_authorized: false
+source_checkout_access: false
+</code></pre>
+<h2 id="_3">本阶段实现<a class="headerlink" href="#_3" title="Permanent link">§</a></h2>
+<ul>
+<li>11 阶段持久化状态机：plan、prepared、research-ready、verified、frozen、
+  draft-gated、draft-applied、previewed、release-gated、reviewed-applied、published。</li>
+<li>每阶段 CAS 输入/输出哈希、Event、SQLite Job/Run/Stage 投影。</li>
+<li>同一证据幂等重放；不同证据冲突并隔离；resume 不重复副作用。</li>
+<li>Nomination/Repair 同批隔离；Agent 只能提交 frozen proposal/verdict/attestation。</li>
+<li>Agent 模型、effort、Prompt、工具、usage 与禁网证明 G0 校验。</li>
+<li>Proof Authority 对 Agent attestation 与 Gate 回执签名；证明同时绑定 CAS、SQLite
+  和 Event Ledger。原始 JSON、自报 attestation、签名篡改及跨候选复用均不能放行。</li>
+<li>G1 节点身份、G4 EXACT/原文、Draft Content Gate、G0–G7 release hard-bind。</li>
+<li>Product/Activity 内容合同、claim 集合守恒、共享脚注原子化、Golden 非退化、
+  preview 章节顺序、SSRF/本地来源阻断。</li>
+<li>Release 中途故障回滚、旧 Gate 复用阻断、reviewed apply 旧目标哈希绑定。</li>
+<li>60 文件的隔离兼容工作区；全部来自 frozen vendor snapshot，无源仓库路径或 symlink。</li>
+</ul>
+<h2 id="_4">测试证据<a class="headerlink" href="#_4" title="Permanent link">§</a></h2>
+<pre><code class="language-text">pytest: 78 passed, 0 xfail, 0 skipped
+wiki runtime selftest: PASS
+project validate: PASS
+capabilities: 7
+wiki workflow steps: 11
+Phase 2 anchor hashes: 6/6
+</code></pre>
+<p>历史缺陷语料位于 <code>defects/wiki/</code>，覆盖 source≠claim verified、共享脚注、
+本地/私网 URL、重复证据缺口壳、Product/Activity 混淆、coverage 丢项、
+Golden 退化、preview 重排、节点身份交换、ADJACENT 升格、旧 Gate 复用和
+Apply 崩溃。</p>
+<p>干净运行态连续执行两次 rehearsal，三个 run ID 与报告 Artifact hash 完全相同；
+运行投影为 3 jobs / 3 runs / 每节点 2 个已完成阶段，没有重复副作用。</p>
+<h2 id="wiki">为什么没有发布 Wiki<a class="headerlink" href="#wiki" title="Permanent link">§</a></h2>
+<p>本轮没有新运行 Nomination、确定性 Search/Fetch 和独立 Verify，因此没有新的
+claim-level EXACT 证明、真实 invocation manifest 和 coverage 证书。复用旧运行或
+合成 PASS 会违反 Wiki Skill 和技术设计。平台因此保持三节点为 draft/待研究状态，
+没有修改任何正式 Wiki，也没有伪造 reviewed/published。</p>
+<h2 id="_5">下一生产动作<a class="headerlink" href="#_5" title="Permanent link">§</a></h2>
+<p>为 P003 运行新的 nomination-only；为 A017/P031 对全部冻结 repair claims 执行确定性
+Search/Fetch；通过固定 launcher 分节点运行 Verify-only。只有 coverage、Draft Gate、
+G0–G7 和专家签署满足后，才进入 reviewed Apply 与 production publish。</p></article>
+    </section>
+  </main>
+  <footer class="footer">本页由 <code>scripts/build_docs_site.py</code> 从权威 Markdown 自动生成。</footer>
+
+</body>
+</html>

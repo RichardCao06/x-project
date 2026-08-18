@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="内容优先策略的 v26/v27 对照、质量指标、修复记录与正式产物。">
+  <title>P003 Golden 内容优先重跑验收报告 · LCA 项目文档</title>
+  <style>
+    :root {
+      --ink: #132321; --muted: #60706c; --paper: #f2eee4; --panel: #fffdf7;
+      --line: #c9c2b2; --teal: #006f67; --teal-soft: #d9ebe5; --rust: #c54e2f;
+      --navy: #102b2d; --code: #102a2b; --code-ink: #e7f0e8;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; overflow-x: hidden; color: var(--ink); background:
+      linear-gradient(90deg, rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px,
+      linear-gradient(rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px, var(--paper);
+      font: 16px/1.78 var(--sans); }
+    a { color: var(--teal); text-underline-offset: .2em; }
+    .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; min-height: 58px; padding: .7rem clamp(1rem,4vw,3.5rem);
+      color: #eff8f2; background: rgba(16,43,45,.96); border-bottom: 3px solid #d98b45;
+      backdrop-filter: blur(12px); }
+    .topbar a { color: inherit; text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: .7rem; font-weight: 700; letter-spacing: .04em; }
+    .brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #8acbc1;
+      border-radius: 50%; color: #f2bd72; font: 700 12px var(--mono); }
+    .source-link { padding: .32rem .7rem; border: 1px solid rgba(255,255,255,.3); border-radius: 999px;
+      font: 12px var(--mono); }
+    .shell { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 850px); gap: clamp(2rem,5vw,5rem);
+      max-width: 1260px; margin: 0 auto; padding: clamp(2rem,5vw,5rem) clamp(1rem,4vw,3.5rem) 6rem; }
+    .toc { position: sticky; top: 90px; align-self: start; max-height: calc(100vh - 120px); overflow: auto;
+      padding: 1rem 1rem 1.2rem; background: rgba(255,253,247,.76); border: 1px solid var(--line);
+      box-shadow: 8px 8px 0 rgba(16,43,45,.07); }
+    .toc-label { margin: 0 0 .8rem; color: var(--rust); font: 700 11px var(--mono); letter-spacing: .16em; }
+    .toc ul { margin: 0; padding-left: 1rem; list-style: none; }
+    .toc > ul { padding-left: 0; }
+    .toc li { margin: .25rem 0; }
+    .toc a { display: block; padding: .22rem .35rem; color: #41534f; border-left: 2px solid transparent;
+      font-size: .82rem; line-height: 1.45; text-decoration: none; }
+    .toc a:hover { color: var(--teal); border-left-color: var(--rust); background: #fff; }
+    .document { min-width: 0; }
+    .document-meta { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 2rem; }
+    .chip { padding: .25rem .58rem; color: var(--teal); background: var(--teal-soft); border-radius: 999px;
+      font: 700 11px var(--mono); letter-spacing: .06em; }
+    article { padding: clamp(1.4rem,4vw,4rem); overflow-wrap: anywhere; background: rgba(255,253,247,.92); border: 1px solid var(--line);
+      box-shadow: 18px 22px 0 rgba(16,43,45,.07); }
+    h1, h2, h3, h4 { font-family: var(--serif); line-height: 1.24; text-wrap: balance; }
+    h1 { max-width: 17ch; margin: 0 0 1.8rem; font-size: clamp(2.25rem,6vw,4.7rem); letter-spacing: -.045em; }
+    h2 { margin: 3.5rem 0 1rem; padding-top: .75rem; border-top: 2px solid var(--navy);
+      font-size: clamp(1.55rem,3vw,2.2rem); }
+    h3 { margin-top: 2.4rem; color: #194c4a; font-size: 1.35rem; }
+    h4 { color: #344c48; }
+    .headerlink { margin-left: .35em; color: var(--teal); opacity: 0; font: .45em var(--mono); text-decoration: none; }
+    h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink, h4:hover .headerlink,
+    .headerlink:focus { opacity: .65; }
+    p, li { max-width: 78ch; }
+    strong { color: #0c4b47; }
+    blockquote { margin: 1.5rem 0; padding: .8rem 1.2rem; color: #374b47; background: #edf2e9;
+      border-left: 4px solid var(--rust); }
+    code { padding: .12em .34em; color: #8c311e; background: #eee5d8; border-radius: 3px; font: .88em var(--mono); }
+    pre { max-width: 100%; overflow: auto; padding: 1.2rem; color: var(--code-ink); background: var(--code);
+      border-left: 4px solid #d98b45; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    pre code { padding: 0; color: inherit; background: transparent; }
+    pre.mermaid { color: var(--ink); background: #f7f3e9; border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 1.4rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { color: #f5f7ef; background: var(--navy); text-align: left; }
+    th, td { padding: .65rem .75rem; border: 1px solid #bbb6aa; vertical-align: top; }
+    tr:nth-child(even) td { background: #f4f0e7; }
+    hr { margin: 3rem 0; border: 0; border-top: 1px solid var(--line); }
+    .footer { max-width: 1260px; margin: 0 auto; padding: 0 3.5rem 3rem; color: var(--muted); font-size: .8rem; }
+    @media (max-width: 860px) {
+      .shell { display: block; padding-top: 1.5rem; }
+      .toc { position: relative; top: auto; max-height: 18rem; margin-bottom: 1.5rem; }
+      article { padding: 1.25rem; box-shadow: 8px 10px 0 rgba(16,43,45,.07); }
+      h1 { font-size: clamp(2rem,12vw,3.25rem); }
+      .topbar { align-items: flex-start; }
+    }
+    @media print { .topbar, .toc { display: none; } .shell { display: block; max-width: none; padding: 0; }
+      article { border: 0; box-shadow: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+  <!-- Generated by scripts/build_docs_site.py; edit the Markdown source, not this file. -->
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">LCA</span><span>项目文档中心</span></a>
+    <a class="source-link" href="P003-Golden内容优先重跑验收报告.md">查看 Markdown 源文档</a>
+  </header>
+  <main class="shell">
+    <nav class="toc" aria-label="本文目录"><p class="toc-label">CONTENTS / 目录</p><div class="toc">
+<ul>
+<li><a href="#_1">结论</a></li>
+<li><a href="#_2">核心变化</a></li>
+<li><a href="#_3">自主发现与修复记录</a></li>
+<li><a href="#v26-v27">v26 / v27 对比</a></li>
+<li><a href="#_4">验收结果</a></li>
+<li><a href="#_5">主要产物</a></li>
+</ul>
+</div>
+</nav>
+    <section class="document">
+      <div class="document-meta"><span class="chip">验收</span><span class="chip">HTML MIRROR</span></div>
+      <article><h1 id="p003-golden">P003 Golden 内容优先重跑验收报告<a class="headerlink" href="#p003-golden" title="Permanent link">§</a></h1>
+<p>日期：2026-08-10<br>
+生产工作区：<code>var/workspaces/wiki-production-20260810-v27</code><br>
+批次：<code>runs/wiki-batches/ict_equipment/production-p003-v27</code></p>
+<h2 id="_1">结论<a class="headerlink" href="#_1" title="Permanent link">§</a></h2>
+<p>P003 已按“真实证据锚点 + Content Blueprint + 受控建模判断 + 双向 claim coverage”重新生产并发布。批次 journal 最终状态为 <code>published</code>；正式 Wiki bundle 与 viewer 均构建成功。</p>
+<h2 id="_2">核心变化<a class="headerlink" href="#_2" title="Permanent link">§</a></h2>
+<ul>
+<li>Research/Verify 仍冻结 30 条研究 claim，不以增加正文深度为由放松外部证据裁决。</li>
+<li>新增 Content Architect 阶段：必须逐字、逐节、恰好一次容纳 30 条研究 claim；新增知识只能是 <code>modeling_judgment</code> 或 <code>evidence_gap</code>。</li>
+<li>新增 P003 Content Blueprint：冻结九节主题、正文/断言/段落/建模深度阈值、禁止短语和 30 行节点专属证据表标签。</li>
+<li>coverage 允许带 <code>P003-Cnnn</code> 标识的受控内容 claim，但研究 claim 仍必须保持原冻结数量，外部事实不得通过内容阶段追加。</li>
+<li>Content Apply 支持 hash-locked remediation；失败修复使用新计划和新事务，不允许手改页面绕过 journal。</li>
+</ul>
+<h2 id="_3">自主发现与修复记录<a class="headerlink" href="#_3" title="Permanent link">§</a></h2>
+<ol>
+<li>首次 Nomination 生成了会随核验状态失真的缺口句；语义约束将缺口限定为长期缺失的型号级 BOM、净质量、制造、运输、共享资源分配和代表性数据，然后重跑通过。</li>
+<li>首次 Content 输出结构合格但纯句子正文仅 5,462 字，低于 6,500 字阈值；Draft Content Gate 在 Apply 前拒绝。加入长度缓冲和“对象—字段—适用条件—失效条件”约束后重跑，纯句子正文达到 7,110 字。</li>
+<li>首次 Preview 发现数据质量表占位词 <code>待采/待核</code> 不符合词表，wiki lint 仅 28/30；重新蒸馏为 <code>待核</code>，生成第二个 hash-locked 合并计划并执行 remediation，Preview 修复为 30/30。</li>
+</ol>
+<h2 id="v26-v27">v26 / v27 对比<a class="headerlink" href="#v26-v27" title="Permanent link">§</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th style="text-align: right;">v26</th>
+<th style="text-align: right;">v27</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BODY 字符数（含溯源标记）</td>
+<td style="text-align: right;">4,453</td>
+<td style="text-align: right;">13,476</td>
+</tr>
+<tr>
+<td>正文断言</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">135</td>
+</tr>
+<tr>
+<td>连贯段落</td>
+<td style="text-align: right;">30 个单句段</td>
+<td style="text-align: right;">27 个多句段</td>
+</tr>
+<tr>
+<td>建模判断</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">111</td>
+</tr>
+<tr>
+<td>外部 CONFIRMED</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>错误的笼统“无节点证据”</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>产品性质 / 参数 / 质量表行</td>
+<td style="text-align: right;">4 / 6 / 5</td>
+<td style="text-align: right;">8 / 12 / 10</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="_4">验收结果<a class="headerlink" href="#_4" title="Permanent link">§</a></h2>
+<ul>
+<li>研究：9 次冻结官方查询、2 次网络抓取、10 条外部事实全部 <code>CONFIRMED</code>。</li>
+<li>内容：135 条 claim 全部双向映射；10 条 external confirmed，125 条 controlled internal。</li>
+<li>coverage：<code>135/135</code>，coverage 与 quote compliance 均为 <code>1.0</code>；unresolved、contradicted、manual review、hash drift 均为 <code>0</code>。</li>
+<li>图谱：<code>validate_graph</code> 11/11。</li>
+<li>Wiki：Preview 30/30；coverage-aware lint 31/31。</li>
+<li>数据集关联：11/11；节点搜索矩阵：6/6。</li>
+<li>项目回归：<code>89 passed</code>；<code>make validate</code> 为 <code>status: pass</code>。</li>
+</ul>
+<h2 id="_5">主要产物<a class="headerlink" href="#_5" title="Permanent link">§</a></h2>
+<ul>
+<li>正式查看器：<code>var/workspaces/wiki-production-20260810-v27/docs/ict_equipment-wiki.html</code></li>
+<li>正式页面：<code>var/workspaces/wiki-production-20260810-v27/wiki/ict_equipment/products/P003--服务器-通用计算-刀片式.md</code></li>
+<li>Golden Gate：<code>var/workspaces/wiki-production-20260810-v27/runs/wiki-batches/ict_equipment/production-p003-v27/draft-content-gate.json</code></li>
+<li>Coverage：<code>var/workspaces/wiki-production-20260810-v27/runs/wiki-batches/ict_equipment/production-p003-v27/coverage.json</code></li>
+<li>正式 Gate：<code>var/workspaces/wiki-production-20260810-v27/runs/wiki-batches/ict_equipment/production-p003-v27/gate-report.json</code></li>
+<li>发布报告：<code>var/workspaces/wiki-production-20260810-v27/runs/wiki-batches/ict_equipment/production-p003-v27/publish-report.json</code></li>
+</ul></article>
+    </section>
+  </main>
+  <footer class="footer">本页由 <code>scripts/build_docs_site.py</code> 从权威 Markdown 自动生成。</footer>
+
+</body>
+</html>

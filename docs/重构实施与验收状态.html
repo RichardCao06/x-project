@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="已完成能力、可复现测试证据、尚未通过的验收范围和下一里程碑。">
+  <title>重构实施与验收状态 · LCA 项目文档</title>
+  <style>
+    :root {
+      --ink: #132321; --muted: #60706c; --paper: #f2eee4; --panel: #fffdf7;
+      --line: #c9c2b2; --teal: #006f67; --teal-soft: #d9ebe5; --rust: #c54e2f;
+      --navy: #102b2d; --code: #102a2b; --code-ink: #e7f0e8;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; overflow-x: hidden; color: var(--ink); background:
+      linear-gradient(90deg, rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px,
+      linear-gradient(rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px, var(--paper);
+      font: 16px/1.78 var(--sans); }
+    a { color: var(--teal); text-underline-offset: .2em; }
+    .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; min-height: 58px; padding: .7rem clamp(1rem,4vw,3.5rem);
+      color: #eff8f2; background: rgba(16,43,45,.96); border-bottom: 3px solid #d98b45;
+      backdrop-filter: blur(12px); }
+    .topbar a { color: inherit; text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: .7rem; font-weight: 700; letter-spacing: .04em; }
+    .brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #8acbc1;
+      border-radius: 50%; color: #f2bd72; font: 700 12px var(--mono); }
+    .source-link { padding: .32rem .7rem; border: 1px solid rgba(255,255,255,.3); border-radius: 999px;
+      font: 12px var(--mono); }
+    .shell { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 850px); gap: clamp(2rem,5vw,5rem);
+      max-width: 1260px; margin: 0 auto; padding: clamp(2rem,5vw,5rem) clamp(1rem,4vw,3.5rem) 6rem; }
+    .toc { position: sticky; top: 90px; align-self: start; max-height: calc(100vh - 120px); overflow: auto;
+      padding: 1rem 1rem 1.2rem; background: rgba(255,253,247,.76); border: 1px solid var(--line);
+      box-shadow: 8px 8px 0 rgba(16,43,45,.07); }
+    .toc-label { margin: 0 0 .8rem; color: var(--rust); font: 700 11px var(--mono); letter-spacing: .16em; }
+    .toc ul { margin: 0; padding-left: 1rem; list-style: none; }
+    .toc > ul { padding-left: 0; }
+    .toc li { margin: .25rem 0; }
+    .toc a { display: block; padding: .22rem .35rem; color: #41534f; border-left: 2px solid transparent;
+      font-size: .82rem; line-height: 1.45; text-decoration: none; }
+    .toc a:hover { color: var(--teal); border-left-color: var(--rust); background: #fff; }
+    .document { min-width: 0; }
+    .document-meta { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 2rem; }
+    .chip { padding: .25rem .58rem; color: var(--teal); background: var(--teal-soft); border-radius: 999px;
+      font: 700 11px var(--mono); letter-spacing: .06em; }
+    article { padding: clamp(1.4rem,4vw,4rem); overflow-wrap: anywhere; background: rgba(255,253,247,.92); border: 1px solid var(--line);
+      box-shadow: 18px 22px 0 rgba(16,43,45,.07); }
+    h1, h2, h3, h4 { font-family: var(--serif); line-height: 1.24; text-wrap: balance; }
+    h1 { max-width: 17ch; margin: 0 0 1.8rem; font-size: clamp(2.25rem,6vw,4.7rem); letter-spacing: -.045em; }
+    h2 { margin: 3.5rem 0 1rem; padding-top: .75rem; border-top: 2px solid var(--navy);
+      font-size: clamp(1.55rem,3vw,2.2rem); }
+    h3 { margin-top: 2.4rem; color: #194c4a; font-size: 1.35rem; }
+    h4 { color: #344c48; }
+    .headerlink { margin-left: .35em; color: var(--teal); opacity: 0; font: .45em var(--mono); text-decoration: none; }
+    h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink, h4:hover .headerlink,
+    .headerlink:focus { opacity: .65; }
+    p, li { max-width: 78ch; }
+    strong { color: #0c4b47; }
+    blockquote { margin: 1.5rem 0; padding: .8rem 1.2rem; color: #374b47; background: #edf2e9;
+      border-left: 4px solid var(--rust); }
+    code { padding: .12em .34em; color: #8c311e; background: #eee5d8; border-radius: 3px; font: .88em var(--mono); }
+    pre { max-width: 100%; overflow: auto; padding: 1.2rem; color: var(--code-ink); background: var(--code);
+      border-left: 4px solid #d98b45; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    pre code { padding: 0; color: inherit; background: transparent; }
+    pre.mermaid { color: var(--ink); background: #f7f3e9; border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 1.4rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { color: #f5f7ef; background: var(--navy); text-align: left; }
+    th, td { padding: .65rem .75rem; border: 1px solid #bbb6aa; vertical-align: top; }
+    tr:nth-child(even) td { background: #f4f0e7; }
+    hr { margin: 3rem 0; border: 0; border-top: 1px solid var(--line); }
+    .footer { max-width: 1260px; margin: 0 auto; padding: 0 3.5rem 3rem; color: var(--muted); font-size: .8rem; }
+    @media (max-width: 860px) {
+      .shell { display: block; padding-top: 1.5rem; }
+      .toc { position: relative; top: auto; max-height: 18rem; margin-bottom: 1.5rem; }
+      article { padding: 1.25rem; box-shadow: 8px 10px 0 rgba(16,43,45,.07); }
+      h1 { font-size: clamp(2rem,12vw,3.25rem); }
+      .topbar { align-items: flex-start; }
+    }
+    @media print { .topbar, .toc { display: none; } .shell { display: block; max-width: none; padding: 0; }
+      article { border: 0; box-shadow: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+  <!-- Generated by scripts/build_docs_site.py; edit the Markdown source, not this file. -->
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">LCA</span><span>项目文档中心</span></a>
+    <a class="source-link" href="重构实施与验收状态.md">查看 Markdown 源文档</a>
+  </header>
+  <main class="shell">
+    <nav class="toc" aria-label="本文目录"><p class="toc-label">CONTENTS / 目录</p><div class="toc">
+<ul>
+<li><a href="#_2">当前结论</a></li>
+<li><a href="#_3">已完成范围</a></li>
+<li><a href="#_4">已验证证据</a></li>
+<li><a href="#_5">尚未通过的验收范围</a></li>
+<li><a href="#_6">下一准入里程碑</a></li>
+</ul>
+</div>
+</nav>
+    <section class="document">
+      <div class="document-meta"><span class="chip">状态</span><span class="chip">HTML MIRROR</span></div>
+      <article><h1 id="_1">骨架数据库自治生产平台：重构实施与验收状态<a class="headerlink" href="#_1" title="Permanent link">§</a></h1>
+<p>更新日期：2026-08-14</p>
+<h2 id="_2">当前结论<a class="headerlink" href="#_2" title="Permanent link">§</a></h2>
+<p>新仓库已经形成可运行的自治平台工程骨架，Phase 0（资产冻结）和 Phase 1
+（Kernel）完成；Phase 2 的 Wiki 离线垂直切片已通过；Phase 3 已用
+<code>ict_equipment::P003</code> 完成真实 Nomination、Search/Fetch、独立 Verify、coverage、
+reviewed Apply 和 production publish；Phase 3–4 同时建立了声明式工作流与安全领域适配边界，Phase 5
+具备 DesiredState 幂等对账入口。它尚未达到《测试设计》中“96 个核心用例全部
+验收通过”的发布标准，因此不得作为全自治生产平台正式发布。</p>
+<h2 id="_3">已完成范围<a class="headerlink" href="#_3" title="Permanent link">§</a></h2>
+<ul>
+<li>SQLite 状态库、不可变 CAS、血缘、追加事件、预算、fencing lease。</li>
+<li>Capability Registry、DAG 编译、显式状态机、超时和输出协议执行器。</li>
+<li>Agent G0（签名运行证明）、G1（节点身份）、G4（证据对齐）确定性护栏；
+  Proof Authority 将证明与 CAS、SQLite、Event Ledger 三重绑定。</li>
+<li>有限重试、repair/quarantine 路由和结构化异常基础。</li>
+<li>Release 默认要求 G0–G7，候选 Gate hash hard-bind、目标 compare-and-swap、
+  路径穿越与 symlink 逃逸阻断、失败回滚 journal。</li>
+<li>Graph、Wiki、Cross-link、LCA Binding、BOM、Publication 领域适配器。</li>
+<li>35 个基础执行资产按 SHA-256 冻结迁移；ICT 生产 fixture 另含完整 132 节点的
+  图、Wiki、sigil、来源与 LCA 注册表及 viewer 资产；原项目不作为运行写入目标。</li>
+<li>统一 CLI：init、validate、DesiredState reconcile、幂等 Job、status、inspect、
+  exceptions。</li>
+<li>Goal Alignment 控制平面已落地：版本化 Goal Contract、九维质量轨迹、False
+  Pass/False Block/重复故障/质量退化检测、因果诊断、L0/L1/L2 修复路由、受控
+  System Change Candidate，以及 Sandbox→Shadow→Canary→Promotion→Rollback 凭证链。</li>
+<li>Worker 在每个 Task 终态自动审计；Dashboard 与 CLI 已提供目标对齐查询、主动审计、
+  人工逃逸反馈与变更控制入口。运行中 Job 无权修改代码、Goal Contract 或发布权限。</li>
+<li>有限 Autonomous Campaign 已接入注册 Skill 边界：Supervisor 可幂等创建 Job、
+  物化 Workflow、轮转执行、自动审计、执行预算内 L0/L1 修复并验证；Dashboard
+  创建页可选择“交给自治 Supervisor”，CLI 提供 create/status/pause/resume/daemon。</li>
+<li>真实 steel 图 A–E 11/11 Gate，以及 A/B/C/身份碰撞 mutation 实跑。</li>
+</ul>
+<h2 id="_4">已验证证据<a class="headerlink" href="#_4" title="Permanent link">§</a></h2>
+<pre><code class="language-text">新项目 pytest: 248 passed
+项目 validate: PASS（8 capabilities / 9 workflow versions / 38 contracts+policies / 35 base assets + 30 Phase2 anchors）
+compileall: PASS
+真实 steel graph: 11/11 PASS；4 类 mutation 全部被杀死
+</code></pre>
+<p>测试数量仅统计实际 pytest 项；96 个编号的元数据追踪只计为两个测试，不再将
+96 个参数化“mode 已声明”冒充 96 个行为测试。</p>
+<p>原项目只读核验：重构前后 HEAD、<code>git status -z</code> 与 binary diff 指纹一致。
+原项目自身既有回归当前为 106 passed / 1 failed；失败原因是工作区原先缺少
+<code>registry/wiki_golden_profiles.json</code>，不由本次重构产生，也未在原项目内修复。</p>
+<p>Wiki P003 的正式生产证据见 <code>docs/Phase3-Wiki真实证据正式发布验收报告.md</code>：
+10/10 外部事实 <code>CONFIRMED + EXACT</code>，coverage 100%，五类最终 Gate 全通过，
+journal 状态为 <code>published</code>。</p>
+<h2 id="_5">尚未通过的验收范围<a class="headerlink" href="#_5" title="Permanent link">§</a></h2>
+<ul>
+<li>Wiki 其余节点/批次的规模化生产与连续自治晋级 SLO。</li>
+<li>Cross-link 单母行业/闭合 mutation 与真实 registry release。</li>
+<li>BOM Exact/Coarse/Gap、加权账、环/共享上游的真实夹具重放。</li>
+<li>Workflow publish bypass、崩溃点恢复、Verify 三方 hard join 的完整事务测试。</li>
+<li>Release 中途故障恢复、post-verify 自动回滚和完整 manifest 重建投影。</li>
+<li>E2E Verify/Apply 故障注入、shadow、canary、20 批自治晋级 SLO。</li>
+<li>原项目 107 项既有测试迁入新项目后的独立可重放基线。</li>
+</ul>
+<h2 id="_6">下一准入里程碑<a class="headerlink" href="#_6" title="Permanent link">§</a></h2>
+<ol>
+<li>将 P003 已验证闭环扩展到 A017/P031 和分层抽样批次，持续采集自治成功率与逃逸率。</li>
+<li>再接入 Cross-link 和 BOM 的真实 fixture/mutation；每个逃逸错误固化为回归。</li>
+<li>实现 crash-point release journal 恢复与 post-verify 回滚。</li>
+<li>将 96 个用例逐项升级为行为测试或有真实执行器与证据 Artifact 的
+   EVAL/SHADOW/CANARY/MANUAL 合同。</li>
+<li>只有 P0 100%、P1 达标、mutation 达标且 shadow 连续批次无逃逸，才签发
+   平台发布资格。</li>
+<li>（已完成）按 <code>docs/系统自我修复与目标对齐架构.md</code> 建立 Goal Contract、
+   Deviation Report、质量轨迹与 L0/L1 有界自愈；Gate、Policy、Prompt 或代码的
+   L2 候选必须经过 Golden、Mutation、Regression、Shadow 与 Canary 后才能晋级。</li>
+</ol></article>
+    </section>
+  </main>
+  <footer class="footer">本页由 <code>scripts/build_docs_site.py</code> 从权威 Markdown 自动生成。</footer>
+
+</body>
+</html>
