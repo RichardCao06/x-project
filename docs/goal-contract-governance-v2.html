@@ -262,7 +262,11 @@ release.apply(
 )
 </code></pre>
 <p>Rollout should begin in <code>shadow</code>, compare decisions on fixed Golden/Mutation/Cohort samples, certify the Capability Envelope, and only then switch low-risk publication to <code>enforced</code>.</p>
-<p><code>ControlPlane</code> now loads <code>config/governance-v2.json</code>, registers the configured policy bundle, and automatically binds matching production Jobs. Mapping is exact by Workflow version; wildcard or unmapped Jobs are rejected before persistence in <code>enforced</code> mode. Worker startup checks the binding and revocation state, and the terminal publish task is evaluated before its side effect. <code>GovernanceRuntime.wrap_release_manager()</code> installs the same policy around a <code>ReleaseManager</code> and produces controller-owned, signed release and rollback evidence.</p>
+<p><code>ControlPlane</code> now loads <code>config/governance-v2.json</code>, registers the configured policy bundle, and automatically binds matching production Jobs. Mapping is exact by Workflow version; wildcard or unmapped Jobs are rejected before persistence in <code>enforced</code> mode. Worker startup checks the binding and revocation state. The reviewed Wiki tail now derives claim coverage, executes Go/No-Go and G10, performs the reviewed workspace apply, and prepares the bundle/viewers before handing the exact snapshot to the job-driven release service. That service issues candidate-bound G10/G11 receipts and applies through the compare-and-swap <code>ReleaseManager</code>; <code>GovernanceRuntime.wrap_release_manager()</code> adds the controller-owned, signed release and rollback evidence. <code>enforced</code> mode still refuses the authoritative apply without a complete Alignment Assessment.</p>
+<p>Configured references are stable contract identities, not permanently pinned obsolete versions. After an authorized replacement, the runtime follows the persisted <code>superseded_by</code> chain only when kind and contract ID remain unchanged, then binds new Jobs to the active replacement. Existing Jobs keep their immutable old binding. A missing replacement, identity change, cycle, suspension, or incoherent Goal/Autonomy/Assurance bundle fails closed.</p>
+<p>Production release evaluation does not accept model, Prompt, toolset, or scope claims from extra request fields. At Job binding time the control plane hashes the versioned Agent definitions, Prompts, Skill route, production Policy, Workflow, and referenced Capability manifests; it combines that inventory with the request fields permitted by the Capability Envelope and persists a <code>governed-release-context-v1</code>. The Worker recomputes and compares this context before publication, so repository drift or Job payload drift invalidates eligibility instead of becoming <code>unknown</code> or caller-asserted evidence.</p>
+<p><code>policies/wiki-capability-envelope-v1.1.json</code> is the shadow replacement candidate that names this controller-derived runtime and the schema-valid A039 reviewed input slice. The original <code>1.0.0</code> document remains byte-for-byte compatible with already registered state; operators must use the governed replacement command before independently certifying <code>1.1.0</code> as a new <code>1.2.0</code> contract. The rollout never mutates an immutable contract version in place.</p>
+<p>Runtime readiness is evaluated per configured Workflow. Every reported bundle must resolve to active, type-correct and mutually coherent contracts; its Capability must be certified, unexpired, free of pending drift invalidation, and match the current repository fingerprint. Readiness no longer depends on whether an unrelated historical Job binding happens to exist.</p>
 <h2 id="persistence">Persistence<a class="headerlink" href="#persistence" title="Permanent link">§</a></h2>
 <p>Migration 13 installs the core governance records. Migration 14 adds reassessment, independent Cohort certification, and online drift records. Contract payload versions and Job bindings are immutable; lifecycle events, approvals, assessments, eligibility decisions, certifications, and observations are append-oriented:</p>
 <ul>
@@ -288,10 +292,10 @@ lca-governance --root . register policies/wiki-autonomy-contract-v1.json \
 
 lca-governance --root . replace-contract \
   capability://wiki-node-production-capability@1.0.0 \
-  capability-certified-v1.1.json \
+  policies/wiki-capability-envelope-v1.1.json \
   --actor platform-owner --role human_governance_owner \
-  --rationale &quot;Independent cohort recertification&quot; \
-  --evidence cohort://wiki-node-governance@2
+  --rationale &quot;Bind certification to the controller-derived production runtime&quot; \
+  --evidence change://p0-runtime-fingerprint
 
 lca-governance --root . suspend-contract \
   capability://wiki-node-production-capability@1.1.0 \
@@ -316,20 +320,20 @@ lca-governance --root . check-autonomy job_A039 publish --risk low \
   --requirement-evidence release-requirement-evidence.json
 
 lca-governance --root . certify-capability \
-  capability://wiki-node-production-capability@1.0.0 cohort.json \
-  --target-version 1.1.0 --cohort-id wiki-node-governance@2 \
+  capability://wiki-node-production-capability@1.1.0 cohort.json \
+  --target-version 1.2.0 --cohort-id wiki-node-governance@2 \
   --evaluator independent-assurance --authorizer platform-owner \
   --valid-until 2027-08-19T00:00:00Z
 
 lca-governance --root . observe-capability \
-  capability://wiki-node-production-capability@1.1.0 production-escape-42 \
+  capability://wiki-node-production-capability@1.2.0 production-escape-42 \
   --outcome incorrect --actor post-release-monitor
 
 lca-governance --root . reassessments
 lca-governance --root . readiness
 </code></pre>
 <h2 id="deliberate-scope-of-this-change">Deliberate scope of this change<a class="headerlink" href="#deliberate-scope-of-this-change" title="Permanent link">§</a></h2>
-<p>The checked-in runtime configuration maps only <code>wiki-node-production@9</code> and starts in <code>shadow</code>. Other Workflows remain unchanged in shadow mode and are rejected if the operator switches to <code>enforced</code> without adding exact contract bundles. Moving to enforcement still requires a separately certified Capability version, updated configuration, zero pending reassessment work, and a green machine-readable <code>readiness</code> result.</p></article>
+<p>The checked-in runtime configuration maps only <code>wiki-node-production@9</code> and starts in <code>shadow</code>. Other Workflows remain unchanged in shadow mode and are rejected if the operator switches to <code>enforced</code> without adding exact contract bundles. Moving to enforcement still requires a separately certified Capability replacement, zero pending reassessment work, and a green machine-readable <code>readiness</code> result. A successful governed replacement advances the configured contract identity automatically; editing the config merely to copy the new version is neither required nor sufficient.</p></article>
     </section>
   </main>
   <footer class="footer">本页由 <code>scripts/build_docs_site.py</code> 从权威 Markdown 自动生成。</footer>

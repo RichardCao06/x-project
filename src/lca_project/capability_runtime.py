@@ -25,7 +25,7 @@ WIKI_OPERATIONS = {
     "apply", "preview", "go-no-go", "gate", "publish", "content-blueprint",
     "draft-content-pipeline", "node-preview", "research-plan", "search-execution-gate", "terminology-verify",
     "source-diversity-gate", "research-plan-gate", "content-closure-gate", "maturity-gate",
-    "table-search-execution-gate", "table_population_gate",
+    "table-search-execution-gate", "table_population_gate", "release-gate",
 }
 
 
@@ -378,6 +378,30 @@ def wiki_batch(value: dict[str, Any]) -> dict[str, Any]:
             sys.executable, str(project_scripts / "gate_wiki_maturity.py"),
             str(batch), str(batch / "maturity-gate.json"),
         ], cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)))
+    if operation == "release-gate":
+        batch = _path(value.get("batch"), "batch")
+        prepared = batch / "prepared.json"
+        coverage = batch / "coverage.json"
+        scripts = workspace / "scripts"
+        commands = [
+            [
+                sys.executable, str(scripts / "wiki_claim_coverage.py"), "plan",
+                str(prepared), "--repo-root", str(workspace), "--output", str(coverage),
+            ],
+            [
+                sys.executable, str(scripts / "wiki_batch.py"), "go-no-go",
+                str(prepared), "--coverage", str(coverage), "--output",
+                str(batch / "go-no-go.json"), "--resume",
+            ],
+            [
+                sys.executable, str(scripts / "wiki_batch.py"), "gate",
+                str(prepared), "--coverage", str(coverage), "--output",
+                str(batch / "gate-report.json"), "--resume",
+            ],
+        ]
+        return _pipeline(
+            commands, cwd=workspace, timeout=int(value.get("timeout_seconds", 1800))
+        )
     if operation == "table_population_gate":
         batch = _path(value.get("batch"), "batch")
         page = _path(value.get("page"), "page")
@@ -813,6 +837,23 @@ def release(value: dict[str, Any]) -> dict[str, Any]:
                      "--registry", str(registry), "--output",
                      str(table_dir / "table-apply-report.json")], cwd=workspace,
                     timeout=int(value.get("timeout_seconds", 1800)))
+    if value.get("operation") == "reviewed_apply":
+        workspace = _path(value.get("workspace"), "workspace")
+        batch = _path(value.get("batch"), "batch")
+        script = workspace / "scripts/wiki_batch.py"
+        return _run([
+            sys.executable, str(script), "apply", str(batch / "prepared.json"),
+            "--coverage", str(batch / "coverage.json"), "--output",
+            str(batch / "reviewed-apply-report.json"), "--resume",
+        ], cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)))
+    if value.get("operation") == "wiki_publish_candidate":
+        workspace = _path(value.get("workspace"), "workspace")
+        batch = _path(value.get("batch"), "batch")
+        script = workspace / "scripts/wiki_batch.py"
+        return _run([
+            sys.executable, str(script), "publish", str(batch / "prepared.json"),
+            "--output", str(batch / "publish-report.json"), "--resume",
+        ], cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)))
     if value.get("operation") == "graph_publish":
         workspace = _path(value.get("workspace"), "workspace")
         candidate = _path(value.get("candidate"), "candidate")
@@ -841,9 +882,9 @@ def release(value: dict[str, Any]) -> dict[str, Any]:
         record_path.parent.mkdir(parents=True, exist_ok=True)
         record_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return {"status": "ok", **record, "workspace": str(workspace)}
-    # Production release is deliberately not a shell escape.  A caller must
-    # provide a persisted eligibility receipt; the job-driven release service
-    # consumes it.  Until then fail closed instead of calling a legacy publish.
+    # Unknown production release operations are deliberately not a shell
+    # escape.  Only the controller-owned job release service can apply the
+    # allow-listed Wiki candidate prepared above to an authoritative target.
     if not isinstance(value.get("eligibility_receipt"), dict):
         return {"status": "blocked", "failure": {"code": "RELEASE_ELIGIBILITY_REQUIRED"}}
     return {"status": "blocked", "failure": {"code": "RELEASE_SERVICE_REQUIRED",

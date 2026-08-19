@@ -183,7 +183,8 @@ class WikiTaskBinding:
                            "content_blueprint", "content_compose", "content_closure_gate", "editorial_review",
                            "draft_content_gate", "draft_apply", "table_collect",
                            "table_search_execution_gate", "table_verify",
-                           "table_population_gate", "table_apply", "maturity_gate", "preview"})
+                           "table_population_gate", "table_apply", "maturity_gate", "preview",
+                           "release_gate", "reviewed_apply", "publish"})
 
     def __init__(self, root: Path) -> None:
         self.root = root
@@ -454,6 +455,15 @@ class WikiTaskBinding:
         if task.task_id == "maturity_gate":
             return {"operation": "maturity-gate", "workspace": str(workspace),
                     "batch": str(batch)}
+        if task.task_id == "release_gate":
+            return {"operation": "release-gate", "workspace": str(workspace),
+                    "batch": str(batch)}
+        if task.task_id == "reviewed_apply":
+            return {"operation": "reviewed_apply", "workspace": str(workspace),
+                    "batch": str(batch)}
+        if task.task_id == "publish":
+            return {"operation": "wiki_publish_candidate", "workspace": str(workspace),
+                    "batch": str(batch)}
         prepared = load_json(batch / "prepared.json")
         workflows = prepared.get("workflows") or []
         nomination = next((item for item in workflows if item.get("mode") == "nomination"), None)
@@ -517,6 +527,11 @@ class WikiTaskBinding:
             "table_apply": ("table-data/table-apply-report.json",),
             "maturity_gate": ("maturity-gate.json",),
             "preview": ("preview-report.json",),
+            "release_gate": (
+                "coverage.json", "go-no-go.json", "quality-gate.json", "gate-report.json",
+            ),
+            "reviewed_apply": ("reviewed-apply-report.json",),
+            "publish": ("publish-report.json", "release-record.json"),
         }[task.task_id]
         artifacts = []
         for name in names:
@@ -801,29 +816,6 @@ class WorkerLoop:
                     self.lease_seconds, self.heartbeat_seconds,
                 ).start()
                 self._start_job(job_id_value, lease.fencing_token)
-                if (
-                    task.capability_id == "release.apply"
-                    and str(task.inputs.get("action") or "") == "publish"
-                ):
-                    payload = job.get("payload") or {}
-                    request = ((payload.get("scope") or {}).get("request") or {})
-                    risk = str(payload.get("risk") or "medium")
-                    if risk not in {"low", "medium", "high", "critical"}:
-                        risk = "medium"
-                    self.control.governance.evaluate_release_task(
-                        job_id=job_id_value,
-                        risk=risk,
-                        runtime_fingerprint={
-                            "model": str(request.get("model") or "unknown"),
-                            "prompt": str(request.get("prompt_version") or "unknown"),
-                            "toolset": str(request.get("toolset_version") or "unknown"),
-                            "workflow": str(run["workflow_ref"]),
-                        },
-                        input_scope={
-                            "process_family": request.get("process_family") or "unknown",
-                            "document_type": request.get("document_type") or "unknown",
-                        },
-                    )
                 attempt_id, input_hashes = self.orchestrator.claim(
                     task.run_id, task.task_id, worker_id=self.worker_id,
                     lease_resource=resource, fencing_token=lease.fencing_token,
@@ -849,6 +841,16 @@ class WorkerLoop:
                 result = task_executor.execute(
                     capability, envelope, run_id=task.run_id, task_id=task.task_id
                 )
+                release_payload: dict[str, Any] = {}
+                if result.status == "ok" and skill != "industry-graph" and task.task_id == "publish":
+                    release_payload = self.control.governance.publish_wiki_release(
+                        job_id=job_id_value,
+                        workspace=binding_context["workspace"],
+                        batch=binding_context["batch"],
+                        industry=str(binding_context["slug"]),
+                        node=str(binding_context["node"]),
+                        risk="low",
+                    )
                 attempt_archive = self._archive_attempt(
                     workspace=archive_workspace, execution_root=archive_root,
                     run_id=task.run_id, task_id=task.task_id,
@@ -872,7 +874,7 @@ class WorkerLoop:
                         stderr=result.stderr, failure=envelope.asdict(),
                     )
                 evidence = binding.evidence(task.run_id, task, job)
-                payload = {**result.payload, **evidence,
+                payload = {**result.payload, **release_payload, **evidence,
                            "capability": task.capability_id, "attempt_id": attempt_id,
                            "attempt_archive": attempt_archive}
                 workspace = Path(evidence["workspace"])
@@ -915,6 +917,28 @@ class WorkerLoop:
                                                     reason="hash-locked graph apply completed")
                         self.control.transition_job(job_id_value, JobState.PUBLISHED,
                                                     reason="graph release record persisted")
+                if skill != "industry-graph":
+                    current = self.control.state.get("jobs", job_id_value)
+                    state = JobState(current["status"]) if current else None
+                    if task.task_id == "release_gate" and state == JobState.RUNNING:
+                        self.control.transition_job(
+                            job_id_value, JobState.CANDIDATE,
+                            reason="reviewed Wiki candidate passed the release gate",
+                        )
+                        self.control.transition_job(
+                            job_id_value, JobState.GATED,
+                            reason="candidate-bound G10 release proofs passed",
+                        )
+                    elif task.task_id == "reviewed_apply" and state == JobState.GATED:
+                        self.control.transition_job(
+                            job_id_value, JobState.APPLIED,
+                            reason="reviewed Wiki frontmatter applied in the frozen workspace",
+                        )
+                    elif task.task_id == "publish" and state == JobState.APPLIED:
+                        self.control.transition_job(
+                            job_id_value, JobState.PUBLISHED,
+                            reason="governed hash-locked Wiki release applied",
+                        )
                 if skill != "industry-graph" and task.task_id == "preview" and request.get("publication_mode") == "preview":
                     reason = "preview_unpublished branch does not grant release or publication authority"
                     for skipped in ("release_gate", "reviewed_apply", "publish"):
@@ -1020,9 +1044,13 @@ class WorkerLoop:
                                          if decision.action == RepairAction.MANUAL_REVIEW else None),
                     )
                     current = self.control.state.get("jobs", job_id_value)
-                    if current and JobState(current["status"]) == JobState.RUNNING:
+                    if current and JobState(current["status"]) in {
+                        JobState.RUNNING, JobState.CANDIDATE, JobState.GATED, JobState.APPLIED,
+                    }:
+                        current_state = JobState(current["status"])
                         target_state = (JobState.MANUAL_REVIEW
                                         if decision.action == RepairAction.MANUAL_REVIEW
+                                        and current_state == JobState.RUNNING
                                         else JobState.REPAIRABLE if repairable else JobState.FAILED)
                         self.control.transition_job(
                             job_id_value, target_state,

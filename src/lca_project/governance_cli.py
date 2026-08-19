@@ -204,7 +204,11 @@ def main(argv: list[str] | None = None) -> int:
             _dump(controller.status())
             return 0
         if args.command == "readiness":
-            readiness = controller.readiness()
+            if (root / "config/governance-v2.json").is_file():
+                from lca_project.kernel.governance_runtime import GovernanceRuntime
+                readiness = GovernanceRuntime(root, state, events, artifacts).readiness()
+            else:
+                readiness = controller.readiness()
             _dump(readiness)
             return 0 if readiness["ready"] else 3
         if args.command == "certify-capability":
