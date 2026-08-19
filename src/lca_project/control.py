@@ -95,6 +95,7 @@ class ControlPlane:
                 "autonomy_ref": binding["autonomy_ref"],
                 "assurance_ref": binding["assurance_ref"],
                 "capability_ref": binding["capability_ref"],
+                "release_context": binding["release_context"],
             }
             self.state.upsert_entity(
                 "jobs", job.job_id, str(job.state), payload, workflow_id=job.workflow

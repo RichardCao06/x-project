@@ -146,7 +146,15 @@ release.apply(
 
 Rollout should begin in `shadow`, compare decisions on fixed Golden/Mutation/Cohort samples, certify the Capability Envelope, and only then switch low-risk publication to `enforced`.
 
-`ControlPlane` now loads `config/governance-v2.json`, registers the configured policy bundle, and automatically binds matching production Jobs. Mapping is exact by Workflow version; wildcard or unmapped Jobs are rejected before persistence in `enforced` mode. Worker startup checks the binding and revocation state, and the terminal publish task is evaluated before its side effect. `GovernanceRuntime.wrap_release_manager()` installs the same policy around a `ReleaseManager` and produces controller-owned, signed release and rollback evidence.
+`ControlPlane` now loads `config/governance-v2.json`, registers the configured policy bundle, and automatically binds matching production Jobs. Mapping is exact by Workflow version; wildcard or unmapped Jobs are rejected before persistence in `enforced` mode. Worker startup checks the binding and revocation state. The reviewed Wiki tail now derives claim coverage, executes Go/No-Go and G10, performs the reviewed workspace apply, and prepares the bundle/viewers before handing the exact snapshot to the job-driven release service. That service issues candidate-bound G10/G11 receipts and applies through the compare-and-swap `ReleaseManager`; `GovernanceRuntime.wrap_release_manager()` adds the controller-owned, signed release and rollback evidence. `enforced` mode still refuses the authoritative apply without a complete Alignment Assessment.
+
+Configured references are stable contract identities, not permanently pinned obsolete versions. After an authorized replacement, the runtime follows the persisted `superseded_by` chain only when kind and contract ID remain unchanged, then binds new Jobs to the active replacement. Existing Jobs keep their immutable old binding. A missing replacement, identity change, cycle, suspension, or incoherent Goal/Autonomy/Assurance bundle fails closed.
+
+Production release evaluation does not accept model, Prompt, toolset, or scope claims from extra request fields. At Job binding time the control plane hashes the versioned Agent definitions, Prompts, Skill route, production Policy, Workflow, and referenced Capability manifests; it combines that inventory with the request fields permitted by the Capability Envelope and persists a `governed-release-context-v1`. The Worker recomputes and compares this context before publication, so repository drift or Job payload drift invalidates eligibility instead of becoming `unknown` or caller-asserted evidence.
+
+`policies/wiki-capability-envelope-v1.1.json` is the shadow replacement candidate that names this controller-derived runtime and the schema-valid A039 reviewed input slice. The original `1.0.0` document remains byte-for-byte compatible with already registered state; operators must use the governed replacement command before independently certifying `1.1.0` as a new `1.2.0` contract. The rollout never mutates an immutable contract version in place.
+
+Runtime readiness is evaluated per configured Workflow. Every reported bundle must resolve to active, type-correct and mutually coherent contracts; its Capability must be certified, unexpired, free of pending drift invalidation, and match the current repository fingerprint. Readiness no longer depends on whether an unrelated historical Job binding happens to exist.
 
 ## Persistence
 
@@ -178,10 +186,10 @@ lca-governance --root . register policies/wiki-autonomy-contract-v1.json \
 
 lca-governance --root . replace-contract \
   capability://wiki-node-production-capability@1.0.0 \
-  capability-certified-v1.1.json \
+  policies/wiki-capability-envelope-v1.1.json \
   --actor platform-owner --role human_governance_owner \
-  --rationale "Independent cohort recertification" \
-  --evidence cohort://wiki-node-governance@2
+  --rationale "Bind certification to the controller-derived production runtime" \
+  --evidence change://p0-runtime-fingerprint
 
 lca-governance --root . suspend-contract \
   capability://wiki-node-production-capability@1.1.0 \
@@ -206,13 +214,13 @@ lca-governance --root . check-autonomy job_A039 publish --risk low \
   --requirement-evidence release-requirement-evidence.json
 
 lca-governance --root . certify-capability \
-  capability://wiki-node-production-capability@1.0.0 cohort.json \
-  --target-version 1.1.0 --cohort-id wiki-node-governance@2 \
+  capability://wiki-node-production-capability@1.1.0 cohort.json \
+  --target-version 1.2.0 --cohort-id wiki-node-governance@2 \
   --evaluator independent-assurance --authorizer platform-owner \
   --valid-until 2027-08-19T00:00:00Z
 
 lca-governance --root . observe-capability \
-  capability://wiki-node-production-capability@1.1.0 production-escape-42 \
+  capability://wiki-node-production-capability@1.2.0 production-escape-42 \
   --outcome incorrect --actor post-release-monitor
 
 lca-governance --root . reassessments
@@ -221,4 +229,4 @@ lca-governance --root . readiness
 
 ## Deliberate scope of this change
 
-The checked-in runtime configuration maps only `wiki-node-production@9` and starts in `shadow`. Other Workflows remain unchanged in shadow mode and are rejected if the operator switches to `enforced` without adding exact contract bundles. Moving to enforcement still requires a separately certified Capability version, updated configuration, zero pending reassessment work, and a green machine-readable `readiness` result.
+The checked-in runtime configuration maps only `wiki-node-production@9` and starts in `shadow`. Other Workflows remain unchanged in shadow mode and are rejected if the operator switches to `enforced` without adding exact contract bundles. Moving to enforcement still requires a separately certified Capability replacement, zero pending reassessment work, and a green machine-readable `readiness` result. A successful governed replacement advances the configured contract identity automatically; editing the config merely to copy the new version is neither required nor sufficient.

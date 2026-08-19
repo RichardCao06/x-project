@@ -166,6 +166,7 @@ def test_preview_keeps_table_pipeline_executable(tmp_path: Path) -> None:
     job_id, run_id = create_p030(root)
     binding = WikiTaskBinding(root)
     assert {"table_collect", "table_verify", "table_population_gate", "table_apply"} <= binding.SUPPORTED
+    assert {"release_gate", "reviewed_apply", "publish"} <= binding.SUPPORTED
     worker_source = (root / "src/lca_project/kernel/worker.py") if (root / "src").is_dir() else ROOT / "src/lca_project/kernel/worker.py"
     source = worker_source.read_text(encoding="utf-8")
     assert "preview preserves explicit quantitative evidence gaps" not in source
