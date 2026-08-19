@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/contract-lifecycle-event-v1.schema.json",
+  "title": "Contract Lifecycle Event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "contract_ref",
+    "from_status",
+    "to_status",
+    "actor",
+    "actor_role",
+    "reason",
+    "details",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "contract-lifecycle-event-v1"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^cle_[0-9a-f]{32}$"
+    },
+    "contract_ref": {
+      "type": "string",
+      "pattern": "^(goal|autonomy|assurance|capability)://[a-z0-9][a-z0-9_.-]*@[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    },
+    "from_status": {
+      "enum": [
+        "draft",
+        "active",
+        "superseded",
+        "suspended",
+        "expired"
+      ]
+    },
+    "to_status": {
+      "enum": [
+        "draft",
+        "active",
+        "superseded",
+        "suspended",
+        "expired"
+      ]
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor_role": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "details": {
+      "type": "object"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

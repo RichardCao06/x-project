@@ -628,6 +628,7 @@ class WorkerLoop:
         )]
 
     def _start_job(self, job_id: str, token: int) -> None:
+        self.control.governance.admit_execution(job_id)
         row = self.control.state.get("jobs", job_id)
         if row is None:
             raise KeyError(job_id)
@@ -800,6 +801,29 @@ class WorkerLoop:
                     self.lease_seconds, self.heartbeat_seconds,
                 ).start()
                 self._start_job(job_id_value, lease.fencing_token)
+                if (
+                    task.capability_id == "release.apply"
+                    and str(task.inputs.get("action") or "") == "publish"
+                ):
+                    payload = job.get("payload") or {}
+                    request = ((payload.get("scope") or {}).get("request") or {})
+                    risk = str(payload.get("risk") or "medium")
+                    if risk not in {"low", "medium", "high", "critical"}:
+                        risk = "medium"
+                    self.control.governance.evaluate_release_task(
+                        job_id=job_id_value,
+                        risk=risk,
+                        runtime_fingerprint={
+                            "model": str(request.get("model") or "unknown"),
+                            "prompt": str(request.get("prompt_version") or "unknown"),
+                            "toolset": str(request.get("toolset_version") or "unknown"),
+                            "workflow": str(run["workflow_ref"]),
+                        },
+                        input_scope={
+                            "process_family": request.get("process_family") or "unknown",
+                            "document_type": request.get("document_type") or "unknown",
+                        },
+                    )
                 attempt_id, input_hashes = self.orchestrator.claim(
                     task.run_id, task.task_id, worker_id=self.worker_id,
                     lease_resource=resource, fencing_token=lease.fencing_token,

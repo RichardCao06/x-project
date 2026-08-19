@@ -279,6 +279,22 @@ def _task_repair_epochs(conn: sqlite3.Connection) -> None:
     )""")
 
 
+def _goal_contract_governance_v2(conn: sqlite3.Connection) -> None:
+    """Install immutable multi-contract governance and Goal amendment records."""
+    from .governance_schema import install_governance_schema
+
+    install_governance_schema(conn)
+
+
+def _governance_reassessment_and_capability_assurance(
+    conn: sqlite3.Connection,
+) -> None:
+    """Add durable invalidation, certification, and online drift records."""
+    from .governance_schema import install_governance_schema
+
+    install_governance_schema(conn)
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "worker-and-attempt-ownership", _worker_and_attempt_ownership),
     (2, "structured-failure-payloads", _structured_failures),
@@ -293,6 +309,9 @@ MIGRATIONS: tuple[Migration, ...] = (
      _goal_supervision_wakeups_and_repair_receipts),
     (11, "system-meta-supervision", _system_meta_supervision),
     (12, "task-repair-epochs", _task_repair_epochs),
+    (13, "goal-contract-governance-v2", _goal_contract_governance_v2),
+    (14, "governance-reassessment-and-capability-assurance",
+     _governance_reassessment_and_capability_assurance),
 )
 
 

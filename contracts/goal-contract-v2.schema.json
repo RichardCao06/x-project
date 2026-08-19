@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/goal-contract-v2.schema.json",
+  "title": "Goal Contract v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "contract_id", "version", "purpose", "scope", "clauses",
+    "prohibited_outcomes", "terminal_states", "reserved_authority", "evaluation"
+  ],
+  "properties": {
+    "schema_version": {"const": "goal-contract-v2"},
+    "contract_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+    "version": {"type": "string", "minLength": 1},
+    "purpose": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "value_statement", "stakeholders"],
+      "properties": {
+        "decision": {"type": "string", "minLength": 1},
+        "value_statement": {"type": "string", "minLength": 1},
+        "stakeholders": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "scope": {"type": "object", "minProperties": 1},
+    "clauses": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "criticality", "proof_obligation"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "statement": {"type": "string", "minLength": 1},
+          "criticality": {"enum": ["hard", "required", "optimize", "diagnostic"]},
+          "proof_obligation": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "prohibited_outcomes": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "detection"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "statement": {"type": "string", "minLength": 1},
+          "detection": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "terminal_states": {
+      "type": "object", "minProperties": 2,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "meaning"],
+        "properties": {
+          "kind": {"enum": ["success", "honest_incomplete", "escalation", "failure"]},
+          "meaning": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "reserved_authority": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cohort_refs", "selective_risk_ceiling", "false_pass_budget"],
+      "properties": {
+        "cohort_refs": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "selective_risk_ceiling": {"type": "number", "minimum": 0, "maximum": 1},
+        "false_pass_budget": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "metadata": {"type": "object"}
+  }
+}

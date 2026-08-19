@@ -1,0 +1,54 @@
+{
+  "schema_version": "capability-envelope-v1",
+  "envelope_id": "wiki-node-production-capability",
+  "version": "1.0.0",
+  "scope": {
+    "domain": "wiki-node-production"
+  },
+  "capability_id": "wiki-node-evidence-and-alignment",
+  "runtime_fingerprint": {
+    "model": "sol-verifier@2026-08",
+    "prompt": "wiki-applicability-v4",
+    "toolset": "evidence-review-tools-v2",
+    "workflow": "wiki-node-production@9"
+  },
+  "input_scope": {
+    "process_family": [
+      "server_final_assembly"
+    ],
+    "document_type": [
+      "manufacturer_manual",
+      "epd",
+      "pcf",
+      "environmental_permit",
+      "process_lca"
+    ]
+  },
+  "budget": {
+    "max_model_calls": 100,
+    "max_tool_calls": 400,
+    "max_wall_seconds": 7200
+  },
+  "certification": {
+    "status": "shadow",
+    "evidence_refs": [
+      "fixture://wiki-node-governance-cohort-v1/report"
+    ],
+    "cohort_id": "wiki-node-governance-cohort-v1",
+    "sample_size": 200,
+    "coverage": 0.62,
+    "selective_risk_upper_bound": 0.015,
+    "abstention_recall": 0.95,
+    "valid_until": "2027-08-18T00:00:00Z"
+  },
+  "known_failures": [
+    "mixed_functional_unit",
+    "undocumented_allocation",
+    "unfrozen_scanned_table",
+    "novel_process_family"
+  ],
+  "fallback": {
+    "terminal_state": "human_judgment_required",
+    "reason": "Input or evidence lies outside the certified capability boundary."
+  }
+}

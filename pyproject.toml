@@ -15,6 +15,7 @@ docs = ["Markdown>=3.4"]
 
 [project.scripts]
 lca-platform = "lca_project.cli:main"
+lca-governance = "lca_project.governance_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

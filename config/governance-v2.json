@@ -1,0 +1,15 @@
+{
+  "schema_version": "governance-runtime-config-v1",
+  "mode": "shadow",
+  "bindings": [
+    {
+      "workflow": "wiki-node-production@9",
+      "contracts": {
+        "goal": "policies/wiki-goal-contract-v2.json",
+        "autonomy": "policies/wiki-autonomy-contract-v1.json",
+        "assurance": "policies/wiki-assurance-contract-v1.json",
+        "capability": "policies/wiki-capability-envelope-v1.json"
+      }
+    }
+  ]
+}

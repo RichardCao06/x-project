@@ -55,6 +55,8 @@ def test_schema_migration_records_worker_registry(tmp_path: Path) -> None:
             (10, "goal-supervision-wakeups-and-repair-receipts"),
             (11, "system-meta-supervision"),
             (12, "task-repair-epochs"),
+        (13, "goal-contract-governance-v2"),
+        (14, "governance-reassessment-and-capability-assurance"),
         ]
     assert state._connection().execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='worker_instances'"

@@ -1,0 +1,68 @@
+{
+  "schema_version": "autonomy-contract-v1",
+  "contract_id": "wiki-node-autonomy",
+  "version": "1.0.0",
+  "scope": {
+    "domain": "wiki-node-production",
+    "goal_contract_ref": "goal://wiki-node-goal@2.0.0"
+  },
+  "actions": {
+    "plan": {
+      "automatic": true,
+      "max_risk": "medium",
+      "requirements": ["frozen_goal_binding", "bounded_budget"]
+    },
+    "execute": {
+      "automatic": true,
+      "max_risk": "medium",
+      "requirements": ["registered_capability", "fenced_workspace"]
+    },
+    "verify": {
+      "automatic": true,
+      "max_risk": "high",
+      "requirements": ["independent_evaluator", "immutable_evidence"]
+    },
+    "repair": {
+      "automatic": true,
+      "max_risk": "low",
+      "requirements": ["named_causal_input", "proof_contract", "rollback"]
+    },
+    "publish": {
+      "automatic": true,
+      "max_risk": "low",
+      "requirements": ["alignment_assessment", "release_attestation", "rollback"]
+    },
+    "approve_goal_change": {
+      "automatic": false,
+      "max_risk": "critical",
+      "requirements": ["human_goal_owner"]
+    }
+  },
+  "forbidden_actions": [
+    "edit_active_contract_in_place",
+    "issue_own_validation_certificate",
+    "direct_authoritative_write",
+    "expand_own_permissions",
+    "delete_failed_cohort_samples"
+  ],
+  "reserved_authority": [
+    "change_goal_semantics",
+    "change_identity_boundary_policy",
+    "accept_high_impact_proxy",
+    "sign_critical_quantitative_value",
+    "expand_autonomous_publication"
+  ],
+  "escalation_triggers": [
+    "input_outside_capability_envelope",
+    "unknown_prohibited_outcome",
+    "evaluator_conflict",
+    "irreversible_change",
+    "acceptance_set_widening",
+    "capability_certification_expired"
+  ],
+  "budgets": {
+    "max_model_calls_per_stage": 100,
+    "max_repairs_per_causal_input": 2,
+    "max_wall_seconds_per_stage": 7200
+  }
+}

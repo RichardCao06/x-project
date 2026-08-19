@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="三合同、Capability Envelope、Goal 修正案、自治资格与受治理发布的实现边界。">
+  <title>Goal Contract Governance v2 · LCA 项目文档</title>
+  <style>
+    :root {
+      --ink: #132321; --muted: #60706c; --paper: #f2eee4; --panel: #fffdf7;
+      --line: #c9c2b2; --teal: #006f67; --teal-soft: #d9ebe5; --rust: #c54e2f;
+      --navy: #102b2d; --code: #102a2b; --code-ink: #e7f0e8;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; overflow-x: hidden; color: var(--ink); background:
+      linear-gradient(90deg, rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px,
+      linear-gradient(rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px, var(--paper);
+      font: 16px/1.78 var(--sans); }
+    a { color: var(--teal); text-underline-offset: .2em; }
+    .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; min-height: 58px; padding: .7rem clamp(1rem,4vw,3.5rem);
+      color: #eff8f2; background: rgba(16,43,45,.96); border-bottom: 3px solid #d98b45;
+      backdrop-filter: blur(12px); }
+    .topbar a { color: inherit; text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: .7rem; font-weight: 700; letter-spacing: .04em; }
+    .brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #8acbc1;
+      border-radius: 50%; color: #f2bd72; font: 700 12px var(--mono); }
+    .source-link { padding: .32rem .7rem; border: 1px solid rgba(255,255,255,.3); border-radius: 999px;
+      font: 12px var(--mono); }
+    .shell { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 850px); gap: clamp(2rem,5vw,5rem);
+      max-width: 1260px; margin: 0 auto; padding: clamp(2rem,5vw,5rem) clamp(1rem,4vw,3.5rem) 6rem; }
+    .toc { position: sticky; top: 90px; align-self: start; max-height: calc(100vh - 120px); overflow: auto;
+      padding: 1rem 1rem 1.2rem; background: rgba(255,253,247,.76); border: 1px solid var(--line);
+      box-shadow: 8px 8px 0 rgba(16,43,45,.07); }
+    .toc-label { margin: 0 0 .8rem; color: var(--rust); font: 700 11px var(--mono); letter-spacing: .16em; }
+    .toc ul { margin: 0; padding-left: 1rem; list-style: none; }
+    .toc > ul { padding-left: 0; }
+    .toc li { margin: .25rem 0; }
+    .toc a { display: block; padding: .22rem .35rem; color: #41534f; border-left: 2px solid transparent;
+      font-size: .82rem; line-height: 1.45; text-decoration: none; }
+    .toc a:hover { color: var(--teal); border-left-color: var(--rust); background: #fff; }
+    .document { min-width: 0; }
+    .document-meta { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 2rem; }
+    .chip { padding: .25rem .58rem; color: var(--teal); background: var(--teal-soft); border-radius: 999px;
+      font: 700 11px var(--mono); letter-spacing: .06em; }
+    article { padding: clamp(1.4rem,4vw,4rem); overflow-wrap: anywhere; background: rgba(255,253,247,.92); border: 1px solid var(--line);
+      box-shadow: 18px 22px 0 rgba(16,43,45,.07); }
+    h1, h2, h3, h4 { font-family: var(--serif); line-height: 1.24; text-wrap: balance; }
+    h1 { max-width: 17ch; margin: 0 0 1.8rem; font-size: clamp(2.25rem,6vw,4.7rem); letter-spacing: -.045em; }
+    h2 { margin: 3.5rem 0 1rem; padding-top: .75rem; border-top: 2px solid var(--navy);
+      font-size: clamp(1.55rem,3vw,2.2rem); }
+    h3 { margin-top: 2.4rem; color: #194c4a; font-size: 1.35rem; }
+    h4 { color: #344c48; }
+    .headerlink { margin-left: .35em; color: var(--teal); opacity: 0; font: .45em var(--mono); text-decoration: none; }
+    h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink, h4:hover .headerlink,
+    .headerlink:focus { opacity: .65; }
+    p, li { max-width: 78ch; }
+    strong { color: #0c4b47; }
+    blockquote { margin: 1.5rem 0; padding: .8rem 1.2rem; color: #374b47; background: #edf2e9;
+      border-left: 4px solid var(--rust); }
+    code { padding: .12em .34em; color: #8c311e; background: #eee5d8; border-radius: 3px; font: .88em var(--mono); }
+    pre { max-width: 100%; overflow: auto; padding: 1.2rem; color: var(--code-ink); background: var(--code);
+      border-left: 4px solid #d98b45; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    pre code { padding: 0; color: inherit; background: transparent; }
+    pre.mermaid { color: var(--ink); background: #f7f3e9; border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 1.4rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { color: #f5f7ef; background: var(--navy); text-align: left; }
+    th, td { padding: .65rem .75rem; border: 1px solid #bbb6aa; vertical-align: top; }
+    tr:nth-child(even) td { background: #f4f0e7; }
+    hr { margin: 3rem 0; border: 0; border-top: 1px solid var(--line); }
+    .footer { max-width: 1260px; margin: 0 auto; padding: 0 3.5rem 3rem; color: var(--muted); font-size: .8rem; }
+    @media (max-width: 860px) {
+      .shell { display: block; padding-top: 1.5rem; }
+      .toc { position: relative; top: auto; max-height: 18rem; margin-bottom: 1.5rem; }
+      article { padding: 1.25rem; box-shadow: 8px 10px 0 rgba(16,43,45,.07); }
+      h1 { font-size: clamp(2rem,12vw,3.25rem); }
+      .topbar { align-items: flex-start; }
+    }
+    @media print { .topbar, .toc { display: none; } .shell { display: block; max-width: none; padding: 0; }
+      article { border: 0; box-shadow: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+  <!-- Generated by scripts/build_docs_site.py; edit the Markdown source, not this file. -->
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">LCA</span><span>项目文档中心</span></a>
+    <a class="source-link" href="goal-contract-governance-v2.md">查看 Markdown 源文档</a>
+  </header>
+  <main class="shell">
+    <nav class="toc" aria-label="本文目录"><p class="toc-label">CONTENTS / 目录</p><div class="toc">
+<ul>
+<li><a href="#four-immutable-governance-objects">Four immutable governance objects</a></li>
+<li><a href="#non-compensatory-alignment">Non-compensatory alignment</a></li>
+<li><a href="#immutable-job-binding">Immutable Job binding</a></li>
+<li><a href="#goal-amendment-protocol">Goal amendment protocol</a></li>
+<li><a href="#non-goal-policy-evolution-and-emergency-suspension">Non-Goal policy evolution and emergency suspension</a></li>
+<li><a href="#capability-conditioned-autonomy">Capability-conditioned autonomy</a></li>
+<li><a href="#governed-release-adapter">Governed release adapter</a></li>
+<li><a href="#persistence">Persistence</a></li>
+<li><a href="#cli">CLI</a></li>
+<li><a href="#deliberate-scope-of-this-change">Deliberate scope of this change</a></li>
+</ul>
+</div>
+</nav>
+    <section class="document">
+      <div class="document-meta"><span class="chip">设计</span><span class="chip">HTML MIRROR</span></div>
+      <article><h1 id="goal-contract-governance-v2">Goal Contract Governance v2<a class="headerlink" href="#goal-contract-governance-v2" title="Permanent link">§</a></h1>
+<p>This package implements the governed self-evolution and production-enforcement slice of the v2 autonomous-production design. It preserves the existing <code>goal-contract-v1</code> trajectory and self-repair controllers, then adds the boundary that determines:</p>
+<ul>
+<li>what outcome the system is actually trying to achieve;</li>
+<li>which actions an Agent may execute without a person in the normal path;</li>
+<li>what independent evidence is sufficient to claim completion;</li>
+<li>where the current model, Prompt, tools, Workflow, budget, and input distribution are empirically certified;</li>
+<li>how Goal semantics and governance policies may change without a running Agent moving the goalposts.</li>
+</ul>
+<p>The implementation is intentionally fail-closed for autonomous publication. A true Goal may exceed the current Agent capability. In that case the system blocks or enters an honest incomplete state; it does not weaken the Goal merely to increase completion metrics.</p>
+<h2 id="four-immutable-governance-objects">Four immutable governance objects<a class="headerlink" href="#four-immutable-governance-objects" title="Permanent link">§</a></h2>
+<p>A single Goal file cannot safely answer four different questions:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Governing question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>goal-contract-v2</code></td>
+<td>What outcome is valuable, what is forbidden, and which honest terminal states exist?</td>
+</tr>
+<tr>
+<td><code>autonomy-contract-v1</code></td>
+<td>Which actions may the system perform automatically at each risk level?</td>
+</tr>
+<tr>
+<td><code>assurance-contract-v1</code></td>
+<td>What independent proof is required before a Goal clause or release may be accepted?</td>
+</tr>
+<tr>
+<td><code>capability-envelope-v1</code></td>
+<td>Under which runtime, input scope, budget, cohort, and measured error boundary is the implementation certified?</td>
+</tr>
+</tbody>
+</table></div>
+<p>Every object is immutable by <code>(kind, contract_id, version)</code>. Re-registering the same reference with different content is rejected as contract drift.</p>
+<h2 id="non-compensatory-alignment">Non-compensatory alignment<a class="headerlink" href="#non-compensatory-alignment" title="Permanent link">§</a></h2>
+<p><code>GovernanceController.assess_alignment()</code> evaluates Goal clauses as <code>hard</code>, <code>required</code>, <code>optimize</code>, or <code>diagnostic</code>.</p>
+<p>Hard and required proof is non-compensatory: more citations, longer prose, or a higher aggregate score cannot offset an identity error, missing provenance, a prohibited outcome, or an unsupported completion claim. A clause marked <code>proved</code> must carry a structured proof record containing:</p>
+<ul>
+<li>an immutable artifact reference;</li>
+<li>a SHA-256 certificate hash;</li>
+<li>the evaluator declared by the Assurance Contract;</li>
+<li>all required evidence types;</li>
+<li>distinct producer and evaluator actors when independence is required.</li>
+</ul>
+<p>The evaluator emits one of four explicit verdicts:</p>
+<ul>
+<li><code>aligned_complete</code></li>
+<li><code>aligned_incomplete</code></li>
+<li><code>misaligned</code></li>
+<li><code>human_judgment_required</code></li>
+</ul>
+<p><code>aligned_incomplete</code> is a valid aligned result. A Job that truthfully enters <code>needs_research</code> or <code>data_required</code> can be aligned even though it did not reach <code>modeling_ready</code>.</p>
+<h2 id="immutable-job-binding">Immutable Job binding<a class="headerlink" href="#immutable-job-binding" title="Permanent link">§</a></h2>
+<p>Before an autonomous Job is eligible to publish, it receives a <code>job-contract-binding-v1</code> containing exact Goal, Autonomy, Assurance, and Capability references plus a binding hash. The binding is immutable by <code>job_id</code>.</p>
+<p>This prevents a running Job from silently adopting a newer Goal, a looser policy, or a different model certification. Goal amendments and policy replacements apply to new bindings. Existing Jobs retain the frozen versions unless a governance owner explicitly suspends one of those versions.</p>
+<p>Binding also verifies that:</p>
+<ul>
+<li>all four contracts are active at binding time;</li>
+<li>the Autonomy and Assurance contracts target the selected Goal;</li>
+<li>Assurance covers every hard and required Goal clause;</li>
+<li>all four contracts share a compatible domain scope.</li>
+</ul>
+<h2 id="goal-amendment-protocol">Goal amendment protocol<a class="headerlink" href="#goal-amendment-protocol" title="Permanent link">§</a></h2>
+<p>An active Goal Contract is never edited in place. The sequence is:</p>
+<ol>
+<li>register a new draft Goal version;</li>
+<li>submit <code>goal-change-proposal-v1</code>;</li>
+<li>provide an acceptance-set difference (<code>newly_allowed</code>, <code>newly_blocked</code>, unchanged samples, and unknowns);</li>
+<li>statically compare purpose, scope, all clause semantics, prohibited outcomes, terminal states, authority, cohorts, and risk budgets;</li>
+<li>classify the semantic change and risk;</li>
+<li>obtain the required authority;</li>
+<li>activate the new version and supersede the old version.</li>
+</ol>
+<p>The controller infers the change class rather than trusting the proposing Agent. Purpose or scope changes are <code>goal_redirection</code>; reserved-authority changes and acceptance-set widening are critical; any other semantic change requires human approval; only a structural refactor with no semantic or acceptance-set effect may use policy pre-authorization.</p>
+<p>Any change that makes a previously failing sample pass requires <code>human_goal_owner</code> approval.</p>
+<p>Activation also creates durable reassessment work for affected Job eligibility, historical Alignment Assessments, dependent Autonomy/Assurance compilation, and Capability recertification. The old records are not rewritten. Running Jobs retain their frozen Goal; the reassessment queue governs migration to the new Goal and reevaluation of historical maturity. A human Goal or governance owner must resolve every item with evidence.</p>
+<h2 id="non-goal-policy-evolution-and-emergency-suspension">Non-Goal policy evolution and emergency suspension<a class="headerlink" href="#non-goal-policy-evolution-and-emergency-suspension" title="Permanent link">§</a></h2>
+<p>Autonomy, Assurance, and Capability contracts are also immutable. <code>replace_active_contract()</code> activates a new version and supersedes the old version only when a <code>human_governance_owner</code> supplies a rationale and evidence references.</p>
+<p><code>suspend_contract()</code> is the emergency revocation path for a specific immutable version. It is useful when a newly discovered false pass invalidates a Capability certification or an Assurance defect makes the existing proof policy unsafe. A suspended bound contract blocks subsequent autonomous eligibility checks even for an already-running Job.</p>
+<p>Goal suspension requires <code>human_goal_owner</code>; all other contract suspensions require <code>human_governance_owner</code>.</p>
+<h2 id="capability-conditioned-autonomy">Capability-conditioned autonomy<a class="headerlink" href="#capability-conditioned-autonomy" title="Permanent link">§</a></h2>
+<p>A Capability Envelope has an explicit certification status:</p>
+<ul>
+<li><code>shadow</code>: evaluate behavior but never authorize autonomous action;</li>
+<li><code>certified</code>: eligible for autonomous action within the declared boundary;</li>
+<li><code>suspended</code>: revoked pending investigation or recertification;</li>
+<li><code>expired</code>: no longer eligible.</li>
+</ul>
+<p>The repository example is deliberately <code>shadow</code>; a governance owner must activate a separately evidenced <code>certified</code> version before enforced autonomous publication. <code>certify_capability()</code> computes coverage, selective risk, a one-sided 95% Wilson upper bound, and abstention recall from an immutable Cohort. A passing report is signed by the project Proof Authority and can replace the active Capability Envelope only when the independent evaluator and human authorizer are distinct.</p>
+<p>Online outcomes are append-only <code>capability_observations</code>. A new false pass creates a pending recertification invalidation for the exact Capability version. Enforced Job admission and publication then fail closed until governed reassessment completes.</p>
+<p><code>check_autonomy()</code> combines all four contracts. Authorization requires:</p>
+<ul>
+<li>the action is present and not forbidden;</li>
+<li>the Job risk is below the action ceiling;</li>
+<li>no reserved human authority is requested;</li>
+<li>the runtime model, Prompt, toolset, and Workflow exactly match the certified fingerprint;</li>
+<li>the input lies within the certified scope and does not use empty scope values;</li>
+<li>the Capability selective-risk upper bound is below the Goal ceiling;</li>
+<li>the Capability status is <code>certified</code> and its validity period has not expired;</li>
+<li>the bound contracts are not suspended or expired;</li>
+<li>every action requirement has valid evidence.</li>
+</ul>
+<p>Security-sensitive requirements such as <code>release_attestation</code>, <code>rollback</code>, <code>independent_evaluator</code>, <code>immutable_evidence</code>, and <code>proof_contract</code> cannot be satisfied by passing a string. They require an artifact reference, issuer identity, and a valid SHA-256 certificate hash. When an evidence payload is embedded, the hash is checked against that payload. In <code>enforced</code> mode the record must also carry a registered HMAC receipt bound to the project Proof Authority, CAS, SQLite receipt table, and append-only event ledger. <code>alignment_assessment</code> is always derived from the persisted assessment for the exact Job binding and cannot be self-asserted by the caller.</p>
+<p>Every eligibility result is persisted with its inputs, binding hash, contract hashes, evidence hashes, decision, and reasons.</p>
+<h2 id="governed-release-adapter">Governed release adapter<a class="headerlink" href="#governed-release-adapter" title="Permanent link">§</a></h2>
+<p><code>GovernedReleaseManager</code> composes the existing hash-locked <code>ReleaseManager</code> instead of replacing it. It supports three migration modes:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>disabled</code></td>
+<td>Preserve the existing release path.</td>
+</tr>
+<tr>
+<td><code>shadow</code></td>
+<td>Evaluate and persist governance, but allow the existing release to proceed.</td>
+</tr>
+<tr>
+<td><code>enforced</code></td>
+<td>Refuse <code>apply()</code> unless the publish action is authorized.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The adapter generates deterministic <code>release_attestation</code> and <code>rollback</code> evidence from the staged manifest, expected-current hashes, Job binding, destination, and release ID. Callers cannot override these controller-owned evidence records. An append-oriented governance record is written outside the immutable staged candidate directory for every evaluated, blocked, failed, or applied release.</p>
+<p>Example integration:</p>
+<pre><code class="language-python">from lca_project.kernel.governed_release import GovernedReleaseManager
+from lca_project.kernel.release import ReleaseManager
+
+base = ReleaseManager(release_root, proof_authority=proof_authority)
+release = GovernedReleaseManager(base, governance, mode=&quot;shadow&quot;)
+
+staged = release.stage(files, expected_current=current, gate_results=gates)
+release.apply(
+    staged,
+    destination,
+    job_id=job_id,
+    risk=&quot;low&quot;,
+    runtime_fingerprint=runtime_fingerprint,
+    input_scope=input_scope,
+)
+</code></pre>
+<p>Rollout should begin in <code>shadow</code>, compare decisions on fixed Golden/Mutation/Cohort samples, certify the Capability Envelope, and only then switch low-risk publication to <code>enforced</code>.</p>
+<p><code>ControlPlane</code> now loads <code>config/governance-v2.json</code>, registers the configured policy bundle, and automatically binds matching production Jobs. Mapping is exact by Workflow version; wildcard or unmapped Jobs are rejected before persistence in <code>enforced</code> mode. Worker startup checks the binding and revocation state, and the terminal publish task is evaluated before its side effect. <code>GovernanceRuntime.wrap_release_manager()</code> installs the same policy around a <code>ReleaseManager</code> and produces controller-owned, signed release and rollback evidence.</p>
+<h2 id="persistence">Persistence<a class="headerlink" href="#persistence" title="Permanent link">§</a></h2>
+<p>Migration 13 installs the core governance records. Migration 14 adds reassessment, independent Cohort certification, and online drift records. Contract payload versions and Job bindings are immutable; lifecycle events, approvals, assessments, eligibility decisions, certifications, and observations are append-oriented:</p>
+<ul>
+<li><code>governance_contracts</code></li>
+<li><code>contract_lifecycle_events</code></li>
+<li><code>goal_change_proposals</code></li>
+<li><code>governance_approvals</code></li>
+<li><code>job_contract_bindings</code></li>
+<li><code>alignment_assessments</code></li>
+<li><code>autonomy_eligibility_assessments</code></li>
+<li><code>governance_reassessments</code></li>
+<li><code>capability_certifications</code></li>
+<li><code>capability_observations</code></li>
+</ul>
+<p>The runtime installs the same idempotent schema for old fixtures and pre-v2 databases. Production schema history remains recorded in <code>schema_migrations</code>.</p>
+<h2 id="cli">CLI<a class="headerlink" href="#cli" title="Permanent link">§</a></h2>
+<p>The companion command keeps governance actions separate from Worker execution:</p>
+<pre><code class="language-bash">lca-governance --root . register policies/wiki-goal-contract-v2.json \
+  --activate --actor lca-owner --role human_goal_owner
+
+lca-governance --root . register policies/wiki-autonomy-contract-v1.json \
+  --activate --actor platform-owner --role human_governance_owner
+
+lca-governance --root . replace-contract \
+  capability://wiki-node-production-capability@1.0.0 \
+  capability-certified-v1.1.json \
+  --actor platform-owner --role human_governance_owner \
+  --rationale &quot;Independent cohort recertification&quot; \
+  --evidence cohort://wiki-node-governance@2
+
+lca-governance --root . suspend-contract \
+  capability://wiki-node-production-capability@1.1.0 \
+  --actor platform-owner --role human_governance_owner \
+  --reason &quot;New false pass invalidated certification&quot; \
+  --evidence incident://false-pass/42
+
+lca-governance --root . bind-job job_A039 \
+  --goal goal://wiki-node-goal@2.0.0 \
+  --autonomy autonomy://wiki-node-autonomy@1.0.0 \
+  --assurance assurance://wiki-node-assurance@1.0.0 \
+  --capability capability://wiki-node-production-capability@1.1.0
+
+lca-governance --root . assess-alignment job_A039 \
+  --clause-results clause-results.json \
+  --prohibited-outcomes prohibited-outcomes.json \
+  --terminal-state needs_research --capability-match
+
+lca-governance --root . check-autonomy job_A039 publish --risk low \
+  --runtime runtime-fingerprint.json \
+  --input-scope input-scope.json \
+  --requirement-evidence release-requirement-evidence.json
+
+lca-governance --root . certify-capability \
+  capability://wiki-node-production-capability@1.0.0 cohort.json \
+  --target-version 1.1.0 --cohort-id wiki-node-governance@2 \
+  --evaluator independent-assurance --authorizer platform-owner \
+  --valid-until 2027-08-19T00:00:00Z
+
+lca-governance --root . observe-capability \
+  capability://wiki-node-production-capability@1.1.0 production-escape-42 \
+  --outcome incorrect --actor post-release-monitor
+
+lca-governance --root . reassessments
+lca-governance --root . readiness
+</code></pre>
+<h2 id="deliberate-scope-of-this-change">Deliberate scope of this change<a class="headerlink" href="#deliberate-scope-of-this-change" title="Permanent link">§</a></h2>
+<p>The checked-in runtime configuration maps only <code>wiki-node-production@9</code> and starts in <code>shadow</code>. Other Workflows remain unchanged in shadow mode and are rejected if the operator switches to <code>enforced</code> without adding exact contract bundles. Moving to enforcement still requires a separately certified Capability version, updated configuration, zero pending reassessment work, and a green machine-readable <code>readiness</code> result.</p></article>
+    </section>
+  </main>
+  <footer class="footer">本页由 <code>scripts/build_docs_site.py</code> 从权威 Markdown 自动生成。</footer>
+
+</body>
+</html>
