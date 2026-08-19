@@ -3,11 +3,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lca-project"
-version = "0.1.0"
-description = "Autonomous, evidence-gated production platform for LCA skeleton databases"
+name = "lca-autonomy-system"
+version = "0.2.0"
+description = "Goal-governed self-evolving production system for LCA knowledge and data / 面向 LCA 知识与数据的目标契约治理自进化生产系统"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
+keywords = ["lca", "autonomous-agents", "goal-contract", "governance", "self-evolving-systems"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "Markdown>=3.4"]
