@@ -133,3 +133,7 @@ def test_cli_registers_binds_and_checks_autonomy(tmp_path: Path, capsys) -> None
     assert status["counts"]["governance_contracts"] == 4
     assert status["counts"]["job_contract_bindings"] == 1
     assert status["counts"]["autonomy_eligibility_assessments"] == 1
+
+    code, readiness = invoke(capsys, "--root", str(root), "readiness")
+    assert code == 0
+    assert readiness["ready"] is True

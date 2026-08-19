@@ -28,6 +28,11 @@ class ProofError(ValueError):
 TRUSTED_PRODUCERS = {
     "gate": {"draft-content-gate", "gate-dispatcher", "release-checker"},
     "agent-attestation": {"agent-runtime-launcher"},
+    "governance-evidence": {
+        "governance-controller",
+        "governance-evaluator",
+        "governed-release-manager",
+    },
 }
 
 
@@ -110,4 +115,3 @@ class ProofAuthority:
         missing = required - passed
         if missing:
             raise ProofError(f"signed gates missing: {sorted(missing)}")
-

@@ -53,6 +53,12 @@ DOCUMENTS = [
         "系统自我修复与目标对齐架构.html", generated=True, kind="design",
     ),
     Document(
+        "architecture", "Goal Contract Governance v2",
+        "三合同、Capability Envelope、Goal 修正案、自治资格与受治理发布的实现边界。",
+        "goal-contract-governance-v2.md",
+        "goal-contract-governance-v2.html", generated=True, kind="design",
+    ),
+    Document(
         "architecture", "自治生产平台 · 测试策略与测试用例",
         "测试矩阵、优先级、Mutation、Golden、Shadow、Canary 与验收证据要求。",
         "测试设计-骨架数据库自治生产平台.html",

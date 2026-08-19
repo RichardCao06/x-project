@@ -14,6 +14,7 @@
 |---|---|---|---|
 | 骨架数据库自治生产平台 · 技术设计 | [HTML](技术设计-骨架数据库自治生产平台.html) | [HTML](技术设计-骨架数据库自治生产平台.html) | 平台控制面、能力边界、状态机、发布事务和工程重构的权威技术设计。 |
 | 系统自我修复与目标对齐架构 | [HTML](系统自我修复与目标对齐架构.html) | [Markdown](系统自我修复与目标对齐架构.md) | Goal Contract、三层闭环、Meta Supervisor、复合动作图与效果证明合同。 |
+| Goal Contract Governance v2 | [HTML](goal-contract-governance-v2.html) | [Markdown](goal-contract-governance-v2.md) | 三合同、Capability Envelope、Goal 修正案、自治资格与受治理发布的实现边界。 |
 | 自治生产平台 · 测试策略与测试用例 | [HTML](测试设计-骨架数据库自治生产平台.html) | [HTML](测试设计-骨架数据库自治生产平台.html) | 测试矩阵、优先级、Mutation、Golden、Shadow、Canary 与验收证据要求。 |
 
 ## 02 · 实施与运行

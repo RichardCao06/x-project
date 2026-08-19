@@ -163,6 +163,17 @@ class GovernedReleaseManager:
             destination=destination,
             binding_hash=binding["binding_hash"],
         )
+        generated = {
+            requirement: self.governance.sign_evidence_record(
+                record,
+                subject=(
+                    f"governance-requirement:{binding['binding_hash']}:"
+                    f"publish:{requirement}"
+                ),
+                producer="governed-release-manager",
+            )
+            for requirement, record in generated.items()
+        }
         supplied = dict(requirement_evidence or {})
         protected = sorted(set(generated) & set(supplied))
         if protected:

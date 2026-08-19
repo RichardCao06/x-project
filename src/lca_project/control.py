@@ -58,6 +58,10 @@ class ControlPlane:
         self.events = EventLedger(self.state)
         self.leases = LeaseManager(self.state)
         self.budgets = BudgetLedger(self.state)
+        from .kernel.governance_runtime import GovernanceRuntime
+        self.governance = GovernanceRuntime(
+            self.root, self.state, self.events, self.artifacts
+        )
 
     def submit_job(self, job: Job, *, idempotency_key: str | None = None) -> tuple[str, bool]:
         if not job.target or not job.workflow or not job.policy_version or not job.input_hashes:
@@ -67,11 +71,34 @@ class ControlPlane:
                 "SELECT id FROM jobs WHERE json_extract(payload, '$.idempotency_key')=?", (idempotency_key,)
             ).fetchone()
             if row:
+                stored = self.state.get("jobs", str(row["id"]))
+                if stored is not None and self.governance.controller.binding(str(row["id"])) is None:
+                    self.governance.bind_job(str(row["id"]), stored["payload"])
                 return str(row["id"]), True
+        try:
+            self.governance.require_submission_mapping(job.workflow)
+        except RuntimeError as exc:
+            raise ProtocolError(str(exc)) from exc
         payload = asdict(job)
         payload["state"] = str(job.state)
         payload["idempotency_key"] = idempotency_key
         self.state.upsert_entity("jobs", job.job_id, str(job.state), payload, workflow_id=job.workflow)
+        try:
+            binding = self.governance.bind_job(job.job_id, payload)
+        except RuntimeError as exc:
+            raise ProtocolError(str(exc)) from exc
+        if binding is not None:
+            payload["governance"] = {
+                "schema_version": "job-governance-binding-ref-v1",
+                "binding_hash": binding["binding_hash"],
+                "goal_ref": binding["goal_ref"],
+                "autonomy_ref": binding["autonomy_ref"],
+                "assurance_ref": binding["assurance_ref"],
+                "capability_ref": binding["capability_ref"],
+            }
+            self.state.upsert_entity(
+                "jobs", job.job_id, str(job.state), payload, workflow_id=job.workflow
+            )
         self.events.append("job", job.job_id, "job.submitted", payload, actor="control-plane")
         return job.job_id, False
 
