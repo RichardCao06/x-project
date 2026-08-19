@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/v2-complete
+  pull_request:
+    branches:
+      - agent/goal-contract-governance-v2
   workflow_dispatch:
 
 permissions:
