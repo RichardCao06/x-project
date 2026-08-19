@@ -11,8 +11,9 @@ from lca_project.contracts.governance import (
 )
 from lca_project.kernel.state import StateStore, utcnow
 from .governance_support import (
-    GovernanceError, _as_row, _decode, _goal_relaxation_indicators,
-    _infer_goal_change, _normalize_delta, _requirement_evidence, _scope_matches,
+    GovernanceError, _RISK_ORDER, _SECURITY_REQUIREMENTS, _as_row, _decode,
+    _goal_relaxation_indicators, _infer_goal_change, _normalize_delta,
+    _requirement_evidence, _scope_matches,
 )
 
 class AutonomyEligibilityMixin:
@@ -51,6 +52,8 @@ class AutonomyEligibilityMixin:
         for key, row in rows.items():
             if row is not None and row["status"] in {"suspended", "expired"}:
                 reasons.append(f"bound {key} is {row['status']}")
+        if self.capability_has_pending_invalidation(str(payload["capability_ref"])):
+            reasons.append("Capability Envelope requires recertification after detected drift")
         if assurance["goal_contract_ref"] != payload["goal_ref"]:
             reasons.append("Assurance Contract does not match the bound Goal Contract")
         if action in autonomy["forbidden_actions"]:
@@ -69,6 +72,27 @@ class AutonomyEligibilityMixin:
             evidence_satisfied, evidence_hashes, evidence_findings = _requirement_evidence(
                 required, requirement_evidence
             )
+            if getattr(self, "require_trusted_proofs", False):
+                supplied_evidence = dict(requirement_evidence or {})
+                for requirement in sorted(required & _SECURITY_REQUIREMENTS):
+                    if requirement not in evidence_satisfied:
+                        continue
+                    record = supplied_evidence.get(requirement)
+                    if not isinstance(record, Mapping):
+                        continue
+                    trusted_finding = self.verify_evidence_record(
+                        record,
+                        subject=(
+                            f"governance-requirement:{binding['binding_hash']}:"
+                            f"{action}:{requirement}"
+                        ),
+                    )
+                    if trusted_finding:
+                        evidence_satisfied.discard(requirement)
+                        evidence_hashes.pop(requirement, None)
+                        evidence_findings.append(
+                            f"{trusted_finding}: {requirement}"
+                        )
             reasons.extend(evidence_findings)
             satisfied = {
                 item

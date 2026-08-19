@@ -13,7 +13,10 @@ import sys
 from typing import Any
 
 from lca_project.contracts.governance import JobContractBinding
+from lca_project.kernel.artifacts import ArtifactStore
+from lca_project.kernel.events import EventLedger
 from lca_project.kernel.goal_alignment.governance import GovernanceController
+from lca_project.kernel.proofs import ProofAuthority
 from lca_project.kernel.state import StateStore
 
 
@@ -46,6 +49,48 @@ def parser() -> argparse.ArgumentParser:
     )
 
     commands.add_parser("status", help="inspect the contract governance control plane")
+    commands.add_parser(
+        "readiness",
+        help="return a machine-verifiable v2 merge/enforcement readiness verdict",
+    )
+
+    certify = commands.add_parser(
+        "certify-capability",
+        help="evaluate a frozen Cohort and replace a Capability Envelope on success",
+    )
+    certify.add_argument("from_ref")
+    certify.add_argument("cohort", type=Path)
+    certify.add_argument("--target-version", required=True)
+    certify.add_argument("--cohort-id", required=True)
+    certify.add_argument("--evaluator", required=True)
+    certify.add_argument("--authorizer", required=True)
+    certify.add_argument("--valid-until", required=True)
+
+    observe = commands.add_parser(
+        "observe-capability",
+        help="record an online outcome and invalidate a drifting capability",
+    )
+    observe.add_argument("capability_ref")
+    observe.add_argument("case_id")
+    observe.add_argument("--outcome", required=True, choices=("correct", "incorrect", "abstained"))
+    observe.add_argument("--should-abstain", action="store_true")
+    observe.add_argument("--actor", required=True)
+
+    commands.add_parser("reassessments", help="list pending governance reassessment work")
+    resolve = commands.add_parser("resolve-reassessment")
+    resolve.add_argument("reassessment_id")
+    resolve.add_argument("--actor", required=True)
+    resolve.add_argument(
+        "--role",
+        required=True,
+        choices=("human_goal_owner", "human_governance_owner"),
+    )
+    resolve.add_argument(
+        "--disposition",
+        required=True,
+        choices=("recompiled", "recertified", "reassessed", "retired"),
+    )
+    resolve.add_argument("--evidence", action="append", required=True)
 
     replace = commands.add_parser(
         "replace-contract",
@@ -138,7 +183,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     root = args.root.resolve()
     state = StateStore(root / "var" / "state.db")
-    controller = GovernanceController(state)
+    artifacts = ArtifactStore(root / "var" / "artifacts", state)
+    events = EventLedger(state)
+    controller = GovernanceController(
+        state,
+        proof_authority=ProofAuthority(root, state, artifacts, events),
+    )
     try:
         if args.command == "register":
             registered = controller.register_contract(_load(args.contract))
@@ -152,6 +202,52 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "status":
             _dump(controller.status())
+            return 0
+        if args.command == "readiness":
+            readiness = controller.readiness()
+            _dump(readiness)
+            return 0 if readiness["ready"] else 3
+        if args.command == "certify-capability":
+            cohort = _load(args.cohort)
+            cases = cohort.get("cases")
+            if not isinstance(cases, list):
+                raise ValueError("Cohort JSON requires a cases array")
+            _dump(controller.certify_capability(
+                from_ref=args.from_ref,
+                target_version=args.target_version,
+                cohort_id=args.cohort_id,
+                cases=cases,
+                evaluator_actor=args.evaluator,
+                authorizer_actor=args.authorizer,
+                authorizer_role="human_governance_owner",
+                valid_until=args.valid_until,
+                thresholds=(
+                    cohort.get("thresholds")
+                    if isinstance(cohort.get("thresholds"), dict)
+                    else None
+                ),
+            ))
+            return 0
+        if args.command == "observe-capability":
+            _dump(controller.record_capability_observation(
+                capability_ref=args.capability_ref,
+                case_id=args.case_id,
+                outcome=args.outcome,
+                should_abstain=args.should_abstain,
+                actor=args.actor,
+            ))
+            return 0
+        if args.command == "reassessments":
+            _dump(controller.reassessments(status="pending"))
+            return 0
+        if args.command == "resolve-reassessment":
+            _dump(controller.resolve_reassessment(
+                args.reassessment_id,
+                actor=args.actor,
+                actor_role=args.role,
+                disposition=args.disposition,
+                evidence=args.evidence,
+            ))
             return 0
         if args.command == "replace-contract":
             _dump(controller.replace_active_contract(

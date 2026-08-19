@@ -213,6 +213,23 @@ def test_goal_relaxation_requires_human_goal_owner_and_keeps_old_job_binding(
     assert controller.contract(binding.goal_ref)["status"] == "superseded"
     assert controller.contract("goal://wiki-node-goal@2.1.0")["status"] == "active"
     assert controller.binding(binding.job_id)["goal_ref"] == binding.goal_ref
+    pending = controller.reassessments(status="pending")
+    assert {item["subject_kind"] for item in pending} == {
+        "job_eligibility",
+        "contract_recompile",
+        "capability_recertification",
+    }
+    # Running Jobs retain the old, immutable Goal semantics.  The queue is for
+    # recompiling/recertifying the new Goal and reevaluating historical facts.
+    job_item = next(item for item in pending if item["subject_kind"] == "job_eligibility")
+    resolved = controller.resolve_reassessment(
+        job_item["reassessment_id"],
+        actor="lca-goal-owner",
+        actor_role="human_goal_owner",
+        disposition="reassessed",
+        evidence=["replay://job_A039/goal-2.1"],
+    )
+    assert resolved["status"] == "resolved"
 
 
 def test_structural_goal_change_can_use_policy_pre_authorization(
@@ -286,12 +303,15 @@ def test_governance_records_are_persistent_and_auditable(
         "job_contract_bindings": 1,
         "alignment_assessments": 1,
         "autonomy_eligibility_assessments": 0,
+        "governance_reassessments": 0,
+        "capability_certifications": 0,
+        "capability_observations": 0,
     }
     persisted = controller.assessments(job_id=binding.job_id)
     assert persisted[0]["payload"]["evidence"]["release_manifest"].startswith("artifact://")
 
 
-def test_migration_13_installs_governance_tables(tmp_path: Path) -> None:
+def test_governance_migrations_install_v2_tables(tmp_path: Path) -> None:
     import sqlite3
     from lca_project.kernel.migrations import migrate
 
@@ -300,7 +320,7 @@ def test_migration_13_installs_governance_tables(tmp_path: Path) -> None:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("BEGIN IMMEDIATE")
     try:
-        assert migrate(conn) == 13
+        assert migrate(conn) == 14
     except Exception:
         conn.rollback()
         raise
@@ -318,10 +338,16 @@ def test_migration_13_installs_governance_tables(tmp_path: Path) -> None:
         "job_contract_bindings",
         "alignment_assessments",
         "autonomy_eligibility_assessments",
+        "governance_reassessments",
+        "capability_certifications",
+        "capability_observations",
     } <= tables
     assert conn.execute(
         "SELECT name FROM schema_migrations WHERE version=13"
     ).fetchone()["name"] == "goal-contract-governance-v2"
+    assert conn.execute(
+        "SELECT name FROM schema_migrations WHERE version=14"
+    ).fetchone()["name"] == "governance-reassessment-and-capability-assurance"
     conn.close()
 
 

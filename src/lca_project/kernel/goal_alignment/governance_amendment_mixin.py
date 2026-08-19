@@ -200,9 +200,18 @@ class GoalAmendmentMixin:
                 "WHERE proposal_id=?",
                 (now, proposal_id),
             )
+            self._queue_goal_reassessments(conn, proposal=proposal, created_at=now)
         return {**self.goal_change(proposal_id), "activated_by": actor}
 
     def bind_job(self, binding: JobContractBinding) -> dict[str, Any]:
+        if getattr(self, "require_job_exists", False):
+            job = self.state._connection().execute(
+                "SELECT 1 FROM jobs WHERE id=?", (binding.job_id,)
+            ).fetchone()
+            if job is None:
+                raise GovernanceError(
+                    f"production governance binding references an unknown Job: {binding.job_id}"
+                )
         contracts: dict[str, dict[str, Any]] = {}
         for ref in (
             binding.goal_ref,

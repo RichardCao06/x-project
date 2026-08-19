@@ -286,6 +286,15 @@ def _goal_contract_governance_v2(conn: sqlite3.Connection) -> None:
     install_governance_schema(conn)
 
 
+def _governance_reassessment_and_capability_assurance(
+    conn: sqlite3.Connection,
+) -> None:
+    """Add durable invalidation, certification, and online drift records."""
+    from .governance_schema import install_governance_schema
+
+    install_governance_schema(conn)
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "worker-and-attempt-ownership", _worker_and_attempt_ownership),
     (2, "structured-failure-payloads", _structured_failures),
@@ -301,6 +310,8 @@ MIGRATIONS: tuple[Migration, ...] = (
     (11, "system-meta-supervision", _system_meta_supervision),
     (12, "task-repair-epochs", _task_repair_epochs),
     (13, "goal-contract-governance-v2", _goal_contract_governance_v2),
+    (14, "governance-reassessment-and-capability-assurance",
+     _governance_reassessment_and_capability_assurance),
 )
 
 

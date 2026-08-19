@@ -1,6 +1,6 @@
 # Goal Contract Governance v2
 
-This package implements the first governed self-evolution slice of the v2 autonomous-production design. It preserves the existing `goal-contract-v1` trajectory and self-repair controllers, then adds the boundary that determines:
+This package implements the governed self-evolution and production-enforcement slice of the v2 autonomous-production design. It preserves the existing `goal-contract-v1` trajectory and self-repair controllers, then adds the boundary that determines:
 
 - what outcome the system is actually trying to achieve;
 - which actions an Agent may execute without a person in the normal path;
@@ -73,6 +73,8 @@ The controller infers the change class rather than trusting the proposing Agent.
 
 Any change that makes a previously failing sample pass requires `human_goal_owner` approval.
 
+Activation also creates durable reassessment work for affected Job eligibility, historical Alignment Assessments, dependent Autonomy/Assurance compilation, and Capability recertification. The old records are not rewritten. Running Jobs retain their frozen Goal; the reassessment queue governs migration to the new Goal and reevaluation of historical maturity. A human Goal or governance owner must resolve every item with evidence.
+
 ## Non-Goal policy evolution and emergency suspension
 
 Autonomy, Assurance, and Capability contracts are also immutable. `replace_active_contract()` activates a new version and supersedes the old version only when a `human_governance_owner` supplies a rationale and evidence references.
@@ -90,7 +92,9 @@ A Capability Envelope has an explicit certification status:
 - `suspended`: revoked pending investigation or recertification;
 - `expired`: no longer eligible.
 
-The repository example is deliberately `shadow`; a governance owner must activate a separately evidenced `certified` version before enforced autonomous publication.
+The repository example is deliberately `shadow`; a governance owner must activate a separately evidenced `certified` version before enforced autonomous publication. `certify_capability()` computes coverage, selective risk, a one-sided 95% Wilson upper bound, and abstention recall from an immutable Cohort. A passing report is signed by the project Proof Authority and can replace the active Capability Envelope only when the independent evaluator and human authorizer are distinct.
+
+Online outcomes are append-only `capability_observations`. A new false pass creates a pending recertification invalidation for the exact Capability version. Enforced Job admission and publication then fail closed until governed reassessment completes.
 
 `check_autonomy()` combines all four contracts. Authorization requires:
 
@@ -104,7 +108,7 @@ The repository example is deliberately `shadow`; a governance owner must activat
 - the bound contracts are not suspended or expired;
 - every action requirement has valid evidence.
 
-Security-sensitive requirements such as `release_attestation`, `rollback`, `independent_evaluator`, `immutable_evidence`, and `proof_contract` cannot be satisfied by passing a string. They require an artifact reference, issuer identity, and a valid SHA-256 certificate hash. When an evidence payload is embedded, the hash is checked against that payload. `alignment_assessment` is always derived from the persisted assessment for the exact Job binding and cannot be self-asserted by the caller. Cryptographic issuer trust remains the responsibility of the existing Proof Authority or the integration boundary that supplies the evidence record; this slice deliberately does not treat a role-name string as authentication.
+Security-sensitive requirements such as `release_attestation`, `rollback`, `independent_evaluator`, `immutable_evidence`, and `proof_contract` cannot be satisfied by passing a string. They require an artifact reference, issuer identity, and a valid SHA-256 certificate hash. When an evidence payload is embedded, the hash is checked against that payload. In `enforced` mode the record must also carry a registered HMAC receipt bound to the project Proof Authority, CAS, SQLite receipt table, and append-only event ledger. `alignment_assessment` is always derived from the persisted assessment for the exact Job binding and cannot be self-asserted by the caller.
 
 Every eligibility result is persisted with its inputs, binding hash, contract hashes, evidence hashes, decision, and reasons.
 
@@ -142,9 +146,11 @@ release.apply(
 
 Rollout should begin in `shadow`, compare decisions on fixed Golden/Mutation/Cohort samples, certify the Capability Envelope, and only then switch low-risk publication to `enforced`.
 
+`ControlPlane` now loads `config/governance-v2.json`, registers the configured policy bundle, and automatically binds matching production Jobs. Mapping is exact by Workflow version; wildcard or unmapped Jobs are rejected before persistence in `enforced` mode. Worker startup checks the binding and revocation state, and the terminal publish task is evaluated before its side effect. `GovernanceRuntime.wrap_release_manager()` installs the same policy around a `ReleaseManager` and produces controller-owned, signed release and rollback evidence.
+
 ## Persistence
 
-Migration 13 installs seven governance tables. Contract payload versions and Job bindings are immutable; lifecycle events, approvals, assessments, and eligibility decisions are append-oriented:
+Migration 13 installs the core governance records. Migration 14 adds reassessment, independent Cohort certification, and online drift records. Contract payload versions and Job bindings are immutable; lifecycle events, approvals, assessments, eligibility decisions, certifications, and observations are append-oriented:
 
 - `governance_contracts`
 - `contract_lifecycle_events`
@@ -153,6 +159,9 @@ Migration 13 installs seven governance tables. Contract payload versions and Job
 - `job_contract_bindings`
 - `alignment_assessments`
 - `autonomy_eligibility_assessments`
+- `governance_reassessments`
+- `capability_certifications`
+- `capability_observations`
 
 The runtime installs the same idempotent schema for old fixtures and pre-v2 databases. Production schema history remains recorded in `schema_migrations`.
 
@@ -195,8 +204,21 @@ lca-governance --root . check-autonomy job_A039 publish --risk low \
   --runtime runtime-fingerprint.json \
   --input-scope input-scope.json \
   --requirement-evidence release-requirement-evidence.json
+
+lca-governance --root . certify-capability \
+  capability://wiki-node-production-capability@1.0.0 cohort.json \
+  --target-version 1.1.0 --cohort-id wiki-node-governance@2 \
+  --evaluator independent-assurance --authorizer platform-owner \
+  --valid-until 2027-08-19T00:00:00Z
+
+lca-governance --root . observe-capability \
+  capability://wiki-node-production-capability@1.1.0 production-escape-42 \
+  --outcome incorrect --actor post-release-monitor
+
+lca-governance --root . reassessments
+lca-governance --root . readiness
 ```
 
 ## Deliberate scope of this change
 
-This change establishes contract governance, capability certification, independent proof semantics, persistent autonomy decisions, and an opt-in release enforcement adapter. It does not silently enable v2 enforcement for every existing Workflow. Existing production behavior remains unchanged until an integration point explicitly wraps its `ReleaseManager` and chooses `shadow` or `enforced` mode.
+The checked-in runtime configuration maps only `wiki-node-production@9` and starts in `shadow`. Other Workflows remain unchanged in shadow mode and are rejected if the operator switches to `enforced` without adding exact contract bundles. Moving to enforcement still requires a separately certified Capability version, updated configuration, zero pending reassessment work, and a green machine-readable `readiness` result.

@@ -11,8 +11,9 @@ from lca_project.contracts.governance import (
 )
 from lca_project.kernel.state import StateStore, utcnow
 from .governance_support import (
-    GovernanceError, _as_row, _decode, _goal_relaxation_indicators,
-    _infer_goal_change, _normalize_delta, _requirement_evidence, _scope_matches,
+    GovernanceError, _ALLOWED_OUTCOME_STATUS, _as_row, _decode,
+    _goal_relaxation_indicators, _infer_goal_change, _normalize_delta,
+    _requirement_evidence, _scope_matches,
 )
 
 class AlignmentAssessmentMixin:
@@ -94,6 +95,14 @@ class AlignmentAssessmentMixin:
                     proof_findings.append(f"proof independence actors missing: {clause_id}")
                 elif producer == evaluator:
                     proof_findings.append(f"self-signed proof is forbidden: {clause_id}")
+            trusted_finding = self.verify_evidence_record(
+                proof,
+                subject=(
+                    f"governance-clause:{binding['binding_hash']}:{clause_id}"
+                ),
+            )
+            if trusted_finding:
+                proof_findings.append(f"{trusted_finding}: {clause_id}")
         findings.extend(proof_findings)
 
         normalized_outcomes: dict[str, str] = {}
@@ -251,6 +260,9 @@ class AlignmentAssessmentMixin:
                 "job_contract_bindings",
                 "alignment_assessments",
                 "autonomy_eligibility_assessments",
+                "governance_reassessments",
+                "capability_certifications",
+                "capability_observations",
             )
         }
         active = {

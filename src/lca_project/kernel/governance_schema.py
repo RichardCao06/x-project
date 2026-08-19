@@ -101,6 +101,49 @@ CREATE TABLE IF NOT EXISTS autonomy_eligibility_assessments(
 );
 CREATE INDEX IF NOT EXISTS autonomy_eligibility_job_idx
   ON autonomy_eligibility_assessments(job_id,action,created_at);
+CREATE TABLE IF NOT EXISTS governance_reassessments(
+  reassessment_id TEXT PRIMARY KEY,
+  trigger_kind TEXT NOT NULL,
+  trigger_ref TEXT NOT NULL,
+  subject_kind TEXT NOT NULL,
+  subject_ref TEXT NOT NULL,
+  job_id TEXT,
+  binding_hash TEXT,
+  status TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  resolved_at TEXT,
+  UNIQUE(trigger_kind,trigger_ref,subject_kind,subject_ref)
+);
+CREATE INDEX IF NOT EXISTS governance_reassessments_status_idx
+  ON governance_reassessments(status,subject_kind,subject_ref,created_at);
+CREATE TABLE IF NOT EXISTS capability_certifications(
+  certification_id TEXT PRIMARY KEY,
+  capability_ref TEXT NOT NULL,
+  cohort_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  report_hash TEXT NOT NULL UNIQUE,
+  payload TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(capability_ref,cohort_id,report_hash),
+  FOREIGN KEY(capability_ref) REFERENCES governance_contracts(contract_ref)
+);
+CREATE INDEX IF NOT EXISTS capability_certifications_ref_idx
+  ON capability_certifications(capability_ref,created_at);
+CREATE TABLE IF NOT EXISTS capability_observations(
+  observation_id TEXT PRIMARY KEY,
+  capability_ref TEXT NOT NULL,
+  case_id TEXT NOT NULL,
+  outcome TEXT NOT NULL,
+  should_abstain INTEGER NOT NULL,
+  payload TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(capability_ref,case_id),
+  FOREIGN KEY(capability_ref) REFERENCES governance_contracts(contract_ref)
+);
+CREATE INDEX IF NOT EXISTS capability_observations_ref_idx
+  ON capability_observations(capability_ref,created_at);
 """
 
 
