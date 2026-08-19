@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/release-governance-record-v1.schema.json",
+  "title": "Release Governance Record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "release_id",
+    "job_id",
+    "mode",
+    "action",
+    "status",
+    "release_subject",
+    "eligibility",
+    "created_at",
+    "backup_path",
+    "error"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "release-governance-record-v1"
+    },
+    "release_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "enum": [
+        "disabled",
+        "shadow",
+        "enforced"
+      ]
+    },
+    "action": {
+      "const": "publish"
+    },
+    "status": {
+      "enum": [
+        "authorized",
+        "not_authorized",
+        "apply_failed",
+        "applied",
+        "shadow_applied"
+      ]
+    },
+    "release_subject": {
+      "type": "string",
+      "pattern": "^release:[0-9a-f]{64}$"
+    },
+    "eligibility": {
+      "type": "object"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "backup_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

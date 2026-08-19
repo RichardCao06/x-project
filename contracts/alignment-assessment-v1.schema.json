@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/alignment-assessment-v1.schema.json",
+  "title": "Alignment Assessment v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "assessment_id", "job_id", "binding_hash", "verdict",
+    "terminal_state", "claimed_complete", "clause_results", "prohibited_outcomes",
+    "capability_match", "findings", "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "alignment-assessment-v1"},
+    "assessment_id": {"type": "string", "pattern": "^ala_[0-9a-f]{32}$"},
+    "job_id": {"type": "string", "minLength": 1},
+    "binding_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "verdict": {
+      "enum": [
+        "aligned_complete", "aligned_incomplete", "misaligned",
+        "human_judgment_required"
+      ]
+    },
+    "terminal_state": {"type": "string", "minLength": 1},
+    "claimed_complete": {"type": "boolean"},
+    "clause_results": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": ["proved", "failed", "insufficient", "not_applicable"]
+      }
+    },
+    "prohibited_outcomes": {
+      "type": "object",
+      "additionalProperties": {"enum": ["absent", "present", "unknown"]}
+    },
+    "capability_match": {"type": "boolean"},
+    "findings": {"type": "array", "items": {"type": "string"}},
+    "evidence": {"type": "object"}
+  }
+}

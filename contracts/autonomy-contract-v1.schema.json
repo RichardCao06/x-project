@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/autonomy-contract-v1.schema.json",
+  "title": "Autonomy Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "contract_id", "version", "scope", "actions",
+    "forbidden_actions", "reserved_authority", "escalation_triggers", "budgets"
+  ],
+  "properties": {
+    "schema_version": {"const": "autonomy-contract-v1"},
+    "contract_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+    "version": {"type": "string", "minLength": 1},
+    "scope": {"type": "object", "minProperties": 1},
+    "actions": {
+      "type": "object", "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["automatic", "max_risk", "requirements"],
+        "properties": {
+          "automatic": {"type": "boolean"},
+          "max_risk": {"enum": ["low", "medium", "high", "critical"]},
+          "requirements": {
+            "type": "array", "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "forbidden_actions": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "reserved_authority": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "escalation_triggers": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "budgets": {"type": "object", "minProperties": 1}
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/goal-change-proposal-v1.schema.json",
+  "title": "Goal Change Proposal v1",
+  "type": "object",
+  "required": [
+    "schema_version", "proposal_id", "from_ref", "to_ref", "change_class", "risk",
+    "approval_required", "acceptance_delta", "semantic_findings", "rationale",
+    "evidence", "proposed_by", "migration_plan", "target_contract_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "goal-change-proposal-v1"},
+    "proposal_id": {"type": "string", "pattern": "^gcp_[0-9a-f]{32}$"},
+    "from_ref": {"type": "string", "pattern": "^goal://.+@.+$"},
+    "to_ref": {"type": "string", "pattern": "^goal://.+@.+$"},
+    "change_class": {
+      "enum": [
+        "structural_refactor", "goal_tightening", "semantic_refinement",
+        "goal_relaxation", "authority_change", "goal_redirection"
+      ]
+    },
+    "risk": {"enum": ["low", "medium", "high", "critical"]},
+    "approval_required": {"type": "boolean"},
+    "acceptance_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["newly_allowed", "newly_blocked", "unchanged_samples", "unknown"],
+      "properties": {
+        "newly_allowed": {"type": "array", "items": {"type": "string"}},
+        "newly_blocked": {"type": "array", "items": {"type": "string"}},
+        "unchanged_samples": {"type": "array", "items": {"type": "string"}},
+        "unknown": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "semantic_findings": {"type": "array", "items": {"type": "string"}},
+    "rationale": {"type": "string", "minLength": 1},
+    "evidence": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "proposed_by": {"type": "string", "minLength": 1},
+    "migration_plan": {"type": "object"},
+    "target_contract_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

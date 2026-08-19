@@ -1,0 +1,132 @@
+{
+  "schema_version": "goal-contract-v2",
+  "contract_id": "wiki-node-goal",
+  "version": "2.0.0",
+  "purpose": {
+    "decision": "Enable an LCA practitioner to choose a defensible modeling path for one frozen skeleton node.",
+    "value_statement": "Produce decision-useful, source-traceable evidence while representing uncertainty and public-data scarcity honestly.",
+    "stakeholders": [
+      "LCA modeler",
+      "evidence reviewer",
+      "database governance owner"
+    ]
+  },
+  "scope": {
+    "domain": "wiki-node-production",
+    "artifact": "wiki-node",
+    "completion_goal": "lca_modeling_ready"
+  },
+  "clauses": [
+    {
+      "id": "identity_boundary_exact",
+      "statement": "The artifact addresses the frozen target node, reference product, functional unit, and unit-process boundary without silently substituting an adjacent object.",
+      "criticality": "hard",
+      "proof_obligation": "identity-boundary-proof-v1"
+    },
+    {
+      "id": "evidence_provenance_complete",
+      "statement": "Every external quantitative observation traces to frozen content, a locator, source role, denominator, boundary, and derivation record.",
+      "criticality": "hard",
+      "proof_obligation": "evidence-lineage-proof-v1"
+    },
+    {
+      "id": "maturity_honesty",
+      "statement": "Workflow success, source count, or an empty table never substitutes for the maturity state actually proven.",
+      "criticality": "hard",
+      "proof_obligation": "maturity-proof-v1"
+    },
+    {
+      "id": "critical_field_readiness",
+      "statement": "Process-family critical fields contain an accepted observation, an explicitly governed proxy, or a structured data request.",
+      "criticality": "required",
+      "proof_obligation": "critical-field-coverage-proof-v1"
+    },
+    {
+      "id": "decision_utility",
+      "statement": "A qualified modeler can determine whether to use direct data, a proxy, sensitivity analysis, or an enterprise data request.",
+      "criticality": "required",
+      "proof_obligation": "decision-utility-review-v1"
+    },
+    {
+      "id": "research_process_integrity",
+      "statement": "Queries, routes, retrieval, extraction, rejection, and stopping conditions are auditable.",
+      "criticality": "diagnostic",
+      "proof_obligation": "research-funnel-observation-v1"
+    },
+    {
+      "id": "production_efficiency",
+      "statement": "Within the quality boundary, cost and human review time should decrease across comparable cohorts.",
+      "criticality": "optimize",
+      "proof_obligation": "cohort-efficiency-metric-v1"
+    }
+  ],
+  "prohibited_outcomes": [
+    {
+      "id": "run_success_as_goal_success",
+      "statement": "A succeeded Run is presented as proof that the Goal is complete.",
+      "detection": "maturity-claim-consistency-gate-v1"
+    },
+    {
+      "id": "empty_or_gap_as_data_ready",
+      "statement": "An empty table, placeholder, or no_eligible_public_data marker is counted as modeling-ready data.",
+      "detection": "data-readiness-integrity-gate-v1"
+    },
+    {
+      "id": "adjacent_object_substitution",
+      "statement": "Evidence for a neighboring product, process, or denominator is silently bound to the target object.",
+      "detection": "identity-applicability-gate-v1"
+    },
+    {
+      "id": "self_signed_assurance",
+      "statement": "The same execution authority generates a candidate and issues its final validation certificate.",
+      "detection": "assurance-independence-gate-v1"
+    },
+    {
+      "id": "goalpost_movement",
+      "statement": "The system improves completion metrics by shrinking the denominator, weakening a hard clause, or changing what success means without a Goal amendment.",
+      "detection": "acceptance-set-diff-gate-v1"
+    }
+  ],
+  "terminal_states": {
+    "modeling_ready": {
+      "kind": "success",
+      "meaning": "All hard and required clauses have independent proof and the data can enter the declared modeling use."
+    },
+    "needs_research": {
+      "kind": "honest_incomplete",
+      "meaning": "The current result is not ready, but at least one safe, untried causal research path remains."
+    },
+    "data_required": {
+      "kind": "honest_incomplete",
+      "meaning": "Audited public research paths are exhausted and enterprise records are required."
+    },
+    "diagnostic_preview": {
+      "kind": "honest_incomplete",
+      "meaning": "The artifact is usable only for structure or failure diagnosis."
+    },
+    "human_judgment_required": {
+      "kind": "escalation",
+      "meaning": "A normative, boundary, proxy, or high-impact quantitative decision requires an accountable human."
+    },
+    "failed": {
+      "kind": "failure",
+      "meaning": "Execution or governance failed without a valid honest-incomplete state."
+    }
+  },
+  "reserved_authority": [
+    "change_goal_semantics",
+    "change_identity_boundary_policy",
+    "accept_high_impact_proxy",
+    "sign_critical_quantitative_value",
+    "expand_autonomous_publication"
+  ],
+  "evaluation": {
+    "cohort_refs": [
+      "cohort://wiki-node-golden@2",
+      "cohort://wiki-node-mutation@2",
+      "cohort://server-final-assembly@1"
+    ],
+    "selective_risk_ceiling": 0.02,
+    "false_pass_budget": 0.0
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": "assurance-contract-v1",
+  "contract_id": "wiki-node-assurance",
+  "version": "1.0.0",
+  "scope": {
+    "domain": "wiki-node-production",
+    "artifact": "wiki-node"
+  },
+  "goal_contract_ref": "goal://wiki-node-goal@2.0.0",
+  "proof_obligations": {
+    "identity_boundary_exact": {
+      "evaluator": "gate://identity-applicability@1",
+      "evidence_types": ["frozen-target", "identity-verdict", "boundary-record"],
+      "independence_required": true
+    },
+    "evidence_provenance_complete": {
+      "evaluator": "gate://evidence-lineage@1",
+      "evidence_types": ["content-hash", "locator", "denominator", "derivation"],
+      "independence_required": true
+    },
+    "maturity_honesty": {
+      "evaluator": "gate://maturity-integrity@1",
+      "evidence_types": ["maturity-report", "terminal-state-proof"],
+      "independence_required": true
+    },
+    "critical_field_readiness": {
+      "evaluator": "gate://critical-field-coverage@1",
+      "evidence_types": ["evidence-observation", "proxy-record", "data-request"],
+      "independence_required": true
+    },
+    "decision_utility": {
+      "evaluator": "reviewer://lca-decision-utility@1",
+      "evidence_types": ["blind-review", "modeling-path-verdict"],
+      "independence_required": true
+    }
+  },
+  "release_rule": {
+    "all_hard_proved": true,
+    "all_required_resolved": true,
+    "no_prohibited_outcomes": true
+  },
+  "sampling": {
+    "low_risk_release_rate": 0.1,
+    "high_risk_release_rate": 1.0,
+    "stratify_by": ["process_family", "document_type", "proxy_grade"]
+  },
+  "recertification_triggers": [
+    "model_changed",
+    "prompt_changed",
+    "toolset_changed",
+    "workflow_changed",
+    "goal_contract_changed",
+    "distribution_drift_detected",
+    "new_false_pass"
+  ]
+}

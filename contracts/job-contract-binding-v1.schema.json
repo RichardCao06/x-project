@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/job-contract-binding-v1.schema.json",
+  "title": "Job Contract Binding v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "job_id", "goal_ref", "autonomy_ref", "assurance_ref",
+    "capability_ref", "binding_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "job-contract-binding-v1"},
+    "job_id": {"type": "string", "minLength": 1},
+    "goal_ref": {"type": "string", "pattern": "^goal://.+@.+$"},
+    "autonomy_ref": {"type": "string", "pattern": "^autonomy://.+@.+$"},
+    "assurance_ref": {"type": "string", "pattern": "^assurance://.+@.+$"},
+    "capability_ref": {"type": "string", "pattern": "^capability://.+@.+$"},
+    "binding_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/autonomy-eligibility-v1.schema.json",
+  "title": "Autonomy Eligibility v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "eligibility_id",
+    "decision",
+    "action",
+    "risk",
+    "binding_hash",
+    "reasons",
+    "contract_hashes",
+    "requirement_evidence_hashes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autonomy-eligibility-v1"
+    },
+    "eligibility_id": {
+      "type": "string",
+      "pattern": "^ael_[0-9a-f]{32}$"
+    },
+    "decision": {
+      "enum": [
+        "authorized",
+        "blocked",
+        "human_approval_required"
+      ]
+    },
+    "action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "binding_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contract_hashes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "requirement_evidence_hashes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    }
+  }
+}
