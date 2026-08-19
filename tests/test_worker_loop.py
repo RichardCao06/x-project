@@ -113,6 +113,55 @@ def test_content_overuse_is_normalized_before_second_model_attempt(tmp_path: Pat
     assert envelope["phase"] == "content_normalize"
 
 
+def test_repaired_content_compose_unlocks_closure_without_rewinding_research(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    _, run_id = create_p030(root)
+    orchestrator = PersistentOrchestrator(root)
+    frozen_input = orchestrator.control.artifacts.put_json(
+        {"protocol": "test-frozen-research-v1"}, metadata={"schema": "test"},
+    )
+    upstream = [
+        "plan", "prepare", "research_plan", "research_plan_gate", "research_ready",
+        "search_execution_gate", "verify", "terminology_verify", "source_diversity_gate",
+        "freeze", "content_blueprint",
+    ]
+    research = upstream[:10]
+    with orchestrator.control.state.transaction() as conn:
+        for task_id in upstream:
+            conn.execute(
+                "UPDATE orchestrator_tasks SET status='succeeded',output_hash=? "
+                "WHERE run_id=? AND task_id=?",
+                (frozen_input.digest, run_id, task_id),
+            )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='ready' "
+            "WHERE run_id=? AND task_id='content_compose'",
+            (run_id,),
+        )
+    before = {
+        item.task_id: (item.status, item.output_hash)
+        for item in orchestrator.tasks(run_id) if item.task_id in research
+    }
+
+    attempt_id, _ = orchestrator.claim(run_id, "content_compose")
+    output_hash = orchestrator.complete(attempt_id, {
+        "status": "ok", "patch_runtime_revision_sha256": "validated-new-runtime",
+    })
+
+    tasks = {item.task_id: item for item in orchestrator.tasks(run_id)}
+    after = {
+        item.task_id: (item.status, item.output_hash)
+        for item in tasks.values() if item.task_id in research
+    }
+    assert tasks["content_compose"].status == "succeeded"
+    assert tasks["content_compose"].output_hash == output_hash
+    assert output_hash
+    assert tasks["content_closure_gate"].status == "ready"
+    assert after == before
+
+
 def test_worker_gates_research_plan_before_nomination(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     job_id, run_id = create_p030(root)

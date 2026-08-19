@@ -999,6 +999,86 @@ def test_medium_risk_repair_is_prepared_then_promoted_with_minimal_approval(
     ] == "content_compose"
 
 
+@pytest.mark.parametrize(
+    ("editorial_status", "expected_action", "expected_status"),
+    [
+        ("ready", None, "awaiting_outcome_validation"),
+        ("succeeded", "repair_effective", "effective"),
+        ("manual_review", "repair_ineffective", "ineffective"),
+    ],
+)
+def test_editorial_system_repair_honors_downstream_go_proof_before_effective(
+    tmp_path: Path, editorial_status: str, expected_action: str | None,
+    expected_status: str,
+) -> None:
+    root = project_copy(tmp_path)
+    accepted = SkillInvoker(root).invoke(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A039"]}
+    )
+    orchestrator = PersistentOrchestrator(root)
+    run_id = orchestrator.materialize(accepted["job_id"])
+    candidate = ChangeController(root).propose(
+        source_deviation_id=f"dev_editorial_{editorial_status}",
+        target="propose_code_change", risk="low",
+        change={"diagnosis": "EDITORIAL_PRESERVATION_TOKENIZER_OVERCONSUMES_LISTS"},
+        rollback={"strategy": "restore"},
+    )
+    repair_run_id = f"srr_editorial_{editorial_status}"
+    promoted_at = "2000-01-01T00:00:00+00:00"
+    payload = {
+        "schema_version": "system-repair-run-v1", "repair_run_id": repair_run_id,
+        "candidate_id": candidate["candidate_id"], "source_job_id": accepted["job_id"],
+        "source_run_id": run_id, "promoted_at": promoted_at,
+        "request": {
+            "cause_code": "EDITORIAL_PRESERVATION_TOKENIZER_OVERCONSUMES_LISTS",
+            "recovery_task": "content_compose",
+            "proof_contract": [
+                {"metric": "content_compose task status", "target": "succeeded",
+                 "evidence_artifact": "orchestrator task record"},
+                {"metric": "independent editorial verdict after patch", "target": "GO",
+                 "evidence_artifact": "editorial-loop/editorial-review.json"},
+            ],
+        },
+    }
+    now = utcnow()
+    with orchestrator.control.state.transaction() as conn:
+        conn.execute(
+            "INSERT INTO system_repair_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (repair_run_id, candidate["candidate_id"], accepted["job_id"], run_id,
+             "awaiting_outcome_validation", "test-model", None, "request-hash", "patch-hash",
+             json.dumps(payload), None, now, now),
+        )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',updated_at=? "
+            "WHERE run_id=? AND task_id='content_compose'", (now, run_id),
+        )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status=?,updated_at=? "
+            "WHERE run_id=? AND task_id='editorial_review'",
+            (editorial_status, now, run_id),
+        )
+    controller = GoalAlignmentController(root, orchestrator.control)
+    current = SimpleNamespace(score=0.2, evidence={"research_outcome": {
+        "closer_to_modelling_goal": False, "metrics": {}, "proof_contract": [],
+    }})
+
+    actions = controller._evaluate_pending_system_repairs(
+        accepted["job_id"], run_id, controller._tasks(run_id), current
+    )
+
+    assert ([item["status"] for item in actions] or [None]) == [expected_action]
+    repair = SystemRepairAgent(root).get(repair_run_id)
+    assert repair["status"] == expected_status
+    if expected_action:
+        assert repair["payload"]["outcome_validation"]["proof"][
+            "required_replay_tasks"
+        ] == ["content_compose", "editorial_review"]
+    if editorial_status == "manual_review":
+        assert repair["payload"]["outcome_validation"]["proof"][
+            "failed_proof_tasks"
+        ][0]["task_id"] == "editorial_review"
+
+
 def test_official_replay_marks_more_observations_but_zero_usable_data_as_partial(
     tmp_path: Path,
 ) -> None:

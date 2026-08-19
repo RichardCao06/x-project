@@ -24,6 +24,8 @@ DISABLED = [
     "browser_use", "in_app_browser", "computer_use", "standalone_web_search",
     "remote_plugin", "plugins", "apps", "multi_agent",
 ]
+PATCH_RUNTIME_REVISION = "wiki-editorial-patch-canonical-identities-v4"
+PATCH_RUNTIME_REVISION_SHA256 = hashlib.sha256(PATCH_RUNTIME_REVISION.encode()).hexdigest()
 
 
 def load(path: Path) -> dict:
@@ -32,6 +34,130 @@ def load(path: Path) -> dict:
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _replacement_schema(*, minimum: int, maximum: int) -> dict:
+    return {"type": "array", "minItems": minimum, "maxItems": maximum,
+            "items": {"type": "object", "additionalProperties": False,
+                "required": ["focus", "sentences"], "properties": {
+                    "focus": {"type": "string", "minLength": 8},
+                    "sentences": {"type": "array", "minItems": 2, "maxItems": 4,
+                        "items": {"type": "object", "additionalProperties": False,
+                            "required": ["text", "claim_kind", "rhetorical_role",
+                                         "evidence_claim_ids"],
+                            "properties": {
+                                "text": {"type": "string", "minLength": 10},
+                                "claim_kind": {"enum": ["external_fact", "internal_graph_fact",
+                                                          "modeling_judgment", "evidence_gap"]},
+                                "rhetorical_role": {"type": "string"},
+                                "evidence_claim_ids": {"type": "array",
+                                                       "items": {"type": "string"}},
+                            }}},
+                }}}
+
+
+def build_output_schema(patch_review: dict) -> dict:
+    """Bind every output branch to one reviewed target and its operation contract."""
+    branches = []
+    for issue in patch_review.get("issues") or []:
+        operation = str(issue.get("operation") or "")
+        if operation == "replace":
+            minimum, maximum = 1, 1
+        elif operation == "split_replace":
+            minimum, maximum = 2, 4
+        else:
+            raise EditorialPatchError(f"unsupported editorial operation: {operation}")
+        branches.append({
+            "type": "object", "additionalProperties": False,
+            "required": ["issue_id", "section_id", "paragraph_id", "target_hash",
+                         "replacements", "preserved_claim_ids"],
+            "properties": {
+                "issue_id": {"type": "string", "enum": [issue.get("issue_id")]},
+                "section_id": {"type": "string", "enum": [issue.get("section_id")]},
+                "paragraph_id": {"type": "string", "enum": [issue.get("paragraph_id")]},
+                "target_hash": {"type": "string", "enum": [issue.get("target_hash")]},
+                "preserved_claim_ids": {"type": "array", "items": {"type": "string"}},
+                "replacements": _replacement_schema(minimum=minimum, maximum=maximum),
+            },
+        })
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object", "additionalProperties": False, "required": ["repairs"],
+        "properties": {"repairs": {"type": "array", "minItems": len(branches),
+            "maxItems": len(branches), "items": {"anyOf": branches}}},
+    }
+
+
+def cached_repairs_match_review(payload: object, patch_review: dict) -> bool:
+    """Fail closed unless cached repairs exactly match target identity and cardinality."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("repairs"), list):
+        return False
+    repairs = payload["repairs"]
+    issues = patch_review.get("issues") or []
+    if len(repairs) != len(issues) or not all(isinstance(item, dict) for item in repairs):
+        return False
+    supplied = {str(item.get("issue_id")): item for item in repairs}
+    if len(supplied) != len(repairs):
+        return False
+    for issue in issues:
+        repair = supplied.get(str(issue.get("issue_id")))
+        if repair is None or any(
+            repair.get(field) != issue.get(field)
+            for field in ("issue_id", "section_id", "paragraph_id", "target_hash")
+        ):
+            return False
+        replacements = repair.get("replacements")
+        count = len(replacements) if isinstance(replacements, list) else -1
+        if not isinstance(replacements, list) or not all(
+            isinstance(replacement, dict) for replacement in replacements
+        ):
+            return False
+        operation = issue.get("operation")
+        if (operation == "replace" and count != 1) or (
+            operation == "split_replace" and not 2 <= count <= 4
+        ):
+            return False
+        if operation not in {"replace", "split_replace"}:
+            return False
+    return True
+
+
+def can_reuse_repairs(previous_invocation: object, payload: object, patch_review: dict, *,
+                      content_sha256: str, review_sha256: str,
+                      patch_review_sha256: str, output_schema_sha256: str) -> bool:
+    """Require unchanged inputs, the current runtime/schema digest, and valid cached output."""
+    return bool(
+        isinstance(previous_invocation, dict)
+        and previous_invocation.get("content_sha256") == content_sha256
+        and previous_invocation.get("review_sha256") == review_sha256
+        and previous_invocation.get("patch_review_sha256") == patch_review_sha256
+        and previous_invocation.get("output_schema_sha256") == output_schema_sha256
+        and previous_invocation.get("patch_runtime_revision_sha256")
+            == PATCH_RUNTIME_REVISION_SHA256
+        and cached_repairs_match_review(payload, patch_review)
+    )
+
+
+def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str:
+    """Build a node-local prompt without policy copied from a previous repair."""
+    node_id = str(document.get("node_id") or "").strip()
+    if not node_id:
+        raise EditorialPatchError("content document requires node_id")
+    return (
+        "你是中文技术百科的段落修订编辑。禁止工具、联网和读取文件。只替换 TARGETS 中被独立审查点名的段落，"
+        "每个 issue 精确返回一个 repair，并逐字回传 issue_id、section_id、paragraph_id、target_hash。"
+        "operation=replace 时 replacements 精确返回一段；operation=split_replace 时返回至少两段，顺序就是插入顺序。"
+        "每个 replacement 保持单一中心、2-4句且首句是唯一 thesis；只引用 CLAIMS 中存在的 claim_id。"
+        "external_fact 只能使用 verdict=CONFIRMED 的 external_fact；不得扩大原事实。"
+        "tokens_must_preserve 中的每个字面量必须原样出现在 replacements 正文中。"
+        "逐项执行当前 issue 的 instruction；不得引入当前文档、TARGETS 或 CLAIMS 未提供的节点、产品或工厂规则。"
+        "修复指令要求替换、删除或更正错误标识时，不得恢复被取代标识。"
+        "修复指令要求删除无关引用时允许不保留该 claim；preserved_claim_ids 只列替换段落实际保留的 ID。"
+        "不要修改、总结或返回未被点名的段落。输出只匹配 schema。\n"
+        f"NODE_ID={node_id}\n"
+        f"TARGETS={json.dumps(targets, ensure_ascii=False, separators=(',', ':'))}\n"
+        f"CLAIMS={json.dumps(claims, ensure_ascii=False, separators=(',', ':'))}"
+    )
 
 
 def main() -> int:
@@ -72,40 +198,10 @@ def main() -> int:
         "claim_text": (row.get("claim") or {}).get("claim_text"),
         "verdict": (row.get("verify") or {}).get("verdict"),
     } for row in rows]
-    schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object", "additionalProperties": False, "required": ["repairs"],
-        "properties": {"repairs": {"type": "array", "minItems": len(targets),
-            "maxItems": len(targets), "items": {
-                "type": "object", "additionalProperties": False,
-                "required": ["issue_id", "section_id", "paragraph_id", "target_hash",
-                             "replacements", "preserved_claim_ids"],
-                "properties": {
-                    "issue_id": {"type": "string"}, "section_id": {"type": "string"},
-                    "paragraph_id": {"type": "string"}, "target_hash": {"type": "string"},
-                    "preserved_claim_ids": {"type": "array", "items": {"type": "string"}},
-                    "replacements": {"type": "array", "minItems": 1, "maxItems": 4,
-                        "items": {"type": "object", "additionalProperties": False,
-                            "required": ["focus", "sentences"], "properties": {
-                                "focus": {"type": "string", "minLength": 8},
-                                "sentences": {"type": "array", "minItems": 2, "maxItems": 4,
-                                    "items": {"type": "object", "additionalProperties": False,
-                                        "required": ["text", "claim_kind", "rhetorical_role",
-                                                     "evidence_claim_ids"],
-                                        "properties": {
-                                            "text": {"type": "string", "minLength": 10},
-                                            "claim_kind": {"enum": ["external_fact", "internal_graph_fact",
-                                                                      "modeling_judgment", "evidence_gap"]},
-                                            "rhetorical_role": {"type": "string"},
-                                            "evidence_claim_ids": {"type": "array",
-                                                                   "items": {"type": "string"}},
-                                        }}},
-                            }}},
-                },
-            }}},
-    }
+    schema = build_output_schema(patch_review)
     schema_path = output_dir / "editorial-patch-output.schema.json"
     schema_path.write_text(json.dumps(schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    current_schema_hash = sha256(schema_path)
     repairs_raw = output_dir / "editorial-repairs.raw.json"
     events = output_dir / "editorial-patch-events.jsonl"
     stderr = output_dir / "editorial-patch-stderr.log"
@@ -120,28 +216,21 @@ def main() -> int:
     if repairs_raw.is_file() and invocation.is_file():
         try:
             previous_invocation = load(invocation)
-            reuse_existing_repairs = (
-                previous_invocation.get("content_sha256") == current_content_hash
-                and previous_invocation.get("review_sha256") == current_review_hash
-                and previous_invocation.get("patch_review_sha256") == current_patch_review_hash
+            reuse_existing_repairs = can_reuse_repairs(
+                previous_invocation, load(repairs_raw), patch_review,
+                content_sha256=current_content_hash,
+                review_sha256=current_review_hash,
+                patch_review_sha256=current_patch_review_hash,
+                output_schema_sha256=current_schema_hash,
             )
         except (OSError, TypeError, ValueError, json.JSONDecodeError):
             reuse_existing_repairs = False
-    prompt = (
-        "你是中文技术百科的段落修订编辑。禁止工具、联网和读取文件。只替换 TARGETS 中被独立审查点名的段落，"
-        "每个 issue 精确返回一个 repair，并逐字回传 issue_id、section_id、paragraph_id、target_hash。"
-        "operation=replace 时 replacements 精确返回一段；operation=split_replace 时返回至少两段，顺序就是插入顺序。"
-        "每个 replacement 保持单一中心、2-4句且首句是唯一 thesis；只引用 CLAIMS 中存在的 claim_id。"
-        "external_fact 只能使用 verdict=CONFIRMED 的 external_fact；不得扩大原事实。"
-        "tokens_must_preserve 中的每个字面量必须原样出现在 replacements 正文中，包括"
-        "‘P057 钢钣金机箱/导轨, 服务器用’，不得虚构共享机箱产品层。"
-        "共享资源分配与退料/不良质量闭合必须分别成段；厂级记录只有可审计归属到 A039 时才是节点证据，"
-        "否则只能作为筛查或交叉核对；废物核算与装配用电测量必须分别成段。"
-        "修复指令要求删除无关引用时允许不保留该 claim；preserved_claim_ids 只列替换段落实际保留的 ID。"
-        "不要修改、总结或返回未被点名的段落。输出只匹配 schema。\n"
-        f"TARGETS={json.dumps(targets, ensure_ascii=False, separators=(',', ':'))}\n"
-        f"CLAIMS={json.dumps(claims, ensure_ascii=False, separators=(',', ':'))}"
-    )
+    if not reuse_existing_repairs:
+        # The invocation is written before model execution. Removing an
+        # incompatible payload first prevents a failed attempt from making an
+        # old repair appear current on the following retry.
+        repairs_raw.unlink(missing_ok=True)
+    prompt = build_prompt(document, targets, claims)
     root = Path(__file__).resolve().parents[1]
     command = ["codex", "exec", "--ephemeral", "--ignore-user-config", "--ignore-rules",
                "-C", str(root), "-s", "read-only", "-m", "gpt-5.6-terra",
@@ -155,6 +244,9 @@ def main() -> int:
         "argv": command, "content_sha256": current_content_hash,
         "review_sha256": current_review_hash,
         "patch_review_sha256": current_patch_review_hash,
+        "output_schema_sha256": current_schema_hash,
+        "patch_runtime_revision": PATCH_RUNTIME_REVISION,
+        "patch_runtime_revision_sha256": PATCH_RUNTIME_REVISION_SHA256,
         "normalizer_revision": LEGACY_CLAIM_NORMALIZER_REVISION,
         "normalizer_sha256": normalizer_sha256,
         "reused_existing_repairs": reuse_existing_repairs,
@@ -166,6 +258,8 @@ def main() -> int:
             event_stream.write(json.dumps({
                 "type": "editorial.patch_reused", "content_sha256": current_content_hash,
                 "review_sha256": current_review_hash,
+                "output_schema_sha256": current_schema_hash,
+                "patch_runtime_revision_sha256": PATCH_RUNTIME_REVISION_SHA256,
                 "normalizer_revision": LEGACY_CLAIM_NORMALIZER_REVISION,
                 "normalizer_sha256": normalizer_sha256,
             }, ensure_ascii=False) + "\n")

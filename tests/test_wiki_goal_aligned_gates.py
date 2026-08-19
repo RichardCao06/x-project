@@ -176,3 +176,22 @@ def test_golden_case_reaches_wiki_candidate(tmp_path: Path) -> None:
     assert result["candidate_eligible"] is True
     assert result["maturity"] == "wiki_candidate"
     assert result["data_readiness"] == "data_ready"
+
+
+def test_source_diversity_limit_remains_evidence_limited_without_new_research(
+    tmp_path: Path,
+) -> None:
+    gate = load_script("gate_wiki_maturity.py")
+    batch = maturity_batch(tmp_path, a040_like=False)
+    _write(batch / "source-diversity-gate.json", {
+        "decision": "LIMITED", "pipeline_continue": True,
+        "warnings": ["only_two_confirmed_domains"],
+    })
+
+    result = gate.evaluate(batch)
+
+    assert result["decision"] == "LIMITED"
+    assert result["pipeline_continue"] is True
+    assert result["candidate_eligible"] is False
+    assert result["maturity"] == "evidence_limited"
+    assert result["checks"]["source_roles_candidate_ready"] is False

@@ -149,6 +149,38 @@ class GoalAlignmentController:
                        f"{str(nodes[0]).lower()}-{run_id.removeprefix('run_')[:12]}")
         return self.root / "var/workspaces/jobs" / str(job["id"]) / "runs/wiki-batches" / slug / batch_id
 
+    @staticmethod
+    def _required_replay_tasks(
+        proof_contract: list[dict[str, Any]], task_by_id: dict[str, dict[str, Any]],
+    ) -> list[str]:
+        """Resolve explicit task/verdict proof clauses to workflow task IDs.
+
+        Agent-authored proof metrics are descriptive, but task names and target
+        verdicts are stable.  Honor clauses such as ``content_compose task
+        status=succeeded`` and ``independent editorial verdict=GO`` instead of
+        declaring a repair effective after only its rewind entry task passes.
+        """
+        required: list[str] = []
+        for clause in proof_contract:
+            metric = str(clause.get("metric") or "").lower()
+            artifact = str(clause.get("evidence_artifact") or "").lower()
+            target = str(clause.get("target") or "").lower()
+            task_bound = "task status" in metric or (
+                "verdict" in metric and target in {"go", "pass", "succeeded"}
+            )
+            if not task_bound:
+                continue
+            haystack = f"{metric} {artifact}"
+            for task_id in task_by_id:
+                aliases = {
+                    task_id.lower(),
+                    task_id.lower().replace("_", " "),
+                    task_id.lower().replace("_", "-"),
+                }
+                if any(alias in haystack for alias in aliases) and task_id not in required:
+                    required.append(task_id)
+        return required
+
     def _evaluate_pending_system_repairs(self, job_id: str, run_id: str | None,
                                          tasks: list[dict[str, Any]],
                                          observation: Any) -> list[dict[str, Any]]:
@@ -197,6 +229,9 @@ class GoalAlignmentController:
                 item for item in requested_proof
                 if item.get("metric") == "workflow_status"
             ), None)
+            forced_verdict: str | None = None
+            failed_proof_tasks: list[dict[str, Any]] = []
+            required_replay_tasks = self._required_replay_tasks(requested_proof, task_by_id)
             if not research_repair and workflow_proof:
                 if (not run_id or not tasks
                         or str((self._run(job_id) or {}).get("status") or "")
@@ -207,6 +242,30 @@ class GoalAlignmentController:
                     continue
                 proof_task_id = "workflow"
                 proof_task = current_run
+            elif not research_repair and required_replay_tasks:
+                replay_tasks = [task_by_id.get(task_id) for task_id in required_replay_tasks]
+                if any(not item for item in replay_tasks):
+                    continue
+                fresh_tasks = [
+                    item for item in replay_tasks
+                    if str((item or {}).get("updated_at") or "") > promoted_at
+                ]
+                if len(fresh_tasks) != len(replay_tasks):
+                    continue
+                failed_proof_tasks = [
+                    {"task_id": item["task_id"], "status": item["status"],
+                     "updated_at": item["updated_at"]}
+                    for item in fresh_tasks
+                    if item.get("status") in {"manual_review", "quarantined"}
+                ]
+                if failed_proof_tasks:
+                    forced_verdict = "ineffective"
+                elif any(item.get("status") != "succeeded" for item in fresh_tasks):
+                    continue
+                proof_task_id = ",".join(required_replay_tasks)
+                proof_task = max(
+                    fresh_tasks, key=lambda item: str(item.get("updated_at") or "")
+                )
             else:
                 proof_task_id = "maturity_gate" if research_repair else recovery_task
                 proof_task = task_by_id.get(proof_task_id)
@@ -241,7 +300,9 @@ class GoalAlignmentController:
                 for key in reductions
                 if int(baseline.get(key) or 0) > int(current.get(key) or 0)
             })
-            if not research_repair:
+            if forced_verdict:
+                verdict = forced_verdict
+            elif not research_repair:
                 verdict = "effective"
             elif current_outcome.get("closer_to_modelling_goal") is True and core_improved:
                 verdict = "effective"
@@ -256,6 +317,8 @@ class GoalAlignmentController:
                 "supporting_improvements": supporting_improved,
                 "closer_to_modelling_goal": current_outcome.get("closer_to_modelling_goal"),
                 "proof_contract": requested_proof,
+                "required_replay_tasks": required_replay_tasks,
+                "failed_proof_tasks": failed_proof_tasks,
             }
             receipt = self.store.repair_validation_receipt(
                 repair_run_id=str(repair["repair_run_id"]), job_id=job_id,

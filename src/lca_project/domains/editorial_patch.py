@@ -50,10 +50,22 @@ def legacy_paragraph_manifest(document: dict[str, Any]) -> dict[str, str]:
 
 
 _SPLIT_INSTRUCTION = re.compile(r"(?:拆分|拆成|分成|分别成段|独立成段|split)", re.IGNORECASE)
+_IDENTIFIER_PATTERN = r"(?<![A-Za-z0-9])(?:A|P)\d{3}(?!\d)"
 _IDENTITY_TOKEN = re.compile(
-    r"(?<![A-Za-z0-9])(?:A|P)\d{3}\s+[^，。；;：:\n\"“”'‘’]+?,\s*服务器用"
+    rf"{_IDENTIFIER_PATTERN}\s+"
+    rf"(?:(?![、，；。\n\"“”'‘’]|(?:和|与|及)?{_IDENTIFIER_PATTERN}\s|(?:和|与|及)全部).)+?"
+    rf"(?=$|[、，；。\n\"“”'‘’]|(?:和|与|及)?{_IDENTIFIER_PATTERN}\s|(?:和|与|及)全部)"
 )
 _QUOTED_TOKEN = re.compile(r"[\"“'‘]([^\"”'’]+)[\"”'’]")
+_CORRECTION = re.compile(
+    rf"(?:将|把)?\s*(?P<old>{_IDENTIFIER_PATTERN})\s*"
+    rf"(?:更正|修正|纠正|改正|替换|改)(?:为|成)\s*"
+    rf"(?P<new>{_IDENTIFIER_PATTERN})"
+)
+_REMOVE_IDENTIFIER = re.compile(
+    rf"(?:删除|移除|去掉|剔除|不保留|不得保留)"
+    rf"\s*(?:错误的|误写的|原有的)?\s*(?P<identifier>{_IDENTIFIER_PATTERN})"
+)
 
 
 def _paragraph_text(paragraph: dict[str, Any]) -> str:
@@ -63,17 +75,66 @@ def _paragraph_text(paragraph: dict[str, Any]) -> str:
     )
 
 
-def _legacy_tokens_to_preserve(paragraph: dict[str, Any], instructions: str) -> list[str]:
-    """Extract explicit local identities without guessing new graph facts."""
-    source = _paragraph_text(paragraph) + "\n" + instructions
-    tokens = [match.group(0).strip() for match in _IDENTITY_TOKEN.finditer(source)]
-    tokens.extend(
-        value.strip() for value in _QUOTED_TOKEN.findall(instructions)
-        if re.search(r"(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", value)
+def _superseded_identifiers(instructions: str) -> set[str]:
+    """Return identifiers that an explicit correction/removal permits replacing."""
+    identifiers = {match.group("old") for match in _CORRECTION.finditer(instructions)}
+    identifiers.update(
+        match.group("identifier") for match in _REMOVE_IDENTIFIER.finditer(instructions)
     )
+    return identifiers
+
+
+def _identity_tokens(text: str) -> list[str]:
+    """Extract one graph identity per token without binding prose punctuation."""
+    return list(dict.fromkeys(
+        match.group(0).strip().rstrip("和与及")
+        for match in _IDENTITY_TOKEN.finditer(text)
+        if match.group(0).strip().rstrip("和与及")
+    ))
+
+
+def _quoted_identity_overrides(instructions: str) -> dict[str, list[str]]:
+    """Return explicitly quoted graph labels that supersede legacy shorthands.
+
+    Review prose frequently asks for a canonical full label and quotes it.  A
+    quoted phrase is an override only when the whole phrase is exactly one
+    identity; quoted lists and explanatory clauses remain instructions rather
+    than literal preservation tokens.
+    """
+    result: dict[str, list[str]] = {}
+    for value in _QUOTED_TOKEN.findall(instructions):
+        candidate = value.strip()
+        tokens = _identity_tokens(candidate)
+        if len(tokens) != 1 or tokens[0] != candidate:
+            continue
+        identifier = re.search(_IDENTIFIER_PATTERN, candidate)
+        if identifier:
+            result.setdefault(identifier.group(0), []).append(candidate)
+    return result
+
+
+def _legacy_tokens_to_preserve(paragraph: dict[str, Any], instructions: str) -> list[str]:
+    """Preserve atomic graph identities while allowing instructed normalization."""
+    paragraph_text = _paragraph_text(paragraph)
+    source = paragraph_text + "\n" + instructions
+    superseded = _superseded_identifiers(instructions)
+    overrides = _quoted_identity_overrides(instructions)
+    tokens = []
+    for token in _identity_tokens(paragraph_text):
+        identifiers = re.findall(_IDENTIFIER_PATTERN, token)
+        if superseded.intersection(identifiers) or any(item in overrides for item in identifiers):
+            continue
+        tokens.append(token)
+    for identifier, values in overrides.items():
+        if identifier not in superseded:
+            tokens.extend(values)
     # Preserve the identifier independently as a fail-closed floor if the
-    # review did not quote the full graph-local label.
-    tokens.extend(re.findall(r"(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", source))
+    # review did not quote the full graph-local label.  Instruction prose can
+    # introduce the replacement ID but never a new mandatory prose fragment.
+    tokens.extend(
+        identifier for identifier in re.findall(_IDENTIFIER_PATTERN, source)
+        if identifier not in superseded
+    )
     return list(dict.fromkeys(token for token in tokens if token))
 
 

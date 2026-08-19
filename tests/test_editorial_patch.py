@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from copy import deepcopy
+import re
 
 import pytest
 
@@ -208,6 +209,117 @@ def test_two_legacy_splits_have_stable_ids_and_preserve_local_identity_and_peers
     repairs[0]["replacements"][0]["sentences"][0]["text"] = "节点图将P057作为投入。"
     with pytest.raises(EditorialPatchError, match="paragraph-local tokens"):
         apply_legacy_repairs(draft, bound, repairs)
+
+
+def test_legacy_preservation_tokens_split_ideographic_identity_lists_atomically() -> None:
+    identities = [
+        "P022 交换机主板PCBA", "P046 光模块", "P029 PSU电源模组",
+        "P055 散热器", "P057 钢钣金机箱/导轨, 服务器用",
+    ]
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入边界", "paragraphs": [{
+            "focus": "冻结图投入清单", "sentences": [{
+                "text": f"冻结图投入包括{'、'.join(identities)}。",
+                "claim_kind": "internal_graph_fact", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入边界", "paragraph_index": 1, "issue_type": "local",
+                  "explanation": "规范化投入名称。", "repair_instruction": "保持所有冻结图投入标识。",
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert all(identity in tokens for identity in identities)
+    assert all(identity.split()[0] in tokens for identity in identities)
+    assert not [token for token in tokens
+                if len(re.findall(r"(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", token)) > 1]
+
+
+def test_legacy_correction_requires_replacement_identifier_not_superseded_identifier() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "定义", "paragraphs": [{
+            "focus": "节点标识纠错", "sentences": [{
+                "text": "原段误将当前活动写成A039。", "claim_kind": "modeling_judgment",
+                "rhetorical_role": "thesis", "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "定义", "paragraph_index": 1, "issue_type": "identity_drift",
+                  "explanation": "节点标识错误。", "repair_instruction": "将A039更正为A013。",
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert "A013" in tokens
+    assert "A039" not in tokens
+
+
+def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入产出与脊边对账", "paragraphs": [{
+            "focus": "全部输入至总装的映射", "sentences": [{
+                "text": (
+                    "组件包括P022 交换机主板PCBA、P038 ASIC和P064 塑料件；"
+                    "同时计入P038 ASIC与P022 交换机主板PCBA前应核验BOM。"
+                ),
+                "claim_kind": "internal_graph_fact", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入产出与脊边对账", "paragraph_index": 1,
+                  "issue_type": "claim_dump+identity_drift",
+                  "explanation": "旧简称与规范流名冲突。",
+                  "repair_instruction": (
+                      "拆成完整流对账和BOM核验两个段落；统一使用图谱完整名称，例如"
+                      "“P022 交换机主板PCBA, 100G/400G”和"
+                      "“P038 交换ASIC封装器件, 100G/400G”。"
+                  ),
+              }]}
+
+    bound = prepare_legacy_patch_review(draft, review)
+    issue = bound["issues"][0]
+    tokens = issue["tokens_must_preserve"]
+
+    assert "P022 交换机主板PCBA, 100G/400G" in tokens
+    assert "P038 交换ASIC封装器件, 100G/400G" in tokens
+    assert "P022 交换机主板PCBA" not in tokens
+    assert "P038 ASIC" not in tokens
+    assert not [token for token in tokens if token.endswith(("和", "与", "”", "“"))]
+
+    repairs = [{
+        "issue_id": issue["issue_id"], "section_id": issue["section_id"],
+        "paragraph_id": issue["paragraph_id"], "target_hash": issue["target_hash"],
+        "preserved_claim_ids": [], "replacements": [{
+            "focus": "完整规范流名对账", "sentences": [{
+                "text": (
+                    "A013将P022 交换机主板PCBA, 100G/400G、"
+                    "P038 交换ASIC封装器件, 100G/400G和P064 塑料件映射为输入。"
+                ),
+                "claim_kind": "internal_graph_fact", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }, {
+            "focus": "BOM重复计量核验", "sentences": [{
+                "text": "同时计入P022与P038前必须核验型号级BOM，不能确认时修正输入流。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]
+
+    result, receipt = apply_legacy_repairs(draft, bound, repairs)
+
+    assert len(result["sections"][0]["paragraphs"]) == 2
+    assert receipt["targeted_paragraphs"] == ["投入产出与脊边对账.p1"]
 
 
 def test_v3_split_assigns_deterministic_ids_and_preserves_untargeted_hashes() -> None:
