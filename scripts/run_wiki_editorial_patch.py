@@ -27,7 +27,7 @@ DISABLED = [
     "browser_use", "in_app_browser", "computer_use", "standalone_web_search",
     "remote_plugin", "plugins", "apps", "multi_agent",
 ]
-PATCH_RUNTIME_REVISION = "wiki-editorial-patch-capacity-bound-v6"
+PATCH_RUNTIME_REVISION = "wiki-editorial-patch-section-coordination-v7"
 PATCH_RUNTIME_REVISION_SHA256 = hashlib.sha256(PATCH_RUNTIME_REVISION.encode()).hexdigest()
 NORMALIZER_REVISION_SHA256 = hashlib.sha256(
     LEGACY_CLAIM_NORMALIZER_REVISION.encode()
@@ -231,6 +231,11 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str
         "逐项执行当前 issue 的 instruction；不得引入当前文档、TARGETS 或 CLAIMS 未提供的节点、产品或工厂规则。"
         "修复指令要求替换、删除或更正错误标识时，不得恢复被取代标识。"
         "修复指令要求删除无关引用时允许不保留该 claim；preserved_claim_ids 只列替换段落实际保留的 ID。"
+        "同一 section 的多个 TARGETS 必须先形成一个联合改写计划，再分别输出 repairs；各段中心、实体清单和"
+        "核验结论不得互相重复。instruction 要求将内容集中到另一被点名段落时，只在该段完整陈述，其他段仅保留"
+        "其指定的分类或论证；instruction 要求本段仅保留某些标识时，必须删除其余标识与清单。"
+        "若 instruction 提到的目的段不在 TARGETS 中，不得修改该目的段，也不得在当前段写‘应移至’之类编辑说明；"
+        "应从当前段删除被要求移动的内容，只保留 instruction 明确要求当前段保留的论点和标识。"
         "不要修改、总结或返回未被点名的段落。输出只匹配 schema。\n"
         f"NODE_ID={node_id}\n"
         f"TARGETS={json.dumps(targets, ensure_ascii=False, separators=(',', ':'))}\n"

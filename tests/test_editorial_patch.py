@@ -261,6 +261,38 @@ def test_legacy_correction_requires_replacement_identifier_not_superseded_identi
     assert "A039" not in tokens
 
 
+def test_legacy_only_retain_instruction_drops_relocated_identifiers() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入产出与脊边对账", "paragraphs": [{
+            "focus": "脊边与功能核验", "sentences": [{
+                "text": (
+                    "P063 TIM用于导热，P061 低压铜电缆线束用于供电；"
+                    "P022 主板、P046 光模块和P008 成品构成完整清单。"
+                ),
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入产出与脊边对账", "paragraph_index": 1,
+                  "issue_type": "disconnected", "explanation": "清单打断论点。",
+                  "repair_instruction": (
+                      "把完整脊边清单移至本节首段；本段仅保留P063与P061为何必须"
+                      "分开核验及其证据要求。"
+                  ),
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert "P063" in tokens
+    assert "P061" in tokens
+    assert "P022" not in tokens
+    assert "P046" not in tokens
+    assert "P008" not in tokens
+
+
 def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
     draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
         "heading": "投入产出与脊边对账", "paragraphs": [{

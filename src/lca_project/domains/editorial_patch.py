@@ -74,6 +74,9 @@ _REMOVE_IDENTIFIER = re.compile(
     rf"(?:删除|移除|去掉|剔除|不保留|不得保留)"
     rf"\s*(?:错误的|误写的|原有的)?\s*(?P<identifier>{_IDENTIFIER_PATTERN})"
 )
+_ONLY_RETAIN_CLAUSE = re.compile(
+    r"(?:本段|该段|此段)?\s*仅保留(?P<body>[^；;。\n]+)", re.IGNORECASE,
+)
 
 
 def _paragraph_text(paragraph: dict[str, Any]) -> str:
@@ -127,6 +130,24 @@ def _legacy_tokens_to_preserve(paragraph: dict[str, Any], instructions: str) -> 
     source = paragraph_text + "\n" + instructions
     superseded = _superseded_identifiers(instructions)
     overrides = _quoted_identity_overrides(instructions)
+    only_retain = _ONLY_RETAIN_CLAUSE.search(instructions)
+    if only_retain:
+        retained_identifiers = set(re.findall(
+            _IDENTIFIER_PATTERN, only_retain.group("body")
+        )) - superseded
+        if retained_identifiers:
+            tokens = [
+                token for token in _identity_tokens(paragraph_text)
+                if set(re.findall(_IDENTIFIER_PATTERN, token)) <= retained_identifiers
+            ]
+            tokens.extend(
+                value
+                for identifier, values in overrides.items()
+                if identifier in retained_identifiers
+                for value in values
+            )
+            tokens.extend(sorted(retained_identifiers))
+            return list(dict.fromkeys(token for token in tokens if token))
     tokens = []
     for token in _identity_tokens(paragraph_text):
         identifiers = re.findall(_IDENTIFIER_PATTERN, token)

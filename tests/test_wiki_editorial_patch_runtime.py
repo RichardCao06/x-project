@@ -248,6 +248,9 @@ def test_a013_prompt_exposes_remaining_capacity_and_graph_fact_scope() -> None:
     assert "claim_text 直接支持" in prompt
     assert "只能标为 modeling_judgment" in prompt
     assert "证据不足时必须标为 evidence_gap" in prompt
+    assert "同一 section 的多个 TARGETS 必须先形成一个联合改写计划" in prompt
+    assert "若 instruction 提到的目的段不在 TARGETS 中" in prompt
+    assert "不得在当前段写‘应移至’之类编辑说明" in prompt
 
 
 def _paragraph(focus: str) -> dict:
@@ -364,7 +367,7 @@ def test_a013_runtime_rematerializes_and_applies_four_hash_bound_targets(
     assert (content_path.parent / "frozen-editorial-repair.json").is_file()
     assert invocation["reused_existing_repairs"] is False
     assert runtime.PATCH_RUNTIME_REVISION_SHA256 == (
-        "bd1671fd465319b40feb2b4fc3c45e9ec75671467be48e0d2bfaf7d232fd8344"
+        "70fad6a8484e370bdd182ab7dc00dc50be3dd66cd6ff4efe264d77f44563d8e7"
     )
     assert invocation["patch_runtime_revision_sha256"] == runtime.PATCH_RUNTIME_REVISION_SHA256
     assert invocation["prompt_sha256"] == receipt["reuse_key"]["prompt_sha256"]
