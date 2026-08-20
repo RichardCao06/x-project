@@ -108,7 +108,7 @@ def test_schema_and_cache_require_zero_replacements_for_delete() -> None:
     }, review) is False
 
 
-def test_cache_reuse_rejects_invalid_cardinality_and_runtime_revision() -> None:
+def test_cache_reuse_requires_success_and_all_causal_revision_hashes() -> None:
     runtime = load_runtime()
     review = patch_review()
     valid = {"repairs": [
@@ -119,19 +119,83 @@ def test_cache_reuse_rejects_invalid_cardinality_and_runtime_revision() -> None:
     invocation = {
         "content_sha256": "content", "review_sha256": "review",
         "patch_review_sha256": "patch-review", "output_schema_sha256": "schema",
+        "prompt_sha256": "prompt",
         "patch_runtime_revision_sha256": runtime.PATCH_RUNTIME_REVISION_SHA256,
+        "normalizer_revision_sha256": runtime.NORMALIZER_REVISION_SHA256,
+        "normalizer_sha256": "normalizer-source",
     }
     inputs = {
         "content_sha256": "content", "review_sha256": "review",
         "patch_review_sha256": "patch-review", "output_schema_sha256": "schema",
+        "prompt_sha256": "prompt", "normalizer_sha256": "normalizer-source",
     }
+    successful_usage = {
+        "protocol": "wiki-editorial-patch-usage-v1", "exit_code": 0,
+        "reuse_key": invocation,
+        "raw_repairs_sha256": runtime.payload_sha256(valid),
+    }
+    failed_usage = {**successful_usage, "exit_code": 2}
 
-    assert runtime.can_reuse_repairs(invocation, valid, review, **inputs) is True
+    assert runtime.can_reuse_repairs(
+        invocation, valid, review, previous_usage=successful_usage,
+        previous_receipt=None, **inputs,
+    ) is True
+    assert runtime.can_reuse_repairs(
+        invocation, valid, review, previous_usage=failed_usage,
+        previous_receipt=None, **inputs,
+    ) is False
     invalid_e002 = json.loads(json.dumps(valid))
     invalid_e002["repairs"][1]["replacements"].append({})
-    assert runtime.can_reuse_repairs(invocation, invalid_e002, review, **inputs) is False
+    assert runtime.can_reuse_repairs(
+        invocation, invalid_e002, review, previous_usage=successful_usage,
+        previous_receipt=None, **inputs,
+    ) is False
     stale_invocation = {**invocation, "patch_runtime_revision_sha256": "old-runtime"}
-    assert runtime.can_reuse_repairs(stale_invocation, valid, review, **inputs) is False
+    assert runtime.can_reuse_repairs(
+        stale_invocation, valid, review, previous_usage=successful_usage,
+        previous_receipt=None, **inputs,
+    ) is False
+    for changed_input in ("prompt_sha256", "normalizer_revision_sha256", "normalizer_sha256"):
+        stale_invocation = {**invocation, changed_input: "stale"}
+        assert runtime.can_reuse_repairs(
+            stale_invocation, valid, review, previous_usage=successful_usage,
+            previous_receipt=None, **inputs,
+        ) is False
+
+
+def test_cache_reuse_accepts_hash_bound_successful_receipt() -> None:
+    runtime = load_runtime()
+    review = {"issues": [patch_review()["issues"][0]]}
+    valid = {"repairs": [repair_for(review["issues"][0], 1)]}
+    invocation = {
+        "content_sha256": "content", "review_sha256": "review",
+        "patch_review_sha256": "patch-review", "output_schema_sha256": "schema",
+        "prompt_sha256": "prompt",
+        "patch_runtime_revision_sha256": runtime.PATCH_RUNTIME_REVISION_SHA256,
+        "normalizer_revision_sha256": runtime.NORMALIZER_REVISION_SHA256,
+        "normalizer_sha256": "normalizer-source",
+    }
+    receipt = {
+        "protocol": "wiki-editorial-patch-receipt-v1", "scorecard": {
+            "decision": "PASS", "internal_graph_fact_sentences_without_evidence": 0,
+            "maximum_claim_use_count": 3,
+        },
+        "reuse_key": invocation, "raw_repairs_sha256": runtime.payload_sha256(valid),
+    }
+
+    assert runtime.can_reuse_repairs(
+        invocation, valid, review, previous_usage=None, previous_receipt=receipt,
+        content_sha256="content", review_sha256="review",
+        patch_review_sha256="patch-review", output_schema_sha256="schema",
+        prompt_sha256="prompt", normalizer_sha256="normalizer-source",
+    ) is True
+    receipt["raw_repairs_sha256"] = "different-raw-repair"
+    assert runtime.can_reuse_repairs(
+        invocation, valid, review, previous_usage=None, previous_receipt=receipt,
+        content_sha256="content", review_sha256="review",
+        patch_review_sha256="patch-review", output_schema_sha256="schema",
+        prompt_sha256="prompt", normalizer_sha256="normalizer-source",
+    ) is False
 
 
 def test_generic_prompt_uses_current_node_without_foreign_node_policy() -> None:
@@ -147,6 +211,43 @@ def test_generic_prompt_uses_current_node_without_foreign_node_policy() -> None:
     assert "A039" not in prompt
     assert "P057" not in prompt
     assert "tokens_must_preserve" in prompt
+
+
+def test_a013_prompt_exposes_remaining_capacity_and_graph_fact_scope() -> None:
+    runtime = load_runtime()
+    document = {
+        "protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+            "heading": "组成", "paragraphs": [
+                {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+                {"sentences": [{"evidence_claim_ids": ["A013-16", "A013-17"]}]},
+                {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+            ],
+        }],
+    }
+    targets = [
+        {"issue": {"section_id": "组成", "paragraph_id": "p2"}, "paragraph": {}},
+        {"issue": {"section_id": "组成", "paragraph_id": "p3"}, "paragraph": {}},
+    ]
+    claims = [
+        {"claim_id": "A013-16", "claim_kind": "internal_graph_fact",
+         "claim_text": "十一项输入为消耗边，P008为输出边。", "verdict": "CONFIRMED"},
+        {"claim_id": "A013-17", "claim_kind": "modeling_judgment",
+         "claim_text": "建模边界判断。", "verdict": "CONFIRMED"},
+    ]
+
+    prompt = runtime.build_prompt(document, targets, claims)
+    prompt_claims = json.loads(prompt.split("CLAIMS=", 1)[1])
+
+    assert prompt_claims == [
+        {**claims[0], "maximum_total_uses": 3, "uses_outside_targets": 1,
+         "remaining_uses": 2},
+        {**claims[1], "maximum_total_uses": 3, "uses_outside_targets": 0,
+         "remaining_uses": 3},
+    ]
+    assert "所有 replacements 合计不得超过该预算" in prompt
+    assert "claim_text 直接支持" in prompt
+    assert "只能标为 modeling_judgment" in prompt
+    assert "证据不足时必须标为 evidence_gap" in prompt
 
 
 def _paragraph(focus: str) -> dict:
@@ -263,7 +364,12 @@ def test_a013_runtime_rematerializes_and_applies_four_hash_bound_targets(
     assert (content_path.parent / "frozen-editorial-repair.json").is_file()
     assert invocation["reused_existing_repairs"] is False
     assert runtime.PATCH_RUNTIME_REVISION_SHA256 == (
-        "541e87af9d1c0749ff5ef09fb5fe30f5237e6c08626e564056ed464d90369684"
+        "bd1671fd465319b40feb2b4fc3c45e9ec75671467be48e0d2bfaf7d232fd8344"
     )
     assert invocation["patch_runtime_revision_sha256"] == runtime.PATCH_RUNTIME_REVISION_SHA256
+    assert invocation["prompt_sha256"] == receipt["reuse_key"]["prompt_sha256"]
+    assert invocation["normalizer_revision_sha256"] == runtime.NORMALIZER_REVISION_SHA256
     assert invocation["output_schema_sha256"]
+    assert receipt["raw_repairs_sha256"] == runtime.payload_sha256(repairs)
+    assert receipt["scorecard"]["internal_graph_fact_sentences_without_evidence"] == 0
+    assert receipt["scorecard"]["maximum_claim_use_count"] <= 3

@@ -1,8 +1,9 @@
 """Hash-bound paragraph repair with deterministic non-regression checks."""
 from __future__ import annotations
 
-from copy import deepcopy
 from collections import Counter
+from collections.abc import Iterable
+from copy import deepcopy
 import hashlib
 import json
 import re
@@ -14,6 +15,7 @@ class EditorialPatchError(ValueError):
 
 
 LEGACY_CLAIM_NORMALIZER_REVISION = "fact-first-v1"
+MAXIMUM_CLAIM_USE_COUNT = 3
 
 
 def canonical_hash(value: Any) -> str:
@@ -352,13 +354,7 @@ def normalize_legacy_repair_claim_bindings(
     }
     counts: Counter[str] = Counter()
     if document is not None:
-        for section in document.get("sections") or []:
-            heading = str(section.get("heading") or "")
-            for index, paragraph in enumerate(section.get("paragraphs") or [], 1):
-                if (heading, f"p{index}") in targets:
-                    continue
-                for sentence in paragraph.get("sentences") or []:
-                    counts.update(str(item) for item in sentence.get("evidence_claim_ids") or [])
+        counts.update(claim_uses_outside_targets(document, targets, kinds))
     sentences: list[tuple[dict[str, Any], list[str], bool]] = []
     for repair in result:
         replacements = repair.get("replacements")
@@ -385,7 +381,7 @@ def normalize_legacy_repair_claim_bindings(
     # set of fact bindings appear impossible.
     fact_rows = [(sentence, ids) for sentence, ids, required in sentences if required]
     capacities = {
-        claim_id: max(0, 3 - counts[claim_id])
+        claim_id: max(0, MAXIMUM_CLAIM_USE_COUNT - counts[claim_id])
         for _sentence, ids in fact_rows
         for claim_id in ids
     }
@@ -428,7 +424,7 @@ def normalize_legacy_repair_claim_bindings(
         for claim_id in ids:
             if claim_id == reserved:
                 kept.append(claim_id)
-            elif counts[claim_id] < 3:
+            elif counts[claim_id] < MAXIMUM_CLAIM_USE_COUNT:
                 kept.append(claim_id)
                 counts[claim_id] += 1
         sentence["evidence_claim_ids"] = kept
@@ -438,7 +434,7 @@ def normalize_legacy_repair_claim_bindings(
             continue
         kept = []
         for claim_id in ids:
-            if counts[claim_id] < 3:
+            if counts[claim_id] < MAXIMUM_CLAIM_USE_COUNT:
                 kept.append(claim_id)
                 counts[claim_id] += 1
         sentence["evidence_claim_ids"] = kept
@@ -454,6 +450,40 @@ def normalize_legacy_repair_claim_bindings(
             for claim_id in sentence.get("evidence_claim_ids") or []
         ))
     return result
+
+
+def claim_uses_outside_targets(
+    document: dict[str, Any],
+    targeted_paragraphs: set[tuple[str, str]],
+    claim_ids: Iterable[object] = (),
+) -> dict[str, int]:
+    """Count every claim use outside the hash-bound target paragraphs."""
+    counts: Counter[str] = Counter()
+    for section in document.get("sections") or []:
+        heading = str(section.get("heading") or "")
+        for index, paragraph in enumerate(section.get("paragraphs") or [], 1):
+            if (heading, f"p{index}") in targeted_paragraphs:
+                continue
+            for sentence in paragraph.get("sentences") or []:
+                counts.update(
+                    str(item) for item in sentence.get("evidence_claim_ids") or []
+                )
+    all_claim_ids = {str(claim_id) for claim_id in claim_ids if str(claim_id)}
+    all_claim_ids.update(counts)
+    return {claim_id: counts[claim_id] for claim_id in sorted(all_claim_ids)}
+
+
+def claim_remaining_uses(
+    document: dict[str, Any],
+    targeted_paragraphs: set[tuple[str, str]],
+    claim_ids: Iterable[object] = (),
+) -> dict[str, int]:
+    """Return every claim's replacement budget after untargeted uses."""
+    counts = claim_uses_outside_targets(document, targeted_paragraphs, claim_ids)
+    return {
+        claim_id: max(0, MAXIMUM_CLAIM_USE_COUNT - count)
+        for claim_id, count in counts.items()
+    }
 
 
 def claim_binding_metrics(document: dict[str, Any]) -> dict[str, Any]:

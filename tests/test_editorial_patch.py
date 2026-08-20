@@ -8,8 +8,9 @@ import pytest
 
 from lca_project.domains.editorial_patch import (
     EditorialPatchError, apply_legacy_repairs, apply_repairs, canonical_hash,
-    claim_binding_metrics, legacy_paragraph_manifest, normalize_legacy_repair_claim_bindings,
-    paragraph_manifest, prepare_legacy_patch_review, render_sections,
+    claim_binding_metrics, claim_remaining_uses, legacy_paragraph_manifest,
+    normalize_legacy_repair_claim_bindings, paragraph_manifest,
+    prepare_legacy_patch_review, render_sections,
 )
 
 
@@ -466,6 +467,77 @@ def test_legacy_patch_fails_closed_when_required_fact_binding_has_no_capacity() 
 
     with pytest.raises(EditorialPatchError, match="required fact binding"):
         normalize_legacy_repair_claim_bindings(repairs, rows, document)
+
+
+def test_a013_five_graph_fact_uses_are_rejected_with_two_slots_remaining() -> None:
+    document = {"sections": [{"heading": "组成", "paragraphs": [
+        {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+        {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+        {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+    ]}]}
+    repairs = [
+        {"issue_id": "E001", "section_id": "组成", "paragraph_id": "p2",
+         "preserved_claim_ids": ["A013-16"], "replacement": {
+             "focus": "部件角色一", "sentences": [
+                 {"text": f"第{index}项功能角色解释。", "claim_kind": "internal_graph_fact",
+                  "evidence_claim_ids": ["A013-16"]}
+                 for index in range(1, 4)
+             ],
+         }},
+        {"issue_id": "E002", "section_id": "组成", "paragraph_id": "p3",
+         "preserved_claim_ids": ["A013-16"], "replacement": {
+             "focus": "部件角色二", "sentences": [
+                 {"text": f"第{index}项功能角色解释。", "claim_kind": "internal_graph_fact",
+                  "evidence_claim_ids": ["A013-16"]}
+                 for index in range(4, 6)
+             ],
+         }},
+    ]
+    rows = [{"claim": {
+        "claim_id": "A013-16", "claim_kind": "internal_graph_fact",
+        "claim_text": "十一项输入为消耗边，P008为输出边。",
+    }}]
+
+    assert claim_remaining_uses(
+        document, {("组成", "p2"), ("组成", "p3")}, ["A013-16", "A013-17"],
+    ) == {"A013-16": 2, "A013-17": 3}
+    with pytest.raises(EditorialPatchError, match="required fact binding"):
+        normalize_legacy_repair_claim_bindings(repairs, rows, document)
+
+
+def test_a013_golden_repair_does_not_classify_unsupported_roles_as_graph_facts() -> None:
+    document = {"sections": [{"heading": "组成", "paragraphs": [
+        {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+        {"sentences": []},
+    ]}]}
+    repairs = [{
+        "issue_id": "E001", "section_id": "组成", "paragraph_id": "p2",
+        "preserved_claim_ids": ["A013-16"], "replacement": {
+            "focus": "图事实与解释边界", "sentences": [
+                {"text": "冻结图将十一项输入记录为消耗边，并将P008记录为输出边。",
+                 "claim_kind": "internal_graph_fact", "evidence_claim_ids": ["A013-16"]},
+                {"text": "P029可解释为供电角色。", "claim_kind": "modeling_judgment",
+                 "evidence_claim_ids": []},
+                {"text": "P055和P051可解释为热管理角色。", "claim_kind": "modeling_judgment",
+                 "evidence_claim_ids": []},
+                {"text": "P057和P064的结构或导风功能缺少当前证据。",
+                 "claim_kind": "evidence_gap", "evidence_claim_ids": []},
+            ],
+        },
+    }]
+    rows = [{"claim": {
+        "claim_id": "A013-16", "claim_kind": "internal_graph_fact",
+        "claim_text": "十一项输入为消耗边，P008为输出边。",
+    }}]
+
+    normalized = normalize_legacy_repair_claim_bindings(repairs, rows, document)
+    sentences = normalized[0]["replacement"]["sentences"]
+
+    assert [sentence["claim_kind"] for sentence in sentences] == [
+        "internal_graph_fact", "modeling_judgment", "modeling_judgment", "evidence_gap",
+    ]
+    assert sentences[0]["evidence_claim_ids"] == ["A013-16"]
+    assert all(sentence["evidence_claim_ids"] == [] for sentence in sentences[1:])
 
 
 def test_legacy_patch_supports_explicit_hash_bound_whole_paragraph_delete() -> None:

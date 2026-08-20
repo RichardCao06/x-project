@@ -13,8 +13,11 @@ from pathlib import Path
 from lca_project.domains.editorial_patch import (
     EditorialPatchError,
     LEGACY_CLAIM_NORMALIZER_REVISION,
+    MAXIMUM_CLAIM_USE_COUNT,
     apply_legacy_repairs,
     claim_binding_metrics,
+    claim_remaining_uses,
+    claim_uses_outside_targets,
     normalize_legacy_repair_claim_bindings,
     prepare_legacy_patch_review,
 )
@@ -24,8 +27,11 @@ DISABLED = [
     "browser_use", "in_app_browser", "computer_use", "standalone_web_search",
     "remote_plugin", "plugins", "apps", "multi_agent",
 ]
-PATCH_RUNTIME_REVISION = "wiki-editorial-patch-controlled-delete-v5"
+PATCH_RUNTIME_REVISION = "wiki-editorial-patch-capacity-bound-v6"
 PATCH_RUNTIME_REVISION_SHA256 = hashlib.sha256(PATCH_RUNTIME_REVISION.encode()).hexdigest()
+NORMALIZER_REVISION_SHA256 = hashlib.sha256(
+    LEGACY_CLAIM_NORMALIZER_REVISION.encode()
+).hexdigest()
 
 
 def load(path: Path) -> dict:
@@ -34,6 +40,13 @@ def load(path: Path) -> dict:
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def payload_sha256(payload: object) -> str:
+    raw = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode()
+    return hashlib.sha256(raw).hexdigest()
 
 
 def _replacement_schema(*, minimum: int, maximum: int) -> dict:
@@ -127,17 +140,45 @@ def cached_repairs_match_review(payload: object, patch_review: dict) -> bool:
 
 
 def can_reuse_repairs(previous_invocation: object, payload: object, patch_review: dict, *,
+                      previous_usage: object, previous_receipt: object,
                       content_sha256: str, review_sha256: str,
-                      patch_review_sha256: str, output_schema_sha256: str) -> bool:
-    """Require unchanged inputs, the current runtime/schema digest, and valid cached output."""
+                      patch_review_sha256: str, output_schema_sha256: str,
+                      prompt_sha256: str, normalizer_sha256: str) -> bool:
+    """Reuse only successful output bound to every causal input revision."""
+    reuse_key = {
+        "content_sha256": content_sha256,
+        "review_sha256": review_sha256,
+        "patch_review_sha256": patch_review_sha256,
+        "output_schema_sha256": output_schema_sha256,
+        "prompt_sha256": prompt_sha256,
+        "patch_runtime_revision_sha256": PATCH_RUNTIME_REVISION_SHA256,
+        "normalizer_revision_sha256": NORMALIZER_REVISION_SHA256,
+        "normalizer_sha256": normalizer_sha256,
+    }
+    successful_usage = bool(
+        isinstance(previous_usage, dict)
+        and previous_usage.get("protocol") == "wiki-editorial-patch-usage-v1"
+        and previous_usage.get("exit_code") == 0
+        and previous_usage.get("reuse_key") == reuse_key
+        and previous_usage.get("raw_repairs_sha256") == payload_sha256(payload)
+    )
+    successful_receipt = bool(
+        isinstance(previous_receipt, dict)
+        and previous_receipt.get("protocol") == "wiki-editorial-patch-receipt-v1"
+        and isinstance(previous_receipt.get("scorecard"), dict)
+        and previous_receipt["scorecard"].get(
+            "internal_graph_fact_sentences_without_evidence"
+        ) == 0
+        and isinstance(previous_receipt["scorecard"].get("maximum_claim_use_count"), int)
+        and previous_receipt["scorecard"]["maximum_claim_use_count"]
+            <= MAXIMUM_CLAIM_USE_COUNT
+        and previous_receipt.get("reuse_key") == reuse_key
+        and previous_receipt.get("raw_repairs_sha256") == payload_sha256(payload)
+    )
     return bool(
         isinstance(previous_invocation, dict)
-        and previous_invocation.get("content_sha256") == content_sha256
-        and previous_invocation.get("review_sha256") == review_sha256
-        and previous_invocation.get("patch_review_sha256") == patch_review_sha256
-        and previous_invocation.get("output_schema_sha256") == output_schema_sha256
-        and previous_invocation.get("patch_runtime_revision_sha256")
-            == PATCH_RUNTIME_REVISION_SHA256
+        and all(previous_invocation.get(key) == value for key, value in reuse_key.items())
+        and (successful_usage or successful_receipt)
         and cached_repairs_match_review(payload, patch_review)
     )
 
@@ -147,6 +188,33 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str
     node_id = str(document.get("node_id") or "").strip()
     if not node_id:
         raise EditorialPatchError("content document requires node_id")
+    targeted_paragraphs = {
+        (
+            str(target.get("issue", {}).get("section_id") or ""),
+            str(target.get("issue", {}).get("paragraph_id") or ""),
+        )
+        for target in targets
+    }
+    remaining_uses = claim_remaining_uses(
+        document,
+        targeted_paragraphs,
+        (claim.get("claim_id") for claim in claims),
+    )
+    uses_outside_targets = claim_uses_outside_targets(
+        document,
+        targeted_paragraphs,
+        (claim.get("claim_id") for claim in claims),
+    )
+    capacity_bound_claims = [
+        {
+            **claim,
+            "maximum_total_uses": MAXIMUM_CLAIM_USE_COUNT,
+            "uses_outside_targets": uses_outside_targets[str(claim.get("claim_id"))],
+            "remaining_uses": remaining_uses[str(claim.get("claim_id"))],
+        }
+        for claim in claims
+        if str(claim.get("claim_id") or "") in remaining_uses
+    ]
     return (
         "你是中文技术百科的段落修订编辑。禁止工具、联网和读取文件。只替换 TARGETS 中被独立审查点名的段落，"
         "每个 issue 精确返回一个 repair，并逐字回传 issue_id、section_id、paragraph_id、target_hash。"
@@ -154,6 +222,11 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str
         "operation=delete 时 replacements 必须返回空数组，不得用占位段替代删除。"
         "每个 replacement 保持单一中心、2-4句且首句是唯一 thesis；只引用 CLAIMS 中存在的 claim_id。"
         "external_fact 只能使用 verdict=CONFIRMED 的 external_fact；不得扩大原事实。"
+        "CLAIMS 中每项的 remaining_uses 是全部 replacement 句子可使用该 claim_id 的总次数预算；"
+        "所有 replacements 合计不得超过该预算，且不得用 preserved_claim_ids 绕过预算。"
+        "internal_graph_fact 的正文必须由所绑定 claim 的 claim_text 直接支持，不得把 claim_text 未陈述的功能角色"
+        "（例如供电、热管理、结构或导风）写成 internal_graph_fact；这类解释只能标为 modeling_judgment，"
+        "证据不足时必须标为 evidence_gap。"
         "tokens_must_preserve 中的每个字面量必须原样出现在 replacements 正文中。"
         "逐项执行当前 issue 的 instruction；不得引入当前文档、TARGETS 或 CLAIMS 未提供的节点、产品或工厂规则。"
         "修复指令要求替换、删除或更正错误标识时，不得恢复被取代标识。"
@@ -161,7 +234,7 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str
         "不要修改、总结或返回未被点名的段落。输出只匹配 schema。\n"
         f"NODE_ID={node_id}\n"
         f"TARGETS={json.dumps(targets, ensure_ascii=False, separators=(',', ':'))}\n"
-        f"CLAIMS={json.dumps(claims, ensure_ascii=False, separators=(',', ':'))}"
+        f"CLAIMS={json.dumps(capacity_bound_claims, ensure_ascii=False, separators=(',', ':'))}"
     )
 
 
@@ -212,21 +285,28 @@ def main() -> int:
     stderr = output_dir / "editorial-patch-stderr.log"
     invocation = output_dir / "editorial-patch-invocation.json"
     usage = output_dir / "editorial-patch-usage.json"
+    receipt_path = output_dir / "editorial-patch-receipt.json"
     current_content_hash = sha256(content_path)
     current_review_hash = sha256(review_path)
     current_patch_review_hash = sha256(patch_review_path)
     normalizer_path = Path(normalize_legacy_repair_claim_bindings.__code__.co_filename).resolve()
     normalizer_sha256 = sha256(normalizer_path)
+    prompt = build_prompt(document, targets, claims)
+    prompt_sha256 = hashlib.sha256(prompt.encode()).hexdigest()
     reuse_existing_repairs = False
     if repairs_raw.is_file() and invocation.is_file():
         try:
             previous_invocation = load(invocation)
             reuse_existing_repairs = can_reuse_repairs(
                 previous_invocation, load(repairs_raw), patch_review,
+                previous_usage=load(usage) if usage.is_file() else None,
+                previous_receipt=load(receipt_path) if receipt_path.is_file() else None,
                 content_sha256=current_content_hash,
                 review_sha256=current_review_hash,
                 patch_review_sha256=current_patch_review_hash,
                 output_schema_sha256=current_schema_hash,
+                prompt_sha256=prompt_sha256,
+                normalizer_sha256=normalizer_sha256,
             )
         except (OSError, TypeError, ValueError, json.JSONDecodeError):
             reuse_existing_repairs = False
@@ -235,7 +315,6 @@ def main() -> int:
         # incompatible payload first prevents a failed attempt from making an
         # old repair appear current on the following retry.
         repairs_raw.unlink(missing_ok=True)
-    prompt = build_prompt(document, targets, claims)
     root = Path(__file__).resolve().parents[1]
     command = ["codex", "exec", "--ephemeral", "--ignore-user-config", "--ignore-rules",
                "-C", str(root), "-s", "read-only", "-m", "gpt-5.6-terra",
@@ -250,9 +329,11 @@ def main() -> int:
         "review_sha256": current_review_hash,
         "patch_review_sha256": current_patch_review_hash,
         "output_schema_sha256": current_schema_hash,
+        "prompt_sha256": prompt_sha256,
         "patch_runtime_revision": PATCH_RUNTIME_REVISION,
         "patch_runtime_revision_sha256": PATCH_RUNTIME_REVISION_SHA256,
         "normalizer_revision": LEGACY_CLAIM_NORMALIZER_REVISION,
+        "normalizer_revision_sha256": NORMALIZER_REVISION_SHA256,
         "normalizer_sha256": normalizer_sha256,
         "reused_existing_repairs": reuse_existing_repairs,
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -264,8 +345,10 @@ def main() -> int:
                 "type": "editorial.patch_reused", "content_sha256": current_content_hash,
                 "review_sha256": current_review_hash,
                 "output_schema_sha256": current_schema_hash,
+                "prompt_sha256": prompt_sha256,
                 "patch_runtime_revision_sha256": PATCH_RUNTIME_REVISION_SHA256,
                 "normalizer_revision": LEGACY_CLAIM_NORMALIZER_REVISION,
+                "normalizer_revision_sha256": NORMALIZER_REVISION_SHA256,
                 "normalizer_sha256": normalizer_sha256,
             }, ensure_ascii=False) + "\n")
             exit_code = 0
@@ -278,10 +361,23 @@ def main() -> int:
             except subprocess.TimeoutExpired:
                 error = "Editorial paragraph patch timeout"
     receipt = None
+    reuse_key = {
+        "content_sha256": current_content_hash,
+        "review_sha256": current_review_hash,
+        "patch_review_sha256": current_patch_review_hash,
+        "output_schema_sha256": current_schema_hash,
+        "prompt_sha256": prompt_sha256,
+        "patch_runtime_revision_sha256": PATCH_RUNTIME_REVISION_SHA256,
+        "normalizer_revision_sha256": NORMALIZER_REVISION_SHA256,
+        "normalizer_sha256": normalizer_sha256,
+    }
+    raw_repairs_sha256 = None
     if exit_code == 0:
         try:
+            raw_repairs = load(repairs_raw)
+            raw_repairs_sha256 = payload_sha256(raw_repairs)
             repairs = normalize_legacy_repair_claim_bindings(
-                load(repairs_raw).get("repairs"), rows, document,
+                raw_repairs.get("repairs"), rows, document,
             )
             patched, receipt = apply_legacy_repairs(document, patch_review, repairs)
             candidate = output_dir / "content-result.patched.json"
@@ -296,7 +392,8 @@ def main() -> int:
             receipt["scorecard"] = scorecard
             receipt["normalizer_revision"] = LEGACY_CLAIM_NORMALIZER_REVISION
             receipt["normalizer_sha256"] = normalizer_sha256
-            receipt_path = output_dir / "editorial-patch-receipt.json"
+            receipt["reuse_key"] = reuse_key
+            receipt["raw_repairs_sha256"] = raw_repairs_sha256
             receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
                                     encoding="utf-8")
             candidate.replace(content_path)
@@ -314,6 +411,8 @@ def main() -> int:
         "protocol": "wiki-editorial-patch-usage-v1",
         "completed_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "exit_code": exit_code, "error": error,
+        "reuse_key": reuse_key,
+        "raw_repairs_sha256": raw_repairs_sha256,
         "targeted_paragraphs": receipt.get("targeted_paragraphs", []) if receipt else [],
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"exit_code": exit_code, "error": error,
