@@ -27,7 +27,7 @@ DISABLED = [
     "browser_use", "in_app_browser", "computer_use", "standalone_web_search",
     "remote_plugin", "plugins", "apps", "multi_agent",
 ]
-PATCH_RUNTIME_REVISION = "wiki-editorial-patch-relocation-scope-v8"
+PATCH_RUNTIME_REVISION = "wiki-editorial-patch-distinct-splits-v9"
 PATCH_RUNTIME_REVISION_SHA256 = hashlib.sha256(PATCH_RUNTIME_REVISION.encode()).hexdigest()
 NORMALIZER_REVISION_SHA256 = hashlib.sha256(
     LEGACY_CLAIM_NORMALIZER_REVISION.encode()
@@ -236,6 +236,9 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str
         "其指定的分类或论证；instruction 要求本段仅保留某些标识时，必须删除其余标识与清单。"
         "若 instruction 提到的目的段不在 TARGETS 中，不得修改该目的段，也不得在当前段写‘应移至’之类编辑说明；"
         "应从当前段删除被要求移动的内容，只保留 instruction 明确要求当前段保留的论点和标识。"
+        "split_replace 的多个 replacements 不得复用同一句式模板或只替换类别名称；每段 thesis 必须直接陈述"
+        "该类别独有的分类判据、输入范围或对账风险。任意两个新句不得近似复述，尤其不得重复"
+        "‘按可验证配置归属识别，以支持BOM与质量对账’这类公共套话；公共原则只在第一段写一次。"
         "不要修改、总结或返回未被点名的段落。输出只匹配 schema。\n"
         f"NODE_ID={node_id}\n"
         f"TARGETS={json.dumps(targets, ensure_ascii=False, separators=(',', ':'))}\n"

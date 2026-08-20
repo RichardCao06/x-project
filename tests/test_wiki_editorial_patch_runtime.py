@@ -251,6 +251,8 @@ def test_a013_prompt_exposes_remaining_capacity_and_graph_fact_scope() -> None:
     assert "同一 section 的多个 TARGETS 必须先形成一个联合改写计划" in prompt
     assert "若 instruction 提到的目的段不在 TARGETS 中" in prompt
     assert "不得在当前段写‘应移至’之类编辑说明" in prompt
+    assert "split_replace 的多个 replacements 不得复用同一句式模板" in prompt
+    assert "公共原则只在第一段写一次" in prompt
 
 
 def _paragraph(focus: str) -> dict:
@@ -367,7 +369,7 @@ def test_a013_runtime_rematerializes_and_applies_four_hash_bound_targets(
     assert (content_path.parent / "frozen-editorial-repair.json").is_file()
     assert invocation["reused_existing_repairs"] is False
     assert runtime.PATCH_RUNTIME_REVISION_SHA256 == (
-        "701a451ea55ee466aa09d45625d8d988f56befb66c3ccddf5affa977eae7a2dc"
+        "6e7bedce0fdade4998db021ee6b1a85bff6e680035ef1d20e359aea0603f88e7"
     )
     assert invocation["patch_runtime_revision_sha256"] == runtime.PATCH_RUNTIME_REVISION_SHA256
     assert invocation["prompt_sha256"] == receipt["reuse_key"]["prompt_sha256"]
