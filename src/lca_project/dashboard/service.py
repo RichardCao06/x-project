@@ -7,6 +7,7 @@ SQLite directly for control actions.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import sqlite3
@@ -238,10 +239,110 @@ class DashboardService:
             if artifact:
                 artifacts.append(artifact)
         workflow = self._workflow_detail(str(job.get("workflow_id") or ""))
+        preview = self._preview_projection(job_id, run=run, tasks=tasks)
         return {"job": job, "run": run, "tasks": tasks, "attempts": attempts,
                 "events": events, "gates": gates, "decisions": decisions,
                 "exceptions": exceptions, "artifacts": artifacts, "workflow": workflow,
-                "goal_alignment": self.goal_alignment(job_id=job_id)}
+                "goal_alignment": self.goal_alignment(job_id=job_id), "preview": preview}
+
+    def _preview_projection(
+        self,
+        job_id: str,
+        *,
+        run: dict[str, Any] | None = None,
+        tasks: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any] | None:
+        """Return a verified, workspace-confined preview projection for a Job."""
+        if not self._has_table("orchestrator_runs") or not self._has_table("orchestrator_tasks"):
+            return None
+        if run is None:
+            run = _row(self.conn.execute(
+                "SELECT * FROM orchestrator_runs WHERE job_id=?", (job_id,)
+            ).fetchone())
+        if not run:
+            return None
+        if tasks is None:
+            tasks = self._rows(
+                "SELECT * FROM orchestrator_tasks WHERE run_id=? ORDER BY rowid",
+                (run["run_id"],),
+            )
+        preview_task = next((item for item in tasks if item.get("task_id") == "preview"), None)
+        if not preview_task or preview_task.get("status") != "succeeded":
+            return None
+        output_hash = str(preview_task.get("output_hash") or "")
+        if not output_hash:
+            return None
+        try:
+            manifest = self.control.artifacts.verify_task_output_manifest(output_hash)
+        except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
+            return None
+        report_entry = next(
+            (item for item in manifest.get("files") or []
+             if str(item.get("path") or "").endswith("/preview-report.json")),
+            None,
+        )
+        if not report_entry:
+            return None
+        workspace = (self.root / "var" / "workspaces" / "jobs" / job_id).resolve()
+        report_path = (workspace / str(report_entry["path"])).resolve()
+        if (not report_path.is_relative_to(workspace) or not report_path.is_file()
+                or report_path.is_symlink()):
+            return None
+        report_bytes = report_path.read_bytes()
+        if hashlib.sha256(report_bytes).hexdigest() != str(report_entry.get("sha256") or ""):
+            return None
+        try:
+            report = json.loads(report_bytes)
+        except json.JSONDecodeError:
+            return None
+        docs = (workspace / "docs").resolve()
+        assets: dict[str, dict[str, str]] = {}
+        for role, value in (report.get("artifacts") or {}).items():
+            if not isinstance(value, dict):
+                continue
+            path = Path(str(value.get("path") or "")).resolve()
+            digest = str(value.get("sha256") or "")
+            if (not path.is_relative_to(docs) or not path.is_file() or path.is_symlink()
+                    or hashlib.sha256(path.read_bytes()).hexdigest() != digest):
+                return None
+            assets[str(role)] = {"filename": path.name, "sha256": digest}
+        viewer_value = assets.get("viewer") or {}
+        viewer_name = str(viewer_value.get("filename") or "")
+        if not viewer_name:
+            return None
+        return {
+            "url": f"/preview/{job_id}/{viewer_name}",
+            "viewer": viewer_name,
+            "assets": assets,
+            "maturity": report.get("maturity"),
+            "mode": report.get("mode"),
+            "start_node": report.get("start_node"),
+            "all_passed": report.get("all_passed") is True,
+            "candidate_eligible": report.get("candidate_eligible") is True,
+            "report_sha256": str(report_entry.get("sha256") or ""),
+        }
+
+    def preview_asset(self, job_id: str, filename: str) -> Path:
+        """Resolve one generated preview asset without exposing the Job workspace."""
+        if not filename or Path(filename).name != filename:
+            raise KeyError(job_id)
+        projection = self._preview_projection(job_id)
+        if not projection:
+            raise KeyError(job_id)
+        expected = next(
+            (str(value.get("sha256") or "") for value in projection.get("assets", {}).values()
+             if value.get("filename") == filename),
+            "",
+        )
+        if not expected:
+            raise KeyError(filename)
+        docs = (self.root / "var" / "workspaces" / "jobs" / job_id / "docs").resolve()
+        path = (docs / filename).resolve()
+        if (not path.is_relative_to(docs) or not path.is_file() or path.is_symlink()):
+            raise KeyError(filename)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise KeyError(filename)
+        return path
 
     def goal_alignment(self, *, job_id: str | None = None, limit: int = 100) -> dict[str, Any]:
         from lca_project.kernel.goal_alignment import GoalAlignmentController

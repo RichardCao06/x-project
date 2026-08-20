@@ -14,7 +14,8 @@ const pages = {
 const labels = {
   planned:'已规划', ready:'就绪', running:'运行中', paused:'已暂停', succeeded:'已成功', failed:'失败', repairable:'可修复',
   retryable:'可重试', quarantined:'已隔离', blocked:'已阻塞', blocked_budget:'预算阻塞', published:'已发布',
-  pending:'等待中', candidate:'候选', gated:'已门禁', applied:'已应用', pass:'通过', fail:'未通过', ok:'正常'
+  pending:'等待中', candidate:'候选', gated:'已门禁', applied:'已应用', pass:'通过', fail:'未通过', ok:'正常',
+  diagnostic_preview:'诊断预览', evidence_limited:'证据受限'
 };
 
 const h = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -144,11 +145,12 @@ async function createJob() {
 
 async function jobDetail(jobId) {
   setPage('jobs','JOB DETAIL'); const data=await api(`/api/jobs/${encodeURIComponent(jobId)}`);
-  const job=data.job, payload=job.payload||{}, tasks=data.tasks||[], done=tasks.filter(t=>t.status==='succeeded').length;
+  const job=data.job, payload=job.payload||{}, tasks=data.tasks||[], preview=data.preview, done=tasks.filter(t=>t.status==='succeeded').length;
   const canMaterialize=!data.run;
   const canPause=['planned','ready','leased','running','stalled','retryable','repairable','manual_review','blocked_budget'].includes(job.status);
   app.innerHTML=`<div class="reveal">
-    <section class="job-hero"><div><span class="section-kicker">${h(job.workflow_id||'UNMATERIALIZED')}</span><h2>${h(payload.target||job.id)}</h2><p class="mono">${h(job.id)}</p><div class="job-meta"><span>状态 <b>${h(labels[job.status]||job.status)}</b></span><span>策略 <b>${h(payload.policy_version||'—')}</b></span><span>风险 <b>${h(payload.risk||'standard')}</b></span><span>更新 <b>${fmtDate(job.updated_at)}</b></span></div></div>${data.run?`<div><div class="progress-ring" style="--progress:${pct(done,tasks.length)}%"><strong>${done}/${tasks.length}</strong><small>COMPLETED</small></div><div class="job-actions">${job.status==='paused'?`<button class="action-button" id="resume-job">恢复任务</button>`:canPause?`<button class="action-button" id="run-worker">执行下一步</button><button class="action-button secondary" id="pause-job">暂停任务</button>`:''}</div></div>`:`<button class="action-button" id="materialize">物化 Workflow</button>`}</section>
+    <section class="job-hero"><div><span class="section-kicker">${h(job.workflow_id||'UNMATERIALIZED')}</span><h2>${h(payload.target||job.id)}</h2><p class="mono">${h(job.id)}</p><div class="job-meta"><span>状态 <b>${h(labels[job.status]||job.status)}</b></span><span>策略 <b>${h(payload.policy_version||'—')}</b></span><span>风险 <b>${h(payload.risk||'standard')}</b></span><span>更新 <b>${fmtDate(job.updated_at)}</b></span></div></div>${data.run?`<div><div class="progress-ring" style="--progress:${pct(done,tasks.length)}%"><strong>${done}/${tasks.length}</strong><small>COMPLETED</small></div><div class="job-actions">${preview?`<a class="action-button" href="${h(preview.url)}" target="_blank" rel="noopener">打开 Preview ↗</a>`:''}${job.status==='paused'?`<button class="action-button" id="resume-job">恢复任务</button>`:canPause?`<button class="action-button" id="run-worker">执行下一步</button><button class="action-button secondary" id="pause-job">暂停任务</button>`:''}</div></div>`:`<button class="action-button" id="materialize">物化 Workflow</button>`}</section>
+    ${preview?`<section class="panel" style="margin-bottom:18px"><header class="panel-head"><div><h2>Wiki Preview 已就绪</h2><p>${h(preview.start_node||'')} · ${h(labels[preview.maturity]||preview.maturity||preview.mode)}</p></div><a class="action-button" href="${h(preview.url)}" target="_blank" rel="noopener">查看预览</a></header></section>`:''}
     <section class="panel"><header class="panel-head"><div><h2>执行图</h2><p>${data.run?h(data.run.run_id):'尚未创建持久化 Workflow Run'}</p></div>${data.run?badge(data.run.status):''}</header><div class="panel-body">${tasks.length?taskCards(tasks,data.run):empty('等待物化','Planner 尚未将这个 Job 展开为持久化 Tasks。')}</div></section>
     <section class="panel" style="margin-top:18px"><header class="panel-head"><div><h2>目标对齐与自我修复</h2><p>质量轨迹、偏离诊断、分级修复与系统变更候选</p></div><button class="action-button secondary" id="goal-audit">立即审计并修复</button></header><div class="panel-body">${alignmentMini(data.goal_alignment)}</div></section>
     <div class="split" style="margin-top:18px"><section class="panel"><header class="panel-head"><div><h2>关联产物</h2><p>输入与 Task 输出 Hash</p></div></header><div class="panel-body">${artifactMini(data.artifacts)}</div></section><section class="panel"><header class="panel-head"><div><h2>Gate 与异常</h2><p>发布资格与失败事实</p></div></header><div class="panel-body">${gateMini(data.gates,data.exceptions)}</div></section></div>

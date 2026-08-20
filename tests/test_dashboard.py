@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 import shutil
 import threading
@@ -163,6 +164,81 @@ def test_dashboard_http_api_and_static_shell(tmp_path: Path) -> None:
             urlopen(request, timeout=3)
         except Exception as exc:
             assert getattr(exc, "code", None) == 404
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_dashboard_exposes_only_hash_bound_completed_preview_assets(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_job(
+        "generate-node-wiki",
+        {"industry": "ict_equipment", "nodes": ["P003"], "publication_mode": "preview"},
+        materialize=True,
+    )
+    job_id, run_id = created["job_id"], created["run_id"]
+    workspace = root / "var" / "workspaces" / "jobs" / job_id
+    docs = workspace / "docs"
+    batch = workspace / "runs" / "wiki-batches" / "ict_equipment" / "p003-test"
+    docs.mkdir(parents=True)
+    batch.mkdir(parents=True)
+    viewer = docs / "ict_equipment-wiki-P003-preview.html"
+    viewer.write_text(
+        '<!doctype html><script src="ict_equipment-wiki-preview-data.js"></script><h1>P003</h1>',
+        encoding="utf-8",
+    )
+    data_file = docs / "ict_equipment-wiki-preview-data.js"
+    data_file.write_text("window.PREVIEW={};", encoding="utf-8")
+    (docs / "ict_equipment-wiki-preview.html").write_text("generic", encoding="utf-8")
+    graph_file = docs / "ict_equipment-name-graph-preview.html"
+    graph_file.write_text("graph", encoding="utf-8")
+    report = batch / "preview-report.json"
+    report.write_text(json.dumps({
+        "mode": "preview_unpublished",
+        "maturity": "diagnostic_preview",
+        "start_node": "P003",
+        "artifacts": {
+            "viewer": {"path": str(viewer), "sha256": hashlib.sha256(viewer.read_bytes()).hexdigest()},
+            "data": {"path": str(data_file), "sha256": hashlib.sha256(data_file.read_bytes()).hexdigest()},
+            "name_graph": {"path": str(graph_file), "sha256": hashlib.sha256(graph_file.read_bytes()).hexdigest()},
+        },
+    }), encoding="utf-8")
+    manifest = dashboard.control.artifacts.put_task_output_manifest(
+        workspace,
+        [{"path": str(report.relative_to(workspace)), "size": report.stat().st_size}],
+        {"status": "ok"},
+        run_id=run_id,
+        task_id="preview",
+        attempt_id="attempt_test_preview",
+    )
+    with dashboard.state.transaction() as conn:
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',output_hash=? "
+            "WHERE run_id=? AND task_id='preview'",
+            (manifest.digest, run_id),
+        )
+
+    detail = dashboard.job(job_id)
+    assert detail["preview"]["maturity"] == "diagnostic_preview"
+    assert detail["preview"]["url"].endswith("/ict_equipment-wiki-P003-preview.html")
+
+    server = DashboardHTTPServer(("127.0.0.1", 0), root)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        with urlopen(f"{base}{detail['preview']['url']}", timeout=3) as response:
+            assert "P003" in response.read().decode()
+            assert response.headers["Cache-Control"] == "no-store"
+        with urlopen(
+            f"{base}/preview/{job_id}/ict_equipment-wiki-preview-data.js", timeout=3
+        ) as response:
+            assert response.read().decode() == "window.PREVIEW={};"
+        with pytest.raises(HTTPError) as denied:
+            urlopen(f"{base}/preview/{job_id}/not-authorized.txt", timeout=3)
+        assert denied.value.code == 404
     finally:
         server.shutdown()
         server.server_close()
