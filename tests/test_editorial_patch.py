@@ -344,6 +344,53 @@ def test_legacy_relocation_instruction_allows_classification_list_to_collapse() 
     assert tokens == []
 
 
+def test_legacy_identifier_move_does_not_preserve_source_identifier() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": [{
+            "focus": "电子分类", "sentences": [{
+                "text": "P022 主板与P038 ASIC都列在电子分类中。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 1, "issue_type": "claim_dump",
+                  "explanation": "分类与重复计量混杂。",
+                  "repair_instruction": "保留P022分类，并将P038移入重复计量段。",
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert "P022" in tokens
+    assert "P038" not in tokens
+
+
+def test_legacy_merge_into_earlier_paragraph_deletes_later_target() -> None:
+    paragraphs = [{
+        "focus": f"段落{index}", "sentences": [{
+            "text": f"第{index}段包含P055的适配性说明。",
+            "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+            "evidence_claim_ids": [],
+        }],
+    } for index in range(1, 9)]
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": paragraphs,
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 8, "issue_type": "redundant",
+                  "explanation": "与前段重复。",
+                  "repair_instruction": "与第4段合并并压缩为不超过三句。",
+              }]}
+
+    issue = prepare_legacy_patch_review(draft, review)["issues"][0]
+
+    assert issue["operation"] == "delete"
+    assert issue["tokens_must_preserve"] == []
+
+
 def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
     draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
         "heading": "投入产出与脊边对账", "paragraphs": [{

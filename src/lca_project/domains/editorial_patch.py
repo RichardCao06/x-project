@@ -74,6 +74,14 @@ _REMOVE_IDENTIFIER = re.compile(
     rf"(?:删除|移除|去掉|剔除|不保留|不得保留)"
     rf"\s*(?:错误的|误写的|原有的)?\s*(?P<identifier>{_IDENTIFIER_PATTERN})"
 )
+_MOVE_IDENTIFIER = re.compile(
+    rf"(?:将|把)?\s*(?P<identifier>{_IDENTIFIER_PATTERN})"
+    rf"(?:(?!{_IDENTIFIER_PATTERN})[^；;。\n]){{0,40}}(?:移入|移至|并入)",
+    re.IGNORECASE,
+)
+_MERGE_INTO_PARAGRAPH = re.compile(
+    r"(?:与第(?P<with>\d+)段合并|并入第(?P<into>\d+)段)", re.IGNORECASE,
+)
 _ONLY_RETAIN_CLAUSE = re.compile(
     r"(?:本段|该段|此段)?\s*仅保留(?P<body>[^；;。\n]+)", re.IGNORECASE,
 )
@@ -102,6 +110,9 @@ def _superseded_identifiers(instructions: str) -> set[str]:
     identifiers = {match.group("old") for match in _CORRECTION.finditer(instructions)}
     identifiers.update(
         match.group("identifier") for match in _REMOVE_IDENTIFIER.finditer(instructions)
+    )
+    identifiers.update(
+        match.group("identifier") for match in _MOVE_IDENTIFIER.finditer(instructions)
     )
     return identifiers
 
@@ -245,6 +256,13 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
             else "split_replace" if _SPLIT_INSTRUCTION.search(instruction)
             else "replace"
         )
+        merge_target = _MERGE_INTO_PARAGRAPH.search(instruction)
+        if merge_target:
+            target_index = int(merge_target.group("with") or merge_target.group("into"))
+            if target_index < int(paragraph_id.removeprefix("p")) and (
+                f"{heading}.p{target_index}" in manifest
+            ):
+                operation = "delete"
         issues.append({
             "issue_id": f"E{ordinal:03d}",
             "section_id": heading,
