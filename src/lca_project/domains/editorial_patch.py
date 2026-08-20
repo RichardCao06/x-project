@@ -83,11 +83,11 @@ _MERGE_INTO_PARAGRAPH = re.compile(
     r"(?:与第(?P<with>\d+)段合并|并入第(?P<into>\d+)段)", re.IGNORECASE,
 )
 _ONLY_RETAIN_CLAUSE = re.compile(
-    r"(?:本段|该段|此段)?\s*仅保留(?P<body>[^；;。\n]+)", re.IGNORECASE,
+    r"(?:本段|该段|此段)?\s*仅保留(?P<body>[^，；;。\n]+)", re.IGNORECASE,
 )
 _CURRENT_PARAGRAPH_SCOPE = re.compile(
-    r"(?:并使)?(?:本段|该段|此段)(?:连续表达|只(?:引用|保留)|仅(?:引用|保留))"
-    r"[:：]?(?P<body>[^；;。\n]+)",
+    r"(?:并使)?(?:本段|该段|此段)(?:连续表达|集中(?:说明|处理)|只(?:引用|保留)|仅(?:引用|保留))"
+    r"[:：]?(?P<body>[^，；;。\n]+)",
     re.IGNORECASE,
 )
 _RELOCATE_LIST_INSTRUCTION = re.compile(
@@ -153,8 +153,8 @@ def _legacy_tokens_to_preserve(paragraph: dict[str, Any], instructions: str) -> 
     superseded = _superseded_identifiers(instructions)
     overrides = _quoted_identity_overrides(instructions)
     scoped_retain = (
-        _ONLY_RETAIN_CLAUSE.search(instructions)
-        or _CURRENT_PARAGRAPH_SCOPE.search(instructions)
+        _CURRENT_PARAGRAPH_SCOPE.search(instructions)
+        or _ONLY_RETAIN_CLAUSE.search(instructions)
     )
     if scoped_retain:
         retained_identifiers = set(re.findall(

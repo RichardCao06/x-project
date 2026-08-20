@@ -391,6 +391,32 @@ def test_legacy_merge_into_earlier_paragraph_deletes_later_target() -> None:
     assert issue["tokens_must_preserve"] == []
 
 
+def test_legacy_current_paragraph_scope_overrides_cross_paragraph_rule() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": [{
+            "focus": "电子输入", "sentences": [{
+                "text": "P022 主板、P046 光模块与P038 ASIC都在本段说明。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 1, "issue_type": "redundant",
+                  "explanation": "重复计量规则出现两次。",
+                  "repair_instruction": (
+                      "只保留一处P022与P038的重复计量规则；本段集中说明P022和P046的"
+                      "配置归属，第7段集中说明P038的包含关系。"
+                  ),
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert set(tokens) >= {"P022", "P046"}
+    assert "P038" not in tokens
+
+
 def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
     draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
         "heading": "投入产出与脊边对账", "paragraphs": [{

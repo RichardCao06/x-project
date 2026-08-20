@@ -27,7 +27,7 @@ DISABLED = [
     "browser_use", "in_app_browser", "computer_use", "standalone_web_search",
     "remote_plugin", "plugins", "apps", "multi_agent",
 ]
-PATCH_RUNTIME_REVISION = "wiki-editorial-patch-move-merge-v11"
+PATCH_RUNTIME_REVISION = "wiki-editorial-patch-current-scope-v12"
 PATCH_RUNTIME_REVISION_SHA256 = hashlib.sha256(PATCH_RUNTIME_REVISION.encode()).hexdigest()
 NORMALIZER_REVISION_SHA256 = hashlib.sha256(
     LEGACY_CLAIM_NORMALIZER_REVISION.encode()
