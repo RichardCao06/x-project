@@ -54,7 +54,9 @@ def legacy_paragraph_manifest(document: dict[str, Any]) -> dict[str, str]:
 _SPLIT_INSTRUCTION = re.compile(r"(?:拆分|拆成|分成|分别成段|独立成段|split)", re.IGNORECASE)
 _DELETE_INSTRUCTION = re.compile(
     r"(?:(?:删除|移除|去掉|剔除)\s*(?:整段|该段|本段|此段|这个段落|整个段落)"
+    r"|(?:删除|移除|去掉|剔除)\s*(?:该|本|此)?(?:独立)?段"
     r"|(?:整段|该段|本段|此段|这个段落|整个段落)\s*(?:删除|移除|去掉|剔除)"
+    r"|不再另立一段"
     r"|delete\s+(?:the\s+)?(?:whole\s+)?paragraph)",
     re.IGNORECASE,
 )
@@ -89,6 +91,9 @@ _MERGE_INTO_PARAGRAPH = re.compile(
 )
 _REPEATS_PRIOR_PARAGRAPH = re.compile(
     r"(?:重复第(?P<after>\d+)段|与第(?P<before>\d+)段重复)", re.IGNORECASE,
+)
+_MERGE_NUMBERED_PARAGRAPHS = re.compile(
+    r"将第(?P<left>\d+)段与第(?P<right>\d+)段合并", re.IGNORECASE,
 )
 _ONLY_RETAIN_CLAUSE = re.compile(
     r"(?:本段|该段|此段)?\s*仅保留(?P<body>[^，；;。\n]+)", re.IGNORECASE,
@@ -254,6 +259,17 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
         grouped.setdefault(key, []).append(issue)
     if not grouped:
         raise EditorialPatchError("NO_GO review requires at least one targetable issue")
+    merge_sources: set[tuple[str, int]] = set()
+    for key, observations in grouped.items():
+        heading, _paragraph_id = key.rsplit(".", 1)
+        for observation in observations:
+            instruction_text = str(observation.get("repair_instruction") or "")
+            for match in _MERGE_NUMBERED_PARAGRAPHS.finditer(instruction_text):
+                left, right = int(match.group("left")), int(match.group("right"))
+                if left != right and all(
+                    f"{heading}.p{index}" in manifest for index in (left, right)
+                ):
+                    merge_sources.add((heading, max(left, right)))
     issues = []
     for ordinal, (key, observations) in enumerate(grouped.items(), 1):
         heading, paragraph_id = key.rsplit(".", 1)
@@ -269,6 +285,8 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
             else "split_replace" if _SPLIT_INSTRUCTION.search(instruction)
             else "replace"
         )
+        if (heading, int(paragraph_id.removeprefix("p"))) in merge_sources:
+            operation = "delete"
         merge_target = _MERGE_INTO_PARAGRAPH.search(instruction)
         repeated_prior = _REPEATS_PRIOR_PARAGRAPH.search(explanation_text)
         target_index = None

@@ -393,7 +393,7 @@ def test_a013_runtime_rematerializes_and_applies_four_hash_bound_targets(
     assert (content_path.parent / "frozen-editorial-repair.json").is_file()
     assert invocation["reused_existing_repairs"] is False
     assert runtime.PATCH_RUNTIME_REVISION_SHA256 == (
-        "1eb2fbd480719633f272cc3048c4f2034cfb4bd82f21849ffe6fdcfccd4e1d67"
+        "07a1d500a82becb1421d7069c2c73e61772c11bea2dd8afd475425c211896a8b"
     )
     assert invocation["patch_runtime_revision_sha256"] == runtime.PATCH_RUNTIME_REVISION_SHA256
     assert invocation["prompt_sha256"] == receipt["reuse_key"]["prompt_sha256"]

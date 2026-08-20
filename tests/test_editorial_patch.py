@@ -478,6 +478,62 @@ def test_legacy_backward_merge_deletes_later_duplicate(
     assert issue["tokens_must_preserve"] == []
 
 
+def test_legacy_numbered_cross_target_merge_deletes_later_target() -> None:
+    paragraphs = [{
+        "focus": f"段落{index}", "sentences": [{
+            "text": f"第{index}段说明代理适用状态与证据边界。",
+            "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+            "evidence_claim_ids": [],
+        }],
+    } for index in range(1, 7)]
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "数据适用状态与缺口", "paragraphs": paragraphs,
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [
+                  {"section": "数据适用状态与缺口", "paragraph_index": 3,
+                   "issue_type": "redundant", "explanation": "与第6段重复。",
+                   "repair_instruction": "将第3段与第6段合并为一个代理适用状态段。"},
+                  {"section": "数据适用状态与缺口", "paragraph_index": 6,
+                   "issue_type": "poor_transition", "explanation": "出现两个中心。",
+                   "repair_instruction": "代理段只保留适用、失效、停止和重启条件。"},
+              ]}
+
+    issues = prepare_legacy_patch_review(draft, review)["issues"]
+    by_paragraph = {issue["paragraph_id"]: issue for issue in issues}
+
+    assert by_paragraph["p3"]["operation"] == "replace"
+    assert by_paragraph["p6"]["operation"] == "delete"
+    assert by_paragraph["p6"]["tokens_must_preserve"] == []
+
+
+@pytest.mark.parametrize(
+    "instruction",
+    ["删除该独立段。", "把影响并入前段，不再另立一段。"],
+)
+def test_legacy_explicit_independent_paragraph_removal_is_delete(instruction: str) -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "数据缺口", "paragraphs": [{
+            "focus": "重复段", "sentences": [{
+                "text": "该段重复前文已经定义的数据缺口规则。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "数据缺口", "paragraph_index": 1,
+                  "issue_type": "redundant", "explanation": "重复前文。",
+                  "repair_instruction": instruction,
+              }]}
+
+    issue = prepare_legacy_patch_review(draft, review)["issues"][0]
+
+    assert issue["operation"] == "delete"
+    assert issue["tokens_must_preserve"] == []
+
+
 def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
     draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
         "heading": "投入产出与脊边对账", "paragraphs": [{
