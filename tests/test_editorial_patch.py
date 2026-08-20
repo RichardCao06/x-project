@@ -417,6 +417,34 @@ def test_legacy_current_paragraph_scope_overrides_cross_paragraph_rule() -> None
     assert "P038" not in tokens
 
 
+def test_legacy_identity_tokens_exclude_provenance_suffixes() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": [{
+            "focus": "输入分类", "sentences": [{
+                "text": (
+                    "P029 PSU电源模组对应供电为依据，"
+                    "P051 风扇模组, 服务器/机架用, 成品对应热管理为依据。"
+                ),
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 1,
+                  "issue_type": "unsupported_fusion", "explanation": "来源字段粘连。",
+                  "repair_instruction": "删除‘对应供电为依据’式残句，不要机械插入来源/依据字段。",
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert "P029 PSU电源模组" in tokens
+    assert "P051 风扇模组, 服务器/机架用, 成品" in tokens
+    assert not [token for token in tokens if "对应供电为依据" in token]
+    assert not [token for token in tokens if "对应热管理为依据" in token]
+
+
 def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
     draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
         "heading": "投入产出与脊边对账", "paragraphs": [{

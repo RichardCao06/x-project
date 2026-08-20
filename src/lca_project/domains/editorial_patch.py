@@ -65,6 +65,9 @@ _IDENTITY_TOKEN = re.compile(
     rf"(?=$|[、，；。\n\"“”'‘’]|(?:和|与|及)?{_IDENTIFIER_PATTERN}\s|(?:和|与|及)全部)"
 )
 _QUOTED_TOKEN = re.compile(r"[\"“'‘]([^\"”'’]+)[\"”'’]")
+_PROVENANCE_SUFFIX = re.compile(
+    r"对应(?:电子功能|供电|热管理|结构或导风)为(?:分类)?依据(?:识别时)?$"
+)
 _CORRECTION = re.compile(
     rf"(?:将|把)?\s*(?P<old>{_IDENTIFIER_PATTERN})\s*"
     rf"(?:更正|修正|纠正|改正|替换|改)(?:为|成)\s*"
@@ -119,11 +122,13 @@ def _superseded_identifiers(instructions: str) -> set[str]:
 
 def _identity_tokens(text: str) -> list[str]:
     """Extract one graph identity per token without binding prose punctuation."""
-    return list(dict.fromkeys(
-        match.group(0).strip().rstrip("和与及")
-        for match in _IDENTITY_TOKEN.finditer(text)
-        if match.group(0).strip().rstrip("和与及")
-    ))
+    tokens = []
+    for match in _IDENTITY_TOKEN.finditer(text):
+        token = match.group(0).strip().rstrip("和与及")
+        token = _PROVENANCE_SUFFIX.sub("", token).rstrip("，,；; ")
+        if token:
+            tokens.append(token)
+    return list(dict.fromkeys(tokens))
 
 
 def _quoted_identity_overrides(instructions: str) -> dict[str, list[str]]:
