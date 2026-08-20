@@ -293,6 +293,57 @@ def test_legacy_only_retain_instruction_drops_relocated_identifiers() -> None:
     assert "P008" not in tokens
 
 
+def test_legacy_relocation_scope_preserves_only_current_paragraph_identifiers() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入产出与脊边对账", "paragraphs": [{
+            "focus": "脊边与功能核验", "sentences": [{
+                "text": "P063 TIM与P061 线束需要核验，清单还包括P022、P046和P008。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入产出与脊边对账", "paragraph_index": 1,
+                  "issue_type": "disconnected", "explanation": "清单打断论点。",
+                  "repair_instruction": (
+                      "把全部脊边清单移至专门的图谱对账段，并使本段连续表达："
+                      "P063与P061为何必须分项、需要什么证据。"
+                  ),
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert set(tokens) >= {"P063", "P061"}
+    assert {"P022", "P046", "P008"}.isdisjoint(tokens)
+
+
+def test_legacy_relocation_instruction_allows_classification_list_to_collapse() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入产出与脊边对账", "paragraphs": [{
+            "focus": "分类", "sentences": [{
+                "text": "电子类包括P022 主板和P046 光模块，供电类包括P029 电源。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入产出与脊边对账", "paragraph_index": 1,
+                  "issue_type": "claim_dump", "explanation": "逐项堆列。",
+                  "repair_instruction": (
+                      "只概括电子和供电类别；完整流名称留在脊边对账清单中，"
+                      "不在分类说明里再次逐项堆列。"
+                  ),
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert tokens == []
+
+
 def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
     draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
         "heading": "投入产出与脊边对账", "paragraphs": [{

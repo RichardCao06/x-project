@@ -77,6 +77,17 @@ _REMOVE_IDENTIFIER = re.compile(
 _ONLY_RETAIN_CLAUSE = re.compile(
     r"(?:本段|该段|此段)?\s*仅保留(?P<body>[^；;。\n]+)", re.IGNORECASE,
 )
+_CURRENT_PARAGRAPH_SCOPE = re.compile(
+    r"(?:并使)?(?:本段|该段|此段)(?:连续表达|只(?:引用|保留)|仅(?:引用|保留))"
+    r"[:：]?(?P<body>[^；;。\n]+)",
+    re.IGNORECASE,
+)
+_RELOCATE_LIST_INSTRUCTION = re.compile(
+    r"(?:(?:把|将)[^；;。\n]{0,60}(?:清单|完整流名称)[^；;。\n]{0,30}(?:移至|留在)"
+    r"|(?:清单|完整流名称)[^；;。\n]{0,30}(?:移至|留在)[^；;。\n]{0,60}"
+    r"(?:不在|不得))",
+    re.IGNORECASE,
+)
 
 
 def _paragraph_text(paragraph: dict[str, Any]) -> str:
@@ -130,10 +141,13 @@ def _legacy_tokens_to_preserve(paragraph: dict[str, Any], instructions: str) -> 
     source = paragraph_text + "\n" + instructions
     superseded = _superseded_identifiers(instructions)
     overrides = _quoted_identity_overrides(instructions)
-    only_retain = _ONLY_RETAIN_CLAUSE.search(instructions)
-    if only_retain:
+    scoped_retain = (
+        _ONLY_RETAIN_CLAUSE.search(instructions)
+        or _CURRENT_PARAGRAPH_SCOPE.search(instructions)
+    )
+    if scoped_retain:
         retained_identifiers = set(re.findall(
-            _IDENTIFIER_PATTERN, only_retain.group("body")
+            _IDENTIFIER_PATTERN, scoped_retain.group("body")
         )) - superseded
         if retained_identifiers:
             tokens = [
@@ -148,6 +162,8 @@ def _legacy_tokens_to_preserve(paragraph: dict[str, Any], instructions: str) -> 
             )
             tokens.extend(sorted(retained_identifiers))
             return list(dict.fromkeys(token for token in tokens if token))
+    if _RELOCATE_LIST_INSTRUCTION.search(instructions):
+        return []
     tokens = []
     for token in _identity_tokens(paragraph_text):
         identifiers = re.findall(_IDENTIFIER_PATTERN, token)
