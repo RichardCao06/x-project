@@ -27,7 +27,7 @@ DISABLED = [
     "browser_use", "in_app_browser", "computer_use", "standalone_web_search",
     "remote_plugin", "plugins", "apps", "multi_agent",
 ]
-PATCH_RUNTIME_REVISION = "wiki-editorial-patch-distinct-splits-v9"
+PATCH_RUNTIME_REVISION = "wiki-editorial-patch-validation-feedback-v10"
 PATCH_RUNTIME_REVISION_SHA256 = hashlib.sha256(PATCH_RUNTIME_REVISION.encode()).hexdigest()
 NORMALIZER_REVISION_SHA256 = hashlib.sha256(
     LEGACY_CLAIM_NORMALIZER_REVISION.encode()
@@ -183,7 +183,8 @@ def can_reuse_repairs(previous_invocation: object, payload: object, patch_review
     )
 
 
-def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str:
+def build_prompt(document: dict, targets: list[dict], claims: list[dict], *,
+                 previous_failure: dict | None = None) -> str:
     """Build a node-local prompt without policy copied from a previous repair."""
     node_id = str(document.get("node_id") or "").strip()
     if not node_id:
@@ -215,7 +216,7 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str
         for claim in claims
         if str(claim.get("claim_id") or "") in remaining_uses
     ]
-    return (
+    prompt = (
         "你是中文技术百科的段落修订编辑。禁止工具、联网和读取文件。只替换 TARGETS 中被独立审查点名的段落，"
         "每个 issue 精确返回一个 repair，并逐字回传 issue_id、section_id、paragraph_id、target_hash。"
         "operation=replace 时 replacements 精确返回一段；operation=split_replace 时返回至少两段，顺序就是插入顺序。"
@@ -239,11 +240,20 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str
         "split_replace 的多个 replacements 不得复用同一句式模板或只替换类别名称；每段 thesis 必须直接陈述"
         "该类别独有的分类判据、输入范围或对账风险。任意两个新句不得近似复述，尤其不得重复"
         "‘按可验证配置归属识别，以支持BOM与质量对账’这类公共套话；公共原则只在第一段写一次。"
+        "当多个分类段被要求拆分时，禁止每段都使用‘X类别以Y功能为分类判据’；应直接以该段的具体输入、"
+        "独有核验风险或边界后果开头，使各段句法和论证职责都不同。"
         "不要修改、总结或返回未被点名的段落。输出只匹配 schema。\n"
         f"NODE_ID={node_id}\n"
         f"TARGETS={json.dumps(targets, ensure_ascii=False, separators=(',', ':'))}\n"
         f"CLAIMS={json.dumps(capacity_bound_claims, ensure_ascii=False, separators=(',', ':'))}"
     )
+    if previous_failure:
+        prompt += (
+            "\nPREVIOUS_ATTEMPT_REJECTED="
+            + json.dumps(previous_failure, ensure_ascii=False, separators=(",", ":"))
+            + "\n上面的输出是负样本：必须针对 validation_error 改变句法和内容组织，不得复制或近似改写。"
+        )
+    return prompt
 
 
 def main() -> int:
@@ -299,7 +309,27 @@ def main() -> int:
     current_patch_review_hash = sha256(patch_review_path)
     normalizer_path = Path(normalize_legacy_repair_claim_bindings.__code__.co_filename).resolve()
     normalizer_sha256 = sha256(normalizer_path)
-    prompt = build_prompt(document, targets, claims)
+    previous_failure = None
+    if invocation.is_file() and usage.is_file() and repairs_raw.is_file():
+        try:
+            previous_invocation = load(invocation)
+            previous_usage = load(usage)
+            previous_repairs = load(repairs_raw)
+            if (
+                previous_invocation.get("content_sha256") == current_content_hash
+                and previous_invocation.get("review_sha256") == current_review_hash
+                and previous_usage.get("exit_code") not in {None, 0}
+                and previous_usage.get("raw_repairs_sha256")
+                    == payload_sha256(previous_repairs)
+                and previous_usage.get("error")
+            ):
+                previous_failure = {
+                    "validation_error": str(previous_usage["error"]),
+                    "rejected_repairs": previous_repairs,
+                }
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            previous_failure = None
+    prompt = build_prompt(document, targets, claims, previous_failure=previous_failure)
     prompt_sha256 = hashlib.sha256(prompt.encode()).hexdigest()
     reuse_existing_repairs = False
     if repairs_raw.is_file() and invocation.is_file():

@@ -253,6 +253,30 @@ def test_a013_prompt_exposes_remaining_capacity_and_graph_fact_scope() -> None:
     assert "不得在当前段写‘应移至’之类编辑说明" in prompt
     assert "split_replace 的多个 replacements 不得复用同一句式模板" in prompt
     assert "公共原则只在第一段写一次" in prompt
+    assert "禁止每段都使用‘X类别以Y功能为分类判据’" in prompt
+
+
+def test_prompt_includes_previous_validator_failure_as_negative_example() -> None:
+    runtime = load_runtime()
+    rejected = {"repairs": [{"issue_id": "E001", "replacements": [{
+        "focus": "供电分类", "sentences": [{"text": "供电类别以供电功能为分类判据。"}],
+    }]}]}
+
+    prompt = runtime.build_prompt(
+        {"protocol": "wiki-content-draft-v2", "node_id": "A013"},
+        [{"issue": {"issue_id": "E001", "section_id": "组成", "paragraph_id": "p1"},
+          "paragraph": {}}],
+        [],
+        previous_failure={
+            "validation_error": "正文存在近重复句: ratio=0.857>0.72",
+            "rejected_repairs": rejected,
+        },
+    )
+
+    assert "PREVIOUS_ATTEMPT_REJECTED=" in prompt
+    assert "ratio=0.857>0.72" in prompt
+    assert "供电类别以供电功能为分类判据" in prompt
+    assert "上面的输出是负样本" in prompt
 
 
 def _paragraph(focus: str) -> dict:
@@ -369,7 +393,7 @@ def test_a013_runtime_rematerializes_and_applies_four_hash_bound_targets(
     assert (content_path.parent / "frozen-editorial-repair.json").is_file()
     assert invocation["reused_existing_repairs"] is False
     assert runtime.PATCH_RUNTIME_REVISION_SHA256 == (
-        "6e7bedce0fdade4998db021ee6b1a85bff6e680035ef1d20e359aea0603f88e7"
+        "e9dd3d6b89fc1a98eee6011a003fc610cf435df3594d31a0ff9f244d930a5159"
     )
     assert invocation["patch_runtime_revision_sha256"] == runtime.PATCH_RUNTIME_REVISION_SHA256
     assert invocation["prompt_sha256"] == receipt["reuse_key"]["prompt_sha256"]
