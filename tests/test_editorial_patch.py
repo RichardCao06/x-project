@@ -445,6 +445,39 @@ def test_legacy_identity_tokens_exclude_provenance_suffixes() -> None:
     assert not [token for token in tokens if "对应热管理为依据" in token]
 
 
+@pytest.mark.parametrize(
+    ("explanation", "instruction"),
+    [
+        ("本段与前文重复。", "将第3段与本段合并为一个产品族冲突段。"),
+        ("本段重复第4段的全部信息。", "只保留一个P064段落。"),
+        ("本段与第5段重复，没有新增边界。", "合并两段并保留一套规则。"),
+    ],
+)
+def test_legacy_backward_merge_deletes_later_duplicate(
+    explanation: str, instruction: str,
+) -> None:
+    paragraphs = [{
+        "focus": f"段落{index}", "sentences": [{
+            "text": f"第{index}段的输入核验说明保持完整。",
+            "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+            "evidence_claim_ids": [],
+        }],
+    } for index in range(1, 9)]
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": paragraphs,
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 8, "issue_type": "redundant",
+                  "explanation": explanation, "repair_instruction": instruction,
+              }]}
+
+    issue = prepare_legacy_patch_review(draft, review)["issues"][0]
+
+    assert issue["operation"] == "delete"
+    assert issue["tokens_must_preserve"] == []
+
+
 def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
     draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
         "heading": "投入产出与脊边对账", "paragraphs": [{

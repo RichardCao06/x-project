@@ -83,7 +83,12 @@ _MOVE_IDENTIFIER = re.compile(
     re.IGNORECASE,
 )
 _MERGE_INTO_PARAGRAPH = re.compile(
-    r"(?:与第(?P<with>\d+)段合并|并入第(?P<into>\d+)段)", re.IGNORECASE,
+    r"(?:与第(?P<with>\d+)段合并|并入第(?P<into>\d+)段|"
+    r"将第(?P<prior>\d+)段与本段合并)",
+    re.IGNORECASE,
+)
+_REPEATS_PRIOR_PARAGRAPH = re.compile(
+    r"(?:重复第(?P<after>\d+)段|与第(?P<before>\d+)段重复)", re.IGNORECASE,
 )
 _ONLY_RETAIN_CLAUSE = re.compile(
     r"(?:本段|该段|此段)?\s*仅保留(?P<body>[^，；;。\n]+)", re.IGNORECASE,
@@ -256,14 +261,28 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
         paragraph = section["paragraphs"][int(paragraph_id.removeprefix("p")) - 1]
         instruction = "\n".join(str(row.get("repair_instruction") or "").strip()
                                   for row in observations)
+        explanation_text = "\n".join(
+            str(row.get("explanation") or "").strip() for row in observations
+        )
         operation = (
             "delete" if _DELETE_INSTRUCTION.search(instruction)
             else "split_replace" if _SPLIT_INSTRUCTION.search(instruction)
             else "replace"
         )
         merge_target = _MERGE_INTO_PARAGRAPH.search(instruction)
+        repeated_prior = _REPEATS_PRIOR_PARAGRAPH.search(explanation_text)
+        target_index = None
         if merge_target:
-            target_index = int(merge_target.group("with") or merge_target.group("into"))
+            target_index = int(
+                merge_target.group("with")
+                or merge_target.group("into")
+                or merge_target.group("prior")
+            )
+        elif repeated_prior and re.search(r"合并|只保留一个", instruction):
+            target_index = int(
+                repeated_prior.group("after") or repeated_prior.group("before")
+            )
+        if target_index is not None:
             if target_index < int(paragraph_id.removeprefix("p")) and (
                 f"{heading}.p{target_index}" in manifest
             ):
