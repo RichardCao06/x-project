@@ -1,6 +1,7 @@
 """End-to-end self-healing and goal-alignment supervisor."""
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import asdict
 from pathlib import Path
@@ -181,6 +182,47 @@ class GoalAlignmentController:
                     required.append(task_id)
         return required
 
+    @staticmethod
+    def _editorial_verdict_is_hash_bound(batch: Path | None, target: str) -> bool:
+        """Verify the independent verdict against the exact patched content.
+
+        A succeeded task row proves that the reviewer process completed, but it
+        does not by itself prove either the requested verdict or which content
+        was reviewed.  The editorial policy artifact binds both immutable file
+        hashes, so outcome validation fails closed unless all three artifacts
+        remain coherent.
+        """
+        if batch is None or target.upper() != "GO":
+            return False
+        content_path = batch / "content-runtime/content-result.json"
+        review_path = batch / "editorial-loop/editorial-review.json"
+        policy_path = batch / "editorial-loop/editorial-policy-decision.json"
+        try:
+            review = _payload(review_path.read_text(encoding="utf-8"))
+            policy = _payload(policy_path.read_text(encoding="utf-8"))
+            checks = review.get("checks")
+            if (
+                not content_path.is_file()
+                or review.get("protocol") != "wiki-editorial-review-v1"
+                or review.get("verdict") != "GO"
+                or not isinstance(checks, dict)
+                or not checks
+                or not all(value is True for value in checks.values())
+                or bool(review.get("issues"))
+                or policy.get("protocol") != "wiki-editorial-policy-decision-v1"
+                or policy.get("decision") != "accept"
+            ):
+                return False
+            content_sha256 = hashlib.sha256(content_path.read_bytes()).hexdigest()
+            review_sha256 = hashlib.sha256(review_path.read_bytes()).hexdigest()
+            return (
+                policy.get("content_sha256") == content_sha256
+                and policy.get("review_sha256") == review_sha256
+                and policy.get("raw_review_sha256") == review_sha256
+            )
+        except (OSError, TypeError, ValueError):
+            return False
+
     def _evaluate_pending_system_repairs(self, job_id: str, run_id: str | None,
                                          tasks: list[dict[str, Any]],
                                          observation: Any) -> list[dict[str, Any]]:
@@ -262,6 +304,29 @@ class GoalAlignmentController:
                     forced_verdict = "ineffective"
                 elif any(item.get("status") != "succeeded" for item in fresh_tasks):
                     continue
+                editorial_clause = next((
+                    item for item in requested_proof
+                    if "editorial" in (
+                        f"{item.get('metric') or ''} {item.get('evidence_artifact') or ''}"
+                    ).lower()
+                    and "verdict" in str(item.get("metric") or "").lower()
+                ), None)
+                if (
+                    not failed_proof_tasks
+                    and editorial_clause
+                    and not self._editorial_verdict_is_hash_bound(
+                        self._batch(self.state.get("jobs", job_id) or {}, run_id),
+                        str(editorial_clause.get("target") or ""),
+                    )
+                ):
+                    failed_proof_tasks.append({
+                        "task_id": "editorial_review",
+                        "status": "proof_mismatch",
+                        "updated_at": str(task_by_id.get("editorial_review", {}).get(
+                            "updated_at"
+                        ) or ""),
+                    })
+                    forced_verdict = "ineffective"
                 proof_task_id = ",".join(required_replay_tasks)
                 proof_task = max(
                     fresh_tasks, key=lambda item: str(item.get("updated_at") or "")

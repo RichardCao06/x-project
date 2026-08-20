@@ -115,18 +115,53 @@ class FailureTriageAgent:
             "source_job_id": source_job_id, "source_run_id": source_run_id,
             "task_id": task_id, "dossier": dossier,
         }
+        inserted = False
         with self.state.transaction() as conn:
-            conn.execute(
+            inserted = conn.execute(
                 "INSERT OR IGNORE INTO failure_triage_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (triage_run_id, deviation_id, source_job_id, source_run_id, task_id,
                  "queued", self.MODEL, None, dossier_hash, canonical(payload), None, now, now),
+            ).rowcount == 1
+            # ``deviation_id`` is the durable identity in the production
+            # schema.  A later observation can produce a different dossier
+            # hash (and therefore a different proposed triage_run_id) for the
+            # same deviation.  Resolve that uniqueness conflict to the
+            # canonical persisted row instead of emitting a phantom queued
+            # event and then reading an ID that was never inserted.
+            persisted = conn.execute(
+                "SELECT triage_run_id FROM failure_triage_runs WHERE deviation_id=?",
+                (deviation_id,),
+            ).fetchone()
+        if persisted is None:
+            raise FailureTriageError("triage queue did not persist a canonical row")
+        persisted_id = str(persisted["triage_run_id"])
+        if inserted:
+            self.control.events.append(
+                "failure_triage", persisted_id, "failure_triage.queued",
+                {"deviation_id": deviation_id, "job_id": source_job_id,
+                 "task_id": task_id, "dossier_hash": dossier_hash},
+                actor="goal-alignment-controller",
             )
-        self.control.events.append(
-            "failure_triage", triage_run_id, "failure_triage.queued",
-            {"deviation_id": deviation_id, "job_id": source_job_id, "task_id": task_id},
-            actor="goal-alignment-controller",
-        )
-        return self.get(triage_run_id)
+        elif persisted_id != triage_run_id:
+            duplicate_payload = {
+                "deviation_id": deviation_id, "job_id": source_job_id,
+                "task_id": task_id, "suppressed_triage_run_id": triage_run_id,
+                "suppressed_dossier_hash": dossier_hash,
+            }
+            self.control.events.append(
+                "failure_triage", persisted_id, "failure_triage.duplicate_suppressed",
+                duplicate_payload,
+                actor="goal-alignment-controller",
+                # Repeated Supervisor cycles over the same stale observation
+                # are idempotent at the event ledger too.  This turns the
+                # production 22k-event amplification into one truthful audit
+                # record per distinct suppressed dossier.
+                event_id="evt_" + digest({
+                    "event": "failure_triage.duplicate_suppressed",
+                    "canonical": persisted_id, "payload": duplicate_payload,
+                })[:32],
+            )
+        return self.get(persisted_id)
 
     def get(self, triage_run_id: str) -> dict[str, Any]:
         row = self.state._connection().execute(

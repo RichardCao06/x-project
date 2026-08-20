@@ -47,8 +47,11 @@ def test_missing_english_name_gets_audited_english_discovery_terms(tmp_path: Pat
     assert terms and all(not re.search(r"[\u3400-\u9fff]", term) for term in terms)
     assert "laptop computer" in " ".join(terms)
     gate = load_script("gate_wiki_research_plan.py").evaluate(plan)
-    assert gate["decision"] == "PASS"
+    # The terminology translation is valid, while an activity without a
+    # complete field-level table contract now fails closed at G1.
+    assert gate["decision"] == "REPAIR"
     assert gate["checks"]["english_translation_audited"] is True
+    assert gate["checks"]["english_field_translation_coverage_complete"] is False
 
 
 def test_l1_translation_repair_artifact_changes_next_research_plan(tmp_path: Path) -> None:
@@ -94,6 +97,47 @@ def test_l1_translation_repair_artifact_changes_next_research_plan(tmp_path: Pat
     gate = load_script("gate_wiki_research_plan.py").evaluate(plan)
     assert gate["decision"] == "REPAIR"
     assert gate["checks"]["english_field_translation_coverage_complete"] is False
+
+
+def test_a013_activity_field_contract_matches_blueprint_and_gate_fails_closed() -> None:
+    blueprint_builder = load_script("build_wiki_content_blueprint.py")
+    plan_builder = load_script("build_wiki_research_plan.py")
+    gate_builder = load_script("gate_wiki_research_plan.py")
+    graph = json.loads((
+        ROOT / "vendor/lca_cornerstone/fixtures/wiki-phase2/docs/ict_equipment-name-graph.json"
+    ).read_text(encoding="utf-8"))
+    blueprint = blueprint_builder.build(graph, "A013")
+    translations, contract = plan_builder.field_translation_contract("A013")
+    expected = {
+        field for fields in blueprint["evidence_tables"].values() for field in fields
+    }
+
+    assert contract is not None
+    assert contract["required_field_count"] == 35
+    assert set(translations) == expected
+    assert all(not re.search(
+        r"[\u3400-\u9fff]|(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", value,
+    ) for value in translations.values())
+    plan = {
+        "node_id": "A013", "languages": ["zh", "en"],
+        "terminology": {
+            "canonical_zh": blueprint["node_name"],
+            "canonical_en": "100G/400G 2U network switch final assembly",
+            "candidate_aliases_en": [],
+        },
+        "research_questions": sorted(gate_builder.REQUIRED_QUESTIONS),
+        "source_role_contract": {
+            key: "test" for key in gate_builder.REQUIRED_SOURCE_ROLES
+        },
+        "field_translations": translations, "field_translation_contract": contract,
+    }
+    assert gate_builder.evaluate(plan)["decision"] == "PASS"
+
+    plan.pop("field_translation_contract")
+    plan["field_translations"] = {}
+    rejected = gate_builder.evaluate(plan)
+    assert rejected["decision"] == "REPAIR"
+    assert rejected["checks"]["english_field_translation_coverage_complete"] is False
 
 
 def test_semantic_closure_has_no_character_count_requirement() -> None:

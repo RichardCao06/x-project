@@ -13,6 +13,8 @@ from lca_project.control import ControlPlane
 from lca_project.dashboard import DashboardService
 from lca_project.dashboard.server import DashboardHTTPServer
 from lca_project.kernel.goal_alignment.autonomous_supervisor import AutonomousJobSupervisor
+from lca_project.kernel.goal_alignment.change_controller import ChangeController
+from lca_project.kernel.goal_alignment.system_repair_agent import SystemRepairAgent
 from lca_project.kernel.goal_alignment.store import AlignmentStore
 from lca_project.kernel.state import utcnow
 
@@ -201,6 +203,110 @@ def test_dashboard_reconciler_restarts_campaign_with_pending_wakeup(
 
     assert result["status"] == "started"
     assert started == [campaign_id]
+
+
+def test_supervisor_consumes_durable_queued_repair_before_audit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    supervisor = AutonomousJobSupervisor(root, supervisor_id="repair-consumer")
+    campaign_id = supervisor.create_campaign(spec("A039"))["campaign"]["campaign_id"]
+    supervisor.tick(campaign_id, execute_task=False)
+    view = supervisor.campaign(campaign_id)
+    item = view["items"][0]
+    candidate = ChangeController(root).propose(
+        source_deviation_id="dev_orphan", target="propose_code_change", risk="medium",
+        change={"diagnosis": "ORPHAN_REPAIR_TEST"},
+        rollback={"strategy": "restore_source_snapshot"},
+    )
+    queued = SystemRepairAgent(root).queue(
+        candidate_id=candidate["candidate_id"], source_job_id=item["job_id"],
+        source_run_id=item["run_id"], request={"recovery_task": "content_compose"},
+    )
+    calls: list[str] = []
+
+    class FakeRepairAgent:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def execute(self, repair_run_id: str) -> dict:
+            calls.append(repair_run_id)
+            return {"repair_run_id": repair_run_id, "status": "failed"}
+
+    class FailingController:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def audit_job(self, *_: object, **__: object) -> dict:
+            raise KeyError("poison deviation")
+
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.autonomous_supervisor.SystemRepairAgent",
+        FakeRepairAgent,
+    )
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.autonomous_supervisor.GoalAlignmentController",
+        FailingController,
+    )
+
+    with pytest.raises(KeyError, match="poison deviation"):
+        supervisor._supervise_item(
+            view["campaign"], item, execute_task=False,
+        )
+
+    assert calls == [queued["repair_run_id"]]
+
+
+def test_supervisor_cycle_failures_are_truthful_and_open_circuit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    supervisor = AutonomousJobSupervisor(root, supervisor_id="circuit-test")
+    campaign_id = supervisor.create_campaign(spec("A039"))["campaign"]["campaign_id"]
+    supervisor.tick(campaign_id, execute_task=False)
+    item = supervisor.campaign(campaign_id)["items"][0]
+    prior_audit = item["last_audit_at"]
+    AlignmentStore(supervisor.state).request_supervision(
+        job_id=item["job_id"], run_id=item["run_id"], reason="poison_deviation",
+        deviation_ids=["dev_poison"], observation_hash="poison",
+    )
+
+    class FailingController:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def audit_job(self, *_: object, **__: object) -> dict:
+            raise KeyError("missing canonical triage")
+
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.autonomous_supervisor.GoalAlignmentController",
+        FailingController,
+    )
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.autonomous_supervisor.time.sleep",
+        lambda _seconds: None,
+    )
+
+    result = supervisor.run(campaign_id, poll_seconds=0.01)
+    final = supervisor.campaign(campaign_id)
+
+    assert result["status"] == "needs_attention"
+    assert result["action"] == "supervision_circuit_opened"
+    assert final["campaign"]["status"] == "needs_attention"
+    assert final["items"][0]["status"] == "blocked"
+    assert final["items"][0]["last_audit_at"] == prior_audit
+    assert "KeyError" in final["items"][0]["last_error"]
+    assert final["supervisor"]["status"] == "needs_attention"
+    assert final["supervisor"]["last_error"]
+    assert supervisor.state._connection().execute(
+        "SELECT COUNT(*) FROM events WHERE aggregate_id=? "
+        "AND event_type='autonomy.supervision_cycle_failed'", (campaign_id,),
+    ).fetchone()[0] == supervisor.MAX_CONSECUTIVE_CYCLE_FAILURES
+
+    # A circuit-opened campaign requires an explicit operator resume; the
+    # two-second wakeup reconciler must not recreate the crash loop.
+    service = DashboardService(root)
+    assert service.reconcile_goal_wakeups_once() == {"status": "idle", "campaigns": []}
 
 
 def test_campaign_pause_and_resume_propagate_to_job(tmp_path: Path) -> None:

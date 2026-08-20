@@ -281,6 +281,7 @@ class SystemMetaSupervisor:
         )
         had_failure = False
         awaiting_approval = False
+        in_progress = False
         for action in runnable:
             action["status"] = "running"
             self._save_repair_job(record, "running", graph)
@@ -371,14 +372,26 @@ class SystemMetaSupervisor:
                     repair = (SystemRepairAgent(self.root, self.control).execute(
                         str(queued["repair_run_id"])
                     ) if queued["status"] == "queued" else queued)
-                    action["status"] = "completed"
                     action["proof_contract"] = [
                         *action.get("proof_contract", []),
                         {"repair_run_id": repair["repair_run_id"],
                          "execution_status": repair["status"]},
                     ]
                     if repair["status"] == "awaiting_approval":
+                        action["status"] = "completed"
                         awaiting_approval = True
+                    elif repair["status"] in {
+                        "failed", "rejected", "rolled_back", "ineffective",
+                    }:
+                        action["status"] = "failed"
+                        had_failure = True
+                    elif repair["status"] in {"queued", "coding", "validating"}:
+                        # A concurrent repair executor owns the durable child.
+                        # Keep this action retryable and the parent nonterminal.
+                        action["status"] = "ready"
+                        in_progress = True
+                    else:
+                        action["status"] = "completed"
                 else:
                     action["status"] = "completed"
             except (OSError, ValueError, RuntimeError, KeyError) as exc:
@@ -390,9 +403,15 @@ class SystemMetaSupervisor:
                 had_failure = True
                 continue
         final_status = ("failed" if had_failure else
-                        "awaiting_approval" if awaiting_approval else "completed")
+                        "awaiting_approval" if awaiting_approval else
+                        "running" if in_progress else "completed")
         self._save_repair_job(record, final_status, graph)
-        if final_status != "failed":
+        if final_status == "failed":
+            # A failed automatic child is an honest operator-attention boundary,
+            # not a resolved control-plane deviation.  Keep the evidence but
+            # stop the two-second meta loop from replaying the same failed graph.
+            self._set_meta_status(deviation["meta_deviation_id"], "needs_attention")
+        elif final_status != "running":
             self._set_meta_status(deviation["meta_deviation_id"], "resolved")
         return {"meta_repair_id": record["meta_repair_id"], "status": final_status,
                 "action_graph": graph}

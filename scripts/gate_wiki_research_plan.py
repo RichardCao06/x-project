@@ -73,7 +73,11 @@ def evaluate(plan: dict) -> dict:
             (plan.get("source_role_contract") or {}).keys()
         ),
     }
-    if str(plan.get("node_id")) == "A039" or field_contract:
+    # Every activity table serializes bilingual field-level searches.  Passing
+    # an activity with no frozen translation contract only postpones the same
+    # defect until table_collect, after expensive research/content work.  Fail
+    # closed at G1 for all activity nodes instead of special-casing A039.
+    if str(plan.get("node_id") or "").startswith("A") or field_contract:
         checks["english_field_translation_coverage_complete"] = complete_field_contract
     failures = [name for name, passed in checks.items() if not passed]
     return {

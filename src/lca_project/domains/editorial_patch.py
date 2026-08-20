@@ -50,6 +50,12 @@ def legacy_paragraph_manifest(document: dict[str, Any]) -> dict[str, str]:
 
 
 _SPLIT_INSTRUCTION = re.compile(r"(?:拆分|拆成|分成|分别成段|独立成段|split)", re.IGNORECASE)
+_DELETE_INSTRUCTION = re.compile(
+    r"(?:(?:删除|移除|去掉|剔除)\s*(?:整段|该段|本段|此段|这个段落|整个段落)"
+    r"|(?:整段|该段|本段|此段|这个段落|整个段落)\s*(?:删除|移除|去掉|剔除)"
+    r"|delete\s+(?:the\s+)?(?:whole\s+)?paragraph)",
+    re.IGNORECASE,
+)
 _IDENTIFIER_PATTERN = r"(?<![A-Za-z0-9])(?:A|P)\d{3}(?!\d)"
 _IDENTITY_TOKEN = re.compile(
     rf"{_IDENTIFIER_PATTERN}\s+"
@@ -143,6 +149,12 @@ def _repair_paragraphs(repair: dict[str, Any], operation: str) -> list[dict[str,
     raw = repair.get("replacements")
     if raw is None and repair.get("replacement") is not None:
         raw = [repair.get("replacement")]
+    if operation == "delete":
+        if raw is None:
+            raw = []
+        if raw != []:
+            raise EditorialPatchError("delete operation requires zero replacement paragraphs")
+        return []
     if not isinstance(raw, list) or not raw or not all(isinstance(item, dict) for item in raw):
         raise EditorialPatchError("repair requires one or more replacement paragraphs")
     if operation == "replace" and len(raw) != 1:
@@ -156,6 +168,8 @@ def _repair_paragraphs(repair: dict[str, Any], operation: str) -> list[dict[str,
 
 def _split_ids(paragraph_id: str, count: int) -> list[str]:
     """Keep the target ID and derive stable IDs solely from it and split ordinal."""
+    if count == 0:
+        return []
     return [paragraph_id, *(f"{paragraph_id}.split{ordinal}" for ordinal in range(2, count + 1))]
 
 
@@ -187,6 +201,11 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
         paragraph = section["paragraphs"][int(paragraph_id.removeprefix("p")) - 1]
         instruction = "\n".join(str(row.get("repair_instruction") or "").strip()
                                   for row in observations)
+        operation = (
+            "delete" if _DELETE_INSTRUCTION.search(instruction)
+            else "split_replace" if _SPLIT_INSTRUCTION.search(instruction)
+            else "replace"
+        )
         issues.append({
             "issue_id": f"E{ordinal:03d}",
             "section_id": heading,
@@ -194,11 +213,14 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
             "target_hash": manifest[key],
             "type": "+".join(dict.fromkeys(str(row.get("issue_type") or "other")
                                               for row in observations)),
-            "operation": "split_replace" if _SPLIT_INSTRUCTION.search(instruction) else "replace",
+            "operation": operation,
             "instruction": instruction,
             "explanations": [str(row.get("explanation") or "") for row in observations],
             "facts_must_preserve": [],
-            "tokens_must_preserve": _legacy_tokens_to_preserve(paragraph, instruction),
+            "tokens_must_preserve": (
+                [] if operation == "delete"
+                else _legacy_tokens_to_preserve(paragraph, instruction)
+            ),
         })
     return {
         "protocol": "wiki-editorial-patch-review-v1",
@@ -531,6 +553,8 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
     before_manifest = paragraph_manifest(before)
     result = deepcopy(document)
     touched: set[str] = set()
+    explicitly_removed_claims: set[str] = set()
+    explicitly_removed_chars = 0
     for issue_id, issue in issues.items():
         repair = supplied[issue_id]
         identity = (str(issue.get("section_id")), str(issue.get("paragraph_id")))
@@ -540,7 +564,22 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
         target_hash = str(issue.get("target_hash") or "")
         if target_hash != before_manifest.get(key) or repair.get("target_hash") != target_hash:
             raise EditorialPatchError(f"target hash conflict: {key}")
-        replacements = _repair_paragraphs(repair, str(issue.get("operation") or "replace"))
+        operation = str(issue.get("operation") or "replace")
+        replacements = _repair_paragraphs(repair, operation)
+        if operation == "delete":
+            before_section = next(
+                row for row in before["sections"] if row["section_id"] == identity[0]
+            )
+            before_paragraph = next(
+                row for row in before_section["paragraphs"]
+                if row["paragraph_id"] == identity[1]
+            )
+            explicitly_removed_claims.update(_claim_ids({
+                "sections": [{"paragraphs": [before_paragraph]}]
+            }))
+            explicitly_removed_chars += _body_chars({
+                "sections": [{"paragraphs": [before_paragraph]}]
+            })
         split_ids = _split_ids(identity[1], len(replacements))
         for replacement, split_id in zip(replacements, split_ids, strict=True):
             replacement["paragraph_id"] = split_id
@@ -582,10 +621,10 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
     if inserted != expected_inserted:
         raise EditorialPatchError("repair produced non-deterministic inserted paragraph IDs")
     before_claims, after_claims = _claim_ids(before), _claim_ids(result)
-    if not before_claims <= after_claims:
+    if not (before_claims - explicitly_removed_claims) <= after_claims:
         raise EditorialPatchError("repair removed previously bound claims")
     before_chars, after_chars = _body_chars(before), _body_chars(result)
-    if before_chars and after_chars < before_chars * 0.9:
+    if before_chars and after_chars < before_chars * 0.9 - explicitly_removed_chars:
         raise EditorialPatchError("repair reduced body length by more than 10%")
     receipt = {
         "protocol": "wiki-editorial-patch-receipt-v1",
@@ -609,7 +648,7 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
         } for issue_id, issue in sorted(issues.items())
           for key in [f"{issue['section_id']}.{issue['paragraph_id']}"]],
         "body_chars_before": before_chars, "body_chars_after": after_chars,
-        "preserved_claim_ids": sorted(before_claims),
+        "preserved_claim_ids": sorted(after_claims),
         "requires_independent_rereview": True,
     }
     return result, receipt

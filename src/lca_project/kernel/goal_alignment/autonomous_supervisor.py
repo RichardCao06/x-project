@@ -30,6 +30,8 @@ ITEM_TERMINAL = {"succeeded", "evidence_limited", "failed", "blocked",
 class AutonomousJobSupervisor:
     """Create Jobs only through Skills, then supervise them to an honest terminal state."""
 
+    MAX_CONSECUTIVE_CYCLE_FAILURES = 3
+
     def __init__(self, root: str | Path, *, supervisor_id: str | None = None,
                  control: ControlPlane | None = None) -> None:
         self.root = Path(root).resolve()
@@ -219,6 +221,18 @@ class AutonomousJobSupervisor:
         claimed_wakeups = [
             str(row["wakeup_id"]) for row in store.pending_wakeups(job_id=job_id)
         ]
+        # A queued repair is durable work in its own right.  Consume one before
+        # starting a fresh audit so a later poison deviation cannot orphan a
+        # repair that a previous cycle already committed.
+        queued_repair = self.state._connection().execute(
+            "SELECT repair_run_id FROM system_repair_runs WHERE source_job_id=? "
+            "AND status='queued' ORDER BY created_at LIMIT 1", (job_id,),
+        ).fetchone()
+        system_repairs = []
+        if queued_repair:
+            system_repairs.append(SystemRepairAgent(self.root).execute(
+                str(queued_repair["repair_run_id"])
+            ))
         allow_repair = int(item["repair_count"]) < int(campaign["max_auto_repairs_per_job"])
         audit = GoalAlignmentController(self.root).audit_job(
             job_id, auto_repair=allow_repair, trigger=f"autonomy:{campaign['campaign_id']}"
@@ -226,12 +240,17 @@ class AutonomousJobSupervisor:
         consumed_wakeups = store.consume_wakeups(
             job_id=job_id, consumer=self.supervisor_id, wakeup_ids=claimed_wakeups
         )
-        system_repairs = []
+        executed_repair_ids = {
+            str(repair["repair_run_id"]) for repair in system_repairs
+        }
         for action in audit["actions"]:
-            if action.get("status") == "system_repair_queued":
+            repair_run_id = str(action.get("repair_run_id") or "")
+            if (action.get("status") == "system_repair_queued"
+                    and repair_run_id not in executed_repair_ids):
                 result = SystemRepairAgent(self.root).execute(str(action["repair_run_id"]))
                 action["execution_status"] = result["status"]
                 system_repairs.append(result)
+                executed_repair_ids.add(repair_run_id)
         repairs = sum(action.get("status") == "scheduled" for action in audit["actions"])
         repairs += sum(item.get("status") in {
             "awaiting_outcome_validation", "effective", "partially_effective", "ineffective"
@@ -432,6 +451,55 @@ class AutonomousJobSupervisor:
         finally:
             self.control.leases.release(lease)
 
+    def _record_cycle_failure(self, campaign_id: str, exc: Exception, *,
+                              consecutive_failures: int) -> str | None:
+        heartbeat = self.state._connection().execute(
+            "SELECT current_item_id FROM autonomous_supervisor_heartbeats "
+            "WHERE campaign_id=?", (campaign_id,),
+        ).fetchone()
+        item_id = str(heartbeat["current_item_id"]) if (
+            heartbeat and heartbeat["current_item_id"]
+        ) else None
+        message = f"{type(exc).__name__}: {exc}"
+        if item_id:
+            with self.state.transaction() as conn:
+                conn.execute(
+                    "UPDATE autonomous_job_items SET last_error=?,updated_at=? WHERE item_id=?",
+                    (message, utcnow(), item_id),
+                )
+        self.control.events.append(
+            "autonomous_campaign", campaign_id, "autonomy.supervision_cycle_failed",
+            {"item_id": item_id, "error_type": type(exc).__name__,
+             "message": str(exc), "consecutive_failures": consecutive_failures},
+            actor=self.supervisor_id,
+        )
+        self._heartbeat(campaign_id, "degraded", item_id=item_id, error=message)
+        return item_id
+
+    def _open_cycle_circuit(self, campaign_id: str, item_id: str | None,
+                            exc: Exception) -> dict[str, Any]:
+        message = (
+            f"supervision circuit opened after {self.MAX_CONSECUTIVE_CYCLE_FAILURES} "
+            f"consecutive failures: {type(exc).__name__}: {exc}"
+        )
+        with self.state.transaction() as conn:
+            conn.execute(
+                "UPDATE autonomous_campaigns SET status='needs_attention',updated_at=? "
+                "WHERE campaign_id=?", (utcnow(), campaign_id),
+            )
+            if item_id:
+                conn.execute(
+                    "UPDATE autonomous_job_items SET status='blocked',last_error=?,updated_at=? "
+                    "WHERE item_id=?", (message, utcnow(), item_id),
+                )
+        self.control.events.append(
+            "autonomous_campaign", campaign_id, "autonomy.supervision_circuit_opened",
+            {"item_id": item_id, "message": message}, actor=self.supervisor_id,
+        )
+        self._heartbeat(campaign_id, "needs_attention", item_id=item_id, error=message)
+        return {"campaign_id": campaign_id, "status": "needs_attention",
+                "action": "supervision_circuit_opened", "error": message}
+
     def run(self, campaign_id: str, *, poll_seconds: float | None = None) -> dict[str, Any]:
         campaign = self.campaign(campaign_id)["campaign"]
         interval = float(poll_seconds or campaign["payload"].get("poll_seconds", 2))
@@ -440,9 +508,22 @@ class AutonomousJobSupervisor:
             lease: Lease = self.control.leases.acquire(resource, self.supervisor_id, seconds=3600)
         except LeaseLost:
             return {"campaign_id": campaign_id, "status": "already_running"}
+        consecutive_failures = 0
         try:
             while True:
-                report = self._tick_owned(campaign_id, execute_task=True)
+                try:
+                    report = self._tick_owned(campaign_id, execute_task=True)
+                except Exception as exc:
+                    consecutive_failures += 1
+                    item_id = self._record_cycle_failure(
+                        campaign_id, exc, consecutive_failures=consecutive_failures,
+                    )
+                    lease = self.control.leases.renew(lease, seconds=3600)
+                    if consecutive_failures >= self.MAX_CONSECUTIVE_CYCLE_FAILURES:
+                        return self._open_cycle_circuit(campaign_id, item_id, exc)
+                    time.sleep(min(interval * (2 ** (consecutive_failures - 1)), 60.0))
+                    continue
+                consecutive_failures = 0
                 if report["status"] in {"paused", "completed", "needs_attention"}:
                     return report
                 lease = self.control.leases.renew(lease, seconds=3600)

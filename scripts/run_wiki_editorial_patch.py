@@ -24,7 +24,7 @@ DISABLED = [
     "browser_use", "in_app_browser", "computer_use", "standalone_web_search",
     "remote_plugin", "plugins", "apps", "multi_agent",
 ]
-PATCH_RUNTIME_REVISION = "wiki-editorial-patch-canonical-identities-v4"
+PATCH_RUNTIME_REVISION = "wiki-editorial-patch-controlled-delete-v5"
 PATCH_RUNTIME_REVISION_SHA256 = hashlib.sha256(PATCH_RUNTIME_REVISION.encode()).hexdigest()
 
 
@@ -65,6 +65,8 @@ def build_output_schema(patch_review: dict) -> dict:
             minimum, maximum = 1, 1
         elif operation == "split_replace":
             minimum, maximum = 2, 4
+        elif operation == "delete":
+            minimum, maximum = 0, 0
         else:
             raise EditorialPatchError(f"unsupported editorial operation: {operation}")
         branches.append({
@@ -115,9 +117,11 @@ def cached_repairs_match_review(payload: object, patch_review: dict) -> bool:
         operation = issue.get("operation")
         if (operation == "replace" and count != 1) or (
             operation == "split_replace" and not 2 <= count <= 4
+        ) or (
+            operation == "delete" and count != 0
         ):
             return False
-        if operation not in {"replace", "split_replace"}:
+        if operation not in {"replace", "split_replace", "delete"}:
             return False
     return True
 
@@ -147,6 +151,7 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict]) -> str
         "你是中文技术百科的段落修订编辑。禁止工具、联网和读取文件。只替换 TARGETS 中被独立审查点名的段落，"
         "每个 issue 精确返回一个 repair，并逐字回传 issue_id、section_id、paragraph_id、target_hash。"
         "operation=replace 时 replacements 精确返回一段；operation=split_replace 时返回至少两段，顺序就是插入顺序。"
+        "operation=delete 时 replacements 必须返回空数组，不得用占位段替代删除。"
         "每个 replacement 保持单一中心、2-4句且首句是唯一 thesis；只引用 CLAIMS 中存在的 claim_id。"
         "external_fact 只能使用 verdict=CONFIRMED 的 external_fact；不得扩大原事实。"
         "tokens_must_preserve 中的每个字面量必须原样出现在 replacements 正文中。"

@@ -320,5 +320,6 @@ def test_v9_adds_goal_aligned_plan_content_and_maturity_gates() -> None:
     assert by_id["research_ready"]["needs"] == ["research_plan_gate"]
     assert by_id["content_closure_gate"]["needs"] == ["content_compose"]
     assert by_id["editorial_review"]["needs"] == ["content_closure_gate"]
+    assert by_id["table_collect"]["needs"] == ["content_blueprint"]
     assert by_id["maturity_gate"]["needs"] == ["table_apply"]
     assert by_id["preview"]["needs"] == ["maturity_gate"]

@@ -77,6 +77,44 @@ FIELD_EN = {
     },
 }
 
+# A013 uses the same activity-table contract as A039, with a graph-specific
+# flow ledger and reference-product identity.  Keeping every flow label in the
+# frozen map prevents the English query serializer from falling back to mixed
+# Chinese/internal-ID queries for the 35-field switch-assembly schema.
+FIELD_EN["A013"] = {
+    "flows": {
+        "P022 交换机主板PCBA, 100G/400G": "100G/400G switch motherboard PCBA",
+        "P046 光模块, 400G/800G": "400G/800G optical transceiver module",
+        "P029 PSU电源模组": "power supply unit module",
+        "P055 铝散热器/铝挤型, 服务器用": "server aluminum heat sink and extrusion",
+        "P057 钢钣金机箱/导轨, 服务器用": "server steel sheet-metal chassis and rails",
+        "P051 风扇模组, 服务器/机架用, 成品": "finished server and rack fan module",
+        "P066 中压电力, ICT制造用": "medium-voltage electricity for ICT manufacturing",
+        "P038 交换ASIC封装器件, 100G/400G": "100G/400G switch ASIC package",
+        "P063 导热硅脂/导热垫, TIM": "thermal interface material grease and pad",
+        "P064 塑料导风罩/前面板/线缆护套": "plastic air baffle, front panel, and cable jacket",
+        "P061 低压铜电缆线束, ICT设备电源用": (
+            "low-voltage copper cable harness for ICT equipment power"
+        ),
+        "P008 网络交换机, 100G/400G, 2U": "100G/400G 2U network switch",
+    },
+    "props": {
+        "参考产品身份（网络交换机, 100G/400G, 2U）": (
+            "reference product identity for a 100G/400G 2U network switch"
+        ),
+        **{
+            field: english
+            for field, english in FIELD_EN["A039"]["props"].items()
+            if not field.startswith("参考产品身份（")
+        },
+    },
+    **{
+        table: dict(fields)
+        for table, fields in FIELD_EN["A039"].items()
+        if table not in {"flows", "props"}
+    },
+}
+
 
 def _flatten(schema: dict[str, dict[str, str]]) -> dict[str, str]:
     return {field: english for fields in schema.values() for field, english in fields.items()}

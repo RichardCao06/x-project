@@ -146,8 +146,11 @@ def test_repaired_content_compose_unlocks_closure_without_rewinding_research(
     }
 
     attempt_id, _ = orchestrator.claim(run_id, "content_compose")
+    runtime_revision = (
+        "541e87af9d1c0749ff5ef09fb5fe30f5237e6c08626e564056ed464d90369684"
+    )
     output_hash = orchestrator.complete(attempt_id, {
-        "status": "ok", "patch_runtime_revision_sha256": "validated-new-runtime",
+        "status": "ok", "patch_runtime_revision_sha256": runtime_revision,
     })
 
     tasks = {item.task_id: item for item in orchestrator.tasks(run_id)}
@@ -158,6 +161,8 @@ def test_repaired_content_compose_unlocks_closure_without_rewinding_research(
     assert tasks["content_compose"].status == "succeeded"
     assert tasks["content_compose"].output_hash == output_hash
     assert output_hash
+    completed_payload = json.loads(orchestrator.control.artifacts.get_bytes(output_hash))
+    assert completed_payload["patch_runtime_revision_sha256"] == runtime_revision
     assert tasks["content_closure_gate"].status == "ready"
     assert after == before
 

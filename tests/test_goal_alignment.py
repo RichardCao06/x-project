@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -473,6 +474,77 @@ def test_meta_supervisor_detects_and_executes_safe_analysis_lost_by_manual_proje
     assert repair_job["status"] == "awaiting_approval"
 
 
+def test_meta_supervisor_propagates_failed_child_repair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    control = ControlPlane(root)
+    deviation = AlignmentStore(control.state).deviation(
+        job_id="job_meta_failed", run_id="run_meta", goal_id="wiki-node-goal-v1",
+        value={"deviation_type": "unclassified_failure", "severity": "high",
+               "evidence": {"task_id": "editorial_review"}, "summary": "compound"},
+    )
+    triage = FailureTriageAgent(
+        root, control, runner=lambda _sandbox, _request: {
+            **workspace_overwrite_triage_result(), "problem_class": "contract_mismatch",
+        },
+    )
+    queued = triage.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_meta_failed",
+        source_run_id="run_meta", task_id="editorial_review",
+        request={"failure": {"message": "compound"}},
+    )
+    triage.execute(queued["triage_run_id"])
+    AlignmentStore(control.state).repair_plan(deviation["deviation_id"], {
+        "repair_level": "manual", "action": "request_operator", "authority": "operator",
+        "invalidates": [], "preserves": [], "validation": [], "automatic": False,
+        "status": "proposed",
+    })
+
+    class FakeChangeController:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def propose(self, **_: object) -> dict:
+            return {"candidate_id": "chg_meta_failed"}
+
+    class FakeRepairAgent:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def queue(self, **_: object) -> dict:
+            return {"repair_run_id": "srr_meta_failed", "status": "queued"}
+
+        def execute(self, repair_run_id: str) -> dict:
+            return {"repair_run_id": repair_run_id, "status": "failed"}
+
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.meta_supervisor.ChangeController",
+        FakeChangeController,
+    )
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.meta_supervisor.SystemRepairAgent",
+        FakeRepairAgent,
+    )
+
+    report = SystemMetaSupervisor(root, control=control).reconcile(
+        job_id="job_meta_failed",
+    )
+
+    assert report["actions"][0]["result"]["status"] == "failed"
+    repair_job = control.state._connection().execute(
+        "SELECT status,payload FROM control_plane_repair_jobs "
+        "WHERE job_id='job_meta_failed'",
+    ).fetchone()
+    assert repair_job["status"] == "failed"
+    action = json.loads(repair_job["payload"])["action_graph"]["actions"][0]
+    assert action["status"] == "failed"
+    assert action["proof_contract"][-1]["execution_status"] == "failed"
+    assert control.state._connection().execute(
+        "SELECT status FROM system_meta_deviations WHERE job_id='job_meta_failed'",
+    ).fetchone()["status"] == "needs_attention"
+
+
 def test_meta_supervisor_resolves_rewind_range_to_earliest_dag_task(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     accepted = SkillInvoker(root).invoke(
@@ -733,6 +805,50 @@ def test_failure_triage_agent_persists_problem_based_route(tmp_path: Path) -> No
     assert result["payload"]["result"]["cause_code"] == "TABLE_COLLECTION_BOOTSTRAP_DEADLOCK"
     proposal = RepairPlanner.from_triage(result["payload"]["result"])
     assert proposal.level == "L2" and proposal.action == "propose_code_change"
+
+
+def test_failure_triage_queue_resolves_changed_dossier_to_canonical_deviation(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    agent = FailureTriageAgent(root, runner=lambda _sandbox, _request: table_deadlock_triage_result())
+    deviation = AlignmentStore(agent.state).deviation(
+        job_id="job_unknown", run_id="run_unknown", goal_id="wiki-node-goal-v1",
+        value={"deviation_type": "unclassified_failure", "severity": "high",
+               "evidence": {"task_id": "table_collect"}, "summary": "unknown"},
+    )
+    first = agent.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_unknown",
+        source_run_id="run_unknown", task_id="table_collect",
+        request={"failure": {"message": "first dossier"}},
+    )
+    second = agent.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_unknown",
+        source_run_id="run_unknown", task_id="table_collect",
+        request={"failure": {"message": "changed dossier"}},
+    )
+    repeated = agent.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_unknown",
+        source_run_id="run_unknown", task_id="table_collect",
+        request={"failure": {"message": "changed dossier"}},
+    )
+
+    assert second["triage_run_id"] == first["triage_run_id"]
+    assert repeated["triage_run_id"] == first["triage_run_id"]
+    assert agent.state._connection().execute(
+        "SELECT COUNT(*) FROM failure_triage_runs WHERE deviation_id=?",
+        (deviation["deviation_id"],),
+    ).fetchone()[0] == 1
+    events = list(agent.state._connection().execute(
+        "SELECT aggregate_id,event_type,payload FROM events "
+        "WHERE aggregate_type='failure_triage' ORDER BY sequence",
+    ))
+    assert [row["event_type"] for row in events] == [
+        "failure_triage.queued", "failure_triage.duplicate_suppressed",
+    ]
+    assert all(row["aggregate_id"] == first["triage_run_id"] for row in events)
+    suppressed = json.loads(events[-1]["payload"])
+    assert suppressed["suppressed_triage_run_id"] != first["triage_run_id"]
 
 
 def test_controller_routes_unknown_failure_from_triage_to_coding_agent(tmp_path: Path) -> None:
@@ -1000,16 +1116,17 @@ def test_medium_risk_repair_is_prepared_then_promoted_with_minimal_approval(
 
 
 @pytest.mark.parametrize(
-    ("editorial_status", "expected_action", "expected_status"),
+    ("editorial_status", "proof_state", "expected_action", "expected_status"),
     [
-        ("ready", None, "awaiting_outcome_validation"),
-        ("succeeded", "repair_effective", "effective"),
-        ("manual_review", "repair_ineffective", "ineffective"),
+        ("ready", "missing", None, "awaiting_outcome_validation"),
+        ("succeeded", "bound", "repair_effective", "effective"),
+        ("succeeded", "stale", "repair_ineffective", "ineffective"),
+        ("manual_review", "missing", "repair_ineffective", "ineffective"),
     ],
 )
 def test_editorial_system_repair_honors_downstream_go_proof_before_effective(
-    tmp_path: Path, editorial_status: str, expected_action: str | None,
-    expected_status: str,
+    tmp_path: Path, editorial_status: str, proof_state: str,
+    expected_action: str | None, expected_status: str,
 ) -> None:
     root = project_copy(tmp_path)
     accepted = SkillInvoker(root).invoke(
@@ -1058,6 +1175,33 @@ def test_editorial_system_repair_honors_downstream_go_proof_before_effective(
             (editorial_status, now, run_id),
         )
     controller = GoalAlignmentController(root, orchestrator.control)
+    if proof_state in {"bound", "stale"}:
+        (root / "vendor/lca_cornerstone/fixtures/wiki-phase2/wiki/ict_equipment").mkdir(
+            parents=True, exist_ok=True,
+        )
+        job = orchestrator.control.state.get("jobs", accepted["job_id"])
+        batch = controller._batch(job, run_id)
+        assert batch is not None
+        content_path = batch / "content-runtime/content-result.json"
+        review_path = batch / "editorial-loop/editorial-review.json"
+        policy_path = batch / "editorial-loop/editorial-policy-decision.json"
+        review_path.parent.mkdir(parents=True, exist_ok=True)
+        content_path.parent.mkdir(parents=True, exist_ok=True)
+        content_path.write_text('{"sections": [{"heading": "定义"}]}', encoding="utf-8")
+        review_path.write_text(json.dumps({
+            "protocol": "wiki-editorial-review-v1", "verdict": "GO",
+            "checks": {"single_center": True}, "issues": [],
+        }), encoding="utf-8")
+        content_sha256 = hashlib.sha256(content_path.read_bytes()).hexdigest()
+        review_sha256 = hashlib.sha256(review_path.read_bytes()).hexdigest()
+        policy_path.write_text(json.dumps({
+            "protocol": "wiki-editorial-policy-decision-v1", "decision": "accept",
+            "content_sha256": content_sha256,
+            "review_sha256": review_sha256,
+            "raw_review_sha256": review_sha256,
+        }), encoding="utf-8")
+        if proof_state == "stale":
+            content_path.write_text('{"sections": [{"heading": "已替换"}]}', encoding="utf-8")
     current = SimpleNamespace(score=0.2, evidence={"research_outcome": {
         "closer_to_modelling_goal": False, "metrics": {}, "proof_contract": [],
     }})
@@ -1073,7 +1217,7 @@ def test_editorial_system_repair_honors_downstream_go_proof_before_effective(
         assert repair["payload"]["outcome_validation"]["proof"][
             "required_replay_tasks"
         ] == ["content_compose", "editorial_review"]
-    if editorial_status == "manual_review":
+    if editorial_status == "manual_review" or proof_state == "stale":
         assert repair["payload"]["outcome_validation"]["proof"][
             "failed_proof_tasks"
         ][0]["task_id"] == "editorial_review"

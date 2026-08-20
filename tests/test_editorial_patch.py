@@ -293,6 +293,11 @@ def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> 
     assert "P038 交换ASIC封装器件, 100G/400G" in tokens
     assert "P022 交换机主板PCBA" not in tokens
     assert "P038 ASIC" not in tokens
+    assert {
+        "P038 ASIC和",
+        "P022 交换机主板PCBA, 100G/400G”和“",
+        "P038 交换ASIC封装器件, 100G/400G”",
+    }.isdisjoint(tokens)
     assert not [token for token in tokens if token.endswith(("和", "与", "”", "“"))]
 
     repairs = [{
@@ -461,6 +466,46 @@ def test_legacy_patch_fails_closed_when_required_fact_binding_has_no_capacity() 
 
     with pytest.raises(EditorialPatchError, match="required fact binding"):
         normalize_legacy_repair_claim_bindings(repairs, rows, document)
+
+
+def test_legacy_patch_supports_explicit_hash_bound_whole_paragraph_delete() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "数据适用状态与缺口", "paragraphs": [
+            {"focus": "保留段", "sentences": [{
+                "text": "本段属于未被审查点名的内容。", "claim_kind": "modeling_judgment",
+                "rhetorical_role": "thesis", "evidence_claim_ids": [],
+            }]},
+            {"focus": "无关段", "sentences": [{
+                "text": "本段错误引入了与A013无关的产品。", "claim_kind": "modeling_judgment",
+                "rhetorical_role": "thesis", "evidence_claim_ids": [],
+            }]},
+        ],
+    }]}
+    review = {
+        "protocol": "wiki-editorial-review-v1", "node_id": "A013", "verdict": "NO_GO",
+        "issues": [{
+            "section": "数据适用状态与缺口", "paragraph_index": 2,
+            "issue_type": "irrelevant_paragraph", "explanation": "整段与目标节点无关。",
+            "repair_instruction": "删除整个段落，不要生成占位文本。",
+        }],
+    }
+    bound = prepare_legacy_patch_review(draft, review)
+    issue = bound["issues"][0]
+
+    assert issue["operation"] == "delete"
+    assert issue["tokens_must_preserve"] == []
+    before = legacy_paragraph_manifest(draft)
+    patched, receipt = apply_legacy_repairs(draft, bound, [{
+        "issue_id": issue["issue_id"], "section_id": issue["section_id"],
+        "paragraph_id": issue["paragraph_id"], "target_hash": issue["target_hash"],
+        "preserved_claim_ids": [], "replacements": [],
+    }])
+
+    assert [row["focus"] for row in patched["sections"][0]["paragraphs"]] == ["保留段"]
+    assert receipt["unchanged_paragraphs"] == {
+        "数据适用状态与缺口.p1": before["数据适用状态与缺口.p1"]
+    }
+    assert receipt["paragraph_changes"][0]["after"] == []
 
 
 def test_editorial_patch_proof_metrics_report_cap_and_graph_bindings() -> None:

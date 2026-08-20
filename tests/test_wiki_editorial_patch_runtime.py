@@ -90,6 +90,24 @@ def test_schema_accepts_only_operation_valid_replacement_counts(
     assert schema_allows_replacement_count(schema, issue_id, count) is accepted
 
 
+def test_schema_and_cache_require_zero_replacements_for_delete() -> None:
+    runtime = load_runtime()
+    issue = {
+        "issue_id": "E004", "section_id": "限制", "paragraph_id": "p4",
+        "target_hash": "sha256:delete", "operation": "delete",
+    }
+    review = {"issues": [issue]}
+    schema = runtime.build_output_schema(review)
+    assert schema_allows_replacement_count(schema, "E004", 0) is True
+    assert schema_allows_replacement_count(schema, "E004", 1) is False
+    assert runtime.cached_repairs_match_review({
+        "repairs": [repair_for(issue, 0)]
+    }, review) is True
+    assert runtime.cached_repairs_match_review({
+        "repairs": [repair_for(issue, 1)]
+    }, review) is False
+
+
 def test_cache_reuse_rejects_invalid_cardinality_and_runtime_revision() -> None:
     runtime = load_runtime()
     review = patch_review()
@@ -244,5 +262,8 @@ def test_a013_runtime_rematerializes_and_applies_four_hash_bound_targets(
     assert receipt["requires_independent_rereview"] is True
     assert (content_path.parent / "frozen-editorial-repair.json").is_file()
     assert invocation["reused_existing_repairs"] is False
+    assert runtime.PATCH_RUNTIME_REVISION_SHA256 == (
+        "541e87af9d1c0749ff5ef09fb5fe30f5237e6c08626e564056ed464d90369684"
+    )
     assert invocation["patch_runtime_revision_sha256"] == runtime.PATCH_RUNTIME_REVISION_SHA256
     assert invocation["output_schema_sha256"]

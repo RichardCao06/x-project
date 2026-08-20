@@ -11,6 +11,7 @@ from typing import Any, Callable
 
 from ...control import ControlPlane
 from ...domains.wiki_workspace import WikiWorkspaceBuilder
+from ..leases import LeaseLost
 from ..orchestrator import PersistentOrchestrator
 from ..state import utcnow
 from .change_controller import ChangeController
@@ -426,6 +427,20 @@ class SystemRepairAgent:
         return latest
 
     def execute(self, repair_run_id: str) -> dict[str, Any]:
+        """Execute a durable repair under a fenced single-consumer lease."""
+        holder = f"system-repair-agent:{os.getpid()}:{id(self)}"
+        try:
+            lease = self.control.leases.acquire(
+                f"system-repair:{repair_run_id}", holder, seconds=3600,
+            )
+        except LeaseLost:
+            return self.get(repair_run_id)
+        try:
+            return self._execute_owned(repair_run_id)
+        finally:
+            self.control.leases.release(lease)
+
+    def _execute_owned(self, repair_run_id: str) -> dict[str, Any]:
         record = self.get(repair_run_id)
         if record["status"] in self.TERMINAL:
             return record

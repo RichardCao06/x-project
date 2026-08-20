@@ -315,7 +315,8 @@ class DashboardService:
             "SELECT DISTINCT c.campaign_id FROM goal_supervisor_wakeups w "
             "JOIN autonomous_job_items i ON i.job_id=w.job_id "
             "JOIN autonomous_campaigns c ON c.campaign_id=i.campaign_id "
-            "WHERE w.status='pending' AND c.status!='paused' ORDER BY c.created_at"
+            "WHERE w.status='pending' AND c.status IN ('running','completed') "
+            "ORDER BY c.created_at"
         )
         started: list[dict[str, Any]] = []
         for row in rows:
