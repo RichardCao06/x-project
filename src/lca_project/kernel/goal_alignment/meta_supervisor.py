@@ -337,6 +337,7 @@ class SystemMetaSupervisor:
                         source_run_id=triage.get("source_run_id"),
                         request={
                             "cause_code": result.get("cause_code"),
+                            "mechanism_family": source_evidence.get("mechanism_family"),
                             "source_failure_fingerprint": str(
                                 source_evidence.get("failure_fingerprint")
                                 or (source_failure.get("failure_fingerprint")
@@ -567,8 +568,12 @@ class SystemMetaSupervisor:
             observation_hash=str(deviation["evidence"]["newest_deviation_at"]),
             context={"meta_deviation_id": deviation["meta_deviation_id"]},
         )
-        self._set_meta_status(deviation["meta_deviation_id"], "resolved")
-        return {"status": "wakeup_created", "wakeup_id": wakeup["wakeup_id"]}
+        # Creating durable work is not the same as completing it.  Resolution
+        # is acknowledged by AlignmentStore.consume_wakeups after a Supervisor
+        # has actually reclaimed the Job.
+        self._set_meta_status(deviation["meta_deviation_id"], "awaiting_supervision")
+        return {"status": "wakeup_created", "wakeup_id": wakeup["wakeup_id"],
+                "awaiting_consumer": True}
 
     def reconcile(self, *, job_id: str | None = None) -> dict[str, Any]:
         """Run one bounded meta cycle; never change the immutable governance layer."""

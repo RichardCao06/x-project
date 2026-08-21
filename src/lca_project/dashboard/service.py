@@ -13,6 +13,7 @@ from pathlib import Path
 import sqlite3
 import threading
 from typing import Any
+from urllib.parse import urlparse
 
 from lca_project.control import ControlPlane
 from lca_project.kernel.orchestrator import PersistentOrchestrator
@@ -240,10 +241,565 @@ class DashboardService:
                 artifacts.append(artifact)
         workflow = self._workflow_detail(str(job.get("workflow_id") or ""))
         preview = self._preview_projection(job_id, run=run, tasks=tasks)
+        goal_alignment = self.goal_alignment(job_id=job_id)
+        execution_trace = self._execution_trace(
+            job_id, job=job, run=run, tasks=tasks, attempts=attempts,
+            goal_alignment=goal_alignment,
+        )
         return {"job": job, "run": run, "tasks": tasks, "attempts": attempts,
                 "events": events, "gates": gates, "decisions": decisions,
                 "exceptions": exceptions, "artifacts": artifacts, "workflow": workflow,
-                "goal_alignment": self.goal_alignment(job_id=job_id), "preview": preview}
+                "goal_alignment": goal_alignment, "execution_trace": execution_trace,
+                "preview": preview}
+
+    @staticmethod
+    def _read_trace_json(batch: Path | None, relative: str) -> dict[str, Any]:
+        """Read one known trace artifact without allowing paths outside the batch."""
+        if batch is None:
+            return {}
+        try:
+            path = (batch / relative).resolve()
+            if (not path.is_relative_to(batch) or not path.is_file() or path.is_symlink()
+                    or path.stat().st_size > 25 * 1024 * 1024):
+                return {}
+            raw = path.read_bytes()
+        except OSError:
+            return {}
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        return value if isinstance(value, dict) else {}
+
+    def _trace_batch(self, job_id: str, goal_alignment: dict[str, Any]) -> Path | None:
+        workspace = (self.root / "var" / "workspaces" / "jobs" / job_id).resolve()
+        observations = goal_alignment.get("quality_observations") or []
+        for row in observations:
+            payload = row.get("payload") or {}
+            raw = ((payload.get("evidence") or {}).get("batch") or "")
+            if not raw:
+                continue
+            batch = Path(str(raw)).resolve()
+            if batch.is_relative_to(workspace) and batch.is_dir() and not batch.is_symlink():
+                return batch
+        return None
+
+    @staticmethod
+    def _trace_domain(url: Any) -> str:
+        try:
+            return urlparse(str(url or "")).netloc.lower().removeprefix("www.")
+        except ValueError:
+            return ""
+
+    def _declared_completion_goal(self, job_id: str, job: dict[str, Any]) -> str:
+        if self._has_table("autonomous_job_items") and self._has_table("autonomous_campaigns"):
+            row = self.conn.execute(
+                "SELECT c.payload FROM autonomous_job_items i "
+                "JOIN autonomous_campaigns c ON c.campaign_id=i.campaign_id "
+                "WHERE i.job_id=? ORDER BY i.updated_at DESC LIMIT 1",
+                (job_id,),
+            ).fetchone()
+            if row:
+                payload = _json(row["payload"])
+                if payload.get("completion_goal"):
+                    return str(payload["completion_goal"])
+        request = (((job.get("payload") or {}).get("scope") or {}).get("request") or {})
+        return (
+            "reviewed_publication"
+            if request.get("publication_mode") == "reviewed"
+            else "lca_modeling_ready"
+        )
+
+    def _execution_trace(
+        self,
+        job_id: str,
+        *,
+        job: dict[str, Any],
+        run: dict[str, Any] | None,
+        tasks: list[dict[str, Any]],
+        attempts: list[dict[str, Any]],
+        goal_alignment: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Build a compact audit projection from persisted workflow and evidence facts."""
+        batch = self._trace_batch(job_id, goal_alignment)
+        matrix = self._read_trace_json(batch, "table-data/search-matrix.executed.json")
+        selection = self._read_trace_json(batch, "table-data/evidence-selection.json")
+        source_evidence = self._read_trace_json(batch, "source-evidence.json")
+        verified = self._read_trace_json(batch, "verify-output.json")
+
+        attempts_by_task: dict[str, list[dict[str, Any]]] = {}
+        for attempt in attempts:
+            attempts_by_task.setdefault(str(attempt.get("task_id") or ""), []).append(attempt)
+        stages = []
+        for ordinal, task in enumerate(tasks, 1):
+            history = sorted(
+                attempts_by_task.get(str(task.get("task_id") or ""), []),
+                key=lambda item: str(item.get("started_at") or ""),
+            )
+            failures = [
+                item for item in history
+                if item.get("status") in {
+                    "failed", "repairable", "retryable", "manual_review",
+                    "quarantined", "blocked", "blocked_budget",
+                }
+            ]
+            stages.append({
+                "ordinal": ordinal,
+                "task_id": task.get("task_id"),
+                "capability_id": task.get("capability_id"),
+                "status": task.get("status"),
+                "attempt_count": len(history) or int(task.get("attempt") or 0),
+                "failed_attempts": len(failures),
+                "started_at": history[0].get("started_at") if history else None,
+                "finished_at": history[-1].get("finished_at") if history else None,
+                "updated_at": task.get("updated_at"),
+                "failure_code": task.get("failure_code") or (
+                    failures[-1].get("failure_code") if failures else None
+                ),
+                "output_hash": task.get("output_hash"),
+            })
+
+        audits: dict[tuple[str, str], dict[str, Any]] = {}
+        for audit in selection.get("candidate_audits") or []:
+            key = (str(audit.get("query_hash") or ""), str(audit.get("url") or ""))
+            audits[key] = audit
+        accepted_urls = {
+            str(item.get("url") or item.get("source_url") or "")
+            for item in (selection.get("accepted_evidence") or [])
+            if isinstance(item, dict) and (item.get("url") or item.get("source_url"))
+        }
+
+        searches: list[dict[str, Any]] = []
+        for item in matrix.get("queries") or []:
+            if not isinstance(item, dict):
+                continue
+            query_hash = str(item.get("query_hash") or "")
+            results = []
+            for result in item.get("results") or []:
+                if not isinstance(result, dict):
+                    continue
+                url = str(result.get("url") or "")
+                audit = audits.get((query_hash, url), {})
+                decision = str(audit.get("decision") or result.get("current_job_status") or "candidate")
+                selected = decision in {"accepted", "selected", "confirmed"} or url in accepted_urls
+                fetch_status = str(result.get("fetch_status") or "") or None
+                raw_error = result.get("error")
+                if isinstance(raw_error, dict):
+                    technical_error = {
+                        "code": raw_error.get("code") or "fetch_error",
+                        "message": raw_error.get("message") or json.dumps(raw_error, ensure_ascii=False),
+                    }
+                elif raw_error:
+                    technical_error = {"code": "fetch_error", "message": str(raw_error)}
+                else:
+                    technical_error = None
+                technical_failure = bool(technical_error) or fetch_status in {"error", "failed"}
+                if selected:
+                    outcome = "accepted"
+                    decision_stage = "evidence_selection"
+                elif technical_failure:
+                    outcome = "technical_failure"
+                    decision_stage = "fetch_or_extraction"
+                elif decision == "rejected":
+                    outcome = "rejected"
+                    decision_stage = "evidence_selection"
+                else:
+                    outcome = "pending"
+                    decision_stage = "discovery"
+                results.append({
+                    "title": result.get("title") or url,
+                    "url": url,
+                    "domain": self._trace_domain(url),
+                    "status": result.get("status") or result.get("current_job_status"),
+                    "candidate_status": result.get("current_job_status"),
+                    "provider": result.get("provider"),
+                    "fetch_status": fetch_status,
+                    "content_type": result.get("content_type"),
+                    "source_class": result.get("source_class"),
+                    "snippet": result.get("snippet"),
+                    "decision": decision,
+                    "outcome": outcome,
+                    "decision_stage": decision_stage,
+                    "evaluation_completed": outcome in {"accepted", "rejected"},
+                    "selected": selected,
+                    "reasons": audit.get("reasons") or [],
+                    "technical_error": technical_error,
+                    "observation_count": len(audit.get("observations") or []),
+                    "observations": (audit.get("observations") or [])[:8],
+                    "extraction_support": audit.get("extraction_support"),
+                    "public_extractability": audit.get("public_extractability"),
+                    "document_route": audit.get("document_route") or result.get("document_route"),
+                    "document_type": audit.get("document_type") or result.get("document_type"),
+                    "verifications": [],
+                })
+            providers = [
+                {"provider": value.get("provider"), "status": value.get("status"),
+                 "results": value.get("results"), "cache_hit": value.get("cache_hit") is True}
+                for value in (item.get("provider_attempts") or []) if isinstance(value, dict)
+            ]
+            searches.append({
+                "query_id": query_hash or f"table-query-{len(searches) + 1}",
+                "kind": "table_field",
+                "field": item.get("field"),
+                "table": item.get("table"),
+                "language": item.get("language"),
+                "strategy": item.get("query_strategy"),
+                "query": item.get("query"),
+                "providers": providers,
+                "results": results,
+            })
+
+        claim_search_ids: set[str] = set()
+        for item in source_evidence.get("claims") or []:
+            if not isinstance(item, dict) or not isinstance(item.get("query"), dict):
+                continue
+            query = item["query"]
+            query_id = str(query.get("query_id") or query.get("search_hash") or "")
+            if not query_id or query_id in claim_search_ids:
+                continue
+            claim_search_ids.add(query_id)
+            candidates = []
+            providers: dict[str, int] = {}
+            for result in item.get("candidates") or []:
+                if not isinstance(result, dict):
+                    continue
+                provider = str(result.get("search_provider") or "research_scout")
+                providers[provider] = providers.get(provider, 0) + 1
+                url = str(result.get("url") or "")
+                raw_error = result.get("error")
+                technical_error = (
+                    {"code": raw_error.get("code") or "fetch_error",
+                     "message": raw_error.get("message") or json.dumps(raw_error, ensure_ascii=False)}
+                    if isinstance(raw_error, dict)
+                    else ({"code": "fetch_error", "message": str(raw_error)} if raw_error else None)
+                )
+                fetch_status = str(result.get("status") or item.get("search_status") or "") or None
+                technical_failure = bool(technical_error) or fetch_status in {"error", "failed"}
+                candidates.append({
+                    "title": result.get("title") or url,
+                    "url": url,
+                    "domain": self._trace_domain(url),
+                    "status": fetch_status,
+                    "candidate_status": item.get("disposition"),
+                    "provider": provider,
+                    "fetch_status": fetch_status,
+                    "content_type": result.get("content_type"),
+                    "source_class": result.get("source_class"),
+                    "snippet": result.get("excerpt"),
+                    "decision": item.get("disposition") or "sent_to_verification",
+                    "outcome": "technical_failure" if technical_failure else "pending",
+                    "decision_stage": "fetch_or_extraction" if technical_failure else "verification",
+                    "evaluation_completed": False,
+                    "selected": False,
+                    "reasons": [],
+                    "technical_error": technical_error,
+                    "observation_count": 0,
+                    "observations": [],
+                    "extraction_support": None,
+                    "public_extractability": None,
+                    "document_route": None,
+                    "document_type": result.get("content_type"),
+                    "claim_id": (item.get("claim") or {}).get("claim_id"),
+                    "verifications": [],
+                })
+            searches.append({
+                "query_id": query_id,
+                "kind": "claim_evidence",
+                "field": (item.get("claim") or {}).get("claim_id"),
+                "table": None,
+                "language": None,
+                "strategy": "source_first" if query.get("source_first") else "claim_search",
+                "query": query.get("text"),
+                "providers": [
+                    {"provider": provider, "status": "ok", "results": count, "cache_hit": False}
+                    for provider, count in providers.items()
+                ],
+                "results": candidates,
+            })
+
+        citations = []
+        for item in verified.get("claims") or []:
+            if not isinstance(item, dict):
+                continue
+            claim = item.get("claim") or {}
+            check = item.get("verify") or {}
+            fetched = item.get("fetchResult") or {}
+            verdict = str(check.get("verdict") or "NOT_REVIEWED")
+            url = str(fetched.get("url") or "")
+            selected = verdict == "CONFIRMED"
+            citations.append({
+                "claim_id": claim.get("claim_id"),
+                "section": claim.get("section"),
+                "claim_kind": claim.get("claim_kind"),
+                "claim_text": claim.get("claim_text"),
+                "verdict": verdict,
+                "node_alignment": check.get("node_alignment"),
+                "reasoning": check.get("reasoning"),
+                "supporting_quote": check.get("supporting_quote"),
+                "url": url,
+                "domain": self._trace_domain(url),
+                "selected": selected,
+            })
+        citation_index: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        for citation in citations:
+            key = (str(citation.get("claim_id") or ""), str(citation.get("url") or ""))
+            if key[0] and key[1]:
+                citation_index.setdefault(key, []).append(citation)
+        for search in searches:
+            if search.get("kind") != "claim_evidence":
+                continue
+            for result in search["results"]:
+                matches = citation_index.get(
+                    (str(result.get("claim_id") or ""), str(result.get("url") or "")), []
+                )
+                if not matches:
+                    continue
+                result["verifications"] = matches
+                result["reasons"] = [
+                    item.get("reasoning") for item in matches if item.get("reasoning")
+                ]
+                verdicts = {str(item.get("verdict") or "") for item in matches}
+                if "CONFIRMED" in verdicts:
+                    result["selected"] = True
+                    result["decision"] = "confirmed_citation"
+                    result["outcome"] = "accepted"
+                    result["decision_stage"] = "claim_verification"
+                    result["evaluation_completed"] = True
+                elif verdicts & {"INSUFFICIENT", "NOT_FOUND"}:
+                    result["decision"] = sorted(verdicts)[0]
+                    result["outcome"] = "rejected"
+                    result["decision_stage"] = "claim_verification"
+                    result["evaluation_completed"] = True
+
+        table_fields = []
+        for item in selection.get("fields") or []:
+            if not isinstance(item, dict):
+                continue
+            gap = item.get("gap_evidence") or {}
+            table_fields.append({
+                "table": item.get("table"),
+                "field": item.get("field"),
+                "decision": item.get("decision"),
+                "candidate_count": item.get("candidate_count", 0),
+                "reason": item.get("reason") or gap.get("reason"),
+                "rejected_urls": gap.get("rejected_candidate_urls") or [],
+                "query_hashes": gap.get("query_hashes") or [],
+            })
+
+        severity_rank = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+        issues_by_key: dict[str, dict[str, Any]] = {}
+        deviations = goal_alignment.get("deviations") or []
+        for deviation in deviations:
+            payload = deviation.get("payload") or {}
+            summary = str(payload.get("summary") or deviation.get("fingerprint") or "未分类偏离")
+            key = f"{deviation.get('deviation_type')}|{summary}"
+            current = issues_by_key.setdefault(key, {
+                "deviation_type": deviation.get("deviation_type"),
+                "severity": deviation.get("severity"), "summary": summary,
+                "count": 0, "statuses": set(), "ids": [],
+                "first_seen": deviation.get("created_at"), "last_seen": deviation.get("updated_at"),
+                "evidence": payload.get("evidence") or {},
+            })
+            current["count"] += 1
+            current["statuses"].add(str(deviation.get("status") or "unknown"))
+            current["ids"].append(deviation.get("deviation_id"))
+            if severity_rank.get(str(deviation.get("severity")), 0) > severity_rank.get(str(current["severity"]), 0):
+                current["severity"] = deviation.get("severity")
+            current["first_seen"] = min(filter(None, [current["first_seen"], deviation.get("created_at")]), default=None)
+            current["last_seen"] = max(filter(None, [current["last_seen"], deviation.get("updated_at")]), default=None)
+        issues = []
+        for item in issues_by_key.values():
+            item["statuses"] = sorted(item["statuses"])
+            issues.append(item)
+        issues.sort(key=lambda item: (severity_rank.get(str(item.get("severity")), 0), str(item.get("last_seen") or "")), reverse=True)
+
+        deviation_ids = {
+            str(item.get("deviation_id") or "") for item in deviations
+            if item.get("deviation_id")
+        }
+        repair_plans = [
+            item for item in (goal_alignment.get("repair_plans") or [])
+            if str(item.get("deviation_id") or "") in deviation_ids
+        ]
+        change_candidates = []
+        for item in goal_alignment.get("change_candidates") or []:
+            payload = item.get("payload") or {}
+            if (str(item.get("source_deviation_id") or "") in deviation_ids
+                    or payload.get("source_job_id") == job_id):
+                change_candidates.append(item)
+
+        actions: list[dict[str, Any]] = []
+        action_specs = (
+            ("triage", goal_alignment.get("failure_triage_runs") or []),
+            ("repair_plan", repair_plans),
+            ("system_change", change_candidates),
+            ("code_repair", goal_alignment.get("system_repair_runs") or []),
+        )
+        for kind, rows in action_specs:
+            for row in rows:
+                payload = row.get("payload") or {}
+                result = payload.get("result") or {}
+                title = (
+                    result.get("cause_code") or row.get("action") or row.get("target")
+                    or payload.get("action") or row.get("model") or kind
+                )
+                summary = (
+                    result.get("summary") or payload.get("summary") or row.get("last_error")
+                    or payload.get("explanation") or payload.get("status") or ""
+                )
+                actions.append({
+                    "kind": kind, "status": row.get("status"), "title": title,
+                    "summary": summary, "created_at": row.get("created_at"),
+                    "updated_at": row.get("updated_at"),
+                    "id": row.get("triage_run_id") or row.get("repair_plan_id")
+                    or row.get("candidate_id") or row.get("repair_run_id"),
+                    "risk": row.get("risk") or result.get("risk"),
+                    "details": {
+                        key: value for key, value in {
+                            "cause_code": result.get("cause_code"),
+                            "recovery_task": result.get("recovery_task"),
+                            "implementation_targets": result.get("implementation_targets"),
+                            "causal_input_changes": result.get("causal_input_changes"),
+                            "proof_contract": result.get("proof_contract"),
+                            "patch_hash": row.get("patch_hash"),
+                            "failure_fingerprint": payload.get("failure_fingerprint")
+                            or (payload.get("request") or {}).get("source_failure_fingerprint"),
+                            "causal_plan_hash": payload.get("causal_plan_hash"),
+                            "outcome_validation": payload.get("outcome_validation"),
+                            "scm": payload.get("scm"),
+                            "action": row.get("action") or payload.get("action"),
+                        }.items() if value not in (None, "", [], {})
+                    },
+                })
+        actions.sort(key=lambda item: str(item.get("created_at") or ""))
+
+        quality = (goal_alignment.get("quality_observations") or [{}])[0].get("payload") or {}
+        research = ((quality.get("evidence") or {}).get("research_outcome") or {})
+        maturity = ((quality.get("evidence") or {}).get("maturity") or {})
+        total_results = sum(len(item.get("results") or []) for item in searches)
+        result_outcomes = [
+            str(result.get("outcome") or "pending")
+            for search in searches for result in search.get("results") or []
+        ]
+        providers = sorted({
+            str(provider.get("provider")) for item in searches for provider in item.get("providers") or []
+            if provider.get("provider")
+        })
+        source_domains = sorted({
+            str(result.get("domain")) for item in searches for result in item.get("results") or []
+            if result.get("domain")
+        })
+        populated_fields = int((selection.get("counts") or {}).get("populated") or 0)
+        accepted_evidence = len(selection.get("accepted_evidence") or [])
+        open_issue_summaries = [
+            str(item.get("summary") or item.get("deviation_type") or "目标偏离")
+            for item in issues if "open" in item.get("statuses", [])
+        ]
+        blockers = list(dict.fromkeys([
+            *[str(value) for value in maturity.get("reason_codes") or []],
+            *[str(value) for value in research.get("reason_codes") or []],
+            *open_issue_summaries,
+        ]))
+        modeling_ready = bool(
+            maturity.get("candidate_eligible") is True
+            and maturity.get("data_readiness") == "data_ready"
+            and accepted_evidence > 0 and populated_fields > 0
+        )
+        completion_goal = self._declared_completion_goal(job_id, job)
+        publication_proof_valid = False
+        publication_proof_error = None
+        if completion_goal == "reviewed_publication":
+            from lca_project.kernel.goal_alignment.autonomous_supervisor import (
+                verify_reviewed_publication,
+            )
+            publication_proof_valid, publication_proof_error = verify_reviewed_publication(
+                self.control, job_id, str(run["run_id"]) if run else None,
+            )
+            if not publication_proof_valid:
+                blockers.append("governed_reviewed_publication_not_proven")
+        workflow_complete = bool(run and run.get("status") == "succeeded")
+        goal_complete = (
+            workflow_complete if completion_goal == "workflow_delivery"
+            else modeling_ready and publication_proof_valid
+            if completion_goal == "reviewed_publication"
+            else modeling_ready
+        )
+        autonomy_active = str(job.get("status") or "") in {
+            "planned", "ready", "leased", "running", "stalled", "retryable",
+            "repairable", "manual_review", "blocked_budget", "candidate", "gated", "applied",
+        }
+        pipeline_continue = bool(
+            maturity.get("pipeline_continue") is True
+            or (
+                completion_goal == "reviewed_publication"
+                and not publication_proof_valid and autonomy_active
+            )
+        )
+        if goal_complete:
+            next_action = "目标已完成"
+        elif completion_goal == "reviewed_publication" and modeling_ready:
+            next_action = "继续审核与受控发布" if autonomy_active else "等待恢复审核发布尾链"
+        elif pipeline_continue:
+            next_action = "继续自治修复" if autonomy_active else "存在修复路径，等待恢复"
+        else:
+            next_action = "无自动路径或等待授权"
+        return {
+            "schema_version": "dashboard-execution-trace-v1",
+            "batch": str(batch) if batch else None,
+            "summary": {
+                "tasks": len(tasks),
+                "tasks_succeeded": sum(item.get("status") == "succeeded" for item in tasks),
+                "attempts": len(attempts),
+                "failed_attempts": sum(
+                    item.get("status") in {
+                        "failed", "repairable", "retryable", "manual_review",
+                        "quarantined", "blocked", "blocked_budget",
+                    }
+                    for item in attempts
+                ),
+                "queries": len(searches),
+                "candidate_results": total_results,
+                "candidate_accepted": result_outcomes.count("accepted"),
+                "candidate_rejected": result_outcomes.count("rejected"),
+                "candidate_technical_failures": result_outcomes.count("technical_failure"),
+                "candidate_pending": result_outcomes.count("pending"),
+                "providers": len(providers),
+                "source_domains": len(source_domains),
+                "confirmed_citations": sum(item.get("selected") is True for item in citations),
+                "table_fields": len(table_fields),
+                "populated_fields": populated_fields,
+                "open_issues": sum("open" in item.get("statuses", []) for item in issues),
+                "repair_actions": len(actions),
+            },
+            "providers": providers,
+            "source_domains": source_domains,
+            "stages": stages,
+            "searches": searches,
+            "citations": citations,
+            "table_fields": table_fields,
+            "issues": issues,
+            "actions": actions,
+            "quality": {"score": quality.get("score"), "dimensions": quality.get("dimensions") or {}},
+            "research_outcome": research,
+            "goal_status": {
+                "goal_id": completion_goal,
+                "workflow_complete": workflow_complete,
+                "goal_complete": goal_complete,
+                "modeling_ready": modeling_ready,
+                "candidate_eligible": maturity.get("candidate_eligible") is True,
+                "maturity": maturity.get("maturity"),
+                "data_readiness": maturity.get("data_readiness"),
+                "accepted_evidence": accepted_evidence,
+                "populated_fields": populated_fields,
+                "publication_proof_valid": publication_proof_valid,
+                "publication_proof_error": publication_proof_error,
+                "pipeline_continue": pipeline_continue,
+                "autonomy_active": autonomy_active,
+                "next_action": next_action,
+                "blockers": list(dict.fromkeys(blockers)),
+            },
+            "run_status": run.get("status") if run else None,
+        }
 
     def _preview_projection(
         self,
@@ -416,7 +972,9 @@ class DashboardService:
             "SELECT DISTINCT c.campaign_id FROM goal_supervisor_wakeups w "
             "JOIN autonomous_job_items i ON i.job_id=w.job_id "
             "JOIN autonomous_campaigns c ON c.campaign_id=i.campaign_id "
-            "WHERE w.status='pending' AND c.status IN ('running','completed') "
+            "LEFT JOIN autonomous_supervisor_heartbeats h ON h.campaign_id=c.campaign_id "
+            "WHERE w.status='pending' AND c.status IN ('running','completed','needs_attention') "
+            "AND (c.status!='needs_attention' OR COALESCE(h.last_error,'')='') "
             "ORDER BY c.created_at"
         )
         started: list[dict[str, Any]] = []

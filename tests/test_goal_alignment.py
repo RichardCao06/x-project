@@ -179,6 +179,59 @@ def test_system_repair_deduplicates_same_triage_across_candidates(tmp_path: Path
     assert same_failure["repair_run_id"] == queued["repair_run_id"]
 
 
+def test_ineffective_repair_requires_a_different_causal_plan(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    changes = ChangeController(root)
+    first = changes.propose(
+        source_deviation_id="dev_plan_one", target="propose_code_change", risk="low",
+        change={"source": "first"}, rollback={"strategy": "restore"},
+    )
+    agent = SystemRepairAgent(root)
+    request = {
+        "source_failure_fingerprint": "same-failure",
+        "causal_input_changes": [{
+            "causal_input": "table_extractor", "change": "add same parser",
+        }],
+    }
+    prior = agent.queue(
+        candidate_id=first["candidate_id"], source_job_id="job_replan",
+        source_run_id="run_replan", request=request,
+    )
+    with agent.state.transaction() as conn:
+        conn.execute("UPDATE system_repair_runs SET status='ineffective' WHERE repair_run_id=?",
+                     (prior["repair_run_id"],))
+    second = changes.propose(
+        source_deviation_id="dev_plan_two", target="propose_code_change", risk="low",
+        change={"source": "second"}, rollback={"strategy": "restore"},
+    )
+
+    suppressed = agent.queue(
+        candidate_id=second["candidate_id"], source_job_id="job_replan",
+        source_run_id="run_replan", request=request,
+    )
+
+    assert suppressed["repair_run_id"] == prior["repair_run_id"]
+    assert len(agent.rows(job_id="job_replan")) == 1
+    assert agent.state._connection().execute(
+        "SELECT COUNT(*) FROM events WHERE event_type='system_repair.causal_replan_required'"
+    ).fetchone()[0] == 1
+
+    third = changes.propose(
+        source_deviation_id="dev_plan_three", target="propose_code_change", risk="low",
+        change={"source": "third"}, rollback={"strategy": "restore"},
+    )
+    replanned = agent.queue(
+        candidate_id=third["candidate_id"], source_job_id="job_replan",
+        source_run_id="run_replan", request={
+            **request,
+            "causal_input_changes": [{
+                "causal_input": "document_router", "change": "add route before parsing",
+            }],
+        },
+    )
+    assert replanned["repair_run_id"] != prior["repair_run_id"]
+
+
 def test_golden_candidate_maps_to_complete_goal_vector(tmp_path: Path) -> None:
     batch = tmp_path / "batch"
     documents = {
@@ -474,6 +527,45 @@ def test_meta_supervisor_detects_and_executes_safe_analysis_lost_by_manual_proje
     assert repair_job["status"] == "awaiting_approval"
 
 
+def test_orphaned_goal_wakeup_resolves_only_after_supervisor_consumes_it(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    control = ControlPlane(root)
+    accepted = SkillInvoker(root).invoke(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A019"]},
+        idempotency_key="orphaned-goal-work",
+    )
+    run_id = PersistentOrchestrator(root).materialize(accepted["job_id"])
+    AlignmentStore(control.state).deviation(
+        job_id=accepted["job_id"], run_id=run_id, goal_id="wiki-node-goal-v1",
+        value={"deviation_type": "false_block", "severity": "high",
+               "evidence": {"task_id": "research_plan_gate"},
+               "summary": "orphaned repair work"},
+    )
+
+    report = SystemMetaSupervisor(root, control=control).reconcile(job_id=accepted["job_id"])
+
+    action = report["actions"][0]
+    wakeup_id = action["result"]["wakeup_id"]
+    meta_deviation_id = action["meta_deviation_id"]
+    assert action["result"]["awaiting_consumer"] is True
+    assert control.state._connection().execute(
+        "SELECT status FROM system_meta_deviations WHERE meta_deviation_id=?",
+        (meta_deviation_id,),
+    ).fetchone()["status"] == "awaiting_supervision"
+
+    consumed = AlignmentStore(control.state).consume_wakeups(
+        job_id=accepted["job_id"], consumer="test-supervisor", wakeup_ids=[wakeup_id],
+    )
+
+    assert consumed == [wakeup_id]
+    assert control.state._connection().execute(
+        "SELECT status FROM system_meta_deviations WHERE meta_deviation_id=?",
+        (meta_deviation_id,),
+    ).fetchone()["status"] == "resolved"
+
+
 def test_meta_supervisor_propagates_failed_child_repair(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -767,6 +859,25 @@ def test_system_repair_allows_only_governed_research_route_config() -> None:
     assert SystemRepairAgent._is_allowed_path("scripts/new_repair.py")
 
 
+def test_system_repair_replays_prior_cases_for_failure_family(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    (root / "config").mkdir()
+    (root / "config/system-repair-replay-corpus.json").write_text(json.dumps({
+        "schema_version": "system-repair-replay-corpus-v1",
+        "families": {"table_contract": ["tests/test_prior_table_case.py"]},
+    }), encoding="utf-8")
+    (root / "tests").mkdir()
+    (root / "tests/test_prior_table_case.py").write_text(
+        "def test_prior_table_case(): assert True\n", encoding="utf-8",
+    )
+
+    commands = SystemRepairAgent(root)._validation_commands(
+        root, {"mechanism_family": "table_contract"},
+    )
+
+    assert commands["sandbox"] == ("tests/test_prior_table_case.py",)
+
+
 def test_unknown_repeated_failure_requires_problem_based_agent_triage() -> None:
     failure = {"message": "unexpected table precondition", "identical_failure_repeated": True,
                "failure_fingerprint": "same"}
@@ -783,6 +894,42 @@ def test_unknown_repeated_failure_requires_problem_based_agent_triage() -> None:
     assert CausalAnalyzer.requires_agent_triage(
         CausalAnalyzer().analyze(deviations[0])
     )
+
+
+def test_repeated_research_plan_failure_escalates_beyond_translation_rewind() -> None:
+    deviation = Deviation(
+        "false_block", "high", {
+            "task_id": "research_plan_gate", "failure_code": "RESEARCH_PLAN_INVALID",
+            "failure": {
+                "identical_failure_repeated": True,
+                "failure_fingerprint": "same-research-plan-gate",
+            },
+        }, "translation repair repeated without a causal delta",
+    )
+
+    diagnosis = CausalAnalyzer().analyze(deviation)
+
+    assert diagnosis.cause_code == "REPAIR_DID_NOT_CHANGE_CAUSAL_INPUT"
+    assert CausalAnalyzer.requires_agent_triage(diagnosis)
+
+
+def test_english_only_research_gate_failure_is_classified_as_contract_drift() -> None:
+    deviation = Deviation(
+        "false_block", "high", {
+            "task_id": "research_plan_gate", "failure_code": "RESEARCH_PLAN_INVALID",
+            "failure": {"gate_result": {"failures": [
+                "english_translation_audited",
+                "english_field_translation_coverage_complete",
+            ]}},
+        }, "English discovery enhancement became a hard block",
+    )
+
+    diagnosis = CausalAnalyzer().analyze(deviation)
+    proposal = RepairPlanner().plan(diagnosis)
+
+    assert diagnosis.cause_code == "GATE_GOAL_CONTRACT_DRIFT"
+    assert proposal.level == "L2"
+    assert proposal.action == "propose_gate_change"
 
 
 def test_failure_triage_agent_persists_problem_based_route(tmp_path: Path) -> None:
@@ -1148,7 +1295,13 @@ def test_editorial_system_repair_honors_downstream_go_proof_before_effective(
         "source_run_id": run_id, "promoted_at": promoted_at,
         "request": {
             "cause_code": "EDITORIAL_PRESERVATION_TOKENIZER_OVERCONSUMES_LISTS",
+            "source_failure_fingerprint": "editorial-preservation-fingerprint",
             "recovery_task": "content_compose",
+            "goal_assessment": {"baseline_score": 0.1},
+            "causal_input_changes": [{
+                "causal_input": "editorial_patch.preservation_tokens",
+                "change": "derive preservation tokens from canonical flow identities",
+            }],
             "proof_contract": [
                 {"metric": "content_compose task status", "target": "succeeded",
                  "evidence_artifact": "orchestrator task record"},
@@ -1217,6 +1370,13 @@ def test_editorial_system_repair_honors_downstream_go_proof_before_effective(
         assert repair["payload"]["outcome_validation"]["proof"][
             "required_replay_tasks"
         ] == ["content_compose", "editorial_review"]
+    if expected_status == "effective":
+        proof = repair["payload"]["outcome_validation"]["proof"]
+        assert proof["patch_bound"] is True
+        assert proof["causal_inputs_bound"] is True
+        assert proof["failure_fingerprint_absent_after_replay"] is True
+        assert proof["quality_score_improved"] is True
+        assert proof["effective_contract_satisfied"] is True
     if editorial_status == "manual_review" or proof_state == "stale":
         assert repair["payload"]["outcome_validation"]["proof"][
             "failed_proof_tasks"

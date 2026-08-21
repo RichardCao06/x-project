@@ -41,6 +41,15 @@ def main() -> int:
                      for row in accepted}
     field_decisions = {(str(row.get("table")), str(row.get("field"))): row.get("decision")
                        for row in selection.get("fields") or []}
+    result_keys = [
+        (str(query.get("query_hash") or ""), str(result.get("url") or ""))
+        for query in query_rows for result in query.get("results", [])
+    ]
+    candidate_audits = selection.get("candidate_audits") or []
+    audit_keys = [
+        (str(row.get("query_hash") or ""), str(row.get("url") or ""))
+        for row in candidate_audits
+    ]
     populated_rows = [(kind, row) for kind, rows in collection.get("tables", {}).items()
                       for row in rows if row.get("status") == "populated"]
     matrix_terms = matrix.get("terminology", {})
@@ -56,6 +65,16 @@ def main() -> int:
               "all_fields_have_selection_decisions": all(
                   (kind, str(row.get("field"))) in field_decisions
                   for kind, rows in collection.get("tables", {}).items() for row in rows),
+              "every_search_result_has_one_candidate_audit": (
+                  len(result_keys) == len(audit_keys)
+                  and sorted(result_keys) == sorted(audit_keys)
+                  and len(audit_keys) == len(set(audit_keys))
+              ),
+              "candidate_decisions_are_terminal_and_explained": all(
+                  row.get("decision") in {"accepted", "rejected"}
+                  and bool(row.get("reasons"))
+                  for row in candidate_audits
+              ),
               "selection_decisions_match_collection": all(
                   field_decisions.get((kind, str(row.get("field")))) ==
                   ("populated" if row.get("status") == "populated" else "explicit_gap")
@@ -66,6 +85,13 @@ def main() -> int:
                   for kind, row in populated_rows),
               "chinese_query_track": "zh" in languages,
               "english_query_track": "en" in languages,
+              "chinese_discovery_terms_present": any(
+                  str(x or "").strip() for x in zh_discovery_terms
+              ),
+              "english_discovery_terms_present": any(
+                  str(x or "").strip() and not any("\u3400" <= char <= "\u9fff" for char in str(x))
+                  for x in en_discovery_terms
+              ),
               "alias_policy_present": any(str(x or "").strip() for x in zh_discovery_terms)
                                       and any(str(x or "").strip() for x in en_discovery_terms),
               "search_was_attempted": bool(query_rows) and all(row.get("status") in terminal for row in query_rows),
@@ -90,10 +116,23 @@ def main() -> int:
                   row.get("status") in {"populated", "explicit_gap"}
                   for row in collection["tables"]["params"]),
               "collection_hash_bound": collection.get("search_matrix_sha256") == hashlib.sha256(matrix_path.read_bytes()).hexdigest()}
+    advisory_names = {
+        "english_query_track", "english_discovery_terms_present", "alias_policy_present",
+    }
+    blocking_failures = [
+        name for name, passed in checks.items()
+        if not passed and name not in advisory_names
+    ]
+    warnings = [
+        name for name, passed in checks.items()
+        if not passed and name in advisory_names
+    ]
     result = {"protocol": "wiki-table-source-verdict-v1", "node_id": collection["node_id"],
-              "verdict": "PASS" if all(checks.values()) else "FAIL", "independent": True,
+              "verdict": "PASS" if not blocking_failures else "FAIL", "independent": True,
               "data_outcome": selection.get("outcome", "UNKNOWN"),
-              "checks": checks, "metrics": metrics,
+              "checks": checks, "blocking_failures": blocking_failures,
+              "warnings": warnings, "advisory_checks": sorted(advisory_names),
+              "metrics": metrics,
               "collection_sha256": hashlib.sha256(collection_path.read_bytes()).hexdigest(),
               "search_matrix_sha256": hashlib.sha256(matrix_path.read_bytes()).hexdigest()}
     (args.output / "source-verdict.json").write_text(

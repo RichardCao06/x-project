@@ -46,18 +46,19 @@ def test_schema_migration_records_worker_registry(tmp_path: Path) -> None:
         (1, "worker-and-attempt-ownership"),
         (2, "structured-failure-payloads"),
         (3, "effective-bindings-and-reuse-receipts"),
-            (4, "global-search-rate-slots"),
-            (5, "task-binding-generations"),
-            (6, "goal-alignment-control-plane"),
-            (7, "autonomous-job-campaigns"),
-            (8, "system-repair-agent-runs"),
-            (9, "failure-triage-agent-runs"),
-            (10, "goal-supervision-wakeups-and-repair-receipts"),
-            (11, "system-meta-supervision"),
-            (12, "task-repair-epochs"),
+        (4, "global-search-rate-slots"),
+        (5, "task-binding-generations"),
+        (6, "goal-alignment-control-plane"),
+        (7, "autonomous-job-campaigns"),
+        (8, "system-repair-agent-runs"),
+        (9, "failure-triage-agent-runs"),
+        (10, "goal-supervision-wakeups-and-repair-receipts"),
+        (11, "system-meta-supervision"),
+        (12, "task-repair-epochs"),
         (13, "goal-contract-governance-v2"),
         (14, "governance-reassessment-and-capability-assurance"),
-        ]
+        (15, "system-repair-scm-publications"),
+    ]
     assert state._connection().execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='worker_instances'"
     ).fetchone()

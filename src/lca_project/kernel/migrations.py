@@ -295,6 +295,21 @@ def _governance_reassessment_and_capability_assurance(
     install_governance_schema(conn)
 
 
+def _system_repair_scm_publications(conn: sqlite3.Connection) -> None:
+    """Persist repository Issue/commit/PR publication as a separate audit boundary."""
+    conn.execute("""CREATE TABLE IF NOT EXISTS system_repair_scm_publications(
+      publication_id TEXT PRIMARY KEY, repair_run_id TEXT NOT NULL UNIQUE,
+      provider TEXT NOT NULL, status TEXT NOT NULL, repository TEXT,
+      remote_name TEXT, base_branch TEXT, head_branch TEXT, commit_sha TEXT,
+      issue_number INTEGER, issue_url TEXT, pr_number INTEGER, pr_url TEXT,
+      payload TEXT NOT NULL, last_error TEXT,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      FOREIGN KEY(repair_run_id) REFERENCES system_repair_runs(repair_run_id)
+    )""")
+    conn.execute("""CREATE INDEX IF NOT EXISTS system_repair_scm_publications_status_idx
+      ON system_repair_scm_publications(status,updated_at)""")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "worker-and-attempt-ownership", _worker_and_attempt_ownership),
     (2, "structured-failure-payloads", _structured_failures),
@@ -312,6 +327,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (13, "goal-contract-governance-v2", _goal_contract_governance_v2),
     (14, "governance-reassessment-and-capability-assurance",
      _governance_reassessment_and_capability_assurance),
+    (15, "system-repair-scm-publications", _system_repair_scm_publications),
 )
 
 

@@ -949,12 +949,16 @@ class WorkerLoop:
                         maturity = load_json(maturity_path) if maturity_path.is_file() else {}
                         maturity_name = str(maturity.get("maturity") or "diagnostic_preview")
                         target = (JobState.CANDIDATE if maturity.get("candidate_eligible") is True
+                                  else JobState.REPAIRABLE
+                                  if maturity.get("pipeline_continue") is True
                                   else JobState.EVIDENCE_LIMITED
                                   if maturity_name == "evidence_limited"
                                   else JobState.DIAGNOSTIC_PREVIEW)
                         self.control.transition_job(
                             job_id_value, target,
-                            reason=f"preview completed with maturity={maturity_name}",
+                            reason=(f"preview artifact completed with maturity={maturity_name}; "
+                                    f"goal_complete={maturity.get('candidate_eligible') is True}; "
+                                    f"pipeline_continue={maturity.get('pipeline_continue') is True}"),
                         )
                 self.control.events.append("workflow_run", task.run_id, "task.succeeded", {
                     "task_id": task.task_id, "attempt_id": attempt_id, "output_hash": digest,

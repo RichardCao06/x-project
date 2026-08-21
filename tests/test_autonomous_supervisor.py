@@ -91,6 +91,26 @@ def test_campaign_rejects_duplicate_requests_and_unknown_skill(tmp_path: Path) -
     assert supervisor.campaigns()["total"] == 0
 
 
+def test_reviewed_publication_goal_requires_reviewed_requests(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    supervisor = AutonomousJobSupervisor(root)
+    invalid = spec("A001")
+    invalid["completion_goal"] = "reviewed_publication"
+    with pytest.raises(ValueError, match="publication_mode=reviewed"):
+        supervisor.create_campaign(invalid)
+
+    reviewed = spec("A001")
+    reviewed["requests"][0]["publication_mode"] = "reviewed"
+    created = supervisor.create_campaign(reviewed)
+    assert created["campaign"]["payload"]["completion_goal"] == "reviewed_publication"
+
+    early_exit = spec("A002")
+    early_exit["requests"][0]["publication_mode"] = "reviewed"
+    early_exit["completion_goal"] = "lca_modeling_ready"
+    with pytest.raises(ValueError, match="terminate before governed publication"):
+        supervisor.create_campaign(early_exit)
+
+
 def test_supervisor_drives_worker_and_marks_campaign_complete(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -158,6 +178,98 @@ def test_evidence_limited_job_requires_attention_instead_of_false_completion(
     assert supervisor._finish_campaign_if_terminal(campaign_id) == "completed"
 
 
+def test_repairable_job_overrides_succeeded_run_projection(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    supervisor = AutonomousJobSupervisor(root)
+    campaign_id = supervisor.create_campaign(spec("A039"))["campaign"]["campaign_id"]
+    supervisor.tick(campaign_id, execute_task=False)
+    item = supervisor.campaign(campaign_id)["items"][0]
+    control = ControlPlane(root)
+    job = control.state.get("jobs", item["job_id"])
+    control.state.upsert_entity(
+        "jobs", item["job_id"], "repairable", job["payload"],
+        program_id=job.get("program_id"), industry_id=job.get("industry_id"),
+        workflow_id=job.get("workflow_id"),
+    )
+    with control.state.transaction() as conn:
+        conn.execute("UPDATE orchestrator_runs SET status='succeeded' WHERE run_id=?",
+                     (item["run_id"],))
+
+    synced = supervisor._sync_item(supervisor.campaign(campaign_id)["items"][0])
+
+    assert synced["status"] == "running"
+
+
+def test_reviewed_campaign_completes_only_with_bound_release_proof(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    value = spec("A001")
+    value["requests"][0]["publication_mode"] = "reviewed"
+    supervisor = AutonomousJobSupervisor(root)
+    campaign_id = supervisor.create_campaign(value)["campaign"]["campaign_id"]
+    supervisor.tick(campaign_id, execute_task=False)
+    item = supervisor.campaign(campaign_id)["items"][0]
+    control = ControlPlane(root)
+    job = control.state.get("jobs", item["job_id"])
+    control.state.upsert_entity(
+        "jobs", item["job_id"], "candidate", job["payload"],
+        program_id=job.get("program_id"), industry_id=job.get("industry_id"),
+        workflow_id=job.get("workflow_id"),
+    )
+    with control.state.transaction() as conn:
+        conn.execute(
+            "UPDATE orchestrator_runs SET status='succeeded',updated_at=? WHERE run_id=?",
+            (utcnow(), item["run_id"]),
+        )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='skipped' WHERE run_id=?",
+            (item["run_id"],),
+        )
+
+    candidate_only = supervisor._sync_item(supervisor.campaign(campaign_id)["items"][0])
+    assert candidate_only["status"] == "blocked"
+    assert "status=published" in candidate_only["last_error"]
+
+    control.state.upsert_entity(
+        "jobs", item["job_id"], "published", job["payload"],
+        program_id=job.get("program_id"), industry_id=job.get("industry_id"),
+        workflow_id=job.get("workflow_id"),
+    )
+
+    without_proof = supervisor._sync_item(supervisor.campaign(campaign_id)["items"][0])
+    assert without_proof["status"] == "blocked"
+    assert "immutable output manifest" in without_proof["last_error"]
+
+    proof_dir = root / "proof"
+    proof_dir.mkdir()
+    record_path = proof_dir / "release-record.json"
+    record_path.write_text(json.dumps({
+        "protocol": "release-record-v1", "publication_status": "published",
+        "release_id": "release-test", "job_id": item["job_id"],
+        "candidate_hashes": {"wiki.md": "b" * 64},
+        "gate_report_sha256": "c" * 64,
+        "reviewed_apply_sha256": "d" * 64,
+        "publish_report_sha256": "e" * 64,
+    }), encoding="utf-8")
+    manifest = control.artifacts.put_task_output_manifest(
+        root, [{"path": "proof/release-record.json"}], {"status": "ok"},
+        run_id=item["run_id"], task_id="publish", attempt_id="publish-proof",
+    )
+    with control.state.transaction() as conn:
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',output_hash=? "
+            "WHERE run_id=? AND task_id='publish'",
+            (manifest.digest, item["run_id"]),
+        )
+        conn.execute(
+            "UPDATE autonomous_job_items SET status='running',last_error=NULL "
+            "WHERE item_id=?", (item["item_id"],),
+        )
+
+    with_proof = supervisor._sync_item(supervisor.campaign(campaign_id)["items"][0])
+    assert with_proof["status"] == "succeeded"
+    assert supervisor._finish_campaign_if_terminal(campaign_id) == "completed"
+
+
 def test_terminal_campaign_is_reactivated_by_durable_goal_wakeup(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     supervisor = AutonomousJobSupervisor(root, supervisor_id="wakeup-supervisor")
@@ -181,6 +293,36 @@ def test_terminal_campaign_is_reactivated_by_durable_goal_wakeup(tmp_path: Path)
     assert supervisor.campaign(campaign_id)["campaign"]["status"] == "running"
 
 
+def test_reviewed_needs_attention_campaign_is_reactivated_by_new_wakeup(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    supervisor = AutonomousJobSupervisor(root, supervisor_id="reviewed-wakeup-supervisor")
+    value = spec("A019")
+    value["completion_goal"] = "reviewed_publication"
+    value["requests"][0]["publication_mode"] = "reviewed"
+    campaign_id = supervisor.create_campaign(value)["campaign"]["campaign_id"]
+    supervisor.tick(campaign_id, execute_task=False)
+    item = supervisor.campaign(campaign_id)["items"][0]
+    with supervisor.state.transaction() as conn:
+        conn.execute("UPDATE autonomous_campaigns SET status='needs_attention' WHERE campaign_id=?",
+                     (campaign_id,))
+        conn.execute("UPDATE autonomous_job_items SET status='blocked' WHERE item_id=?",
+                     (item["item_id"],))
+    AlignmentStore(supervisor.state).request_supervision(
+        job_id=item["job_id"], run_id=item["run_id"], reason="new_reviewed_goal_deviation",
+        deviation_ids=["dev_reviewed"], observation_hash="reviewed-observation",
+    )
+
+    result = supervisor.tick(campaign_id, execute_task=False)
+
+    assert result["status"] == "running"
+    assert result["action"]["consumed_wakeups"]
+    view = supervisor.campaign(campaign_id)
+    assert view["campaign"]["status"] == "running"
+    assert view["items"][0]["status"] == "running"
+
+
 def test_dashboard_reconciler_restarts_campaign_with_pending_wakeup(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -192,6 +334,35 @@ def test_dashboard_reconciler_restarts_campaign_with_pending_wakeup(
     AlignmentStore(service.state).request_supervision(
         job_id=item["job_id"], run_id=item["run_id"], reason="late_quality_signal",
         deviation_ids=["dev_late"], observation_hash="late-observation",
+    )
+    started: list[str] = []
+    monkeypatch.setattr(
+        service, "start_autonomy",
+        lambda value: started.append(value) or {"status": "started", "campaign_id": value},
+    )
+
+    result = service.reconcile_goal_wakeups_once()
+
+    assert result["status"] == "started"
+    assert started == [campaign_id]
+
+
+def test_dashboard_reconciler_restarts_needs_attention_campaign_with_pending_wakeup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    service = DashboardService(root)
+    created = service.create_autonomy(spec("A019"), start=False)
+    campaign_id = created["campaign"]["campaign_id"]
+    item = created["items"][0]
+    with service.state.transaction() as conn:
+        conn.execute("UPDATE autonomous_campaigns SET status='needs_attention' WHERE campaign_id=?",
+                     (campaign_id,))
+        conn.execute("UPDATE autonomous_job_items SET status='blocked' WHERE item_id=?",
+                     (item["item_id"],))
+    AlignmentStore(service.state).request_supervision(
+        job_id=item["job_id"], run_id=item["run_id"], reason="late_repair_signal",
+        deviation_ids=["dev_late_repair"], observation_hash="late-repair-observation",
     )
     started: list[str] = []
     monkeypatch.setattr(
@@ -255,6 +426,60 @@ def test_supervisor_consumes_durable_queued_repair_before_audit(
         )
 
     assert calls == [queued["repair_run_id"]]
+
+
+def test_supervisor_retries_deferred_scm_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    supervisor = AutonomousJobSupervisor(root, supervisor_id="scm-retry")
+    campaign_id = supervisor.create_campaign(spec("A039"))["campaign"]["campaign_id"]
+    supervisor.tick(campaign_id, execute_task=False)
+    view = supervisor.campaign(campaign_id)
+    item = view["items"][0]
+    candidate = ChangeController(root).propose(
+        source_deviation_id="dev_scm_retry", target="propose_code_change", risk="low",
+        change={"diagnosis": "SCM_RETRY"}, rollback={"strategy": "restore"},
+    )
+    repair = SystemRepairAgent(root).queue(
+        candidate_id=candidate["candidate_id"], source_job_id=item["job_id"],
+        source_run_id=item["run_id"], request={"recovery_task": "content_compose"},
+    )
+    with supervisor.state.transaction() as conn:
+        conn.execute(
+            "UPDATE system_repair_runs SET status='awaiting_scm_publication',updated_at=? "
+            "WHERE repair_run_id=?",
+            ("2000-01-01T00:00:00+00:00", repair["repair_run_id"]),
+        )
+    calls: list[str] = []
+
+    class FakeRepairAgent:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def publish_scm(self, repair_run_id: str) -> dict:
+            calls.append(repair_run_id)
+            return {"repair_run_id": repair_run_id, "status": "awaiting_scm_publication"}
+
+    class EmptyController:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def audit_job(self, *_: object, **__: object) -> dict:
+            return {"actions": []}
+
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.autonomous_supervisor.SystemRepairAgent",
+        FakeRepairAgent,
+    )
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.autonomous_supervisor.GoalAlignmentController",
+        EmptyController,
+    )
+
+    supervisor._supervise_item(view["campaign"], item, execute_task=False)
+
+    assert calls == [repair["repair_run_id"]]
 
 
 def test_supervisor_cycle_failures_are_truthful_and_open_circuit(

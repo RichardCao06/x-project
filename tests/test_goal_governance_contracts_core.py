@@ -320,7 +320,7 @@ def test_governance_migrations_install_v2_tables(tmp_path: Path) -> None:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("BEGIN IMMEDIATE")
     try:
-        assert migrate(conn) == 14
+        assert migrate(conn) == 15
     except Exception:
         conn.rollback()
         raise

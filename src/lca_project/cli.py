@@ -161,7 +161,9 @@ def parser() -> argparse.ArgumentParser:
     change.add_argument("--reason", default="operator requested rollback")
     system_repair = commands.add_parser(
         "system-repair", help="inspect or execute a governed coding-Agent repair")
-    system_repair.add_argument("action", choices=("status", "execute", "approve", "reject"))
+    system_repair.add_argument(
+        "action", choices=("status", "execute", "publish", "approve", "reject")
+    )
     system_repair.add_argument("repair_run_id", nargs="?")
     system_repair.add_argument("--job-id")
     system_repair.add_argument("--reason", default="operator rejected validated repair")
@@ -343,6 +345,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError(f"system-repair {args.action} requires repair_run_id")
             if args.action == "approve":
                 _dump(agent.approve(args.repair_run_id)); return 0
+            if args.action == "publish":
+                _dump(agent.publish_scm(args.repair_run_id)); return 0
             if args.action == "reject":
                 _dump(agent.reject(args.repair_run_id, reason=args.reason)); return 0
             _dump(agent.execute(args.repair_run_id)); return 0

@@ -173,6 +173,26 @@ def population_floor_checks(metrics: dict[str, int], thresholds: dict[str, Any])
     return checks
 
 
+def substantive_population(metrics: dict[str, int]) -> dict[str, Any]:
+    """Separate a structurally valid table from one that advances the LCA goal.
+
+    Population thresholds are configurable and may intentionally be zero for a
+    diagnostic run.  A zero floor must not, however, turn an entirely empty
+    result into a production ``GO``.  Assessed quality rows are useful audit
+    facts but do not substitute for a populated model field.
+    """
+    populated_keys = (
+        "props_populated", "flows_populated", "emissions_populated",
+        "indicators_populated", "params_int_populated", "params_cn_populated",
+    )
+    populated_fields = sum(int(metrics.get(key) or 0) for key in populated_keys)
+    return {
+        "populated_fields": populated_fields,
+        "quality_assessments": int(metrics.get("quality_assessed") or 0),
+        "goal_data_ready": populated_fields > 0,
+    }
+
+
 def registry_entry(source: dict[str, Any]) -> dict[str, Any]:
     return {
         "title": source["title"], "type": source["type"], "version": source["version"],
@@ -365,20 +385,27 @@ def command_gate(args: argparse.Namespace) -> int:
         "no_placeholder_table_values": not any(token in page for token in ("| 待采 |", "| 待核 |", "| 待评 |")),
     }
     checks.update(population_floor_checks(metrics, collection["thresholds"]))
-    verdict = "GO" if all(checks.values()) else "NO_GO"
+    readiness = substantive_population(metrics)
+    contract_valid = all(checks.values())
+    # INCOMPLETE is deliberately non-terminal: the staged explicit-gap tables
+    # may still be applied for an honest preview, but the result cannot be
+    # confused with a data-ready production gate.
+    verdict = ("GO" if contract_valid and readiness["goal_data_ready"]
+               else "INCOMPLETE" if contract_valid else "NO_GO")
     report = {"protocol": "wiki-table-population-gate-v1", "node_id": collection["node_id"],
               "verdict": verdict, "checks": checks, "metrics": metrics,
+              "contract_valid": contract_valid, "goal_readiness": readiness,
               "page_sha256": digest_path(args.page), "registry_sha256": digest_path(args.registry)}
     args.output.write_text(dump(report), encoding="utf-8")
     print(dump(report), end="")
-    return 0 if verdict == "GO" else 2
+    return 0 if verdict in {"GO", "INCOMPLETE"} else 2
 
 
 def command_apply(args: argparse.Namespace) -> int:
     stage = load(args.stage / "stage-report.json")
     gate = load(args.gate)
-    if gate.get("verdict") != "GO":
-        raise ValueError("Table Population Gate 未 GO")
+    if gate.get("verdict") not in {"GO", "INCOMPLETE"}:
+        raise ValueError("Table Population Gate 未通过合同校验")
     if digest_path(args.page) != stage["original_page_sha256"] or digest_path(args.registry) != stage["original_registry_sha256"]:
         raise ValueError("apply 前原始页面或 registry hash 漂移")
     candidate_page = args.stage / "candidate.md"
@@ -390,6 +417,8 @@ def command_apply(args: argparse.Namespace) -> int:
     atomic_write(args.page, candidate_page.read_bytes())
     atomic_write(args.registry, candidate_registry.read_bytes())
     report = {"protocol": "wiki-table-apply-v1", "status": "applied", "node_id": gate["node_id"],
+              "goal_readiness": gate.get("goal_readiness") or {},
+              "population_verdict": gate.get("verdict"),
               "page_sha256": digest_path(args.page), "registry_sha256": digest_path(args.registry)}
     args.output.write_text(dump(report), encoding="utf-8")
     print(dump(report), end="")

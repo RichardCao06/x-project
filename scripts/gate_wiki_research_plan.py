@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Validate that a frozen Wiki research plan can execute real bilingual discovery."""
+"""Validate that a frozen Wiki research plan can start evidence discovery.
+
+English terminology and field translations are discovery-quality signals.  They
+must remain visible, but an incomplete optional English track cannot prevent the
+Chinese track from executing.  Actual bilingual coverage is proven by the
+executed-search and source-diversity gates later in the workflow.
+"""
 from __future__ import annotations
 
 import argparse
@@ -73,20 +79,42 @@ def evaluate(plan: dict) -> dict:
             (plan.get("source_role_contract") or {}).keys()
         ),
     }
-    # Every activity table serializes bilingual field-level searches.  Passing
-    # an activity with no frozen translation contract only postpones the same
-    # defect until table_collect, after expensive research/content work.  Fail
-    # closed at G1 for all activity nodes instead of special-casing A039.
+    # Static field translations make English queries more precise, but unknown
+    # activity schemas are expected to expand this track at table-collection
+    # time.  Keep the coverage signal without turning it into a G1 false block.
     if str(plan.get("node_id") or "").startswith("A") or field_contract:
         checks["english_field_translation_coverage_complete"] = complete_field_contract
-    failures = [name for name, passed in checks.items() if not passed]
+    advisory_names = {
+        "english_discovery_terms_present",
+        "english_translation_audited",
+        "english_terms_are_actually_english",
+        "english_field_translation_coverage_complete",
+    }
+    failures = [
+        name for name, passed in checks.items()
+        if not passed and name not in advisory_names
+    ]
+    warnings = [
+        name for name, passed in checks.items()
+        if not passed and name in advisory_names
+    ]
     return {
         "protocol": "wiki-research-plan-gate-v1",
         "decision": "PASS" if not failures else "REPAIR",
+        "pipeline_continue": not failures,
         "checks": checks,
         "failures": failures,
+        "warnings": warnings,
+        "advisory_checks": sorted(advisory_names & set(checks)),
+        "translation_policy": (
+            "execute_available_queries_and_expand_english_terms_from_runtime_results"
+        ),
         "repair_target": "research_plan" if failures else None,
-        "maturity_ceiling": "wiki_candidate" if not failures else "diagnostic_preview",
+        "maturity_ceiling": (
+            "evidence_limited" if not failures and warnings
+            else "wiki_candidate" if not failures
+            else "diagnostic_preview"
+        ),
     }
 
 

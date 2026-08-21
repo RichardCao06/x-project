@@ -365,10 +365,51 @@ class GoalAlignmentController:
                 for key in reductions
                 if int(baseline.get(key) or 0) > int(current.get(key) or 0)
             })
+            baseline_score_raw = goal_assessment.get("baseline_score")
+            baseline_score = (float(baseline_score_raw)
+                              if isinstance(baseline_score_raw, (int, float)) else None)
+            current_score = float(getattr(observation, "score", 0.0) or 0.0)
+            quality_score_improved = bool(
+                baseline_score is not None and current_score > baseline_score + 1e-9
+            )
+            declared_causal_inputs = [
+                str(item.get("causal_input") or item.get("target") or "").strip()
+                for item in request.get("causal_input_changes") or []
+                if isinstance(item, dict)
+            ]
+            patch_bound = bool(repair.get("patch_hash"))
+            causal_inputs_bound = bool(declared_causal_inputs)
+            source_failure_fingerprint = str(
+                request.get("source_failure_fingerprint")
+                or ((request.get("evidence") or {}).get("failure_fingerprint")
+                    if isinstance(request.get("evidence"), dict) else "")
+                or ""
+            )
+            replay_failures = [
+                item for item in (task_by_id.get(task_id) for task_id in required_replay_tasks)
+                if item and item.get("failure_payload")
+            ]
+            fingerprint_absent = not any(
+                source_failure_fingerprint and source_failure_fingerprint in str(
+                    item.get("failure_payload") or ""
+                )
+                for item in replay_failures
+            )
+            proof_bound = bool(requested_proof) and not failed_proof_tasks
+            effective_contract_satisfied = bool(
+                patch_bound and causal_inputs_bound and proof_bound
+                and fingerprint_absent
+                and (quality_score_improved
+                     or (current_outcome.get("closer_to_modelling_goal") is True
+                         and bool(core_improved)))
+            )
             if forced_verdict:
                 verdict = forced_verdict
             elif not research_repair:
-                verdict = "effective"
+                verdict = ("effective" if effective_contract_satisfied
+                           else "partially_effective"
+                           if proof_bound and fingerprint_absent
+                           else "ineffective")
             elif current_outcome.get("closer_to_modelling_goal") is True and core_improved:
                 verdict = "effective"
             elif core_improved or supporting_improved:
@@ -384,6 +425,16 @@ class GoalAlignmentController:
                 "proof_contract": requested_proof,
                 "required_replay_tasks": required_replay_tasks,
                 "failed_proof_tasks": failed_proof_tasks,
+                "patch_hash": repair.get("patch_hash"),
+                "patch_bound": patch_bound,
+                "declared_causal_inputs": declared_causal_inputs,
+                "causal_inputs_bound": causal_inputs_bound,
+                "source_failure_fingerprint": source_failure_fingerprint or None,
+                "failure_fingerprint_absent_after_replay": fingerprint_absent,
+                "baseline_quality_score": baseline_score,
+                "current_quality_score": current_score,
+                "quality_score_improved": quality_score_improved,
+                "effective_contract_satisfied": effective_contract_satisfied,
             }
             receipt = self.store.repair_validation_receipt(
                 repair_run_id=str(repair["repair_run_id"]), job_id=job_id,
@@ -577,6 +628,7 @@ class GoalAlignmentController:
                             "cause_code": diagnosis.cause_code,
                             "explanation": diagnosis.explanation,
                             "failure_code": diagnosis.evidence.get("failure_code"),
+                            "mechanism_family": diagnosis.evidence.get("mechanism_family"),
                             "failed_task": failed_task,
                             "recovery_task": recovery_task,
                             "evidence": diagnosis.evidence,

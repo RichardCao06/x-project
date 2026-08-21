@@ -57,7 +57,7 @@ def test_declared_english_terms_take_precedence_over_translation() -> None:
     assert record["translation"]["method"] == "declared_english_terminology"
 
 
-def test_unknown_chinese_term_continues_as_audited_bilingual_passthrough() -> None:
+def test_unknown_chinese_term_uses_audited_english_fallback_without_mixed_language() -> None:
     record = module().build_query(
         {
             "canonical_zh": "未知专有工艺",
@@ -69,9 +69,11 @@ def test_unknown_chinese_term_continues_as_audited_bilingual_passthrough() -> No
         "representativeness_and_quality",
     )
 
-    assert record["query"].startswith("未知专有工艺 ")
+    assert record["query"] == "representativeness and quality"
+    assert not any("\u3400" <= char <= "\u9fff" for char in record["query"])
     assert record["translation"]["method"] == "bilingual_passthrough_no_glossary_match"
     assert record["translation"]["unmatched_fragments"] == ["未知专有工艺"]
+    assert record["translation"]["query_fallback"] == "english_research_question_and_focus_only"
 
 
 def test_system_assembly_activity_searches_product_with_process_focus() -> None:

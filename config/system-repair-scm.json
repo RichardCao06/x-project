@@ -1,0 +1,13 @@
+{
+  "schema_version": "system-repair-scm-v1",
+  "enabled": true,
+  "provider": "github",
+  "repository": "RichardCao06/x-project",
+  "remote": "origin",
+  "base_branch": "main",
+  "branch_prefix": "autofix/system-repair",
+  "create_issues": true,
+  "create_draft_prs": true,
+  "required_for_promotion": true,
+  "require_base_head_match": true
+}

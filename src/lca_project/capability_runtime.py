@@ -295,11 +295,21 @@ def wiki_batch(value: dict[str, Any]) -> dict[str, Any]:
             command.extend(["--registry", str(_path(value["registry"], "registry"))])
         return _run(command, cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)))
     if operation == "research-plan-gate":
-        return _run([
+        output = _path(value.get("output"), "output")
+        result = _run([
             sys.executable, str(project_scripts / "gate_wiki_research_plan.py"),
-            str(_path(value.get("plan"), "plan")), str(_path(value.get("output"), "output")),
+            str(_path(value.get("plan"), "plan")), str(output),
         ], cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)),
             blocked_code="RESEARCH_PLAN_INVALID")
+        if result.get("status") == "failed" and output.is_file():
+            try:
+                gate_result = json.loads(output.read_text(encoding="utf-8"))
+            except (OSError, ValueError, json.JSONDecodeError):
+                gate_result = None
+            if isinstance(gate_result, dict):
+                result["failure"] = {**(result.get("failure") or {}),
+                                     "gate_result": gate_result}
+        return result
     if operation in {"search-execution-gate", "source-diversity-gate"}:
         output = _path(value.get("output"), "output")
         command = [sys.executable, str(project_scripts / "wiki_search_gates.py")]

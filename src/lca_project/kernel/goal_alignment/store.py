@@ -172,6 +172,15 @@ class AlignmentStore:
                     "updated_at=? WHERE wakeup_id=? AND status='pending'",
                     (canonical(payload), now, row["wakeup_id"]),
                 )
+                meta_deviation_id = str(
+                    (payload.get("context") or {}).get("meta_deviation_id") or ""
+                )
+                if meta_deviation_id:
+                    conn.execute(
+                        "UPDATE system_meta_deviations SET status='resolved',updated_at=? "
+                        "WHERE meta_deviation_id=? AND status='awaiting_supervision'",
+                        (now, meta_deviation_id),
+                    )
         return [str(row["wakeup_id"]) for row in rows]
 
     def repair_validation_receipt(self, *, repair_run_id: str, job_id: str,

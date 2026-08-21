@@ -209,6 +209,16 @@ def build_query(terminology: dict[str, Any], language: str, research_question: s
     else:
         translation = translate_zh_search_terms(zh_discovery_terms)
         effective_terms = translation["translated_terms"]
+        if (translation["method"] == "bilingual_passthrough_no_glossary_match"
+                or any(CJK_RE.search(str(term)) for term in effective_terms)):
+            # Do not label a Chinese passthrough as an English query.  The
+            # research-question/focus terms still provide a valid broad English
+            # discovery route, while the missing translation remains auditable.
+            effective_terms = []
+            translation = {
+                **translation,
+                "query_fallback": "english_research_question_and_focus_only",
+            }
 
     question_text = str(research_question).replace("_", " ").strip()
     focus = (QUERY_FOCUS.get(language, {}).get(research_question, "")

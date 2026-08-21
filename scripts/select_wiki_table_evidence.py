@@ -417,6 +417,12 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
             audit = {"table": table, "field": field, "language": query.get("language"),
                      "query_hash": query.get("query_hash"), "url": result.get("url"),
                      "title": result.get("title"), "decision": "rejected", "reasons": reasons,
+                     "audit_id": hashlib.sha256(json.dumps({
+                         "query_hash": query.get("query_hash"), "url": result.get("url"),
+                         "table": table, "field": field,
+                     }, ensure_ascii=False, sort_keys=True).encode()).hexdigest(),
+                     "provider": result.get("provider"),
+                     "fetch_status": result.get("fetch_status"),
                      "document_route": query.get("document_route"),
                      "document_type": result.get("document_type") or query.get("document_type"),
                      "public_extractability": public_extractability(table, field),
@@ -580,8 +586,39 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
     for audit in audits:
         if (audit["table"], audit["field"], audit.get("url")) in accepted_pairs:
             audit["decision"] = "accepted"
+            audit["reasons"] = [
+                *audit["reasons"], "accepted_field_specific_observation",
+            ]
         elif audit["observations"] and "uncorroborated_public_proxy" not in audit["reasons"]:
             audit["reasons"].append("uncorroborated_public_proxy")
+
+    result_keys = [
+        (str(query.get("query_hash") or ""), str(result.get("url") or ""))
+        for query in matrix.get("queries", []) for result in query.get("results", [])
+    ]
+    audit_keys = [
+        (str(audit.get("query_hash") or ""), str(audit.get("url") or ""))
+        for audit in audits
+    ]
+    audit_closure = {
+        "matrix_results": len(result_keys),
+        "candidate_audits": len(audit_keys),
+        "every_result_audited_once": (
+            len(result_keys) == len(audit_keys)
+            and sorted(result_keys) == sorted(audit_keys)
+            and len(audit_keys) == len(set(audit_keys))
+        ),
+        "all_decisions_terminal": all(
+            audit.get("decision") in {"accepted", "rejected"} for audit in audits
+        ),
+        "all_decisions_have_reasons": all(bool(audit.get("reasons")) for audit in audits),
+    }
+    audit_closure["complete"] = all(
+        audit_closure[key] for key in (
+            "every_result_audited_once", "all_decisions_terminal",
+            "all_decisions_have_reasons",
+        )
+    )
 
     outcome = ("NO_ELIGIBLE_PUBLIC_DATA" if not accepted else
                "FULLY_POPULATED" if len(accepted) == len(field_reports) else "PARTIALLY_POPULATED")
@@ -594,6 +631,7 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
               "counts": {"fields": len(field_reports), "populated": len(accepted),
                          "explicit_gaps": sum(x["decision"] == "explicit_gap" for x in field_reports),
                          "candidate_audits": len(audits)},
+              "audit_closure": audit_closure,
               "fields": field_reports, "accepted_evidence": accepted, "candidate_audits": audits}
     report["proof_metrics"] = {
         "field_observations": sum(len(audit["observations"]) for audit in audits),
@@ -608,6 +646,7 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
             row.get("decision") != "explicit_gap" or bool(row.get("gap_evidence", {}).get("query_hashes"))
             for row in field_reports
         ),
+        "candidate_audit_closure_complete": audit_closure["complete"],
     }
     return collection, report
 

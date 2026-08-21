@@ -13,6 +13,7 @@ import pytest
 from lca_project.control import ControlPlane
 from lca_project.dashboard import DashboardService
 from lca_project.dashboard.server import DashboardHTTPServer
+from lca_project.kernel.goal_alignment.store import AlignmentStore
 from lca_project.kernel.skills import SkillInvoker
 from lca_project.kernel.worker import WorkerLoop
 
@@ -66,6 +67,141 @@ def test_dashboard_projects_job_dag_and_artifact_preview(tmp_path: Path) -> None
     assert dashboard.overview()["counts"]["tasks"] == 26
 
 
+def test_dashboard_projects_execution_search_and_evidence_audit(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_job(
+        "generate-node-wiki",
+        {"industry": "ict_equipment", "nodes": ["P003"]},
+        materialize=True,
+    )
+    job_id, run_id = created["job_id"], created["run_id"]
+    batch = (
+        root / "var" / "workspaces" / "jobs" / job_id / "runs"
+        / "wiki-batches" / "ict_equipment" / "p003-audit"
+    )
+    (batch / "table-data").mkdir(parents=True)
+    selected_url = "https://example.org/lca-report.pdf"
+    rejected_url = "https://example.com/product-page"
+    technical_url = "https://example.net/unreadable-report.pdf"
+    (batch / "table-data" / "search-matrix.executed.json").write_text(json.dumps({
+        "queries": [{
+            "query_hash": "query-1", "table": "params", "field": "能耗",
+            "language": "zh", "query_strategy": "field_specific",
+            "query": "P003 设备 能耗 kWh",
+            "provider_attempts": [{
+                "provider": "test_search", "status": "ok", "results": 3,
+                "cache_hit": False,
+            }],
+            "results": [
+                {"title": "LCA report", "url": selected_url,
+                 "current_job_status": "candidate_unverified"},
+                {"title": "Product page", "url": rejected_url,
+                 "current_job_status": "candidate_unverified"},
+                {"title": "Unreadable report", "url": technical_url,
+                 "provider": "test_search", "fetch_status": "error",
+                 "current_job_status": "candidate_unverified",
+                 "error": {"code": "FileNotFoundError",
+                           "message": "No such file or directory: pdftotext"}},
+            ],
+        }],
+    }), encoding="utf-8")
+    (batch / "table-data" / "evidence-selection.json").write_text(json.dumps({
+        "candidate_audits": [
+            {"query_hash": "query-1", "url": selected_url,
+             "decision": "accepted", "reasons": ["field_specific_observation"]},
+            {"query_hash": "query-1", "url": rejected_url,
+             "decision": "rejected", "reasons": ["no_field_specific_observation"]},
+            {"query_hash": "query-1", "url": technical_url,
+             "decision": "rejected",
+             "reasons": ["payload_not_fetched", "payload_or_hash_missing"],
+             "extraction_support": "routed_html_pdf_pattern", "observations": []},
+        ],
+        "accepted_evidence": [{"url": selected_url}],
+        "fields": [{
+            "table": "params", "field": "能耗", "decision": "accepted",
+            "candidate_count": 2, "reason": "field_specific_observation",
+        }],
+        "counts": {"populated": 1},
+    }), encoding="utf-8")
+    (batch / "source-evidence.json").write_text(json.dumps({
+        "claims": [{
+            "claim": {"claim_id": "P003-claim-1"},
+            "query": {"query_id": "claim-query-1", "text": "P003 test method"},
+            "candidates": [{
+                "title": "Test method", "url": selected_url,
+                "search_provider": "test_search",
+            }],
+            "disposition": "sent_to_verification",
+        }],
+    }), encoding="utf-8")
+    (batch / "verify-output.json").write_text(json.dumps({
+        "claims": [{
+            "claim": {"claim_id": "P003-claim-1", "section": "定义",
+                      "claim_kind": "external_fact", "claim_text": "设备执行测试。"},
+            "fetchResult": {"url": selected_url},
+            "verify": {"verdict": "CONFIRMED", "node_alignment": "EXACT",
+                       "reasoning": "来源直接支持该声明。", "supporting_quote": "test"},
+        }],
+    }), encoding="utf-8")
+    AlignmentStore(dashboard.state).observation({
+        "schema_version": "quality-observation-v1", "job_id": job_id,
+        "run_id": run_id, "goal_id": "goal-test", "score": 0.75,
+        "dimensions": {"claim_provenance_coverage": 1.0, "data_readiness": 0.5},
+        "evidence": {"batch": str(batch), "maturity": {
+            "candidate_eligible": False, "maturity": "evidence_limited",
+            "data_readiness": "partial_data", "pipeline_continue": True,
+            "reason_codes": ["accepted_field_evidence_nonzero"],
+        }, "research_outcome": {
+            "metrics": {"queries_executed": 2, "populated_fields": 1},
+        }},
+    })
+
+    trace = dashboard.job(job_id)["execution_trace"]
+
+    assert trace["schema_version"] == "dashboard-execution-trace-v1"
+    assert trace["summary"]["queries"] == 2
+    assert trace["summary"]["candidate_results"] == 4
+    assert trace["summary"]["candidate_accepted"] == 2
+    assert trace["summary"]["candidate_rejected"] == 1
+    assert trace["summary"]["candidate_technical_failures"] == 1
+    assert trace["summary"]["confirmed_citations"] == 1
+    assert trace["summary"]["populated_fields"] == 1
+    table_query = next(item for item in trace["searches"] if item["kind"] == "table_field")
+    assert table_query["query"] == "P003 设备 能耗 kWh"
+    assert table_query["providers"][0]["provider"] == "test_search"
+    assert table_query["results"][0]["selected"] is True
+    assert table_query["results"][0]["outcome"] == "accepted"
+    assert table_query["results"][1]["reasons"] == ["no_field_specific_observation"]
+    assert table_query["results"][1]["outcome"] == "rejected"
+    assert table_query["results"][2]["outcome"] == "technical_failure"
+    assert table_query["results"][2]["evaluation_completed"] is False
+    assert table_query["results"][2]["technical_error"] == {
+        "code": "FileNotFoundError",
+        "message": "No such file or directory: pdftotext",
+    }
+    assert table_query["results"][2]["reasons"] == [
+        "payload_not_fetched", "payload_or_hash_missing",
+    ]
+    assert table_query["results"][2]["extraction_support"] == "routed_html_pdf_pattern"
+    claim_query = next(item for item in trace["searches"] if item["kind"] == "claim_evidence")
+    assert claim_query["results"][0]["outcome"] == "accepted"
+    assert claim_query["results"][0]["reasons"] == ["来源直接支持该声明。"]
+    assert trace["citations"][0]["selected"] is True
+    assert trace["table_fields"][0]["decision"] == "accepted"
+    assert trace["goal_status"] == {
+        "goal_id": "lca_modeling_ready", "workflow_complete": False,
+        "goal_complete": False, "candidate_eligible": False,
+        "modeling_ready": False,
+        "maturity": "evidence_limited", "data_readiness": "partial_data",
+        "accepted_evidence": 1, "populated_fields": 1,
+        "publication_proof_valid": False, "publication_proof_error": None,
+        "pipeline_continue": True, "autonomy_active": True,
+        "next_action": "继续自治修复",
+        "blockers": ["accepted_field_evidence_nonzero"],
+    }
+
+
 def test_dashboard_skill_catalog_and_schema_controlled_creation(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     dashboard = DashboardService(root)
@@ -74,6 +210,30 @@ def test_dashboard_skill_catalog_and_schema_controlled_creation(tmp_path: Path) 
     wiki = next(item for item in catalog["items"] if item["name"] == "generate-node-wiki")
     assert wiki["workflow"] == "wiki-node-production@9"
     assert wiki["schema"]["properties"]["publication_mode"]["default"] == "preview"
+
+
+def test_dashboard_exposes_reviewed_publication_as_declared_goal(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_autonomy({
+        "schema_version": "autonomous-job-campaign-v1",
+        "name": "reviewed-A001", "skill": "generate-node-wiki",
+        "requests": [{
+            "industry": "ict_equipment", "nodes": ["A001"],
+            "publication_mode": "reviewed",
+        }],
+        "completion_goal": "reviewed_publication",
+        "max_concurrency": 1, "max_auto_repairs_per_job": 3,
+        "poll_seconds": 1, "stop_on_failure": False,
+    }, start=False)
+
+    goal = dashboard.job(created["items"][0]["job_id"])["execution_trace"]["goal_status"]
+
+    assert goal["goal_id"] == "reviewed_publication"
+    assert goal["goal_complete"] is False
+    assert goal["publication_proof_valid"] is False
+    assert goal["pipeline_continue"] is True
+    assert "governed_reviewed_publication_not_proven" in goal["blockers"]
 
     created = dashboard.create_job(
         "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["P003"]},

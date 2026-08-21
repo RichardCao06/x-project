@@ -16,6 +16,7 @@ from ..orchestrator import PersistentOrchestrator
 from ..state import utcnow
 from .change_controller import ChangeController
 from .store import canonical, digest
+from .system_repair_scm import SystemRepairScmPublisher
 
 
 AgentRunner = Callable[[Path, dict[str, Any]], dict[str, Any]]
@@ -33,7 +34,8 @@ class SystemRepairAgent:
     # These states are non-executable.  ``awaiting_outcome_validation`` is not
     # a successful repair result; it only means the validated patch is live and
     # the official recovery branch must now prove goal improvement.
-    TERMINAL = {"promoted", "awaiting_outcome_validation", "effective",
+    TERMINAL = {"promoted", "awaiting_scm_publication",
+                "awaiting_outcome_validation", "effective",
                 "partially_effective", "ineffective", "awaiting_approval",
                 "rejected", "rolled_back"}
     ALLOWED_PREFIXES = (
@@ -46,6 +48,7 @@ class SystemRepairAgent:
         "policies/wiki-goal-contract-v1.json",
         "policies/governance-v1.json",
         "capabilities/release.apply@1.json",
+        "config/system-repair-replay-corpus.json",
     }
     IGNORED_NAMES = {
         ".git", ".idea", ".pytest_cache", ".mypy_cache", ".ruff_cache",
@@ -65,13 +68,15 @@ class SystemRepairAgent:
 
     def __init__(self, root: str | Path, control: ControlPlane | None = None, *,
                  agent_runner: AgentRunner | None = None,
-                 validator: Validator | None = None) -> None:
+                 validator: Validator | None = None,
+                 scm_publisher: SystemRepairScmPublisher | None = None) -> None:
         self.root = Path(root).resolve()
         self.control = control or ControlPlane(self.root)
         self.state = self.control.state
         self.agent_runner = agent_runner or self._run_codex
         self.validator = validator or self._validate
         self.changes = ChangeController(self.root, self.control)
+        self.scm = scm_publisher or SystemRepairScmPublisher(self.root, self.control)
 
     @staticmethod
     def _repair_fingerprint(request: dict[str, Any]) -> str:
@@ -84,10 +89,25 @@ class SystemRepairAgent:
             or ""
         )
 
+    @staticmethod
+    def _causal_plan_hash(request: dict[str, Any]) -> str:
+        """Hash the proposed causal intervention, independent of prose noise."""
+        changes = [
+            {
+                "causal_input": str(item.get("causal_input") or item.get("target") or ""),
+                "change": str(item.get("change") or item.get("implementation") or ""),
+                "expected_effect": str(item.get("expected_effect") or ""),
+            }
+            for item in request.get("causal_input_changes") or []
+            if isinstance(item, dict)
+        ]
+        return digest({"causal_input_changes": changes}) if changes else ""
+
     def queue(self, *, candidate_id: str, source_job_id: str,
               source_run_id: str | None, request: dict[str, Any]) -> dict[str, Any]:
         triage_run_id = str(request.get("triage_run_id") or "")
         repair_fingerprint = self._repair_fingerprint(request)
+        causal_plan_hash = self._causal_plan_hash(request)
         if triage_run_id or repair_fingerprint:
             rows = self.state._connection().execute(
                 "SELECT repair_run_id,status,payload FROM system_repair_runs "
@@ -95,7 +115,8 @@ class SystemRepairAgent:
                 "ORDER BY created_at DESC", (source_job_id, source_run_id),
             )
             active = {
-                "queued", "coding", "validating", "awaiting_approval", "promoted",
+                "queued", "coding", "validating", "awaiting_scm_publication",
+                "awaiting_approval", "promoted",
                 "awaiting_outcome_validation", "effective", "partially_effective",
             }
             for row in rows:
@@ -109,6 +130,10 @@ class SystemRepairAgent:
                     repair_fingerprint
                     and self._repair_fingerprint(prior_request) == repair_fingerprint
                 )
+                same_causal_plan = bool(
+                    causal_plan_hash
+                    and self._causal_plan_hash(prior_request) == causal_plan_hash
+                )
                 if row["status"] in active and (same_triage or same_failure):
                     self.control.events.append(
                         "system_repair", str(row["repair_run_id"]),
@@ -116,6 +141,18 @@ class SystemRepairAgent:
                             "triage_run_id": triage_run_id,
                             "failure_fingerprint": repair_fingerprint,
                             "suppressed_candidate_id": candidate_id,
+                        }, actor="goal-alignment-controller",
+                    )
+                    return self.get(str(row["repair_run_id"]))
+                if (row["status"] in {"ineffective", "failed", "rejected", "rolled_back"}
+                        and same_failure and same_causal_plan):
+                    self.control.events.append(
+                        "system_repair", str(row["repair_run_id"]),
+                        "system_repair.causal_replan_required", {
+                            "failure_fingerprint": repair_fingerprint,
+                            "causal_plan_hash": causal_plan_hash,
+                            "suppressed_candidate_id": candidate_id,
+                            "prior_status": row["status"],
                         }, actor="goal-alignment-controller",
                     )
                     return self.get(str(row["repair_run_id"]))
@@ -130,6 +167,8 @@ class SystemRepairAgent:
             "repair_run_id": repair_run_id, "candidate_id": candidate_id,
             "source_job_id": source_job_id, "source_run_id": source_run_id,
             "request": request,
+            "failure_fingerprint": repair_fingerprint or None,
+            "causal_plan_hash": causal_plan_hash or None,
         }
         with self.state.transaction() as conn:
             conn.execute(
@@ -142,6 +181,12 @@ class SystemRepairAgent:
                                        "candidate_id": candidate_id,
                                        "source_job_id": source_job_id,
                                    }, actor="goal-alignment-controller")
+        if self.scm.enabled:
+            repair = self.get(repair_run_id)
+            scm = self.scm.publish_issue(repair, self.changes.get(candidate_id))
+            payload = dict(repair["payload"])
+            payload["scm"] = scm
+            self._set(repair_run_id, "queued", payload=payload)
         return self.get(repair_run_id)
 
     def supersede_duplicate(self, repair_run_id: str, *, canonical_repair_run_id: str) -> dict[str, Any]:
@@ -370,7 +415,30 @@ class SystemRepairAgent:
             if (relative.startswith("tests/") and ".." not in Path(relative).parts
                     and (sandbox / relative).is_file()):
                 requested.append(relative)
-        focused = tuple(dict.fromkeys(requested)) or self.VALIDATION_COMMANDS["sandbox"]
+        evidence = request.get("evidence") or {}
+        mechanism_family = str(
+            request.get("mechanism_family")
+            or (evidence.get("mechanism_family") if isinstance(evidence, dict) else "")
+            or ""
+        )
+        corpus_tests: list[str] = []
+        corpus_path = self.root / "config/system-repair-replay-corpus.json"
+        if mechanism_family and corpus_path.is_file():
+            try:
+                corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+                if corpus.get("schema_version") == "system-repair-replay-corpus-v1":
+                    corpus_tests = [
+                        str(value) for value in
+                        (corpus.get("families") or {}).get(mechanism_family, [])
+                        if str(value).startswith("tests/")
+                        and ".." not in Path(str(value)).parts
+                        and (sandbox / str(value)).is_file()
+                    ]
+            except (OSError, TypeError, ValueError, json.JSONDecodeError):
+                corpus_tests = []
+        focused = tuple(dict.fromkeys([*requested, *corpus_tests]))
+        if not focused:
+            focused = self.VALIDATION_COMMANDS["sandbox"]
         return {
             "sandbox": focused,
             "shadow": self.VALIDATION_COMMANDS["shadow"],
@@ -492,6 +560,7 @@ class SystemRepairAgent:
             patch_hash = digest({path: after[path] for path in changed})
             validations: list[dict[str, Any]] = []
             payload.update({"agent_result": agent_result, "changed_files": changed,
+                            "scm_base_hashes": {path: before.get(path) for path in changed},
                             "generated_integrity_anchors": refreshed_anchors,
                             "patch_hash": patch_hash, "validations": validations})
             self._set(repair_run_id, "validating", payload=payload,
@@ -513,12 +582,28 @@ class SystemRepairAgent:
                 )
                 if certificate["verdict"] != "pass":
                     raise SystemRepairError(f"{phase} validation failed")
+            scm = self.scm.publish_patch(
+                {**record, "payload": payload}, candidate,
+                sandbox=sandbox, changed_files=changed, patch_hash=patch_hash,
+                validations=validations,
+                base_hashes=payload["scm_base_hashes"],
+            )
+            payload["scm"] = scm
+            self._set(repair_run_id, "validating", payload=payload,
+                      sandbox=sandbox, patch_hash=patch_hash)
+            if (self.scm.policy.required_for_promotion
+                    and scm.get("status") != "published"):
+                self._set(repair_run_id, "awaiting_scm_publication", payload=payload,
+                          sandbox=sandbox, patch_hash=patch_hash,
+                          error=str(scm.get("last_error") or "SCM publication is pending"))
+                return self.get(repair_run_id)
             if candidate["risk"] != "low":
                 self._set(repair_run_id, "awaiting_approval", payload=payload,
                           sandbox=sandbox, patch_hash=patch_hash)
                 return self.get(repair_run_id)
             self._promote(record, candidate, sandbox, changed, payload, patch_hash)
             return self.get(repair_run_id)
+
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError,
                 json.JSONDecodeError) as exc:
             payload["execution"] = {**payload.get("execution", {}), "failed_at": utcnow()}
@@ -528,6 +613,40 @@ class SystemRepairAgent:
                                        "system_repair.failed", {"error": str(exc)},
                                        actor="system-repair-agent")
             return self.get(repair_run_id)
+
+    def publish_scm(self, repair_run_id: str) -> dict[str, Any]:
+        """Retry a required Issue/commit/PR publication before promotion."""
+        record = self.get(repair_run_id)
+        if record["status"] != "awaiting_scm_publication":
+            raise ValueError("only an awaiting-SCM-publication repair can be published")
+        candidate = self.changes.get(str(record["candidate_id"]))
+        if candidate["status"] != "canary_passed":
+            raise ValueError("repair candidate is not canary validated")
+        payload = dict(record["payload"])
+        sandbox = Path(str(record.get("sandbox_path") or "")).resolve()
+        if not sandbox.is_dir() or not sandbox.is_relative_to(self.root / "var/system-repairs"):
+            raise ValueError("repair sandbox is unavailable or unsafe")
+        patch_hash = str(record.get("patch_hash") or "")
+        changed = [str(item) for item in payload.get("changed_files") or []]
+        if not patch_hash or not changed:
+            raise ValueError("validated repair has no bound patch")
+        scm = self.scm.publish_patch(
+            record, candidate, sandbox=sandbox, changed_files=changed,
+            patch_hash=patch_hash, validations=list(payload.get("validations") or []),
+            base_hashes=dict(payload.get("scm_base_hashes") or {}),
+        )
+        payload["scm"] = scm
+        if scm.get("status") != "published":
+            self._set(repair_run_id, "awaiting_scm_publication", payload=payload,
+                      sandbox=sandbox, patch_hash=patch_hash,
+                      error=str(scm.get("last_error") or "SCM publication is pending"))
+            return self.get(repair_run_id)
+        if candidate["risk"] != "low":
+            self._set(repair_run_id, "awaiting_approval", payload=payload,
+                      sandbox=sandbox, patch_hash=patch_hash)
+        else:
+            self._promote(record, candidate, sandbox, changed, payload, patch_hash)
+        return self.get(repair_run_id)
 
     def approve(self, repair_run_id: str, *, recovery_task: str | None = None) -> dict[str, Any]:
         """Apply explicit promotion authority and its separately authorized rewind."""

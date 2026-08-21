@@ -4,7 +4,8 @@ from __future__ import annotations
 import copy
 
 from wiki_lint import is_null_value
-from wiki_table_population import build_candidate, is_gap, population_floor_checks, render_table
+from wiki_table_population import (build_candidate, is_gap, population_floor_checks,
+                                   render_table, substantive_population)
 from wiki_table_population import validate_collection
 
 
@@ -62,6 +63,22 @@ def test_explicit_gap_is_not_counted_as_a_value() -> None:
         assert is_null_value(value)
     assert not is_gap("3.0")
     assert not is_null_value("3.0")
+
+
+def test_zero_population_is_honest_incomplete_even_when_floors_are_zero() -> None:
+    metrics = {
+        "props_populated": 0, "flows_populated": 0,
+        "emissions_populated": 0, "indicators_populated": 0,
+        "params_int_populated": 0, "params_cn_populated": 0,
+        "quality_assessed": 3,
+    }
+
+    readiness = substantive_population(metrics)
+
+    assert readiness == {
+        "populated_fields": 0, "quality_assessments": 3,
+        "goal_data_ready": False,
+    }
 
 
 def test_new_contract_requires_search_provenance_for_explicit_gaps(tmp_path) -> None:

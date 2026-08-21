@@ -1,6 +1,7 @@
 """Finite, policy-bounded autonomous Job creation and execution campaigns."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import time
@@ -20,11 +21,64 @@ from .store import AlignmentStore, canonical, digest
 
 ACTIVE_JOB_STATES = {"planned", "ready", "leased", "running", "stalled", "retryable",
                      "repairable", "manual_review", "blocked_budget"}
-SUCCESS_JOB_STATES = {"diagnostic_preview", "evidence_limited", "candidate", "gated",
-                      "applied", "published"}
+GOAL_READY_JOB_STATES = {"candidate", "gated", "applied", "published"}
+LIMITED_JOB_STATES = {"diagnostic_preview", "evidence_limited"}
 FAILURE_JOB_STATES = {"failed", "quarantined", "superseded"}
 ITEM_TERMINAL = {"succeeded", "evidence_limited", "failed", "blocked",
                  "awaiting_approval", "superseded"}
+COMPLETION_GOALS = {"lca_modeling_ready", "reviewed_publication", "workflow_delivery"}
+SCM_PUBLICATION_RETRY_SECONDS = 300
+
+
+def _scm_publication_retry_due(updated_at: str) -> bool:
+    try:
+        updated = datetime.fromisoformat(updated_at)
+        if updated.tzinfo is None:
+            updated = updated.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - updated).total_seconds() >= (
+            SCM_PUBLICATION_RETRY_SECONDS
+        )
+    except (TypeError, ValueError):
+        return True
+
+
+def verify_reviewed_publication(
+    control: ControlPlane, job_id: str, run_id: str | None,
+) -> tuple[bool, str | None]:
+    """Verify the immutable publish manifest and its Job-bound release record."""
+    if not run_id:
+        return False, "reviewed publication has no Workflow Run"
+    task = control.state._connection().execute(
+        "SELECT status,output_hash FROM orchestrator_tasks "
+        "WHERE run_id=? AND task_id='publish'",
+        (run_id,),
+    ).fetchone()
+    if not task or task["status"] != "succeeded" or not task["output_hash"]:
+        return False, "publish task has no successful immutable output manifest"
+    try:
+        manifest = control.artifacts.verify_task_output_manifest(str(task["output_hash"]))
+        release_file = next(
+            item for item in manifest.get("files") or []
+            if str(item.get("path") or "").endswith("/release-record.json")
+            or str(item.get("path") or "") == "release-record.json"
+        )
+        record = json.loads(control.artifacts.get_bytes(str(release_file["sha256"])))
+    except (KeyError, StopIteration, ValueError, RuntimeError, OSError, json.JSONDecodeError):
+        return False, "publish output does not contain a valid immutable release-record"
+    required_hashes = (
+        "gate_report_sha256", "reviewed_apply_sha256", "publish_report_sha256",
+    )
+    valid = bool(
+        record.get("protocol") == "release-record-v1"
+        and record.get("publication_status") == "published"
+        and record.get("job_id") == job_id
+        and record.get("release_id")
+        and record.get("candidate_hashes")
+        and all(len(str(record.get(name) or "")) == 64 for name in required_hashes)
+    )
+    return (True, None) if valid else (
+        False, "release-record is not bound to this Job and reviewed publication proofs",
+    )
 
 
 class AutonomousJobSupervisor:
@@ -68,9 +122,35 @@ class AutonomousJobSupervisor:
             raise ValueError("max_auto_repairs_per_job must be 0..20")
         if not 0 < poll_seconds <= 300:
             raise ValueError("poll_seconds must be >0 and <=300")
-        completion_goal = str(spec.get("completion_goal") or "lca_modeling_ready")
-        if completion_goal not in {"lca_modeling_ready", "workflow_delivery"}:
-            raise ValueError("completion_goal must be lca_modeling_ready or workflow_delivery")
+        request_modes = {
+            str(item.get("publication_mode") or "preview") for item in requests
+        } if skill == "generate-node-wiki" else set()
+        if len(request_modes) > 1:
+            raise ValueError("one Wiki campaign cannot mix preview and reviewed publication modes")
+        completion_goal = str(spec.get("completion_goal") or (
+            "reviewed_publication"
+            if skill == "generate-node-wiki" and request_modes == {"reviewed"}
+            else "lca_modeling_ready"
+        ))
+        if completion_goal not in COMPLETION_GOALS:
+            raise ValueError(
+                "completion_goal must be lca_modeling_ready, reviewed_publication, "
+                "or workflow_delivery"
+            )
+        if completion_goal == "reviewed_publication":
+            if skill != "generate-node-wiki":
+                raise ValueError("reviewed_publication is supported only for generate-node-wiki")
+            if request_modes != {"reviewed"}:
+                raise ValueError(
+                    "completion_goal=reviewed_publication requires every request to set "
+                    "publication_mode=reviewed"
+                )
+        if (skill == "generate-node-wiki" and request_modes == {"reviewed"}
+                and completion_goal == "lca_modeling_ready"):
+            raise ValueError(
+                "reviewed Wiki requests must use completion_goal=reviewed_publication; "
+                "lca_modeling_ready would terminate before governed publication"
+            )
         return {"schema_version": "autonomous-job-campaign-v1", "name": name,
                 "skill": skill, "requests": requests, "max_concurrency": max_concurrency,
                 "max_auto_repairs_per_job": max_repairs, "poll_seconds": poll_seconds,
@@ -86,6 +166,12 @@ class AutonomousJobSupervisor:
             invoker.validate_request(value["skill"], request)
             for request in value["requests"]
         ]
+        if value["completion_goal"] == "reviewed_publication" and any(
+            request.get("publication_mode") != "reviewed" for request in value["requests"]
+        ):
+            raise ValueError(
+                "completion_goal=reviewed_publication requires normalized reviewed requests"
+            )
         normalized_hashes = [digest(request) for request in value["requests"]]
         if len(normalized_hashes) != len(set(normalized_hashes)):
             raise ValueError("campaign requests must remain unique after Skill normalization")
@@ -173,26 +259,78 @@ class AutonomousJobSupervisor:
             "SELECT run_id,status FROM orchestrator_runs WHERE job_id=?", (job_id,)
         ).fetchone()
         status = item["status"]
+        last_error = item.get("last_error")
+        completion_goal = self._completion_goal_for_item(item)
         if job is None:
             status = "failed"
         elif job["status"] in FAILURE_JOB_STATES:
             status = "superseded" if job["status"] == "superseded" else "failed"
         elif pending_supervision:
             status = "running"
-        elif job["status"] in SUCCESS_JOB_STATES or (run and run["status"] == "succeeded"):
-            status = "evidence_limited" if job["status"] in {
-                "diagnostic_preview", "evidence_limited"
-            } else "succeeded"
-        elif job["status"] == "paused":
-            status = "paused"
+        # An active Job state is authoritative over a previously succeeded run:
+        # preview generation can finish while the declared modelling goal still
+        # has bounded repair work to perform.
         elif job["status"] in ACTIVE_JOB_STATES:
             status = "running"
+            last_error = None
+        elif job["status"] in LIMITED_JOB_STATES:
+            status = "evidence_limited"
+        elif completion_goal == "reviewed_publication":
+            if job["status"] == "published":
+                proof_valid, proof_error = self._valid_release_proof(
+                    str(job_id), str(run["run_id"]) if run else item.get("run_id")
+                )
+                status = "succeeded" if proof_valid else "blocked"
+                last_error = None if proof_valid else proof_error
+            elif job["status"] in GOAL_READY_JOB_STATES:
+                unfinished = bool(run and self.state._connection().execute(
+                    "SELECT 1 FROM orchestrator_tasks WHERE run_id=? "
+                    "AND status NOT IN ('succeeded','skipped','failed','quarantined') LIMIT 1",
+                    (run["run_id"],),
+                ).fetchone())
+                if unfinished or (run and run["status"] != "succeeded"):
+                    status = "running"
+                    last_error = None
+                else:
+                    status = "blocked"
+                    last_error = (
+                        "reviewed_publication requires Job status=published and a valid "
+                        "hash-bound release-record proof"
+                    )
+            elif run and run["status"] == "succeeded":
+                status = "blocked"
+                last_error = "workflow ended without satisfying reviewed_publication"
+        elif completion_goal == "lca_modeling_ready" and job["status"] in GOAL_READY_JOB_STATES:
+            status = "succeeded"
+            last_error = None
+        elif completion_goal == "workflow_delivery" and run and run["status"] == "succeeded":
+            status = "succeeded"
+            last_error = None
+        elif job["status"] == "paused":
+            status = "paused"
         with self.state.transaction() as conn:
-            conn.execute("UPDATE autonomous_job_items SET status=?,run_id=?,updated_at=? WHERE item_id=?",
-                         (status, str(run["run_id"]) if run else item.get("run_id"),
-                          utcnow(), item["item_id"]))
+            conn.execute(
+                "UPDATE autonomous_job_items SET status=?,run_id=?,last_error=?,updated_at=? "
+                "WHERE item_id=?",
+                (status, str(run["run_id"]) if run else item.get("run_id"),
+                 last_error, utcnow(), item["item_id"]),
+            )
         return {**item, "status": status,
-                "run_id": str(run["run_id"]) if run else item.get("run_id")}
+                "run_id": str(run["run_id"]) if run else item.get("run_id"),
+                "last_error": last_error}
+
+    def _completion_goal_for_item(self, item: dict[str, Any]) -> str:
+        row = self.state._connection().execute(
+            "SELECT payload FROM autonomous_campaigns WHERE campaign_id=?",
+            (item["campaign_id"],),
+        ).fetchone()
+        payload = json.loads(row["payload"]) if row else {}
+        return str(payload.get("completion_goal") or "lca_modeling_ready")
+
+    def _valid_release_proof(
+        self, job_id: str, run_id: str | None,
+    ) -> tuple[bool, str | None]:
+        return verify_reviewed_publication(self.control, job_id, run_id)
 
     def _create_item_job(self, campaign: dict[str, Any], item: dict[str, Any]) -> dict[str, Any]:
         request = item["payload"]["request"]
@@ -232,6 +370,15 @@ class AutonomousJobSupervisor:
         if queued_repair:
             system_repairs.append(SystemRepairAgent(self.root).execute(
                 str(queued_repair["repair_run_id"])
+            ))
+        pending_scm = self.state._connection().execute(
+            "SELECT repair_run_id,updated_at FROM system_repair_runs "
+            "WHERE source_job_id=? AND status='awaiting_scm_publication' "
+            "ORDER BY updated_at LIMIT 1", (job_id,),
+        ).fetchone()
+        if pending_scm and _scm_publication_retry_due(str(pending_scm["updated_at"])):
+            system_repairs.append(SystemRepairAgent(self.root).publish_scm(
+                str(pending_scm["repair_run_id"])
             ))
         allow_repair = int(item["repair_count"]) < int(campaign["max_auto_repairs_per_job"])
         audit = GoalAlignmentController(self.root).audit_job(
@@ -320,8 +467,6 @@ class AutonomousJobSupervisor:
         status = str(campaign["status"])
         if status not in {"completed", "needs_attention"}:
             return view
-        if campaign["payload"].get("completion_goal", "lca_modeling_ready") != "lca_modeling_ready":
-            return view
         store = AlignmentStore(self.state)
         affected: list[tuple[dict[str, Any], str]] = []
         for item in view["items"]:
@@ -380,7 +525,8 @@ class AutonomousJobSupervisor:
 
     def _finish_campaign_if_terminal(self, campaign_id: str) -> str:
         rows = list(self.state._connection().execute(
-            "SELECT status FROM autonomous_job_items WHERE campaign_id=?", (campaign_id,)
+            "SELECT status,job_id,run_id FROM autonomous_job_items WHERE campaign_id=?",
+            (campaign_id,),
         ))
         statuses = {str(row["status"]) for row in rows}
         if rows and all(str(row["status"]) in ITEM_TERMINAL for row in rows):
@@ -390,9 +536,17 @@ class AutonomousJobSupervisor:
             campaign_payload = json.loads(campaign_row["payload"]) if campaign_row else {}
             completion_goal = campaign_payload.get("completion_goal", "lca_modeling_ready")
             workflow_complete = statuses <= {"succeeded", "evidence_limited"}
-            goal_complete = statuses <= {"succeeded"} or (
-                completion_goal == "workflow_delivery" and workflow_complete
-            )
+            if completion_goal == "reviewed_publication":
+                goal_complete = statuses <= {"succeeded"} and all(
+                    self._valid_release_proof(
+                        str(row["job_id"]), str(row["run_id"]) if row["run_id"] else None,
+                    )[0]
+                    for row in rows
+                )
+            else:
+                goal_complete = statuses <= {"succeeded"} or (
+                    completion_goal == "workflow_delivery" and workflow_complete
+                )
             target = "completed" if goal_complete else "needs_attention"
             with self.state.transaction() as conn:
                 conn.execute("UPDATE autonomous_campaigns SET status=?,updated_at=? WHERE campaign_id=?",
