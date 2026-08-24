@@ -708,6 +708,47 @@ class WorkerLoop:
                                   "size": len(content)}
         return snapshot
 
+    @staticmethod
+    def _research_lineage(root: Path) -> dict[str, Any]:
+        """Bind the effective research inputs that may justify another repair."""
+        root = root.resolve()
+        invocation_path = root / "nomination-runtime/nomination-invocation.json"
+        scout_record: dict[str, Any] = {}
+        if invocation_path.is_file():
+            try:
+                invocation = load_json(invocation_path)
+                candidate = invocation.get("research_scout") or {}
+                if isinstance(candidate, dict):
+                    scout_record = candidate
+            except (OSError, ValueError, json.JSONDecodeError):
+                scout_record = {}
+        scout_path_value = scout_record.get("path")
+        scout_path = Path(str(scout_path_value)).resolve() if scout_path_value else None
+
+        def record(path: Path | None, expected_sha256: str | None = None) -> dict[str, Any]:
+            safe_path = path if path is not None and path.is_relative_to(root) else None
+            digest = (hashlib.sha256(safe_path.read_bytes()).hexdigest()
+                      if safe_path is not None and safe_path.is_file() else None)
+            if expected_sha256 is not None and digest != expected_sha256:
+                digest = None
+            return {"path": str(path) if path is not None else None, "sha256": digest}
+
+        components = {
+            "active_research_scout": record(
+                scout_path, str(scout_record.get("sha256") or "") or None
+            ),
+            "nomination_result": record(root / "nomination-runtime/nomination-result.json"),
+            "source_queue": record(root / "source-queue.json"),
+            "source_evidence": record(root / "source-evidence.json"),
+        }
+        complete = all(item["sha256"] is not None for item in components.values())
+        tuple_sha256 = hashlib.sha256(json.dumps(
+            {name: item["sha256"] for name, item in components.items()},
+            sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest() if complete else None
+        return {"protocol": "wiki-research-lineage-v1", **components,
+                "complete": complete, "tuple_sha256": tuple_sha256}
+
     def _archive_attempt(self, *, workspace: Path, execution_root: Path,
                          run_id: str, task_id: str, attempt_id: str,
                          before: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -738,6 +779,10 @@ class WorkerLoop:
             "task_id": task_id, "attempt_id": attempt_id,
             "execution_root": str(execution_root), "files": entries,
         }
+        research_lineage = None
+        if task_id == "source_diversity_gate":
+            research_lineage = self._research_lineage(execution_root)
+            manifest_value["research_lineage"] = research_lineage
         manifest_path = archive_dir / "manifest.json"
         manifest_path.write_text(json.dumps(manifest_value, ensure_ascii=False, indent=2) + "\n",
                                  encoding="utf-8")
@@ -750,7 +795,7 @@ class WorkerLoop:
                 self.control.artifacts.link(str(entry["sha256"]), frozen_manifest.digest,
                                             "attempt_output_file")
         return {"path": str(manifest_path), "sha256": frozen_manifest.digest,
-                "changed_files": len(entries)}
+                "changed_files": len(entries), "research_lineage": research_lineage}
 
     @staticmethod
     def _failure_fingerprint(task_id: str, code: str, envelope: dict[str, Any]) -> str:
@@ -763,7 +808,7 @@ class WorkerLoop:
             signal, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         ).encode()).hexdigest()
 
-    def _previous_failure_fingerprint(self, run_id: str, task_id: str) -> str | None:
+    def _previous_failure_payload(self, run_id: str, task_id: str) -> dict[str, Any] | None:
         row = self.control.state._connection().execute(
             "SELECT failure_payload FROM orchestrator_attempts "
             "WHERE run_id=? AND task_id=? AND failure_payload IS NOT NULL "
@@ -772,9 +817,20 @@ class WorkerLoop:
         if row is None:
             return None
         try:
-            return str(json.loads(row["failure_payload"]).get("failure_fingerprint") or "") or None
+            value = json.loads(row["failure_payload"])
+            return value if isinstance(value, dict) else None
         except (TypeError, json.JSONDecodeError):
             return None
+
+    @staticmethod
+    def _research_lineage_changed(previous: Any, current: Any) -> bool:
+        return bool(
+            isinstance(previous, dict) and previous.get("complete") is True
+            and isinstance(current, dict) and current.get("complete") is True
+            and previous.get("tuple_sha256")
+            and current.get("tuple_sha256")
+            and previous["tuple_sha256"] != current["tuple_sha256"]
+        )
 
     def run_once(self, *, run_id: str | None = None, job_id: str | None = None) -> WorkerCycle:
         for run in self._run_rows(run_id, job_id):
@@ -991,7 +1047,9 @@ class WorkerLoop:
                     except (OSError, ValueError, RuntimeError) as archive_error:
                         attempt_archive = {"error": str(archive_error)}
                 fingerprint = self._failure_fingerprint(task.task_id, code, envelope)
-                repeated = self._previous_failure_fingerprint(task.run_id, task.task_id) == fingerprint
+                previous_failure = self._previous_failure_payload(task.run_id, task.task_id)
+                repeated = (str((previous_failure or {}).get("failure_fingerprint") or "")
+                            == fingerprint)
                 epoch_attempt = self.orchestrator.repair_epoch_attempt(
                     task.run_id, task.task_id, task.attempt
                 )
@@ -1000,7 +1058,25 @@ class WorkerLoop:
                 )
                 configured_rule = self.repair_policy.rules.get(code) or {}
                 configured_action = RepairAction(str(configured_rule.get("action", "quarantine")))
-                if repeated and code != "SOURCE_DIVERSITY_BLOCKED" and configured_action in {
+                current_lineage = (attempt_archive or {}).get("research_lineage")
+                previous_lineage = (previous_failure or {}).get("research_lineage")
+                lineage_changed: bool | None = None
+                if (code == "SOURCE_DIVERSITY_BLOCKED"
+                        and (previous_failure or {}).get("code") == code
+                        and configured_action in {
+                            RepairAction.RETRY, RepairAction.RECOVER, RepairAction.REPAIR,
+                        }):
+                    lineage_changed = self._research_lineage_changed(
+                        previous_lineage, current_lineage
+                    )
+                    if not lineage_changed:
+                        decision = RepairDecision(
+                            RepairAction.MANUAL_REVIEW,
+                            "source diversity causal lineage unchanged; repair rewind stopped",
+                            policy_version=decision.policy_version,
+                            policy_hash=decision.policy_hash,
+                        )
+                elif repeated and configured_action in {
                     RepairAction.RETRY, RepairAction.RECOVER, RepairAction.REPAIR,
                 }:
                     decision = RepairDecision(
@@ -1015,6 +1091,8 @@ class WorkerLoop:
                           "failure_fingerprint": fingerprint,
                           "identical_failure_repeated": repeated,
                           "attempt_archive": attempt_archive,
+                          "research_lineage": current_lineage,
+                          "effective_research_lineage_changed_before_retry": lineage_changed,
                           "policy_decision": dataclass_asdict(decision)}
                 if isinstance(exc, ExecutionError):
                     detail.update({"diagnostics": {

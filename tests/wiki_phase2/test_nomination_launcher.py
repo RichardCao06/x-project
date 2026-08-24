@@ -182,6 +182,38 @@ def test_diversity_repair_fills_missing_second_modeling_judgment(tmp_path: Path)
     assert len(json.loads(result.read_text(encoding="utf-8"))["claims"]) == 5
 
 
+def test_diversity_repair_rejects_any_stale_external_binding(tmp_path: Path) -> None:
+    node = frozen_node("A015")
+    node["dossier"]["claim_requirements"] = [
+        {"requirement_id": f"external-{index}", "claim_kind": "external_fact",
+         "section": f"section-{index}"} for index in range(3)
+    ]
+    identity = {"display_name": node["name"], "node_type": node["node_type"],
+                "facets": node["facets"], "boundary": node["boundary"]}
+    claims = [{
+        "requirement_id": f"external-{index}", "section": f"section-{index}",
+        "claim_kind": "external_fact", "node_id": "A015", "industry": "ict_equipment",
+        "node_identity": identity, "claim_id": f"A015-{index}",
+        "claim_text": f"external fact {index}", "believed_source": f"Source {index}",
+        "believed_locator": f"question-{index}；locator", "attribution_confidence": "medium",
+    } for index in range(3)]
+    result = tmp_path / "result.json"
+    result.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"}, "claims": claims,
+    }), encoding="utf-8")
+    scout = {
+        "diversity_repair": {"protocol": "wiki-source-diversity-repair-v1"},
+        "candidates": [
+            {"title": "Source 0", "url": "https://zero.example/source"},
+            {"title": "Source 1", "url": "https://one.example/source"},
+            {"title": "Replacement source", "url": "https://replacement.example/source"},
+        ],
+    }
+
+    with pytest.raises(ValueError, match="每个 external_fact.*Source 2"):
+        launcher_module().repair_prior_result(result, node, scout)
+
+
 def test_research_scout_requires_three_external_questions_without_forcing_quality_slot(tmp_path: Path) -> None:
     node = frozen_node()
     node["dossier"]["claim_requirements"] = [

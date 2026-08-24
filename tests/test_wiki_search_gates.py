@@ -66,4 +66,13 @@ def test_preview_diversity_repairs_then_becomes_limited_and_reviewed_is_strict()
     assert exhausted["pipeline_continue"] is True
     assert exhausted["candidate_eligible"] is False
     assert reviewed["decision"] == "BLOCKED"
-    assert not reviewed["checks"]["reviewed_confirmed_urls"]
+    for check in (
+        "reviewed_confirmed_urls", "reviewed_distinct_domains",
+        "reviewed_technical_sources", "reviewed_language_tracks",
+    ):
+        assert reviewed["checks"][check] is False
+    for role in (
+        "identity_source_role", "process_boundary_source_role",
+        "adjacent_distinction_source_role",
+    ):
+        assert reviewed["quality_checks"][role] is False

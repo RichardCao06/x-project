@@ -605,10 +605,13 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
             _freeze_hint_searches(queue, hints, frozen_search)
             search_args = ["--search-results", str(frozen_search)]
         search_results = batch / "frozen-provider-search-results.json"
+        active_scout_sha256 = hashlib.sha256(active_research_scout.read_bytes()).hexdigest()
         provider_command = [
             sys.executable, str(Path(__file__).resolve().parents[2] / "scripts/search_provider_runtime.py"),
             str(queue), str(Path(__file__).resolve().parents[2] / "config/search-providers.json"),
             str(search_results),
+            "--research-scout", str(active_research_scout),
+            "--research-scout-sha256", active_scout_sha256,
         ]
         commands = [
             provider_command,

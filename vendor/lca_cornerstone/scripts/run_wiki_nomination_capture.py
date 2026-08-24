@@ -169,8 +169,12 @@ def validate_result(path: Path, node: dict, research_scout: dict | None = None) 
         matched = {source for source in sources if any(
             title and (title in source or source in title) for title in scout_titles
         )}
-        if not sources or not matched:
-            raise ValueError("Research Scout 模式要求 external_fact 至少绑定一个当前 Scout 来源")
+        if not sources or matched != sources:
+            stale = sorted(sources - matched)
+            raise ValueError(
+                "Research Scout 模式要求每个 external_fact 绑定当前 Scout 来源: "
+                + ", ".join(stale)
+            )
         selected_candidates = [
             item for item in scout_candidates
             if any(

@@ -105,23 +105,36 @@ def provider_search(name: str, spec: dict[str, Any], query: str, *, locator: str
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("queue", type=Path); ap.add_argument("config", type=Path); ap.add_argument("output", type=Path)
+    ap.add_argument("--research-scout", type=Path, required=True)
+    ap.add_argument("--research-scout-sha256", required=True)
     args = ap.parse_args()
     queue, config = load(args.queue), load(args.config)
     advisory_candidates: list[dict[str, Any]] = []
-    scout_candidates: list[dict[str, Any]] = []
     plan_record = queue.get("research_plan")
-    if isinstance(plan_record, dict) and plan_record.get("path"):
-        plan_path = Path(str(plan_record["path"])).resolve()
-        if (plan_path.is_file()
-                and hashlib.sha256(plan_path.read_bytes()).hexdigest() == plan_record.get("sha256")):
-            plan = load(plan_path)
-            advisory_candidates = [row for row in plan.get("advisory_candidates", [])
-                                   if isinstance(row, dict) and row.get("url")]
-            scout_path = plan_path.parent / "research-scout.json"
-            if scout_path.is_file():
-                scout = load(scout_path)
-                if scout.get("protocol") == "wiki-research-scout-v1" and scout.get("node_id") == plan.get("node_id"):
-                    scout_candidates = [row for row in scout.get("candidates", []) if isinstance(row, dict) and row.get("url")]
+    if not isinstance(plan_record, dict) or not plan_record.get("path"):
+        raise ValueError("source queue is missing its frozen research plan binding")
+    plan_path = Path(str(plan_record["path"])).resolve()
+    if (not plan_path.is_file()
+            or hashlib.sha256(plan_path.read_bytes()).hexdigest() != plan_record.get("sha256")):
+        raise ValueError("source queue research plan hash mismatch")
+    plan = load(plan_path)
+    advisory_candidates = [row for row in plan.get("advisory_candidates", [])
+                           if isinstance(row, dict) and row.get("url")]
+    scout_path = args.research_scout.resolve()
+    scout_digest = hashlib.sha256(scout_path.read_bytes()).hexdigest() if scout_path.is_file() else ""
+    if scout_digest != args.research_scout_sha256:
+        raise ValueError("active research scout hash mismatch")
+    scout = load(scout_path)
+    if (scout.get("protocol") != "wiki-research-scout-v1"
+            or scout.get("node_id") != plan.get("node_id")
+            or not isinstance(scout.get("candidates"), list)):
+        raise ValueError("active research scout does not match the frozen research plan")
+    scout_candidates = [row for row in scout["candidates"]
+                        if isinstance(row, dict) and row.get("url")]
+    repair = scout.get("diversity_repair") or {}
+    excluded_urls = {
+        str(url).strip() for url in repair.get("excluded_urls", []) if str(url).strip()
+    } if isinstance(repair, dict) else set()
     secret_path = args.config.resolve().parents[1] / str(config.get("secret_file", ".env.search.local"))
     secrets = load_secrets(secret_path)
     policy = config.get("query_policy") or {}; timeout = int(policy.get("timeout_seconds", 30))
@@ -140,7 +153,9 @@ def main() -> int:
         for candidate in [*scout_candidates, *advisory_candidates]:
             title = str(candidate.get("title", "")).strip()
             url = str(candidate.get("url", "")).strip()
-            if any(title and (title in source or source in title) for source in believed_sources) and url not in seen:
+            if (url not in excluded_urls
+                    and any(title and (title in source or source in title) for source in believed_sources)
+                    and url not in seen):
                 candidate_provider = "research_scout" if candidate in scout_candidates else "research_plan_advisory"
                 seen.add(url); found.append({"url": url, "title": title, "snippet": str(candidate.get("snippet", "")),
                                              "provider": candidate_provider, "locator": ""})
@@ -174,10 +189,11 @@ def main() -> int:
                                  "query": query, "status": "found" if hits else status,
                                  "results": len(hits), "error": error,
                                  "requested_at": started.isoformat()})
+                accepted_hit = False
                 for hit in hits:
-                    if hit["url"] not in seen:
-                        seen.add(hit["url"]); found.append(hit)
-                if hits:
+                    if hit["url"] not in excluded_urls and hit["url"] not in seen:
+                        seen.add(hit["url"]); found.append(hit); accepted_hit = True
+                if accepted_hit:
                     break
         rows.append({"search_hash": search_hash, "query": source_query,
                      "status": "found" if found else "not_found", "results": found[:limit]})
@@ -185,6 +201,7 @@ def main() -> int:
                "backend": "configured-multi-provider-v1", "usage": {"search_requests": len(rows),
                "provider_requests": total_requests, "cost_usd": 0.0}, "queries": rows,
                "provider_attempts": attempts, "config_sha256": hashlib.sha256(args.config.read_bytes()).hexdigest()}
+    payload["active_research_scout"] = {"path": str(scout_path), "sha256": scout_digest}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(args.output), "queries": len(rows),
