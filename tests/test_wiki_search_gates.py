@@ -67,3 +67,39 @@ def test_preview_diversity_repairs_then_becomes_limited_and_reviewed_is_strict()
     assert exhausted["candidate_eligible"] is False
     assert reviewed["decision"] == "BLOCKED"
     assert not reviewed["checks"]["reviewed_confirmed_urls"]
+
+
+def test_reviewed_diversity_pass_proves_all_required_metrics_and_roles() -> None:
+    gate = module()
+    verified = {"claims": [
+        {**row("A001-1", "https://authority.gov.cn/identity", "权威身份定义",
+               "本文件明确界定目标产品身份、名称和适用范围。" * 8, language="zh"),
+         "claim": {"claim_id": "A001-1", "requirement_id": "identity.definition"}},
+        {**row("A001-2", "https://process.example/process", "Process boundary guide",
+               "This technical guide defines the process origin and production boundary. " * 8,
+               language="en"),
+         "claim": {"claim_id": "A001-2", "requirement_id": "boundary.included_operations"}},
+        {**row("A001-3", "https://industry.example/adjacent", "Adjacent product distinction",
+               "This industry source distinguishes the target from an adjacent product. " * 8,
+               language="en"),
+         "claim": {"claim_id": "A001-3", "requirement_id": "adjacent.distinction"}},
+    ]}
+    plan = {"minimum_source_diversity": {
+        "preview_primary_sources": 3, "preview_distinct_domains": 3,
+        "preview_technical_sources": 1, "preview_language_tracks": 2,
+        "reviewed_primary_sources": 3, "reviewed_distinct_domains": 3,
+        "reviewed_technical_sources": 2, "reviewed_language_tracks": 2,
+    }}
+
+    result = gate.diversity_gate(verified, plan, reviewed=True)
+
+    assert result["decision"] == "PASS"
+    assert result["pipeline_continue"] is True
+    assert result["metrics"]["confirmed_urls"] == 3
+    assert result["metrics"]["confirmed_domains"] == 3
+    assert result["metrics"]["confirmed_language_tracks"] == ["en", "zh"]
+    assert result["metrics"]["technical_domains"] == 2
+    assert all(result["quality_checks"][role] for role in (
+        "identity_source_role", "process_boundary_source_role",
+        "adjacent_distinction_source_role",
+    ))

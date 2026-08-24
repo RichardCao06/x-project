@@ -113,7 +113,7 @@ def test_gate_block_is_not_reported_as_reserved_process_exit(tmp_path: Path, mon
     FailureEnvelope.from_capability(result["failure"])
 
 
-def test_diversity_repair_scout_excludes_failed_and_oversize_pdf_candidates(tmp_path: Path) -> None:
+def test_diversity_repair_scout_excludes_fetch_and_verification_failures(tmp_path: Path) -> None:
     batch = tmp_path / "batch"
     cache = batch / "search-cache/fetch"
     cache.mkdir(parents=True)
@@ -123,13 +123,31 @@ def test_diversity_repair_scout_excludes_failed_and_oversize_pdf_candidates(tmp_
     (cache / "failed.json").write_text(json.dumps({"record": {
         "status": "error", "url": "https://failed.example/manual.pdf"
     }}), encoding="utf-8")
+    (batch / "verify-output.json").write_text(json.dumps({"claims": [
+        {"fetchResult": {"url": "https://rejected.example/page"},
+         "verify": {"verdict": "INSUFFICIENT"}},
+        {"fetchResult": {"url": "https://one.example/page"},
+         "verify": {"verdict": "CONFIRMED"}},
+    ]}), encoding="utf-8")
+    (batch / "research-plan.json").write_text(json.dumps({
+        "languages": ["zh", "en"],
+        "minimum_source_diversity": {
+            "preview_distinct_domains": 3, "reviewed_distinct_domains": 3,
+            "preview_language_tracks": 2, "reviewed_language_tracks": 2,
+        },
+    }), encoding="utf-8")
     scout = batch / "research-scout.json"
     scout.write_text(json.dumps({
         "protocol": "wiki-research-scout-v1", "node_id": "A015", "candidates": [
-            {"url": "https://failed.example/manual.pdf"},
-            {"url": "https://other-pdf.example/guide.pdf"},
-            {"url": "https://one.example/page"}, {"url": "https://two.example/page"},
-            {"url": "https://three.example/page"},
+            {"url": "https://failed.example/manual.pdf", "language": "en"},
+            {"url": "https://other-pdf.example/guide.pdf", "language": "en"},
+            {"url": "https://rejected.example/page", "language": "en"},
+            {"url": "https://one.example/page", "language": "zh",
+             "current_job_status": "candidate_unverified"},
+            {"url": "https://two.example/page", "language": "en",
+             "current_job_status": "candidate_unverified"},
+            {"url": "https://three.example/page", "language": "en",
+             "current_job_status": "candidate_unverified"},
         ],
     }), encoding="utf-8")
     repaired = capability_runtime._diversity_repair_scout(batch, scout)
@@ -138,3 +156,45 @@ def test_diversity_repair_scout_excludes_failed_and_oversize_pdf_candidates(tmp_
     assert {row["url"] for row in value["candidates"]} == {
         "https://one.example/page", "https://two.example/page", "https://three.example/page",
     }
+    repair = value["diversity_repair"]
+    assert repair["exclusion_reasons"] == {
+        "https://failed.example/manual.pdf": [
+            "fetch_status:error", "pdf_format_after_failed_pdf_fetch"
+        ],
+        "https://other-pdf.example/guide.pdf": ["pdf_format_after_failed_pdf_fetch"],
+        "https://rejected.example/page": ["verify_verdict:INSUFFICIENT"],
+    }
+    assert repair["candidate_pool_preconditions"] == {
+        "required_domains": 3, "available_domains": 3,
+        "required_language_tracks": 2, "available_language_tracks": ["en", "zh"],
+        "satisfied": True, "candidate_status": "candidate_unverified",
+    }
+    assert all(row["current_job_status"] == "candidate_unverified"
+               for row in value["candidates"])
+
+
+def test_diversity_repair_fails_closed_when_exclusions_break_declared_pool(tmp_path: Path) -> None:
+    batch = tmp_path / "batch"
+    batch.mkdir()
+    (batch / "source-diversity-gate.json").write_text(
+        json.dumps({"decision": "BLOCKED"}), encoding="utf-8"
+    )
+    (batch / "research-plan.json").write_text(json.dumps({
+        "languages": ["zh", "en"],
+        "minimum_source_diversity": {
+            "reviewed_distinct_domains": 3, "reviewed_language_tracks": 2,
+        },
+    }), encoding="utf-8")
+    (batch / "verify-output.json").write_text(json.dumps({"claims": [{
+        "fetchResult": {"url": "https://two.example/page"},
+        "verify": {"verdict": "INSUFFICIENT"},
+    }]}), encoding="utf-8")
+    scout = batch / "research-scout.json"
+    scout.write_text(json.dumps({"candidates": [
+        {"url": "https://one.example/page", "language": "zh"},
+        {"url": "https://two.example/page", "language": "en"},
+        {"url": "https://three.example/page", "language": "en"},
+    ]}), encoding="utf-8")
+
+    with pytest.raises(capability_runtime.CapabilityAdapterError, match="availability preconditions"):
+        capability_runtime._diversity_repair_scout(batch, scout)

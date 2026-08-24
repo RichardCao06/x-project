@@ -171,6 +171,20 @@ def validate_result(path: Path, node: dict, research_scout: dict | None = None) 
         )}
         if not sources or not matched:
             raise ValueError("Research Scout 模式要求 external_fact 至少绑定一个当前 Scout 来源")
+        repair = research_scout.get("diversity_repair") or {}
+        if repair.get("protocol") == "wiki-source-diversity-repair-v1":
+            if matched != sources:
+                raise ValueError("Diversity Repair 模式要求每条 external_fact 绑定当前修复 Scout 来源")
+            for claim in external:
+                source = str(claim.get("believed_source", "")).strip()
+                question = str(claim.get("believed_locator", "")).split("；", 1)[0]
+                bound = [item for item in scout_candidates if (
+                    str(item.get("title", "")).strip()
+                    and (str(item.get("title", "")).strip() in source
+                         or source in str(item.get("title", "")).strip())
+                )]
+                if not any(str(item.get("research_question") or "") == question for item in bound):
+                    raise ValueError("Diversity Repair external_fact locator 未绑定当前修复 Scout")
         selected_candidates = [
             item for item in scout_candidates
             if any(
@@ -270,15 +284,17 @@ def canonicalize_result(raw_path: Path, output_path: Path, node: dict | None = N
 
 
 def repair_prior_result(result_path: Path, node: dict, research_scout: dict) -> dict:
-    """Normalize a prior source-specific nomination without another model call."""
+    """Normalize only a genuinely source-neutral prior nomination defect."""
     repair = research_scout.get("diversity_repair")
-    if not isinstance(repair, dict) or repair.get("protocol") != "wiki-source-diversity-repair-v1":
-        raise ValueError("prior-result repair requires a frozen diversity repair scout")
+    if isinstance(repair, dict) and repair.get("protocol") == "wiki-source-diversity-repair-v1":
+        raise ValueError("diversity repair must regenerate external source nominations")
     document = json.loads(result_path.read_text(encoding="utf-8"))
     claims = document.get("claims")
     if not isinstance(claims, list):
         raise ValueError("prior nomination claims are missing")
     requirements = ((node.get("dossier") or {}).get("claim_requirements") or [])
+    if any(str(row.get("claim_kind") or "") == "external_fact" for row in requirements):
+        raise ValueError("prior-result repair cannot retain external source bindings")
     identity = {"display_name": node["name"], "node_type": node["node_type"],
                 "facets": node["facets"], "boundary": node["boundary"]}
     quotas = {"external_fact": 1, "modeling_judgment": 2,
@@ -332,7 +348,7 @@ def repair_prior_result(result_path: Path, node: dict, research_scout: dict) -> 
     document["claims"] = rebuilt
     result_path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n",
                            encoding="utf-8")
-    validate_result(result_path, node, research_scout)
+    validate_result(result_path, node)
     return {"protocol": "wiki-prior-nomination-repair-v1", "filled_requirements": filled}
 
 
@@ -485,7 +501,13 @@ def main() -> int:
     exit_code = 124
     validation_error = None
     deterministic_repair = None
-    if research_scout is not None and result.is_file():
+    diversity_repair = bool(
+        research_scout
+        and (research_scout.get("diversity_repair") or {}).get("protocol")
+        == "wiki-source-diversity-repair-v1"
+    )
+    prior_result_sha256 = sha256(result) if diversity_repair and result.is_file() else None
+    if research_scout is not None and result.is_file() and not diversity_repair:
         try:
             deterministic_repair = repair_prior_result(result, node, research_scout)
             exit_code = 0
@@ -505,9 +527,23 @@ def main() -> int:
             if deterministic_repair is None:
                 canonicalize_result(raw_result, result, node, research_scout)
             validate_result(result, node, research_scout)
+            if prior_result_sha256 and sha256(result) == prior_result_sha256:
+                raise ValueError("diversity repair regenerated an unchanged nomination result")
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             validation_error = str(exc)
             exit_code = 2
+    if exit_code == 0:
+        invocation_doc = json.loads(invocation.read_text(encoding="utf-8"))
+        invocation_doc["result"] = {
+            "path": str(result),
+            "sha256": sha256(result),
+            "research_scout_sha256": (
+                research_scout_record["sha256"] if research_scout_record else None
+            ),
+        }
+        invocation.write_text(
+            json.dumps(invocation_doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
     usage_rows: list[dict] = []
     event_count = 0
     for line in events.read_text(encoding="utf-8").splitlines():

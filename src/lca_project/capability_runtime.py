@@ -49,7 +49,7 @@ def _run(command: list[str], *, cwd: Path, timeout: int,
 
 
 def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
-    """Exclude candidates proven unusable by the previous frozen fetch pass."""
+    """Freeze a replacement pool excluding prior fetch/verification failures."""
     gate_path = batch / "source-diversity-gate.json"
     if not gate_path.is_file():
         return scout_path
@@ -59,7 +59,7 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
         return scout_path
     if gate.get("decision") not in {"REPAIR", "BLOCKED"}:
         return scout_path
-    failed_urls: set[str] = set()
+    exclusion_reasons: dict[str, set[str]] = {}
     saw_failed_pdf = False
     for record_path in sorted((batch / "search-cache/fetch").glob("*.json")):
         try:
@@ -70,22 +70,87 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
             continue
         url = str(record.get("url") or "").strip()
         if url:
-            failed_urls.add(url)
+            exclusion_reasons.setdefault(url, set()).add(
+                f"fetch_status:{str(record.get('status') or 'unknown')}"
+            )
             saw_failed_pdf = saw_failed_pdf or urlsplit(url).path.lower().endswith(".pdf")
+    verify_path = batch / "verify-output.json"
+    if verify_path.is_file():
+        try:
+            verified = json.loads(verify_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            raise CapabilityAdapterError("diversity repair verify-output is unreadable") from exc
+        rows = verified.get("claims") or verified.get("result", {}).get("claims") or []
+        for row in rows if isinstance(rows, list) else []:
+            if not isinstance(row, dict):
+                continue
+            verdict = str((row.get("verify") or {}).get("verdict") or "").strip()
+            url = str((row.get("fetchResult") or {}).get("url") or "").strip()
+            if url and verdict != "CONFIRMED":
+                exclusion_reasons.setdefault(url, set()).add(
+                    f"verify_verdict:{verdict or 'MISSING'}"
+                )
     scout = json.loads(scout_path.read_text(encoding="utf-8"))
-    candidates = [
-        row for row in scout.get("candidates", [])
-        if isinstance(row, dict) and str(row.get("url") or "") not in failed_urls
-        and not (saw_failed_pdf and urlsplit(str(row.get("url") or "")).path.lower().endswith(".pdf"))
-    ]
-    if len({urlsplit(str(row.get("url") or "")).hostname for row in candidates}) < 3:
-        return scout_path
+    candidates: list[dict[str, Any]] = []
+    for row in scout.get("candidates", []):
+        if not isinstance(row, dict):
+            continue
+        url = str(row.get("url") or "").strip()
+        if saw_failed_pdf and urlsplit(url).path.lower().endswith(".pdf"):
+            exclusion_reasons.setdefault(url, set()).add("pdf_format_after_failed_pdf_fetch")
+        if url not in exclusion_reasons:
+            candidates.append({**row, "current_job_status": "candidate_unverified"})
+    plan_path = batch / "research-plan.json"
+    try:
+        plan = json.loads(plan_path.read_text(encoding="utf-8")) if plan_path.is_file() else {}
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise CapabilityAdapterError("diversity repair research plan is unreadable") from exc
+    minimum = plan.get("minimum_source_diversity") or {}
+    required_domains = max(
+        int(minimum.get("preview_distinct_domains", 3)),
+        int(minimum.get("reviewed_distinct_domains", 3)),
+    )
+    declared_languages = {
+        str(language).strip().lower().split("-", 1)[0]
+        for language in plan.get("languages", []) if str(language).strip()
+    }
+    default_language_tracks = min(2, len(declared_languages))
+    required_languages = max(
+        int(minimum.get("preview_language_tracks", default_language_tracks)),
+        int(minimum.get("reviewed_language_tracks", default_language_tracks)),
+    )
+    domains = {
+        (urlsplit(str(row.get("url") or "")).hostname or "").lower()
+        for row in candidates
+    } - {""}
+    languages = {
+        str(row.get("language") or "").strip().lower().split("-", 1)[0]
+        for row in candidates if str(row.get("language") or "").strip()
+    }
+    available_languages = languages & declared_languages if declared_languages else languages
+    if len(domains) < required_domains or len(available_languages) < required_languages:
+        raise CapabilityAdapterError(
+            "diversity repair exclusions leave fewer candidates than the frozen "
+            "domain/language availability preconditions"
+        )
     output = batch / "research-scout-diversity-repair.json"
     repaired = {**scout, "candidates": candidates, "diversity_repair": {
         "protocol": "wiki-source-diversity-repair-v1",
-        "excluded_urls": sorted(failed_urls),
+        "excluded_urls": sorted(exclusion_reasons),
+        "exclusion_reasons": {
+            url: sorted(reasons) for url, reasons in sorted(exclusion_reasons.items())
+        },
         "excluded_pdf_candidates": saw_failed_pdf,
+        "candidate_pool_preconditions": {
+            "required_domains": required_domains,
+            "available_domains": len(domains),
+            "required_language_tracks": required_languages,
+            "available_language_tracks": sorted(available_languages),
+            "satisfied": True,
+            "candidate_status": "candidate_unverified",
+        },
         "trigger_gate_sha256": hashlib.sha256(gate_path.read_bytes()).hexdigest(),
+        "trigger_verify_sha256": _sha256(verify_path) if verify_path.is_file() else None,
     }}
     output.write_text(json.dumps(repaired, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                       encoding="utf-8")
@@ -586,6 +651,14 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
                     if claim.get("claim_kind") == "external_fact"
                 }
                 nomination_ready = nomination_ready and len(external_sources) >= 3
+            except (OSError, ValueError, json.JSONDecodeError):
+                nomination_ready = False
+        if active_research_scout.is_file():
+            try:
+                active_scout_doc = json.loads(active_research_scout.read_text(encoding="utf-8"))
+                repair = active_scout_doc.get("diversity_repair") or {}
+                if repair.get("protocol") == "wiki-source-diversity-repair-v1":
+                    nomination_ready = False
             except (OSError, ValueError, json.JSONDecodeError):
                 nomination_ready = False
         scout_command = [

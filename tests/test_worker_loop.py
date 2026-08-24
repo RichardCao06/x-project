@@ -133,6 +133,46 @@ def test_worker_gates_research_plan_before_nomination(tmp_path: Path) -> None:
     assert tasks["research_ready"] == "pending"
 
 
+def test_source_diversity_rewind_invalidates_every_materialized_research_receipt(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    _, run_id = create_p030(root)
+    orchestrator = PersistentOrchestrator(root)
+    invalidated = (
+        "research_ready", "search_execution_gate", "verify", "terminology_verify",
+        "source_diversity_gate",
+    )
+    prior_hashes = {
+        task_id: orchestrator.control.artifacts.put_json(
+            {"task": task_id, "generation": "failed-source-set"},
+            metadata={"schema": "test"},
+        ).digest
+        for task_id in invalidated
+    }
+    with orchestrator.control.state.transaction() as conn:
+        for index, task_id in enumerate(invalidated):
+            conn.execute(
+                "UPDATE orchestrator_tasks SET status='succeeded',output_hash=?,attempt=? "
+                "WHERE run_id=? AND task_id=?",
+                (prior_hashes[task_id], index + 1, run_id, task_id),
+            )
+
+    rewound = orchestrator.rewind_from(
+        run_id, "research_ready", reason="SOURCE_DIVERSITY_BLOCKED regression", actor="worker"
+    )
+
+    assert set(invalidated) <= set(rewound)
+    tasks = {task.task_id: task for task in orchestrator.tasks(run_id)}
+    assert tasks["research_ready"].status == "ready"
+    for task_id in invalidated:
+        assert tasks[task_id].output_hash is None
+        assert tasks[task_id].status in {"ready", "pending"}
+        assert prior_hashes[task_id] not in {
+            task.output_hash for task in tasks.values() if task.output_hash
+        }
+
+
 def test_worker_failure_is_persisted_and_does_not_unlock_downstream(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     job_id, run_id = create_p030(root)

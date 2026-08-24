@@ -138,7 +138,7 @@ def test_canonicalization_trims_requirement_overflow_to_frozen_quota(tmp_path: P
     assert all(claim["believed_source"] == "INTERNAL_MODELING_JUDGMENT" for claim in claims)
 
 
-def test_diversity_repair_fills_missing_second_modeling_judgment(tmp_path: Path) -> None:
+def test_diversity_repair_cannot_normalize_a_prior_external_nomination(tmp_path: Path) -> None:
     node = frozen_node("A015")
     node["dossier"]["claim_requirements"] = [
         {"requirement_id": f"external-{index}", "claim_kind": "external_fact",
@@ -176,10 +176,95 @@ def test_diversity_repair_fills_missing_second_modeling_judgment(tmp_path: Path)
         ],
     }
 
-    repaired = launcher_module().repair_prior_result(result, node, scout)
+    before = result.read_bytes()
+    with pytest.raises(ValueError, match="must regenerate external source nominations"):
+        launcher_module().repair_prior_result(result, node, scout)
+    assert result.read_bytes() == before
 
-    assert repaired["filled_requirements"] == ["model"]
-    assert len(json.loads(result.read_text(encoding="utf-8"))["claims"]) == 5
+
+def test_diversity_repair_regenerates_and_attests_active_scout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    launcher = launcher_module()
+    node = frozen_node("A015")
+    node["dossier"]["claim_requirements"] = [
+        {"requirement_id": role, "claim_kind": "external_fact", "section": role}
+        for role in ("identity", "process_boundary", "adjacent_distinction")
+    ]
+    workflow, schema = write_inputs(tmp_path, [node])
+    out = tmp_path / "runtime"
+    out.mkdir()
+    stale = valid_claims(node)
+    for claim in stale:
+        claim.update({
+            "claim_text": f"stale {claim['claim_id']}", "believed_source": "Rejected source",
+            "believed_locator": "identity_and_terminology；stale",
+            "attribution_confidence": "medium",
+        })
+    (out / "nomination-result.json").write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": stale,
+    }), encoding="utf-8")
+    stale_result_sha256 = launcher.sha256(out / "nomination-result.json")
+    candidates = [
+        {"title": f"Replacement {index}", "url": f"https://new{index}.example/page",
+         "language": "zh" if index == 0 else "en", "research_question": question,
+         "current_job_status": "candidate_unverified"}
+        for index, question in enumerate((
+            "identity_and_terminology", "process_origin_and_boundary", "collection_and_handoff"
+        ))
+    ]
+    scout = tmp_path / "repair-scout.json"
+    scout.write_text(json.dumps({
+        "protocol": "wiki-research-scout-v1", "node_id": "A015", "candidates": candidates,
+        "diversity_repair": {
+            "protocol": "wiki-source-diversity-repair-v1",
+            "excluded_urls": ["https://rejected.example/page"],
+        },
+    }), encoding="utf-8")
+    regenerated = valid_claims(node)
+    for index, claim in enumerate(regenerated):
+        claim.update({
+            "claim_text": f"replacement fact {index}",
+            "believed_source": candidates[index]["title"],
+            "believed_locator": f"{candidates[index]['research_question']}；replacement locator",
+            "attribution_confidence": "medium",
+        })
+    model_result = {
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": regenerated,
+    }
+    calls: list[list[str]] = []
+
+    def fake_run(command, **_kwargs):
+        calls.append(command)
+        raw = Path(command[command.index("-o") + 1])
+        raw.write_text(json.dumps(model_result), encoding="utf-8")
+        return __import__("subprocess").CompletedProcess(command, 0)
+
+    monkeypatch.setattr(launcher.subprocess, "run", fake_run)
+    monkeypatch.setattr("sys.argv", [
+        str(SCRIPT), str(workflow), str(schema), str(out), "--cost-usd", "0",
+        "--research-scout", str(scout),
+    ])
+
+    assert launcher.main() == 0
+    assert len(calls) == 1
+    result_path = out / "nomination-result.json"
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    assert {row["believed_source"] for row in result["claims"]} == {
+        "Replacement 0", "Replacement 1", "Replacement 2",
+    }
+    invocation = json.loads((out / "nomination-invocation.json").read_text(encoding="utf-8"))
+    assert invocation["research_scout"]["sha256"] == launcher.sha256(scout)
+    assert invocation["result"]["sha256"] != stale_result_sha256
+    assert invocation["result"] == {
+        "path": str(result_path.resolve()),
+        "sha256": launcher.sha256(result_path),
+        "research_scout_sha256": launcher.sha256(scout),
+    }
+    usage = json.loads((out / "nomination-usage.json").read_text(encoding="utf-8"))
+    assert usage["deterministic_repair"] is None
 
 
 def test_research_scout_requires_three_external_questions_without_forcing_quality_slot(tmp_path: Path) -> None:
