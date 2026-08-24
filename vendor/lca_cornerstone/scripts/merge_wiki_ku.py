@@ -607,11 +607,21 @@ def _write_transaction(path: Path, payload: dict[str, Any]) -> None:
     atomic_write(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
 
-def _recover_transaction(transaction_path: Path) -> None:
+def _recover_transaction(
+    transaction_path: Path,
+    *,
+    expected_plan: Path | None = None,
+    expected_plan_sha256: str | None = None,
+) -> None:
     """Restore backups left by an interrupted transaction before resuming."""
     if not transaction_path.exists():
         return
     transaction = json.loads(transaction_path.read_text(encoding="utf-8"))
+    if expected_plan is not None and (
+        Path(str(transaction.get("plan", ""))).resolve() != expected_plan.resolve()
+        or transaction.get("plan_sha256") != expected_plan_sha256
+    ):
+        raise MergeError("Apply transaction does not match the current frozen plan")
     if transaction.get("state") in {"committed", "rolled_back"}:
         return
     for item in reversed(transaction.get("targets", [])):
@@ -707,7 +717,10 @@ def apply_plan(
     dry_run: bool = False,
     lease_seconds: int = 300,
 ) -> dict[str, int | bool | str]:
-    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    plan_path = plan_path.resolve()
+    plan_text = plan_path.read_text(encoding="utf-8")
+    plan_sha256 = sha256(plan_text)
+    plan = json.loads(plan_text)
     protocol = plan.get("protocol") or {}
     if protocol.get("version") != PROTOCOL_VERSION or protocol.get("kind") != "wiki-ku-merge-plan":
         raise MergeError("不是受支持的 wiki-ku 合并计划")
@@ -723,14 +736,7 @@ def apply_plan(
     registry_path = resolve_plan_path(plan["registry_path"])
     repo_root = repository_root_for_registry(registry_path)
     lock_path = repo_root / ".wiki-ku-apply.lock"
-    transaction_path = plan_path.resolve().parent / "apply-transaction.json"
-    if transaction_path.is_file():
-        try:
-            previous = json.loads(transaction_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError, json.JSONDecodeError):
-            previous = {}
-        if previous.get("state") == "committed" and previous.get("plan") != str(plan_path.resolve()):
-            transaction_path = plan_path.resolve().parent / f"apply-transaction-{sha256(plan_path.read_text(encoding='utf-8'))[:12]}.json"
+    transaction_path = plan_path.parent / "apply-transaction.json"
     report: dict[str, int | bool | str] = {
         "files": sum(bool(item["operations"]) for item in plan["files"]),
         "operations": sum(len(item["operations"]) for item in plan["files"]),
@@ -740,7 +746,29 @@ def apply_plan(
     }
 
     with RepoLease(lock_path, lease_seconds):
-        _recover_transaction(transaction_path)
+        stale_transaction: tuple[str, dict[str, Any]] | None = None
+        if transaction_path.is_file():
+            try:
+                previous_text = transaction_path.read_text(encoding="utf-8")
+                previous = json.loads(previous_text)
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                raise MergeError("Apply transaction is unreadable; refusing recovery") from exc
+            same_generation = (
+                Path(str(previous.get("plan", ""))).resolve() == plan_path
+                and previous.get("plan_sha256") == plan_sha256
+            )
+            if same_generation:
+                _recover_transaction(
+                    transaction_path,
+                    expected_plan=plan_path,
+                    expected_plan_sha256=plan_sha256,
+                )
+            elif previous.get("state") not in {"committed", "rolled_back"}:
+                raise MergeError(
+                    "unfinished Apply transaction belongs to a different plan generation"
+                )
+            else:
+                stale_transaction = previous_text, previous
 
         # Phase 1: preflight every immutable input before creating any stage.
         registry_text = registry_path.read_text(encoding="utf-8")
@@ -807,13 +835,37 @@ def apply_plan(
             report["transaction"] = "preflight_passed"
             return report
 
+        # A mutable plan pathname must never alias an older authorization.
+        # Preserve the prior terminal journal under its immutable generation,
+        # then let the canonical pathname describe only the current plan.
+        if stale_transaction is not None:
+            previous_text, previous = stale_transaction
+            previous_sha = str(previous.get("plan_sha256") or "")
+            namespace = (
+                previous_sha[:12]
+                if re.fullmatch(r"[0-9a-f]{64}", previous_sha)
+                else f"legacy-{sha256(previous_text)[:12]}"
+            )
+            archived = transaction_path.with_name(
+                f"apply-transaction-{namespace}.json"
+            )
+            if archived.exists() and archived.read_text(encoding="utf-8") != previous_text:
+                archived = transaction_path.with_name(
+                    f"apply-transaction-{namespace}-{sha256(previous_text)[:12]}.json"
+                )
+            if archived.exists():
+                transaction_path.unlink()
+            else:
+                os.replace(transaction_path, archived)
+
         # Phase 2: stage every new file, then journal exact rollback locations.
         token = uuid.uuid4().hex
         transaction: dict[str, Any] = {
             "protocol": {"version": "wiki-ku-transaction-v1"},
             "token": token,
             "state": "staging",
-            "plan": str(plan_path.resolve()),
+            "plan": str(plan_path),
+            "plan_sha256": plan_sha256,
             "targets": [],
         }
         try:
@@ -866,13 +918,15 @@ def rehydrate_committed_plan(
 ) -> dict[str, Any]:
     """Replay a lost materialization only from its hash-bound commit."""
     plan_path = plan_path.resolve()
+    plan_sha256 = sha256(plan_path.read_text(encoding="utf-8"))
     transaction_path = plan_path.parent / "apply-transaction.json"
     if not transaction_path.is_file():
         raise MergeError("rehydrate requires the original committed transaction")
     original_text = transaction_path.read_text(encoding="utf-8")
     original = json.loads(original_text)
     if (original.get("state") != "committed"
-            or Path(str(original.get("plan", ""))).resolve() != plan_path):
+            or Path(str(original.get("plan", ""))).resolve() != plan_path
+            or original.get("plan_sha256") != plan_sha256):
         raise MergeError("rehydrate transaction is not committed for the frozen plan")
     targets = original.get("targets")
     if not isinstance(targets, list) or not targets:

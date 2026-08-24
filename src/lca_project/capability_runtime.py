@@ -114,6 +114,40 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _draft_apply_recovery_args(workspace: Path, batch: Path) -> list[str]:
+    """Select rehydration only for one fully hash-bound plan generation."""
+    try:
+        frozen = json.loads((batch / "frozen.json").read_text(encoding="utf-8"))
+        plan_value = frozen.get("batch_merge_plan")
+        plan = Path(str(plan_value))
+        if not plan.is_absolute():
+            plan = workspace / plan
+        plan = plan.resolve()
+        plan_sha256 = _sha256(plan)
+        gate = json.loads(
+            (batch / "draft-content-gate.json").read_text(encoding="utf-8")
+        )
+        receipt = json.loads(
+            (batch / "content-apply-report.json").read_text(encoding="utf-8")
+        )
+        transaction = json.loads(
+            (batch / "apply-transaction.json").read_text(encoding="utf-8")
+        )
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return []
+    receipt_plan = receipt.get("plan") or {}
+    matches = (
+        Path(str(gate.get("plan") or "")).resolve() == plan
+        and gate.get("plan_sha256") == plan_sha256
+        and Path(str(receipt_plan.get("path") or "")).resolve() == plan
+        and receipt_plan.get("sha256") == plan_sha256
+        and transaction.get("state") == "committed"
+        and Path(str(transaction.get("plan") or "")).resolve() == plan
+        and transaction.get("plan_sha256") == plan_sha256
+    )
+    return ["--rehydrate"] if matches else []
+
+
 def _reusable_executed_table_matrix(plan_path: Path, executed_path: Path) -> bool:
     """Return true only for a completed execution bound to the current plan bytes."""
     if not plan_path.is_file() or not executed_path.is_file():
@@ -820,7 +854,7 @@ def release(value: dict[str, Any]) -> dict[str, Any]:
         batch = _path(value.get("batch"), "batch")
         script = workspace / "scripts/wiki_batch.py"
         return _run([sys.executable, str(script), "apply", str(batch / "prepared.json"),
-                     "--resume", "--rehydrate",
+                     "--resume", *_draft_apply_recovery_args(workspace, batch),
                      "--draft-gate", str(batch / "draft-content-gate.json"),
                      "--output", str(batch / "content-apply-report.json")],
                     cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)))

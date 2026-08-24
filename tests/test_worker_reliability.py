@@ -7,6 +7,7 @@ import time
 
 import pytest
 
+from lca_project import capability_runtime
 from lca_project.kernel.leases import LeaseManager
 from lca_project.kernel.artifacts import ArtifactStore
 from lca_project.kernel.orchestrator import OrchestratorError, PersistentOrchestrator
@@ -310,3 +311,45 @@ def test_effective_input_hash_reuses_only_compatible_output(tmp_path: Path) -> N
                      (run_id,))
         conn.execute("UPDATE orchestrator_runs SET status='ready' WHERE run_id=?", (run_id,))
     assert orchestrator.try_reuse(run_id, "plan") is None
+
+
+def test_draft_apply_selects_rehydrate_only_for_one_hash_bound_generation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = tmp_path / "workspace"
+    batch = workspace / "runs/wiki-batches/ict/a039"
+    batch.mkdir(parents=True)
+    plan = batch / "batch-merge-plan.json"
+    plan.write_text(json.dumps({"files": []}), encoding="utf-8")
+    plan_sha256 = capability_runtime._sha256(plan)
+    (batch / "frozen.json").write_text(json.dumps({
+        "batch_merge_plan": str(plan.relative_to(workspace)),
+    }), encoding="utf-8")
+    (batch / "draft-content-gate.json").write_text(json.dumps({
+        "plan": str(plan), "plan_sha256": plan_sha256,
+    }), encoding="utf-8")
+    receipt_path = batch / "content-apply-report.json"
+    receipt_path.write_text(json.dumps({
+        "plan": {"path": str(plan), "sha256": plan_sha256},
+    }), encoding="utf-8")
+    (batch / "apply-transaction.json").write_text(json.dumps({
+        "state": "committed", "plan": str(plan),
+        "plan_sha256": plan_sha256,
+    }), encoding="utf-8")
+    invocations: list[list[str]] = []
+
+    def fake_run(command: list[str], **_: object) -> dict[str, str]:
+        invocations.append(command)
+        return {"status": "ok"}
+
+    monkeypatch.setattr(capability_runtime, "_run", fake_run)
+    value = {"operation": "draft_apply", "workspace": str(workspace),
+             "batch": str(batch)}
+    assert capability_runtime.release(value)["status"] == "ok"
+    assert "--rehydrate" in invocations[-1]
+
+    receipt_path.write_text(json.dumps({
+        "plan": {"path": str(plan), "sha256": "0" * 64},
+    }), encoding="utf-8")
+    assert capability_runtime.release(value)["status"] == "ok"
+    assert "--rehydrate" not in invocations[-1]

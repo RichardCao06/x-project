@@ -116,6 +116,71 @@ def file_record(path: Path) -> dict[str, str]:
     return {"path": str(path), "sha256": sha256(path.read_text(encoding="utf-8"))}
 
 
+PLAN_DESCENDANT_ARTIFACTS = {
+    "draft_content_gate", "content_apply", "coverage",
+    "go_no_go", "apply", "quality_gate", "gate", "publish",
+}
+
+
+def _archive_generation_artifact(
+    path: Path, generation_sha256: str | None = None
+) -> None:
+    """Move a superseded artifact out of its generation-neutral pathname."""
+    if not path.is_file() or path.is_symlink():
+        return
+    text = path.read_text(encoding="utf-8")
+    generation = str(generation_sha256 or "")
+    if not re.fullmatch(r"[0-9a-f]{64}", generation):
+        generation = sha256(text)
+    archived = path.with_name(f"{path.stem}-{generation[:12]}{path.suffix}")
+    if archived.exists() and archived.read_text(encoding="utf-8") != text:
+        archived = path.with_name(
+            f"{path.stem}-{generation[:12]}-{sha256(text)[:12]}{path.suffix}"
+        )
+    if archived.exists():
+        path.unlink()
+    else:
+        path.replace(archived)
+
+
+def _invalidate_plan_generation(
+    batch_dir: Path,
+    journal: dict[str, Any],
+    generation_sha256: str | None = None,
+    *,
+    research_rewind: bool = False,
+) -> None:
+    """Invalidate receipts and namespace transactions derived from an old plan."""
+    artifacts = journal.setdefault("artifacts", {})
+    content_record = artifacts.get("content_apply") or {}
+    content_path = Path(str(content_record.get("path") or ""))
+    if content_path.is_file() and content_path.resolve().parent == batch_dir.resolve():
+        try:
+            receipt = read_json(content_path)
+            receipt_generation = str((receipt.get("plan") or {}).get("sha256") or "")
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            receipt_generation = ""
+        _archive_generation_artifact(
+            content_path, receipt_generation or generation_sha256
+        )
+    transaction_path = batch_dir / "apply-transaction.json"
+    if transaction_path.is_file():
+        try:
+            transaction_generation = str(
+                read_json(transaction_path).get("plan_sha256") or ""
+            )
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            transaction_generation = ""
+        _archive_generation_artifact(
+            transaction_path, transaction_generation or generation_sha256
+        )
+    for name in PLAN_DESCENDANT_ARTIFACTS:
+        artifacts.pop(name, None)
+    if research_rewind:
+        artifacts.pop("verified", None)
+        artifacts.pop("frozen", None)
+
+
 def journal_path_for(batch_dir: Path) -> Path:
     return batch_dir / "journal.json"
 
@@ -204,6 +269,8 @@ def transition_journal(
             and LINEAR_STATES.index(new_state) < LINEAR_STATES.index(transition_base):
         journal["state"] = new_state
         journal.pop("resume_from", None)
+        if LINEAR_STATES.index(new_state) <= LINEAR_STATES.index("research_ready"):
+            _invalidate_plan_generation(batch_dir, journal, research_rewind=True)
         if artifacts:
             journal.setdefault("artifacts", {}).update(artifacts)
         journal.setdefault("history", []).append({
@@ -1048,7 +1115,10 @@ def committed_transaction(
         raise ValueError(f"事务协议非法: {path}")
     if expected_plan is not None:
         actual_plan = Path(str(transaction.get("plan", ""))).resolve()
-        if actual_plan != expected_plan.resolve():
+        expected_plan = expected_plan.resolve()
+        expected_plan_sha256 = sha256(expected_plan.read_text(encoding="utf-8"))
+        if (actual_plan != expected_plan
+                or transaction.get("plan_sha256") != expected_plan_sha256):
             raise ValueError(f"已提交事务不属于当前 merge plan: {path}")
     targets = transaction.get("targets")
     if not isinstance(targets, list) or not targets:
@@ -1585,6 +1655,11 @@ def command_finalize(args: argparse.Namespace) -> int:
         extract_plan = plan
 
     batch_merge_plan_path = None
+    existing_batch_plan = batch_dir / "batch-merge-plan.json"
+    prior_batch_plan_sha256 = (
+        sha256(existing_batch_plan.read_text(encoding="utf-8"))
+        if existing_batch_plan.is_file() else None
+    )
     if not args.dry_run and (merge_plan_path or extract_merge_plan_path):
         component_plans = [
             value for value in (
@@ -1622,6 +1697,17 @@ def command_finalize(args: argparse.Namespace) -> int:
         }
         batch_merge_plan_path = batch_dir / "batch-merge-plan.json"
         write_json(batch_merge_plan_path, batch_plan)
+        current_batch_plan_sha256 = sha256(
+            batch_merge_plan_path.read_text(encoding="utf-8")
+        )
+        if (prior_batch_plan_sha256 is not None
+                and prior_batch_plan_sha256 != current_batch_plan_sha256
+                and journal_path_for(batch_dir).is_file()):
+            generation_journal = read_journal(batch_dir)
+            _invalidate_plan_generation(
+                batch_dir, generation_journal, prior_batch_plan_sha256
+            )
+            write_json(journal_path_for(batch_dir), generation_journal)
 
     report = {
         "protocol": {
@@ -1829,11 +1915,32 @@ def command_apply(args: argparse.Namespace) -> int:
             raise ValueError(f"批次处于 {effective_state}；Apply 恢复须显式传 --resume")
         effective_state = str(journal.get("resume_from") or "")
     if effective_state == "frozen":
+        plan_path = args.plan.resolve() if args.plan else (
+            ROOT / frozen["batch_merge_plan"] if frozen.get("batch_merge_plan") else None
+        )
+        if plan_path is None:
+            raise ValueError("批次没有可应用的 batch merge plan")
+        plan_sha256 = sha256(plan_path.read_text(encoding="utf-8"))
         prior_content = journal.get("artifacts", {}).get("content_apply")
-        rehydrate = bool(prior_content and args.resume and args.rehydrate)
-        remediation = bool(prior_content and args.resume and args.plan and not rehydrate)
+        prior_path = _assert_frozen_record(
+            prior_content, "content apply"
+        ) if prior_content else None
+        prior_artifact = read_json(prior_path) if prior_path else {}
+        prior_plan = prior_artifact.get("plan") or {}
+        prior_matches_plan = bool(
+            prior_path
+            and Path(str(prior_plan.get("path") or "")).resolve() == plan_path
+            and prior_plan.get("sha256") == plan_sha256
+        )
+        rehydrate = bool(
+            prior_matches_plan and args.resume and args.rehydrate
+        )
+        remediation = bool(
+            prior_content and args.resume
+            and (args.plan or not prior_matches_plan)
+            and not rehydrate
+        )
         if prior_content:
-            prior_path = _assert_frozen_record(prior_content, "content apply")
             if not remediation and not rehydrate:
                 if args.resume:
                     # A journal receipt is not proof that the materialized
@@ -1857,11 +1964,6 @@ def command_apply(args: argparse.Namespace) -> int:
                     return 0
                 print("❌ content 已应用；请生成 post-apply coverage 后运行 go-no-go（或用 --resume 查看 no-op）", file=sys.stderr)
                 return 2
-        plan_path = args.plan.resolve() if args.plan else (
-            ROOT / frozen["batch_merge_plan"] if frozen.get("batch_merge_plan") else None
-        )
-        if plan_path is None:
-            raise ValueError("批次没有可应用的 batch merge plan")
         draft_gate_path = (args.draft_gate.resolve() if args.draft_gate
                            else batch_dir / "draft-content-gate.json")
         if args.draft_gate:
