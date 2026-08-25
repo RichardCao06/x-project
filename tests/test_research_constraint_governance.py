@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -137,6 +138,55 @@ def test_v2_gate_blocks_on_question_closure_but_not_portfolio_counts(tmp_path: P
     assert exhausted_preview["decision"] == "EVIDENCE_LIMITED"
     assert exhausted_preview["pipeline_continue"] is True
     assert exhausted_reviewed["pipeline_continue"] is False
+
+
+def test_research_more_scout_binds_failed_questions_and_prior_strategy(
+    tmp_path: Path,
+) -> None:
+    plan = build_plan(tmp_path)
+    config = tmp_path / "search-providers.json"
+    config.write_text(json.dumps({"providers": {}, "routing": {}}), encoding="utf-8")
+    prior_strategy_hash = (
+        "c85b68d093754100148936e05e48121ac964a1383f4166f921351ef22277baf8"
+    )
+    failed_question_ids = ["identity.activity_definition"]
+    gate = tmp_path / "source-diversity-gate.json"
+    gate.write_text(json.dumps({
+        "decision": "RESEARCH_MORE",
+        "attempt": 0,
+        "failed_requirement_ids": failed_question_ids,
+        "strategy_hash": prior_strategy_hash,
+    }), encoding="utf-8")
+    previous = tmp_path / "research-scout.json"
+    previous.write_text(json.dumps({
+        "protocol": "wiki-research-scout-v1",
+        "query_policy_version": "question-contract-adaptive-v3",
+        "node_id": plan["node_id"],
+        "candidates": [{
+            "url": "https://unaffected.example/guide",
+            "question_id": "process.origin_boundary",
+        }],
+    }), encoding="utf-8")
+    output = tmp_path / "research-scout-diversity-repair.json"
+
+    completed = subprocess.run([
+        sys.executable, str(ROOT / "scripts/scout_wiki_research_plan.py"),
+        str(tmp_path / "research-plan.json"), str(config), str(output),
+        "--repair-gate", str(gate), "--previous-scout", str(previous),
+    ], capture_output=True, text=True, check=False)
+
+    assert completed.returncode == 0, completed.stderr
+    repair_scout = json.loads(output.read_text(encoding="utf-8"))
+    repair = repair_scout["diversity_repair"]
+    assert repair["failed_question_ids"] == failed_question_ids
+    assert repair["previous_strategy_hash"] == prior_strategy_hash
+    assert len(repair["strategy_hash"]) == 64
+    assert repair["strategy_hash"] != prior_strategy_hash
+    assert repair["trigger_gate_sha256"] == hashlib.sha256(gate.read_bytes()).hexdigest()
+    assert repair_scout["query_audit"]
+    assert {
+        row["question_id"] for row in repair_scout["query_audit"]
+    } == set(failed_question_ids)
 
 
 def test_gate_evidence_survives_blocked_command_and_changes_failure_fingerprint(
