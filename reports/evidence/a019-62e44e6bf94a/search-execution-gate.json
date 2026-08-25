@@ -1,0 +1,20 @@
+{
+  "allow_partial": false,
+  "checks": {
+    "all_queries_reached_terminal_search_state": true,
+    "at_least_one_query_executed": true,
+    "has_external_queries": true,
+    "no_planned_queries": true
+  },
+  "counts": {
+    "failed": 0,
+    "found": 10,
+    "not_found": 0,
+    "queries": 10
+  },
+  "decision": "PASS",
+  "inputs_sha256": {
+    "source-evidence.json": "647c889ef151e8f7c9847ba7e2007ef03b66e5c8193b403f319c1b33ff14032c"
+  },
+  "protocol": "wiki-search-execution-gate-v1"
+}

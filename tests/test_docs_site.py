@@ -53,3 +53,22 @@ def test_local_documentation_links_resolve() -> None:
             if not target.is_file():
                 broken.append(f"{page.name}: {href}")
     assert broken == []
+
+
+def test_committed_documentation_does_not_link_to_runtime_state() -> None:
+    runtime_links: list[str] = []
+    for page in DOCS.glob("*.html"):
+        collector = LinkCollector()
+        collector.feed(page.read_text(encoding="utf-8"))
+        for href in collector.links:
+            parsed = urlsplit(href)
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                continue
+            target = (page.parent / unquote(parsed.path)).resolve()
+            try:
+                parts = target.relative_to(ROOT).parts
+            except ValueError:
+                parts = ()
+            if parts and parts[0] == "var":
+                runtime_links.append(f"{page.name}: {href}")
+    assert runtime_links == []

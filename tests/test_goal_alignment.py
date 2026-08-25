@@ -1236,6 +1236,121 @@ def test_system_repair_agent_codes_validates_and_promotes_low_risk_patch(
     assert certificates == 3
 
 
+def test_canary_accepts_only_failures_already_present_in_untouched_baseline() -> None:
+    result = SystemRepairAgent._compare_canary_with_baseline(
+        {
+            "phase": "canary", "passed": False, "exit_code": 1,
+            "failed_tests": ["tests/test_docs_site.py::test_local_documentation_links_resolve"],
+            "stdout_tail": "candidate failed", "stderr_tail": "",
+        },
+        {
+            "phase": "canary", "passed": False, "exit_code": 1,
+            "failed_tests": ["tests/test_docs_site.py::test_local_documentation_links_resolve"],
+            "stdout_tail": "baseline failed", "stderr_tail": "",
+        },
+    )
+
+    assert result["passed"] is True
+    assert result["raw_candidate_passed"] is False
+    assert result["baseline_equivalent"] is True
+    assert result["new_failed_tests"] == []
+    assert result["baseline"]["failed_tests"] == [
+        "tests/test_docs_site.py::test_local_documentation_links_resolve"
+    ]
+
+
+def test_canary_rejects_new_failure_beyond_untouched_baseline() -> None:
+    result = SystemRepairAgent._compare_canary_with_baseline(
+        {
+            "passed": False,
+            "failed_tests": [
+                "tests/test_docs_site.py::test_local_documentation_links_resolve",
+                "tests/test_nomination.py::test_claim_order",
+            ],
+        },
+        {
+            "passed": False,
+            "failed_tests": ["tests/test_docs_site.py::test_local_documentation_links_resolve"],
+        },
+    )
+
+    assert result["passed"] is False
+    assert result["baseline_equivalent"] is False
+    assert result["new_failed_tests"] == ["tests/test_nomination.py::test_claim_order"]
+
+
+def test_canary_baseline_waiver_fails_closed_without_pytest_node_ids() -> None:
+    result = SystemRepairAgent._compare_canary_with_baseline(
+        {"passed": False, "exit_code": 2, "failed_tests": []},
+        {"passed": False, "exit_code": 2, "failed_tests": []},
+    )
+
+    assert result["passed"] is False
+    assert result["baseline_equivalent"] is False
+
+
+def test_system_repair_executes_canary_against_untouched_baseline(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    candidate = ChangeController(root).propose(
+        source_deviation_id="dev_baseline_canary",
+        target="propose_code_change",
+        risk="low",
+        change={"diagnosis": "example"},
+        rollback={"strategy": "restore"},
+    )
+
+    def fake_agent(sandbox: Path, _: dict) -> dict:
+        source = sandbox / "src/lca_project/baseline_repair.py"
+        test = sandbox / "tests/test_baseline_repair.py"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        test.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("VALUE = 'fixed'\n", encoding="utf-8")
+        test.write_text("def test_fixed(): assert True\n", encoding="utf-8")
+        return {
+            "summary": "repair without a new canary regression",
+            "changed_files": [
+                "src/lca_project/baseline_repair.py",
+                "tests/test_baseline_repair.py",
+            ],
+            "tests_added": ["tests/test_baseline_repair.py"],
+            "risk_notes": [],
+        }
+
+    calls: list[tuple[str, str]] = []
+
+    def validator(validation_root: Path, phase: str, tests: tuple[str, ...]) -> dict:
+        calls.append((validation_root.name, phase))
+        if phase != "canary":
+            return {"phase": phase, "passed": True, "tests": list(tests)}
+        return {
+            "phase": phase,
+            "passed": False,
+            "exit_code": 1,
+            "failed_tests": ["tests/test_existing_debt.py::test_known_failure"],
+            "stdout_tail": "known baseline failure",
+            "stderr_tail": "",
+        }
+
+    agent = SystemRepairAgent(root, agent_runner=fake_agent, validator=validator)
+    queued = agent.queue(
+        candidate_id=candidate["candidate_id"], source_job_id="job_test",
+        source_run_id=None, request={"recovery_task": ""},
+    )
+    result = agent.execute(queued["repair_run_id"])
+
+    assert result["status"] == "awaiting_outcome_validation"
+    assert calls.count(("sandbox", "canary")) == 1
+    assert calls.count(("baseline", "canary")) == 1
+    canary = next(
+        row for row in result["payload"]["validations"] if row["phase"] == "canary"
+    )
+    assert canary["passed"] is True
+    assert canary["raw_candidate_passed"] is False
+    assert canary["baseline_equivalent"] is True
+
+
 def test_medium_risk_repair_is_prepared_then_promoted_with_minimal_approval(
     tmp_path: Path,
 ) -> None:

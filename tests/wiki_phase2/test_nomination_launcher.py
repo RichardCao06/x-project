@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+from collections import Counter
 from pathlib import Path
 
 import pytest
+
+from wiki_batch import validate_nomination_claim_slots
+from wiki_quality_contract import nomination_requirements
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -84,6 +88,58 @@ def valid_claims(node: dict) -> list[dict]:
     return rows
 
 
+@pytest.fixture
+def a019_appended_modeling_layout() -> tuple[dict, list[dict]]:
+    """Mirror A019: every slot once, then each second modeling row."""
+    node = frozen_node("A019")
+    node.update({
+        "name": "配置出厂, BIOS配置 | 服务器, 通用计算, 2U",
+        "node_type": "activity",
+    })
+    requirements = nomination_requirements("activity")
+    node["dossier"]["claim_requirements"] = requirements
+    identity = {
+        "display_name": node["name"], "node_type": node["node_type"],
+        "facets": node["facets"], "boundary": node["boundary"],
+    }
+
+    def claim(requirement: dict, ordinal: int) -> dict:
+        kind = requirement["claim_kind"]
+        if kind == "internal_graph_fact":
+            source = "LCA-CORNERSTONE_GRAPH"
+        elif kind in {"modeling_judgment", "evidence_gap"}:
+            source = "INTERNAL_MODELING_JUDGMENT"
+        else:
+            source = f"Official source for {requirement['requirement_id']}"
+        return {
+            "requirement_id": requirement["requirement_id"],
+            "section": requirement["section"],
+            "claim_kind": kind,
+            "node_id": node["node_id"],
+            "industry": node["industry"],
+            "node_identity": identity,
+            "claim_id": f"raw-{requirement['requirement_id']}-{ordinal}",
+            "claim_text": f"{requirement['requirement_id']} claim {ordinal}",
+            "believed_source": source,
+            "believed_locator": (
+                "frozen node dossier and graph connections"
+                if kind == "internal_graph_fact"
+                else "controlled internal claim"
+                if kind in {"modeling_judgment", "evidence_gap"}
+                else f"locator for {requirement['requirement_id']}"
+            ),
+            "attribution_confidence": "medium",
+        }
+
+    claims = [claim(requirement, 0) for requirement in requirements]
+    claims.extend(
+        claim(requirement, 1)
+        for requirement in requirements
+        if requirement["claim_kind"] == "modeling_judgment"
+    )
+    return node, claims
+
+
 def test_nomination_result_validation_rejects_identity_drift_even_after_exit_zero(tmp_path: Path) -> None:
     node = frozen_node()
     for requirement in node["dossier"]["claim_requirements"]:
@@ -136,6 +192,97 @@ def test_canonicalization_trims_requirement_overflow_to_frozen_quota(tmp_path: P
     assert len(claims) == 2
     assert [claim["claim_id"] for claim in claims] == ["P030-0", "P030-1"]
     assert all(claim["believed_source"] == "INTERNAL_MODELING_JUDGMENT" for claim in claims)
+
+
+def test_canonicalization_groups_a019_layout_without_semantic_drift(
+    tmp_path: Path, a019_appended_modeling_layout: tuple[dict, list[dict]],
+) -> None:
+    node, raw_claims = a019_appended_modeling_layout
+    raw, output = tmp_path / "raw.json", tmp_path / "canonical.json"
+    raw.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": raw_claims,
+    }), encoding="utf-8")
+    semantic_fields = (
+        "requirement_id", "claim_text", "believed_source",
+        "believed_locator", "attribution_confidence",
+    )
+    before = Counter(tuple(claim[field] for field in semantic_fields) for claim in raw_claims)
+    requirement_order = {
+        row["requirement_id"]: index
+        for index, row in enumerate(node["dossier"]["claim_requirements"])
+    }
+    raw_ranks = [requirement_order[claim["requirement_id"]] for claim in raw_claims]
+    assert sum(right < left for left, right in zip(raw_ranks, raw_ranks[1:])) == 1
+    assert sum(
+        left > right
+        for index, left in enumerate(raw_ranks)
+        for right in raw_ranks[index + 1:]
+    ) == 71
+    within_slot_before = {
+        requirement["requirement_id"]: [
+            claim["claim_text"] for claim in raw_claims
+            if claim["requirement_id"] == requirement["requirement_id"]
+        ]
+        for requirement in node["dossier"]["claim_requirements"]
+    }
+
+    module = launcher_module()
+    module.canonicalize_result(raw, output, node)
+    document = json.loads(output.read_text(encoding="utf-8"))
+    claims = document["claims"]
+    requirements = node["dossier"]["claim_requirements"]
+    quotas = {"external_fact": 1, "modeling_judgment": 2,
+              "internal_graph_fact": 1, "evidence_gap": 1}
+    expected_ids = [
+        requirement["requirement_id"]
+        for requirement in requirements
+        for _ in range(quotas[requirement["claim_kind"]])
+    ]
+
+    assert [claim["requirement_id"] for claim in claims] == expected_ids
+    assert Counter(claim["requirement_id"] for claim in claims) == Counter(expected_ids)
+    assert Counter(tuple(claim[field] for field in semantic_fields) for claim in claims) == before
+    assert {
+        requirement["requirement_id"]: [
+            claim["claim_text"] for claim in claims
+            if claim["requirement_id"] == requirement["requirement_id"]
+        ]
+        for requirement in requirements
+    } == within_slot_before
+    assert [claim["claim_id"] for claim in claims] == [
+        f"A019-{index}" for index in range(len(claims))
+    ]
+
+    ranks = [requirement_order[claim["requirement_id"]] for claim in claims]
+    adjacent_regressions = sum(right < left for left, right in zip(ranks, ranks[1:]))
+    pairwise_inversions = sum(
+        left > right
+        for index, left in enumerate(ranks)
+        for right in ranks[index + 1:]
+    )
+    assert adjacent_regressions == 0
+    assert pairwise_inversions == 0
+    module.validate_result(output, node)
+    assert validate_nomination_claim_slots(
+        node["node_id"], node["node_type"], claims, requirements,
+    ) == dict(Counter(expected_ids))
+
+
+def test_launcher_rejects_a019_noncanonical_requirement_order(
+    tmp_path: Path, a019_appended_modeling_layout: tuple[dict, list[dict]],
+) -> None:
+    node, claims = a019_appended_modeling_layout
+    result = tmp_path / "result.json"
+    for index, claim in enumerate(claims):
+        claim["claim_id"] = f"A019-{index}"
+    result.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": claims,
+    }), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="requirement_id 顺序漂移"):
+        launcher_module().validate_result(result, node)
 
 
 def test_diversity_repair_fills_missing_second_modeling_judgment(tmp_path: Path) -> None:

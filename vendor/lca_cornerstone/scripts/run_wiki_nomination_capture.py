@@ -120,8 +120,12 @@ def validate_result(path: Path, node: dict, research_scout: dict | None = None) 
                 "facets": node["facets"], "boundary": node["boundary"]}
     requirements = node["dossier"]["claim_requirements"]
     expected = {row["requirement_id"]: row for row in requirements}
+    expected_order = {
+        row["requirement_id"]: index for index, row in enumerate(requirements)
+    }
     counts = {key: 0 for key in expected}
     seen_claim_texts: set[str] = set()
+    last_order = -1
     minima = {"external_fact": 1, "modeling_judgment": 2,
               "internal_graph_fact": 1, "evidence_gap": 1}
     maxima = dict(minima)
@@ -135,6 +139,10 @@ def validate_result(path: Path, node: dict, research_scout: dict | None = None) 
         if (claim.get("section") != requirement["section"]
                 or claim.get("claim_kind") != requirement["claim_kind"]):
             raise ValueError(f"claims[{index}] requirement section/kind 漂移")
+        order = expected_order[requirement_id]
+        if order < last_order:
+            raise ValueError(f"claims[{index}] requirement_id 顺序漂移")
+        last_order = order
         kind = claim["claim_kind"]
         source = str(claim.get("believed_source", ""))
         if kind == "internal_graph_fact" and source != "LCA-CORNERSTONE_GRAPH":
@@ -198,26 +206,32 @@ def validate_result(path: Path, node: dict, research_scout: dict | None = None) 
 
 def canonicalize_result(raw_path: Path, output_path: Path, node: dict | None = None,
                         research_scout: dict | None = None) -> None:
-    """Inject protocol-owned provenance constants without rewriting claims."""
+    """Freeze slot order and provenance without rewriting claim semantics."""
     document = json.loads(raw_path.read_text(encoding="utf-8"))
     claims = document.get("claims")
     if not isinstance(claims, list):
         raise ValueError("Nomination raw claims 缺失")
-    requirements = {row["requirement_id"]: row for row in ((node or {}).get("dossier") or {}).get("claim_requirements", [])}
+    requirement_rows = ((node or {}).get("dossier") or {}).get("claim_requirements", [])
+    requirements = {row["requirement_id"]: row for row in requirement_rows}
     quotas = {"external_fact": 1, "modeling_judgment": 2,
               "internal_graph_fact": 1, "evidence_gap": 1}
     if requirements:
-        kept: list[dict] = []
-        counts: dict[str, int] = {}
+        by_requirement: dict[str, list[dict]] = {
+            str(row["requirement_id"]): [] for row in requirement_rows
+        }
         for claim in claims:
             requirement = requirements.get(claim.get("requirement_id")) if isinstance(claim, dict) else None
             if requirement is None:
                 continue
             requirement_id = str(claim["requirement_id"])
-            if counts.get(requirement_id, 0) >= quotas[requirement["claim_kind"]]:
-                continue
-            counts[requirement_id] = counts.get(requirement_id, 0) + 1
-            kept.append(claim)
+            by_requirement[requirement_id].append(claim)
+        kept = [
+            claim
+            for requirement in requirement_rows
+            for claim in by_requirement[str(requirement["requirement_id"])][
+                :quotas[requirement["claim_kind"]]
+            ]
+        ]
         claims[:] = kept
     for claim in claims:
         if not isinstance(claim, dict):
