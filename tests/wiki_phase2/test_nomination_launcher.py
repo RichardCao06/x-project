@@ -316,7 +316,7 @@ def test_deterministic_repair_reorders_cached_a019_nomination(
         "claims": claims,
     }), encoding="utf-8")
     scout = {
-        "diversity_repair": {"protocol": "wiki-source-diversity-repair-v1"},
+        "diversity_repair": {"protocol": "wiki-source-diversity-repair-v2"},
         "candidates": candidates,
     }
 
