@@ -53,7 +53,8 @@ def build(graph: dict, node_id: str) -> dict:
         raise ValueError(f"node not found: {node_id}")
     node_type = "activity" if node_id in activities else "product"
     inputs = [str(item) for item in node.get("inputs", [])]
-    outputs = [str(item.get("product")) for item in node.get("outputs", []) if isinstance(item, dict)]
+    output_rows = [item for item in node.get("outputs", []) if isinstance(item, dict)]
+    outputs = [str(item.get("product")) for item in output_rows]
     if node_type == "activity" and (not inputs or not outputs):
         raise ValueError("activity blueprint requires graph inputs and outputs")
     if node_type == "product":
@@ -91,6 +92,10 @@ def build(graph: dict, node_id: str) -> dict:
                             "地理与时间代表性", "代理选择与失效条件"],
             },
         }
+    reference_outputs = [str(item.get("product")) for item in output_rows
+                         if item.get("role") == "reference"]
+    if not reference_outputs:
+        raise ValueError("activity blueprint requires at least one reference output")
     route = str((node.get("facets") or {}).get("technology_route", ""))
     product_ids = {str(item.get("name")): str(item["id"])
                    for item in graph.get("products", []) if item.get("id") and item.get("name")}
@@ -134,7 +139,7 @@ def build(graph: dict, node_id: str) -> dict:
         "editorial_fusions": [],
         "sections": {heading: {"recommended_paragraphs": 2, "topics": topics}
                      for heading, topics in ACTIVITY_SECTIONS.items()},
-        "identity_tokens": [node_id, *outputs],
+        "identity_tokens": [node_id, *reference_outputs],
         "advisory_tokens": list(dict.fromkeys(required)),
         "forbidden_phrases": ["尚无已核验的节点特定证据",
                               "该 claim slot 的目标节点特异性外部证据尚未达到 CONFIRMED",
@@ -146,7 +151,7 @@ def build(graph: dict, node_id: str) -> dict:
             # Activity properties describe the reference product at the
             # activity handoff.  They are distinct from process operating
             # parameters and therefore have their own mandatory table.
-            "props": [f"参考产品身份（{outputs[0]}）", "参考产品完整型号与配置版本",
+            "props": [f"参考产品身份（{reference_outputs[0]}）", "参考产品完整型号与配置版本",
                       "参考产品单件净质量", "参考产品交接状态",
                       "参考产品规格或质量口径", "参考产品包装前边界"],
             "params": ["工艺路线与设备配置", "装配批次产量", "有效运行时间",
