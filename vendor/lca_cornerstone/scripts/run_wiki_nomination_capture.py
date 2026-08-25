@@ -202,6 +202,63 @@ def validate_result(path: Path, node: dict, research_scout: dict | None = None) 
         questions = {str(claim.get("believed_locator", "")).split("；", 1)[0] for claim in external}
         if len(questions) < 3:
             raise ValueError("Research Scout 模式要求 external_fact 覆盖至少 3 个研究问题")
+        repair = research_scout.get("diversity_repair") or {}
+        failed_question_ids = {
+            str(value) for value in repair.get("failed_question_ids") or []
+            if str(value).strip()
+        }
+        if failed_question_ids:
+            excluded_urls = {
+                str(value) for value in repair.get("excluded_urls") or []
+                if str(value).strip()
+            }
+            excluded_hashes = {
+                str(value) for value in repair.get("excluded_url_hashes") or []
+                if str(value).strip()
+            }
+            selected_by_question: dict[str, list[dict]] = {
+                question_id: [] for question_id in failed_question_ids
+            }
+            for candidate in selected_candidates:
+                question_id = str(candidate.get("question_id") or "")
+                if question_id in selected_by_question:
+                    selected_by_question[question_id].append(candidate)
+            missing = sorted(
+                question_id for question_id, rows in selected_by_question.items()
+                if not rows or not any(row.get("repair_novel") is True for row in rows)
+            )
+            if missing:
+                raise ValueError(
+                    "diversity repair 必须为每个失败问题绑定 novel candidate: "
+                    + ", ".join(missing)
+                )
+            for rows in selected_by_question.values():
+                for candidate in rows:
+                    url = str(candidate.get("url") or "").strip()
+                    if (url in excluded_urls
+                            or hashlib.sha256(url.encode("utf-8")).hexdigest()
+                            in excluded_hashes):
+                        raise ValueError("diversity repair 重新选择了失败 URL")
+            strategy_signal = []
+            for claim in claims:
+                source = str(claim.get("believed_source") or "").strip()
+                matched_candidate = next((candidate for candidate in scout_candidates if (
+                    str(candidate.get("title") or "").strip()
+                    and (str(candidate.get("title") or "").strip() in source
+                         or source in str(candidate.get("title") or "").strip())
+                )), None)
+                strategy_signal.append({
+                    "requirement_id": str(claim.get("requirement_id") or ""),
+                    "locator": str(claim.get("believed_locator") or ""),
+                    "source": source,
+                    "url": str((matched_candidate or {}).get("url") or ""),
+                })
+            current_hash = hashlib.sha256(json.dumps(
+                strategy_signal, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"),
+            ).encode()).hexdigest()
+            if current_hash == str(repair.get("previous_strategy_hash") or ""):
+                raise ValueError("diversity repair source/locator strategy 未发生变化")
 
 
 def canonicalize_result(raw_path: Path, output_path: Path, node: dict | None = None,
@@ -292,6 +349,8 @@ def repair_prior_result(result_path: Path, node: dict, research_scout: dict) -> 
                 "wiki-source-diversity-repair-v2",
             }):
         raise ValueError("prior-result repair requires a frozen diversity repair scout")
+    if any(str(value).strip() for value in repair.get("failed_question_ids") or []):
+        raise ValueError("failed diversity questions require a new nomination result")
     document = json.loads(result_path.read_text(encoding="utf-8"))
     claims = document.get("claims")
     if not isinstance(claims, list):

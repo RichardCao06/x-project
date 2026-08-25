@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import json
 import subprocess
+import sys
 
 import pytest
 
@@ -172,3 +174,56 @@ def test_diversity_repair_scout_excludes_failed_and_oversize_pdf_candidates(tmp_
     assert {row["url"] for row in value["candidates"]} == {
         "https://one.example/page", "https://two.example/page", "https://three.example/page",
     }
+
+
+def test_repair_scout_regeneration_does_not_append_failed_candidates(
+    tmp_path: Path,
+) -> None:
+    plan = tmp_path / "research-plan.json"
+    plan.write_text(json.dumps({
+        "node_id": "A019",
+        "question_contract_sha256": "a" * 64,
+        "research_questions": ["identity.activity_definition"],
+        "terminology": {"canonical_zh": "服务器", "canonical_en": "server"},
+    }), encoding="utf-8")
+    config = tmp_path / "search-providers.json"
+    config.write_text(json.dumps({"providers": {}, "routing": {}}), encoding="utf-8")
+    gate = tmp_path / "source-diversity-gate.json"
+    gate.write_text(json.dumps({
+        "failed_requirement_ids": ["identity.activity_definition"],
+        "attempt": 1, "strategy_hash": "b" * 64,
+    }), encoding="utf-8")
+    previous = tmp_path / "research-scout.json"
+    previous.write_text(json.dumps({
+        "protocol": "wiki-research-scout-v1", "node_id": "A019",
+        "candidates": [
+            {"url": "https://failed.example/page", "title": "Failed",
+             "question_id": "identity.activity_definition"},
+            {"url": "https://keep.example/page", "title": "Keep",
+             "question_id": "unaffected.question"},
+        ],
+    }), encoding="utf-8")
+    fetch_dir = tmp_path / "search-cache/fetch"
+    fetch_dir.mkdir(parents=True)
+    (fetch_dir / "failed.json").write_text(json.dumps({"record": {
+        "status": "empty", "url": "https://failed.example/page",
+    }}), encoding="utf-8")
+    output = tmp_path / "research-scout-diversity-repair.json"
+
+    completed = subprocess.run([
+        sys.executable, str(ROOT / "scripts/scout_wiki_research_plan.py"),
+        str(plan), str(config), str(output),
+        "--repair-gate", str(gate), "--previous-scout", str(previous),
+        "--failed-fetch-dir", str(fetch_dir),
+    ], capture_output=True, text=True, check=False)
+
+    assert completed.returncode == 0, completed.stderr
+    repaired = json.loads(output.read_text(encoding="utf-8"))
+    urls = {row["url"] for row in repaired["candidates"]}
+    assert urls == {"https://keep.example/page"}
+    assert repaired["diversity_repair"]["excluded_urls"] == [
+        "https://failed.example/page"
+    ]
+    assert repaired["diversity_repair"]["excluded_url_hashes"] == [
+        hashlib.sha256(b"https://failed.example/page").hexdigest()
+    ]

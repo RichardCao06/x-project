@@ -985,27 +985,37 @@ class WorkerLoop:
                             job_id_value, JobState.PUBLISHED,
                             reason="governed hash-locked Wiki release applied",
                         )
-                if skill != "industry-graph" and task.task_id == "preview" and request.get("publication_mode") == "preview":
-                    reason = "preview_unpublished branch does not grant release or publication authority"
-                    for skipped in ("release_gate", "reviewed_apply", "publish"):
-                        self.orchestrator.skip(task.run_id, skipped, reason)
-                    current = self.control.state.get("jobs", job_id_value)
-                    if current and JobState(current["status"]) == JobState.RUNNING:
-                        maturity_path = self.wiki.context(task.run_id, job)["batch"] / "maturity-gate.json"
-                        maturity = load_json(maturity_path) if maturity_path.is_file() else {}
-                        maturity_name = str(maturity.get("maturity") or "diagnostic_preview")
-                        target = (JobState.CANDIDATE if maturity.get("candidate_eligible") is True
-                                  else JobState.REPAIRABLE
-                                  if maturity.get("pipeline_continue") is True
-                                  else JobState.EVIDENCE_LIMITED
-                                  if maturity_name == "evidence_limited"
-                                  else JobState.DIAGNOSTIC_PREVIEW)
-                        self.control.transition_job(
-                            job_id_value, target,
-                            reason=(f"preview artifact completed with maturity={maturity_name}; "
-                                    f"goal_complete={maturity.get('candidate_eligible') is True}; "
-                                    f"pipeline_continue={maturity.get('pipeline_continue') is True}"),
+                if skill != "industry-graph" and task.task_id == "preview":
+                    maturity_path = self.wiki.context(task.run_id, job)["batch"] / "maturity-gate.json"
+                    maturity = load_json(maturity_path) if maturity_path.is_file() else {}
+                    maturity_name = str(maturity.get("maturity") or "diagnostic_preview")
+                    stop_before_release = (
+                        request.get("publication_mode") == "preview"
+                        or maturity_name == "evidence_limited"
+                    )
+                    if stop_before_release:
+                        reason = (
+                            "evidence-limited materialization is non-candidate and cannot be released"
+                            if maturity_name == "evidence_limited"
+                            else "preview_unpublished branch does not grant release or publication authority"
                         )
+                        for skipped in ("release_gate", "reviewed_apply", "publish"):
+                            self.orchestrator.skip(task.run_id, skipped, reason)
+                        current = self.control.state.get("jobs", job_id_value)
+                        if current and JobState(current["status"]) == JobState.RUNNING:
+                            target = (JobState.CANDIDATE if maturity.get("candidate_eligible") is True
+                                      else JobState.REPAIRABLE
+                                      if maturity.get("pipeline_continue") is True
+                                      and maturity_name != "evidence_limited"
+                                      else JobState.EVIDENCE_LIMITED
+                                      if maturity_name == "evidence_limited"
+                                      else JobState.DIAGNOSTIC_PREVIEW)
+                            self.control.transition_job(
+                                job_id_value, target,
+                                reason=(f"preview artifact completed with maturity={maturity_name}; "
+                                        f"goal_complete={maturity.get('candidate_eligible') is True}; "
+                                        f"pipeline_continue={maturity.get('pipeline_continue') is True}"),
+                            )
                 gate_result = (result.payload.get("gate_result")
                                if isinstance(result.payload.get("gate_result"), dict) else {})
                 gate_decision = str(gate_result.get("decision") or "NOT_APPLICABLE")

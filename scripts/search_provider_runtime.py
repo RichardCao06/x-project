@@ -105,23 +105,60 @@ def provider_search(name: str, spec: dict[str, Any], query: str, *, locator: str
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("queue", type=Path); ap.add_argument("config", type=Path); ap.add_argument("output", type=Path)
+    ap.add_argument("--research-scout", type=Path, required=True)
+    ap.add_argument("--research-scout-sha256", required=True)
     args = ap.parse_args()
     queue, config = load(args.queue), load(args.config)
     advisory_candidates: list[dict[str, Any]] = []
-    scout_candidates: list[dict[str, Any]] = []
+    supplied_scout_path = args.research_scout.resolve()
+    if not supplied_scout_path.is_file():
+        raise ValueError("supplied research scout is missing")
+    supplied_scout_sha256 = hashlib.sha256(supplied_scout_path.read_bytes()).hexdigest()
+    if supplied_scout_sha256 != args.research_scout_sha256:
+        raise ValueError("supplied research scout SHA-256 mismatch")
+    queue_scout_record = queue.get("research_scout")
+    expected_scout_record = {
+        "path": str(supplied_scout_path), "sha256": supplied_scout_sha256,
+    }
+    if queue_scout_record != expected_scout_record:
+        raise ValueError("source queue is not bound to the supplied research scout")
+    scout = load(supplied_scout_path)
+    if (scout.get("protocol") != "wiki-research-scout-v1"
+            or not isinstance(scout.get("candidates"), list)):
+        raise ValueError("supplied research scout is invalid")
+    repair = scout.get("diversity_repair") or {}
+    excluded_urls = {
+        str(url).strip() for url in repair.get("excluded_urls") or [] if str(url).strip()
+    }
+    excluded_url_hashes = {
+        str(value).strip() for value in repair.get("excluded_url_hashes") or []
+        if str(value).strip()
+    }
+    if any(hashlib.sha256(url.encode("utf-8")).hexdigest() not in excluded_url_hashes
+           for url in excluded_urls):
+        raise ValueError("research scout failed-URL hash binding is invalid")
+    scout_candidates = [
+        row for row in scout.get("candidates", [])
+        if isinstance(row, dict) and row.get("url")
+        and str(row.get("url")).strip() not in excluded_urls
+        and hashlib.sha256(str(row.get("url")).strip().encode("utf-8")).hexdigest()
+        not in excluded_url_hashes
+    ]
     plan_record = queue.get("research_plan")
-    if isinstance(plan_record, dict) and plan_record.get("path"):
-        plan_path = Path(str(plan_record["path"])).resolve()
-        if (plan_path.is_file()
-                and hashlib.sha256(plan_path.read_bytes()).hexdigest() == plan_record.get("sha256")):
-            plan = load(plan_path)
-            advisory_candidates = [row for row in plan.get("advisory_candidates", [])
-                                   if isinstance(row, dict) and row.get("url")]
-            scout_path = plan_path.parent / "research-scout.json"
-            if scout_path.is_file():
-                scout = load(scout_path)
-                if scout.get("protocol") == "wiki-research-scout-v1" and scout.get("node_id") == plan.get("node_id"):
-                    scout_candidates = [row for row in scout.get("candidates", []) if isinstance(row, dict) and row.get("url")]
+    if not isinstance(plan_record, dict) or not plan_record.get("path"):
+        raise ValueError("source queue has no hash-bound research plan")
+    plan_path = Path(str(plan_record["path"])).resolve()
+    if (not plan_path.is_file()
+            or hashlib.sha256(plan_path.read_bytes()).hexdigest() != plan_record.get("sha256")):
+        raise ValueError("source queue research plan SHA-256 mismatch")
+    plan = load(plan_path)
+    if scout.get("node_id") != plan.get("node_id"):
+        raise ValueError("supplied research scout does not match the research plan")
+    advisory_candidates = [row for row in plan.get("advisory_candidates", [])
+                           if isinstance(row, dict) and row.get("url")
+                           and str(row.get("url")).strip() not in excluded_urls
+                           and hashlib.sha256(str(row.get("url")).strip().encode("utf-8")).hexdigest()
+                           not in excluded_url_hashes]
     secret_path = args.config.resolve().parents[1] / str(config.get("secret_file", ".env.search.local"))
     secrets = load_secrets(secret_path)
     policy = config.get("query_policy") or {}; timeout = int(policy.get("timeout_seconds", 30))
@@ -174,17 +211,24 @@ def main() -> int:
                                  "query": query, "status": "found" if hits else status,
                                  "results": len(hits), "error": error,
                                  "requested_at": started.isoformat()})
+                accepted_hit = False
                 for hit in hits:
-                    if hit["url"] not in seen:
-                        seen.add(hit["url"]); found.append(hit)
-                if hits:
+                    hit_url = str(hit["url"]).strip()
+                    hit_hash = hashlib.sha256(hit_url.encode("utf-8")).hexdigest()
+                    if (hit_url not in seen and hit_url not in excluded_urls
+                            and hit_hash not in excluded_url_hashes):
+                        seen.add(hit["url"]); found.append(hit); accepted_hit = True
+                if accepted_hit:
                     break
         rows.append({"search_hash": search_hash, "query": source_query,
                      "status": "found" if found else "not_found", "results": found[:limit]})
     payload = {"protocol": {"version": "wiki-frozen-search-v1", "kind": "query-search-results"},
                "backend": "configured-multi-provider-v1", "usage": {"search_requests": len(rows),
                "provider_requests": total_requests, "cost_usd": 0.0}, "queries": rows,
-               "provider_attempts": attempts, "config_sha256": hashlib.sha256(args.config.read_bytes()).hexdigest()}
+               "provider_attempts": attempts,
+               "research_scout": expected_scout_record,
+               "excluded_url_hashes": sorted(excluded_url_hashes),
+               "config_sha256": hashlib.sha256(args.config.read_bytes()).hexdigest()}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(args.output), "queries": len(rows),

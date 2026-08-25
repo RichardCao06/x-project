@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
 
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "vendor/lca_cornerstone/scripts/wiki_source_discovery.py"
@@ -32,6 +35,20 @@ def test_domain_policy_accepts_only_explicit_unambiguous_modes() -> None:
     assert module.domain_allowed("example.net", ["example.com"]) is False
 
 
+def test_frozen_provider_results_reject_scout_binding_drift() -> None:
+    queue = {"research_scout": {"path": "/scout/repair.json", "sha256": "a" * 64},
+             "queries": []}
+    frozen = {
+        "protocol": {"version": "wiki-frozen-search-v1", "kind": "query-search-results"},
+        "backend": "configured-multi-provider-v1",
+        "research_scout": {"path": "/scout/base.json", "sha256": "b" * 64},
+        "queries": [], "usage": {"search_requests": 0, "cost_usd": 0.0},
+    }
+
+    with pytest.raises(ValueError, match="research scout binding"):
+        source_module().frozen_search_records(frozen, queue)
+
+
 def test_research_plan_expands_bilingual_discovery_tracks(tmp_path: Path) -> None:
     module = source_module()
     claims = {
@@ -55,15 +72,26 @@ def test_research_plan_expands_bilingual_discovery_tracks(tmp_path: Path) -> Non
             "terminology": {"canonical_zh": "共生焊料浮渣", "candidate_aliases_zh": ["锡渣"],
                             "canonical_en": "solder dross", "candidate_aliases_en": ["tin dross"]}}
     claims_path, plan_path, output = tmp_path / "claims.json", tmp_path / "plan.json", tmp_path / "queue.json"
+    scout_path = tmp_path / "research-scout-diversity-repair.json"
     claims_path.write_text(__import__("json").dumps(claims, ensure_ascii=False), encoding="utf-8")
     plan_path.write_text(__import__("json").dumps(plan, ensure_ascii=False), encoding="utf-8")
+    scout_path.write_text(json.dumps({
+        "protocol": "wiki-research-scout-v1", "node_id": "P030",
+        "candidates": [],
+    }), encoding="utf-8")
     args = module.build_parser().parse_args(["plan", str(claims_path), "--open-discovery",
-                                             "--research-plan", str(plan_path), "--output", str(output)])
+                                             "--research-plan", str(plan_path),
+                                             "--research-scout", str(scout_path),
+                                             "--output", str(output)])
     assert module.command_plan(args) == 0
     queue = __import__("json").loads(output.read_text(encoding="utf-8"))
     assert [row["research_tracks"][0]["language"] for row in queue["queries"]] == ["zh", "en"]
     assert "锡渣" in queue["queries"][0]["research_tracks"][0]["query"]
     assert "solder dross" in queue["queries"][1]["research_tracks"][0]["query"]
+    assert queue["research_scout"] == {
+        "path": str(scout_path.resolve()),
+        "sha256": hashlib.sha256(scout_path.read_bytes()).hexdigest(),
+    }
 
 
 def test_eu_annex_locator_builds_structural_and_topic_anchors() -> None:

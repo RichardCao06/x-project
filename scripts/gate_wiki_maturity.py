@@ -128,8 +128,9 @@ def evaluate(batch: Path) -> dict[str, Any]:
         "graph_semantic_conflicts_resolved", "content_semantically_closed",
         "draft_candidate_ready", "editorial_candidate_ready",
     ))
+    source_decision = docs["source_diversity_gate"].get("decision")
     source_repair_remains = (
-        docs["source_diversity_gate"].get("decision") not in {"PASS", "PASS_WITH_DEBT"}
+        source_decision not in {"PASS", "PASS_WITH_DEBT", "EVIDENCE_LIMITED"}
         and docs["source_diversity_gate"].get("pipeline_continue") is not False
     )
     pipeline_continue = bool(

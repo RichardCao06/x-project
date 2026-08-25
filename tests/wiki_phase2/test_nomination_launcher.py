@@ -333,6 +333,27 @@ def test_deterministic_repair_reorders_cached_a019_nomination(
     launcher_module().validate_result(result, node, scout)
 
 
+def test_failed_diversity_questions_invalidate_deterministic_nomination_reuse(
+    tmp_path: Path, a019_appended_modeling_layout: tuple[dict, list[dict]],
+) -> None:
+    node, claims = a019_appended_modeling_layout
+    result = tmp_path / "nomination-result.json"
+    result.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": claims,
+    }), encoding="utf-8")
+    scout = {
+        "diversity_repair": {
+            "protocol": "wiki-source-diversity-repair-v2",
+            "failed_question_ids": ["identity.activity_definition"],
+        },
+        "candidates": [],
+    }
+
+    with pytest.raises(ValueError, match="require a new nomination result"):
+        launcher_module().repair_prior_result(result, node, scout)
+
+
 def test_diversity_repair_fills_missing_second_modeling_judgment(tmp_path: Path) -> None:
     node = frozen_node("A015")
     node["dossier"]["claim_requirements"] = [

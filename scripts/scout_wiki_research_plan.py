@@ -274,6 +274,7 @@ def main() -> int:
     parser.add_argument("output", type=Path)
     parser.add_argument("--repair-gate", type=Path)
     parser.add_argument("--previous-scout", type=Path)
+    parser.add_argument("--failed-fetch-dir", type=Path)
     args = parser.parse_args()
 
     plan, config = load(args.plan), load(args.config)
@@ -297,6 +298,28 @@ def main() -> int:
     }
     previous_candidates = [
         item for item in previous_scout.get("candidates") or [] if isinstance(item, dict)
+    ]
+    previous_candidate_count = len(previous_candidates)
+    failed_urls: set[str] = set()
+    if args.failed_fetch_dir and args.failed_fetch_dir.is_dir():
+        for record_path in sorted(args.failed_fetch_dir.glob("*.json")):
+            try:
+                record = (load(record_path).get("record") or {})
+            except (OSError, ValueError, json.JSONDecodeError):
+                continue
+            if record.get("status") == "fetched":
+                continue
+            url = str(record.get("url") or "").strip()
+            if url:
+                failed_urls.add(url)
+    excluded_url_hashes = {
+        hashlib.sha256(url.encode("utf-8")).hexdigest() for url in failed_urls
+    }
+    previous_candidates = [
+        item for item in previous_candidates
+        if str(item.get("url") or "").strip() not in failed_urls
+        and (not failed_question_ids
+             or str(item.get("question_id") or "") not in failed_question_ids)
     ]
     candidates: list[dict[str, Any]] = []
     attempts: list[dict[str, Any]] = []
@@ -386,6 +409,7 @@ def main() -> int:
                             "query": query,
                             "translation_method": query_record["translation"]["method"],
                             "current_job_status": "candidate_unverified",
+                            "repair_novel": bool(args.repair_gate),
                         })
                         provider_added += 1
                         if sum(x.get("question_id") == query_record["question_id"] for x in candidates) >= max_per_question:
@@ -413,6 +437,7 @@ def main() -> int:
             for item in query_audit
         ],
         "previous_strategy_hash": repair_gate.get("strategy_hash"),
+        "excluded_url_hashes": sorted(excluded_url_hashes),
     }
     result = {
         "protocol": "wiki-research-scout-v1",
@@ -431,8 +456,11 @@ def main() -> int:
             "trigger_gate_sha256": hashlib.sha256(args.repair_gate.read_bytes()).hexdigest(),
             "failed_question_ids": sorted(failed_question_ids),
             "selected_intent_priority": selected_priority,
-            "previous_candidate_count": len(previous_candidates),
+            "previous_candidate_count": previous_candidate_count,
             "novel_candidate_count": max(0, len(candidates) - len(previous_candidates)),
+            "excluded_urls": sorted(failed_urls),
+            "excluded_url_hashes": sorted(excluded_url_hashes),
+            "previous_strategy_hash": str(repair_gate.get("strategy_hash") or ""),
             "strategy_hash": hashlib.sha256(json.dumps(
                 strategy_signal, ensure_ascii=False, sort_keys=True, separators=(",", ":")
             ).encode()).hexdigest(),
