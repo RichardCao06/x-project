@@ -286,7 +286,11 @@ def canonicalize_result(raw_path: Path, output_path: Path, node: dict | None = N
 def repair_prior_result(result_path: Path, node: dict, research_scout: dict) -> dict:
     """Normalize a prior source-specific nomination without another model call."""
     repair = research_scout.get("diversity_repair")
-    if not isinstance(repair, dict) or repair.get("protocol") != "wiki-source-diversity-repair-v1":
+    if (not isinstance(repair, dict)
+            or repair.get("protocol") not in {
+                "wiki-source-diversity-repair-v1",
+                "wiki-source-diversity-repair-v2",
+            }):
         raise ValueError("prior-result repair requires a frozen diversity repair scout")
     document = json.loads(result_path.read_text(encoding="utf-8"))
     claims = document.get("claims")
