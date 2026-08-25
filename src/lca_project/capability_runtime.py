@@ -565,6 +565,44 @@ AGENT_LAUNCHERS = {
 }
 
 
+def _nomination_cache_is_current(
+    nomination: Path, active_research_scout: Path, launcher: Path,
+) -> bool:
+    """Bind cached nomination output to both research input and launcher code."""
+    if not all((nomination / name).is_file() for name in (
+        "nomination-result.json", "wiki-usage-v1.json", "nomination-invocation.json",
+        "nomination-usage.json",
+    )):
+        return False
+    try:
+        invocation = json.loads(
+            (nomination / "nomination-invocation.json").read_text(encoding="utf-8")
+        )
+        usage = json.loads(
+            (nomination / "nomination-usage.json").read_text(encoding="utf-8")
+        )
+        scout_record = invocation.get("research_scout") or {}
+        if (not active_research_scout.is_file()
+                or scout_record.get("sha256") != _sha256(active_research_scout)
+                or invocation.get("launcher_sha256") != _sha256(launcher)
+                or invocation.get("nomination_policy_version")
+                != "research-scout-source-specific-v9"
+                or usage.get("exit_code") != 0
+                or usage.get("validation_error") is not None):
+            return False
+        nomination_doc = json.loads(
+            (nomination / "nomination-result.json").read_text(encoding="utf-8")
+        )
+        external_sources = {
+            str(claim.get("believed_source", "")).strip()
+            for claim in nomination_doc.get("claims", [])
+            if claim.get("claim_kind") == "external_fact"
+        }
+        return len(external_sources) >= 3
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+
+
 def agent(value: dict[str, Any]) -> dict[str, Any]:
     if value.get("operation") == "probe":
         return {"status": "ok", "adapter": "agent-runtime", "launchers": sorted(AGENT_LAUNCHERS)}
@@ -668,28 +706,12 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
                         "--output", str(queue), "--max-candidates-per-claim", "5"]
         if research_plan:
             plan_command.extend(["--research-plan", str(research_plan)])
-        nomination_ready = all((nomination / name).is_file() for name in (
-            "nomination-result.json", "wiki-usage-v1.json", "nomination-invocation.json"
+        nomination_ready = _nomination_cache_is_current(
+            nomination, active_research_scout,
+            scripts / "run_wiki_nomination_capture.py",
+        ) if research_plan else all((nomination / name).is_file() for name in (
+            "nomination-result.json", "wiki-usage-v1.json", "nomination-invocation.json",
         ))
-        if nomination_ready and research_plan:
-            try:
-                invocation = json.loads((nomination / "nomination-invocation.json").read_text(encoding="utf-8"))
-                usage = json.loads((nomination / "nomination-usage.json").read_text(encoding="utf-8"))
-                scout_record = invocation.get("research_scout") or {}
-                nomination_ready = (active_research_scout.is_file()
-                    and scout_record.get("sha256") == hashlib.sha256(active_research_scout.read_bytes()).hexdigest()
-                    and invocation.get("nomination_policy_version") == "research-scout-source-specific-v9"
-                    and usage.get("exit_code") == 0
-                    and usage.get("validation_error") is None)
-                nomination_doc = json.loads((nomination / "nomination-result.json").read_text(encoding="utf-8"))
-                external_sources = {
-                    str(claim.get("believed_source", "")).strip()
-                    for claim in nomination_doc.get("claims", [])
-                    if claim.get("claim_kind") == "external_fact"
-                }
-                nomination_ready = nomination_ready and len(external_sources) >= 3
-            except (OSError, ValueError, json.JSONDecodeError):
-                nomination_ready = False
         scout_command = [
             sys.executable, str(Path(__file__).resolve().parents[2] / "scripts/scout_wiki_research_plan.py"),
             str(research_plan), str(Path(__file__).resolve().parents[2] / "config/search-providers.json"),

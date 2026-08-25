@@ -77,6 +77,40 @@ def test_content_validation_is_a_business_block_not_process_failure(
     assert result["failure"]["code"] == "CONTENT_LOCAL_ISSUES"
 
 
+def test_nomination_cache_is_bound_to_launcher_code(tmp_path: Path) -> None:
+    nomination = tmp_path / "nomination-runtime"
+    nomination.mkdir()
+    scout = tmp_path / "research-scout.json"
+    scout.write_text('{"protocol":"wiki-research-scout-v1"}\n', encoding="utf-8")
+    launcher = tmp_path / "run_wiki_nomination_capture.py"
+    launcher.write_text("# canonicalizer v1\n", encoding="utf-8")
+    (nomination / "nomination-result.json").write_text(json.dumps({
+        "claims": [
+            {"claim_kind": "external_fact", "believed_source": f"Source {index}"}
+            for index in range(3)
+        ],
+    }), encoding="utf-8")
+    (nomination / "wiki-usage-v1.json").write_text("{}\n", encoding="utf-8")
+    (nomination / "nomination-usage.json").write_text(json.dumps({
+        "exit_code": 0, "validation_error": None,
+    }), encoding="utf-8")
+    (nomination / "nomination-invocation.json").write_text(json.dumps({
+        "research_scout": {"sha256": capability_runtime._sha256(scout)},
+        "launcher_sha256": capability_runtime._sha256(launcher),
+        "nomination_policy_version": "research-scout-source-specific-v9",
+    }), encoding="utf-8")
+
+    assert capability_runtime._nomination_cache_is_current(
+        nomination, scout, launcher,
+    ) is True
+
+    launcher.write_text("# canonicalizer v2\n", encoding="utf-8")
+
+    assert capability_runtime._nomination_cache_is_current(
+        nomination, scout, launcher,
+    ) is False
+
+
 def test_capability_cannot_spoof_adapter_infrastructure_failure() -> None:
     with pytest.raises(ValueError, match="adapter-owned"):
         FailureEnvelope.from_capability({"code": "PROCESS_EXIT", "message": "gate failed"})
