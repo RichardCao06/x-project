@@ -285,6 +285,54 @@ def test_launcher_rejects_a019_noncanonical_requirement_order(
         launcher_module().validate_result(result, node)
 
 
+def test_deterministic_repair_reorders_cached_a019_nomination(
+    tmp_path: Path, a019_appended_modeling_layout: tuple[dict, list[dict]],
+) -> None:
+    node, claims = a019_appended_modeling_layout
+    questions = (
+        "identity_and_terminology",
+        "collection_and_handoff",
+        "process_origin_and_boundary",
+    )
+    candidates = []
+    external_index = 0
+    for claim in claims:
+        if claim["claim_kind"] != "external_fact":
+            continue
+        title = f"Official source {external_index}"
+        claim["believed_source"] = title
+        claim["believed_locator"] = (
+            f"{questions[external_index % len(questions)]}；locator {external_index}"
+        )
+        candidates.append({
+            "title": title,
+            "url": f"https://source{external_index}.example/evidence",
+            "language": "zh" if external_index == 0 else "en",
+        })
+        external_index += 1
+    result = tmp_path / "nomination-result.json"
+    result.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": claims,
+    }), encoding="utf-8")
+    scout = {
+        "diversity_repair": {"protocol": "wiki-source-diversity-repair-v1"},
+        "candidates": candidates,
+    }
+
+    repair = launcher_module().repair_prior_result(result, node, scout)
+    repaired_claims = json.loads(result.read_text(encoding="utf-8"))["claims"]
+    order = {
+        requirement["requirement_id"]: index
+        for index, requirement in enumerate(node["dossier"]["claim_requirements"])
+    }
+    ranks = [order[claim["requirement_id"]] for claim in repaired_claims]
+
+    assert repair["protocol"] == "wiki-prior-nomination-repair-v1"
+    assert all(right >= left for left, right in zip(ranks, ranks[1:]))
+    launcher_module().validate_result(result, node, scout)
+
+
 def test_diversity_repair_fills_missing_second_modeling_judgment(tmp_path: Path) -> None:
     node = frozen_node("A015")
     node["dossier"]["claim_requirements"] = [
@@ -413,3 +461,4 @@ def test_nomination_prompt_guards_target_product_against_adjacent_object_drift()
     assert "不得只把英文来源分配给产品身份、交付形态" in source
     assert "必须是单一谓词" in source
     assert "research-scout-source-specific-v9" in source
+    assert '"launcher_sha256"' in source

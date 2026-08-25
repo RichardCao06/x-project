@@ -486,6 +486,7 @@ def main() -> int:
         "protocol": "wiki-nomination-runtime-v1",
         "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "cwd": str(root), "argv": command, "model": "gpt-5.6-terra",
+        "launcher_sha256": sha256(Path(__file__).resolve()),
         "reasoning_effort": "medium", "sandbox": "read-only",
         "disabled_capabilities": DISABLED, "workflow": str(workflow),
         "workflow_sha256": sha256(workflow), "schema_template_sha256": sha256(schema),
