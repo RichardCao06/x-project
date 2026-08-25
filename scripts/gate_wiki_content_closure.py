@@ -19,9 +19,13 @@ def _heading(section: dict[str, Any]) -> str:
 
 def evaluate(blueprint: dict, content: dict, verified: dict, source_gate: dict) -> dict:
     rows = verified.get("claims") or (verified.get("result") or {}).get("claims") or []
-    verdict_by_claim = {
-        str((row.get("claim") or {}).get("claim_id") or ""):
-        str((row.get("verify") or {}).get("verdict") or "")
+    evidence_by_claim = {
+        str((row.get("claim") or {}).get("claim_id") or ""): {
+            "verdict": str((row.get("verify") or {}).get("verdict") or ""),
+            "support_type": str((row.get("verify") or {}).get("support_type") or "direct_if_confirmed"),
+            "scope_match": (row.get("verify") or {}).get("scope_match"),
+            "requirement_id": str((row.get("claim") or {}).get("requirement_id") or ""),
+        }
         for row in rows
     }
     sections = content.get("sections") or []
@@ -38,10 +42,21 @@ def evaluate(blueprint: dict, content: dict, verified: dict, source_gate: dict) 
             for sentence_index, sentence in enumerate(paragraph.get("sentences") or [], 1):
                 kind = str(sentence.get("claim_kind") or "")
                 claim_ids = [str(value) for value in sentence.get("evidence_claim_ids") or []]
-                verdicts = [verdict_by_claim.get(claim_id, "MISSING") for claim_id in claim_ids]
+                evidence = [evidence_by_claim.get(claim_id, {
+                    "verdict": "MISSING", "support_type": "missing",
+                    "scope_match": False, "requirement_id": "",
+                }) for claim_id in claim_ids]
+                verdicts = [item["verdict"] for item in evidence]
                 if kind not in KINDS:
                     invalid_kinds.append(f"{heading}:{paragraph_index}:{sentence_index}")
-                confirmed = any(value == "CONFIRMED" for value in verdicts)
+                confirmed = any(
+                    item["verdict"] == "CONFIRMED"
+                    and item["scope_match"] is not False
+                    and item["support_type"] in {
+                        "direct", "direct_if_confirmed", "explicitly_composed", "composed",
+                    }
+                    for item in evidence
+                )
                 if kind == "external_fact" and (not claim_ids or not confirmed):
                     unsupported_external.append(f"{heading}:{paragraph_index}:{sentence_index}")
                 if kind in KINDS:
@@ -50,6 +65,8 @@ def evaluate(blueprint: dict, content: dict, verified: dict, source_gate: dict) 
                     "section": heading, "paragraph_index": paragraph_index,
                     "sentence_index": sentence_index, "state": kind,
                     "evidence_claim_ids": claim_ids, "evidence_verdicts": verdicts,
+                    "evidence_support_types": [item["support_type"] for item in evidence],
+                    "evidence_scope_matches": [item["scope_match"] for item in evidence],
                     "closed": kind in KINDS and (kind != "external_fact" or confirmed),
                 })
     core_sections = expected[:5]
@@ -68,18 +85,30 @@ def evaluate(blueprint: dict, content: dict, verified: dict, source_gate: dict) 
         "section_contract_exact", "sections_have_paragraphs", "all_sentences_classified",
         "external_facts_confirmed",
     ))
-    source_limited = source_gate.get("decision") == "LIMITED"
+    source_decision = str(source_gate.get("decision") or "")
+    source_limited = source_decision in {"LIMITED", "EVIDENCE_LIMITED"}
+    source_candidate = (
+        source_gate.get("candidate_eligible") is True
+        or source_decision in {"PASS", "PASS_WITH_DEBT"}
+    )
     candidate_eligible = structural and checks["core_sections_fact_or_explicit_gap"] \
-        and source_gate.get("decision") == "PASS"
-    decision = ("PASS" if candidate_eligible else "LIMITED" if source_limited and structural
-                else "REPAIR")
+        and source_candidate
+    decision = (
+        "PASS_WITH_DEBT" if candidate_eligible and source_decision == "PASS_WITH_DEBT"
+        else "PASS" if candidate_eligible
+        else "LIMITED" if source_limited and structural
+        else "REPAIR"
+    )
     return {
         "protocol": "wiki-content-closure-gate-v1",
         "decision": decision,
-        "pipeline_continue": decision in {"PASS", "LIMITED"},
+        "pipeline_continue": decision in {"PASS", "PASS_WITH_DEBT", "LIMITED"},
         "candidate_eligible": candidate_eligible,
         "maturity_ceiling": "wiki_candidate" if candidate_eligible else "evidence_limited",
         "repair_target": "content_compose" if decision == "REPAIR" else None,
+        "failed_requirement_ids": source_gate.get("failed_requirement_ids") or [],
+        "question_contract_sha256": source_gate.get("question_contract_sha256"),
+        "question_evidence_ledger": source_gate.get("question_evidence_ledger") or {},
         "checks": checks,
         "metrics": {
             "sections": len(sections), "sentences": len(closures),

@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>研究约束与 Agent 自治平衡设计 v1</title>
+  <style>
+    :root {
+      --paper: #f1eadc;
+      --paper-deep: #e5dac6;
+      --ink: #18211f;
+      --ink-soft: #56625d;
+      --line: rgba(24, 33, 31, 0.2);
+      --line-strong: rgba(24, 33, 31, 0.48);
+      --oxide: #b6402a;
+      --oxide-dark: #792818;
+      --teal: #0a6861;
+      --teal-pale: #c8ddd4;
+      --amber: #cc8a19;
+      --coal: #111816;
+      --white: #fffdf6;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+      --radius: 2px;
+      --shadow: 0 18px 52px rgba(34, 30, 23, 0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--paper);
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.7;
+      overflow-x: hidden;
+      background:
+        linear-gradient(90deg, rgba(24, 33, 31, 0.025) 1px, transparent 1px) 0 0 / 36px 36px,
+        linear-gradient(rgba(24, 33, 31, 0.025) 1px, transparent 1px) 0 0 / 36px 36px,
+        var(--paper);
+    }
+
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+    a:hover { color: var(--oxide); }
+
+    button {
+      color: inherit;
+      font: inherit;
+    }
+
+    code, pre { font-family: var(--mono); }
+
+    code {
+      padding: 0.12rem 0.28rem;
+      border: 1px solid rgba(24, 33, 31, 0.13);
+      background: rgba(255, 253, 246, 0.58);
+      font-size: 0.86em;
+      overflow-wrap: anywhere;
+    }
+
+    pre {
+      overflow: auto;
+      margin: 1.2rem 0 0;
+      padding: 1rem 1.1rem;
+      border-left: 4px solid var(--teal);
+      background: var(--coal);
+      color: #dce9e1;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      white-space: pre;
+    }
+
+    .skip-link {
+      position: fixed;
+      z-index: 100;
+      top: 0.75rem;
+      left: 0.75rem;
+      transform: translateY(-180%);
+      padding: 0.5rem 0.75rem;
+      background: var(--coal);
+      color: white;
+    }
+
+    .skip-link:focus { transform: none; }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 42px;
+      padding: 0.45rem clamp(1rem, 4vw, 4rem);
+      border-bottom: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .status-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-mark::before {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--amber);
+      content: "";
+      box-shadow: 0 0 0 4px rgba(204, 138, 25, 0.14);
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.65fr);
+      gap: clamp(2rem, 7vw, 8rem);
+      min-height: 72vh;
+      padding: clamp(4rem, 10vw, 9rem) clamp(1.25rem, 7vw, 7rem) clamp(4rem, 8vw, 7rem);
+      overflow: hidden;
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .hero::after {
+      position: absolute;
+      top: 0;
+      right: 6%;
+      width: min(28vw, 400px);
+      height: 100%;
+      border-right: 1px solid rgba(182, 64, 42, 0.32);
+      border-left: 1px solid rgba(182, 64, 42, 0.32);
+      content: "";
+      transform: skewX(-12deg);
+      pointer-events: none;
+    }
+
+    .hero > * { min-width: 0; }
+
+    .eyebrow {
+      margin: 0 0 1.4rem;
+      color: var(--oxide);
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, .display {
+      font-family: var(--serif);
+      font-weight: 600;
+      line-height: 1.12;
+    }
+
+    h1 {
+      max-width: 12ch;
+      margin: 0;
+      font-size: clamp(3rem, 7.4vw, 7.5rem);
+      letter-spacing: -0.04em;
+      overflow-wrap: anywhere;
+    }
+
+    .hero-lead {
+      max-width: 46rem;
+      margin: 2rem 0 0;
+      color: var(--ink-soft);
+      font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+      line-break: anywhere;
+      overflow-wrap: anywhere;
+    }
+
+    .hero-thesis {
+      position: relative;
+      z-index: 1;
+      align-self: end;
+      padding: 2rem 0 0 2rem;
+      border-left: 5px solid var(--oxide);
+    }
+
+    .hero-thesis strong {
+      display: block;
+      max-width: 13ch;
+      font-family: var(--serif);
+      font-size: clamp(1.75rem, 3vw, 3.2rem);
+      font-weight: 600;
+      line-height: 1.18;
+    }
+
+    .hero-thesis span {
+      display: block;
+      margin-top: 1rem;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+      overflow-wrap: anywhere;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .rail {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      padding: 2rem 1.5rem;
+      border-right: 1px solid var(--line);
+      background: rgba(241, 234, 220, 0.86);
+      backdrop-filter: blur(14px);
+      overflow-y: auto;
+    }
+
+    .rail-label {
+      margin: 0 0 1rem;
+      color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .rail a {
+      display: grid;
+      grid-template-columns: 1.75rem 1fr;
+      gap: 0.3rem;
+      padding: 0.62rem 0;
+      border-bottom: 1px solid rgba(24, 33, 31, 0.09);
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      line-height: 1.3;
+      text-decoration: none;
+      transition: color 160ms ease, transform 160ms ease;
+    }
+
+    .rail a span:first-child {
+      color: var(--oxide);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+    }
+
+    .rail a:hover,
+    .rail a[aria-current="true"] {
+      color: var(--ink);
+      transform: translateX(4px);
+    }
+
+    .rail-actions {
+      display: grid;
+      gap: 0.55rem;
+      margin-top: 1.8rem;
+    }
+
+    .rail button {
+      width: 100%;
+      padding: 0.58rem 0.75rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 0;
+      background: transparent;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .rail button:hover { background: var(--ink); color: var(--paper); }
+
+    main { min-width: 0; }
+
+    .section {
+      padding: clamp(4rem, 8vw, 8rem) clamp(1.4rem, 7vw, 7rem);
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .section-dark {
+      color: #eef2ec;
+      background:
+        radial-gradient(circle at 85% 10%, rgba(10, 104, 97, 0.42), transparent 30%),
+        var(--coal);
+    }
+
+    .section-dark code { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
+    .section-dark .muted { color: #aebcb5; }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.45fr) minmax(0, 1fr);
+      gap: 2rem;
+      align-items: start;
+      margin-bottom: 3rem;
+    }
+
+    .section-index {
+      color: var(--oxide);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .section h2 {
+      margin: 0;
+      font-size: clamp(2.2rem, 4.8vw, 5rem);
+      letter-spacing: -0.035em;
+    }
+
+    .section-intro {
+      max-width: 55rem;
+      margin: 1rem 0 0;
+      color: var(--ink-soft);
+      font-size: 1.05rem;
+    }
+
+    .lede-box {
+      padding: clamp(1.5rem, 4vw, 3rem);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 253, 246, 0.48);
+      box-shadow: var(--shadow);
+    }
+
+    .lede-box p {
+      max-width: 65rem;
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(1.4rem, 2.8vw, 2.6rem);
+      line-height: 1.35;
+    }
+
+    .decision-grid,
+    .two-col,
+    .three-col {
+      display: grid;
+      gap: 1px;
+      margin-top: 2.5rem;
+      background: var(--line-strong);
+      border: 1px solid var(--line-strong);
+    }
+
+    .decision-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .three-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .metric,
+    .panel {
+      min-width: 0;
+      padding: 1.35rem;
+      background: var(--paper);
+    }
+
+    .metric b {
+      display: block;
+      color: var(--oxide);
+      font-family: var(--mono);
+      font-size: 1.55rem;
+    }
+
+    .metric span,
+    .muted { color: var(--ink-soft); }
+
+    .panel h3 {
+      margin: 0 0 0.7rem;
+      font-size: 1.35rem;
+    }
+
+    .panel p:last-child { margin-bottom: 0; }
+
+    .fault-axis {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      margin-top: 2rem;
+      border: 1px solid var(--line-strong);
+    }
+
+    .fault-side {
+      padding: clamp(1.3rem, 4vw, 2.6rem);
+    }
+
+    .fault-side + .fault-side { border-left: 1px solid var(--line-strong); }
+
+    .fault-side.over { background: rgba(182, 64, 42, 0.08); }
+    .fault-side.under { background: rgba(10, 104, 97, 0.09); }
+
+    .fault-side h3 {
+      margin: 0 0 1.2rem;
+      font-size: clamp(1.45rem, 2.5vw, 2.15rem);
+    }
+
+    .signal-list {
+      display: grid;
+      gap: 0;
+      margin: 1.5rem 0 0;
+      padding: 0;
+      list-style: none;
+      border-top: 1px solid var(--line);
+    }
+
+    .signal-list li {
+      display: grid;
+      grid-template-columns: minmax(90px, 0.3fr) minmax(0, 1fr);
+      gap: 1rem;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .signal-list b {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 0;
+      margin-top: 2.5rem;
+      padding-left: 2.4rem;
+      border-left: 2px solid var(--teal);
+    }
+
+    .timeline article {
+      position: relative;
+      padding: 0 0 2.2rem 1.3rem;
+    }
+
+    .timeline article::before {
+      position: absolute;
+      top: 0.5rem;
+      left: -2.82rem;
+      width: 0.75rem;
+      height: 0.75rem;
+      border: 3px solid var(--paper);
+      border-radius: 50%;
+      background: var(--teal);
+      content: "";
+    }
+
+    .timeline article.blocked::before { background: var(--oxide); }
+
+    .timeline h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.25rem;
+    }
+
+    .timeline p { margin: 0.3rem 0; }
+
+    .constraint-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin: 1rem 0 1.6rem;
+    }
+
+    .filter-button {
+      padding: 0.45rem 0.72rem;
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 999px;
+      background: transparent;
+      color: #dce8e1;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+    }
+
+    .filter-button[aria-pressed="true"],
+    .filter-button:hover {
+      border-color: #f2c96f;
+      background: #f2c96f;
+      color: var(--coal);
+    }
+
+    .constraint-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(190px, 1fr));
+      gap: 0.8rem;
+    }
+
+    .constraint-card {
+      min-height: 260px;
+      padding: 1.25rem;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.035);
+      transition: opacity 180ms ease, transform 180ms ease, border-color 180ms ease;
+    }
+
+    .constraint-card[hidden] { display: none; }
+    .constraint-card:hover { transform: translateY(-4px); border-color: rgba(242,201,111,0.8); }
+
+    .constraint-card .tag {
+      color: #f2c96f;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .constraint-card h3 {
+      margin: 1rem 0 0.8rem;
+      font-size: 1.45rem;
+    }
+
+    .constraint-card p { color: #b9c8c0; font-size: 0.88rem; }
+
+    .contract-table-wrap {
+      overflow-x: auto;
+      margin-top: 2rem;
+      border: 1px solid var(--line-strong);
+      background: rgba(255,253,246,0.42);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      padding: 0.85rem 0.9rem;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    th:last-child, td:last-child { border-right: 0; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.16rem 0.42rem;
+      border: 1px solid currentColor;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .badge.red { color: var(--oxide-dark); background: rgba(182,64,42,0.08); }
+    .badge.green { color: var(--teal); background: rgba(10,104,97,0.08); }
+    .badge.gold { color: #815400; background: rgba(204,138,25,0.1); }
+    .badge.gray { color: var(--ink-soft); }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(150px, 1fr));
+      gap: 0;
+      margin-top: 2rem;
+      overflow-x: auto;
+      border: 1px solid var(--line-strong);
+    }
+
+    .pipeline-step {
+      position: relative;
+      min-width: 155px;
+      padding: 1rem 1rem 1.2rem;
+      border-right: 1px solid var(--line-strong);
+      background: rgba(255,253,246,0.45);
+    }
+
+    .pipeline-step:last-child { border-right: 0; }
+    .pipeline-step::after {
+      position: absolute;
+      z-index: 1;
+      top: 50%;
+      right: -0.45rem;
+      width: 0.7rem;
+      height: 0.7rem;
+      border-top: 1px solid var(--line-strong);
+      border-right: 1px solid var(--line-strong);
+      background: var(--paper);
+      content: "";
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .pipeline-step:last-child::after { display: none; }
+
+    .pipeline-step b { display: block; font-family: var(--serif); font-size: 1.12rem; }
+    .pipeline-step span { color: var(--ink-soft); font-size: 0.76rem; }
+
+    details {
+      border-top: 1px solid var(--line-strong);
+    }
+
+    details:last-child { border-bottom: 1px solid var(--line-strong); }
+
+    summary {
+      display: grid;
+      grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr) auto;
+      gap: 1.2rem;
+      align-items: center;
+      padding: 1rem 0;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      color: var(--oxide);
+      content: "+";
+      font-family: var(--mono);
+      font-size: 1.4rem;
+    }
+
+    details[open] summary::after { content: "−"; }
+
+    summary strong { font-family: var(--serif); font-size: 1.15rem; }
+    summary span { color: var(--ink-soft); font-size: 0.88rem; }
+
+    .detail-body {
+      padding: 0 0 1.5rem min(18vw, 12rem);
+      color: var(--ink-soft);
+    }
+
+    .detail-body ul { margin: 0.5rem 0; }
+
+    .decision-state {
+      display: grid;
+      grid-template-columns: minmax(165px, 0.32fr) minmax(0, 1fr);
+      gap: 1.5rem;
+      padding: 1.2rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .decision-state b {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+    }
+
+    .decision-state p { margin: 0; }
+
+    .loop-diagram {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 1px;
+      margin-top: 2rem;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.22);
+    }
+
+    .loop-diagram article {
+      min-height: 210px;
+      padding: 1.25rem;
+      background: var(--coal);
+    }
+
+    .loop-diagram b {
+      display: block;
+      color: #f2c96f;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+    }
+
+    .loop-diagram h3 { margin: 0.8rem 0; font-size: 1.4rem; }
+    .loop-diagram p { margin: 0; color: #b9c8c0; font-size: 0.88rem; }
+
+    .principle {
+      margin-top: 2rem;
+      padding: 1.2rem 1.4rem;
+      border-left: 5px solid #f2c96f;
+      background: rgba(255,255,255,0.05);
+      color: #dbe5df;
+      font-family: var(--serif);
+      font-size: 1.25rem;
+    }
+
+    .maturity {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(140px, 1fr));
+      margin-top: 2rem;
+      overflow-x: auto;
+      border: 1px solid var(--line-strong);
+    }
+
+    .maturity article {
+      min-width: 150px;
+      padding: 1.1rem;
+      border-right: 1px solid var(--line-strong);
+      background: rgba(255,253,246,0.45);
+    }
+
+    .maturity article:last-child { border-right: 0; background: var(--teal-pale); }
+    .maturity b { display: block; color: var(--oxide); font-family: var(--mono); font-size: 0.7rem; }
+    .maturity h3 { margin: 0.7rem 0; font-size: 1.14rem; }
+    .maturity p { margin: 0; color: var(--ink-soft); font-size: 0.78rem; }
+
+    .roadmap {
+      counter-reset: phase;
+      display: grid;
+      gap: 0;
+      margin-top: 2rem;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .roadmap article {
+      counter-increment: phase;
+      display: grid;
+      grid-template-columns: 70px minmax(190px, 0.45fr) minmax(0, 1fr);
+      gap: 1.2rem;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .roadmap article::before {
+      color: var(--oxide);
+      content: "P" counter(phase, decimal-leading-zero);
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .roadmap h3 { margin: 0; font-size: 1.2rem; }
+    .roadmap p { margin: 0; color: var(--ink-soft); }
+
+    .acceptance-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.8rem;
+      margin-top: 2rem;
+    }
+
+    .acceptance-list article {
+      position: relative;
+      padding: 1rem 1rem 1rem 3.2rem;
+      border: 1px solid var(--line-strong);
+      background: rgba(255,253,246,0.42);
+    }
+
+    .acceptance-list article::before {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      color: var(--teal);
+      content: "✓";
+      font-family: var(--mono);
+      font-weight: 800;
+    }
+
+    .acceptance-list h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+    .acceptance-list p { margin: 0; color: var(--ink-soft); font-size: 0.83rem; }
+
+    .code-map {
+      display: grid;
+      gap: 0.7rem;
+      margin-top: 2rem;
+    }
+
+    .code-map article {
+      display: grid;
+      grid-template-columns: minmax(240px, 0.42fr) minmax(0, 1fr);
+      gap: 1.2rem;
+      padding: 0.95rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .code-map p { margin: 0; color: var(--ink-soft); }
+
+    .final-callout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(240px, 0.35fr);
+      gap: 3rem;
+      padding: clamp(3rem, 8vw, 7rem);
+      background: var(--oxide);
+      color: var(--white);
+    }
+
+    .final-callout h2 {
+      max-width: 15ch;
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(2.5rem, 5.5vw, 6rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .final-callout p { align-self: end; margin: 0; font-size: 1.03rem; }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem clamp(1rem, 4vw, 4rem);
+      background: var(--coal);
+      color: #aebcb5;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 1180px) {
+      .constraint-grid { grid-template-columns: repeat(3, minmax(190px, 1fr)); }
+      .decision-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .loop-diagram { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 860px) {
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-thesis { padding-left: 1.25rem; }
+      .layout { display: block; }
+      .rail { display: none; }
+      .section-head { grid-template-columns: 1fr; gap: 0.5rem; }
+      .constraint-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .fault-axis, .two-col, .three-col { grid-template-columns: 1fr; }
+      .fault-side + .fault-side { border-top: 1px solid var(--line-strong); border-left: 0; }
+      .roadmap article { grid-template-columns: 50px 1fr; }
+      .roadmap p { grid-column: 2; }
+      .code-map article { grid-template-columns: 1fr; gap: 0.35rem; }
+      .final-callout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .topline span:last-child { display: none; }
+      h1 { max-width: none; font-size: 2.65rem; }
+      .decision-grid, .constraint-grid, .loop-diagram, .acceptance-list { grid-template-columns: 1fr; }
+      .signal-list li, .decision-state, summary { grid-template-columns: 1fr; gap: 0.35rem; }
+      summary::after { position: absolute; right: 0; }
+      summary { position: relative; padding-right: 2rem; }
+      .detail-body { padding-left: 0; }
+      footer { display: block; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
+
+    @media print {
+      body { background: white; font-size: 10pt; }
+      .topline, .rail, .constraint-tools { display: none !important; }
+      .layout { display: block; max-width: none; }
+      .hero { min-height: 0; padding: 2cm 1.5cm; break-after: page; }
+      .section { padding: 1.2cm 1.5cm; break-inside: auto; }
+      .section-dark { color: black; background: white; }
+      .section-dark .muted, .constraint-card p, .loop-diagram p { color: #333; }
+      .constraint-card, .loop-diagram article { color: black; background: white; border-color: #777; }
+      details { break-inside: avoid; }
+      details > * { display: block !important; }
+      a { text-decoration: none; }
+      .final-callout { color: black; background: white; border-top: 2px solid black; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+
+  <div class="topline">
+    <span class="status-mark">Proposal / Design only</span>
+    <span>LCA Project · Constraint Governance · 2026-08-24</span>
+  </div>
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Research Constraint Governance / v1</p>
+      <h1>研究约束与 Agent 自治平衡设计</h1>
+      <p class="hero-lead">
+        重新划分哪些规则必须阻塞、哪些规则应推动探索、哪些结论必须被证据证明，
+        让 Gate 回到“能否安全推进”的职责，让 Agent 在清晰的语义边界内自由选择检索与修复路径。
+      </p>
+    </div>
+    <aside class="hero-thesis" aria-label="核心设计原则">
+      <strong>严格性应作用于证明，而不是搜索动作。</strong>
+      <span>语义、来源、范围与不可逆发布必须严格；语言、关键词、来源组合与探索顺序必须自适应。</span>
+    </aside>
+  </header>
+
+  <div class="layout">
+    <nav class="rail" aria-label="文档目录">
+      <p class="rail-label">Design map</p>
+      <a href="#decision"><span>01</span><span>设计结论</span></a>
+      <a href="#diagnosis"><span>02</span><span>当前漂移诊断</span></a>
+      <a href="#a019"><span>03</span><span>A019 案例证据</span></a>
+      <a href="#constraints"><span>04</span><span>约束分层模型</span></a>
+      <a href="#questions"><span>05</span><span>研究问题契约</span></a>
+      <a href="#stages"><span>06</span><span>阶段职责重构</span></a>
+      <a href="#gates"><span>07</span><span>Gate 决策语义</span></a>
+      <a href="#repair"><span>08</span><span>自修复闭环</span></a>
+      <a href="#maturity"><span>09</span><span>完成度阶梯</span></a>
+      <a href="#implementation"><span>10</span><span>实施顺序</span></a>
+      <a href="#acceptance"><span>11</span><span>验收标准</span></a>
+      <div class="rail-actions">
+        <button id="toggleDetails" type="button">展开全部说明</button>
+        <button type="button" onclick="window.print()">打印 / PDF</button>
+      </div>
+    </nav>
+
+    <main id="main">
+      <section class="section" id="decision">
+        <div class="section-head">
+          <span class="section-index">01 / Executive decision</span>
+          <div>
+            <h2>不是减少 Gate，而是让每类规则待在正确的位置</h2>
+            <p class="section-intro">
+              当前设计的根本问题不是“规则太多”或“Agent 不够聪明”，而是缺少一等公民的约束类型、适用阶段和决策后果。
+              同一个布尔值同时承担安全校验、质量目标、搜索策略与完成判定，最终造成不该阻塞的地方过严、应该证明的地方过松。
+            </p>
+          </div>
+        </div>
+
+        <div class="lede-box">
+          <p>目标架构应把“事实是否成立”与“如何找到事实”彻底分开：前者由契约和证据严格约束，后者由 Agent 在预算内自适应探索。</p>
+        </div>
+
+        <div class="decision-grid" aria-label="四项核心决策">
+          <div class="metric"><b>5 类</b><span>约束类型，各自拥有不同的默认后果</span></div>
+          <div class="metric"><b>3 条轴</b><span>执行状态、Gate 决策、目标效果不再混为一谈</span></div>
+          <div class="metric"><b>1 份账本</b><span>每个研究问题都必须落到证据闭环状态</span></div>
+          <div class="metric"><b>0 次盲重试</b><span>没有策略差异证明，不允许消费下一次修复预算</span></div>
+        </div>
+
+        <div class="two-col">
+          <article class="panel">
+            <h3>保留刚性</h3>
+            <p>身份一致性、事实蕴含、范围匹配、来源可追溯、哈希完整性、不可逆发布证明，以及被 completion goal 明确要求的关键字段。</p>
+          </article>
+          <article class="panel">
+            <h3>释放自由</h3>
+            <p>查询语言、关键词变体、Provider 顺序、来源组合、探索深度、段落长度和修复路径。它们应影响质量轨迹与下一步行动，而不是天然阻塞。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="diagnosis">
+        <div class="section-head">
+          <span class="section-index">02 / Diagnosis</span>
+          <div>
+            <h2>当前系统在两端同时失衡</h2>
+            <p class="section-intro">过严与过松不是两个独立缺陷，而是同一建模缺口的两种表现：系统只知道“检查是否通过”，不知道这项检查究竟保护什么。</p>
+          </div>
+        </div>
+
+        <div class="fault-axis">
+          <article class="fault-side over">
+            <p class="eyebrow">Over-constrained</p>
+            <h3>在策略与启发式上过严</h3>
+            <ul class="signal-list">
+              <li><b>语言覆盖</b><span>英文查询字段曾被要求 100% 翻译，否则研究计划无法开工；但它本质是召回率策略。</span></li>
+              <li><b>来源计数</b><span>固定 URL、域名和语言数量被当成语义充分性的替代品。</span></li>
+              <li><b>编辑形式</b><span>固定句数、标题数、关键词保留和相似度阈值可直接阻塞，即使事实链已经成立。</span></li>
+              <li><b>统一模板</b><span>所有活动节点套用相同 claim slot 与表格下限，没有先判断字段是否适用。</span></li>
+            </ul>
+          </article>
+          <article class="fault-side under">
+            <p class="eyebrow">Under-constrained</p>
+            <h3>在语义与逻辑证明上过松</h3>
+            <ul class="signal-list">
+              <li><b>问题定义</b><span><code>identity_and_terminology</code> 只是字符串标签，不包含稳定的实际问题、范围和排除项。</span></li>
+              <li><b>计划到查询</b><span>查询语言、问题和来源类别通过索引轮转分配，缺少显式语义关联。</span></li>
+              <li><b>证据闭环</b><span>存在 CONFIRMED 引用即可关闭事实，却未完整验证其是否蕴含结论、覆盖范围和对象身份。</span></li>
+              <li><b>表格成熟度</b><span>只填入一个字段也可能满足“有已采纳证据、有已填字段”，与生产完整目标不等价。</span></li>
+            </ul>
+          </article>
+        </div>
+
+        <details open>
+          <summary><strong>事件语义也在放大误解</strong><span><code>task.succeeded</code> 代表命令执行成功，而 Dashboard 容易把它解释为业务阶段成功。</span></summary>
+          <div class="detail-body">
+            应拆成三条正交状态：<code>execution_status</code> 描述代码是否运行完成；<code>gate_decision</code> 描述是否允许推进；
+            <code>goal_effect</code> 描述这次行动是否让最终目标发生了可证明的进展。三者任何一个都不能代替另外两个。
+          </div>
+        </details>
+        <details>
+          <summary><strong>修复指纹过于粗糙</strong><span>相同错误消息被视为相同问题，但系统不知道问题契约、失败指标和搜索策略是否改变。</span></summary>
+          <div class="detail-body">
+            当前指纹主要依赖任务、错误码、类别、作用域和消息。它应增加 Gate 版本、失败 requirement IDs、指标区间、研究问题契约哈希和策略哈希，
+            同时把输入哈希与策略哈希分离，才能判断是“同因重试”还是“不同因果方案”。
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="a019">
+        <div class="section-head">
+          <span class="section-index">03 / Case evidence</span>
+          <div>
+            <h2>A019 不是“检索没有执行”，而是“执行完成但承诺没有兑现”</h2>
+            <p class="section-intro">
+              现有产物已经证明 A019 的执行链可以跑通，但研究计划的抽象标签没有被编译为稳定问题，查询也没有围绕缺口形成新的因果策略。
+              因此连续修复实际重复了近似动作。
+            </p>
+          </div>
+        </div>
+
+        <div class="timeline" aria-label="A019 执行证据时间线">
+          <article>
+            <h3>研究计划 Gate：PASS_WITH_WARNING 的事实</h3>
+            <p>英文翻译覆盖已经降为 advisory；这说明语言策略不应继续成为主卡点。</p>
+            <p><a href="../var/workspaces/jobs/job_e248e3c07b69401d8e4da8134e3a3d06/runs/wiki-batches/ict_equipment/a019-62e44e6bf94a/research-plan-gate.json">查看 research-plan-gate.json</a></p>
+          </article>
+          <article>
+            <h3>检索执行 Gate：PASS</h3>
+            <p>10 条查询完成，说明命令执行和查询调度本身不是阻塞原因。</p>
+            <p><a href="../var/workspaces/jobs/job_e248e3c07b69401d8e4da8134e3a3d06/runs/wiki-batches/ict_equipment/a019-62e44e6bf94a/search-execution-gate.json">查看 search-execution-gate.json</a></p>
+          </article>
+          <article class="blocked">
+            <h3>来源多样性 Gate：BLOCKED</h3>
+            <p>最终只有 1 个确认 URL / 域名，且仅覆盖中文轨道；身份、流程与相邻活动区分等角色没有被证明。</p>
+            <p><a href="../var/workspaces/jobs/job_e248e3c07b69401d8e4da8134e3a3d06/runs/wiki-batches/ict_equipment/a019-62e44e6bf94a/source-diversity-gate.json">查看 source-diversity-gate.json</a></p>
+          </article>
+          <article class="blocked">
+            <h3>修复动作：重复搜索，不是问题定向修复</h3>
+            <p>回卷点保持在 <code>research_ready</code>，策略主要替换失败 URL/PDF；没有重写研究问题、查询意图或来源角色，所以无法产生可验证的边际进展。</p>
+          </article>
+        </div>
+
+        <div class="two-col">
+          <article class="panel">
+            <h3>正确结论</h3>
+            <p>A019 当前应进入 <span class="badge gold">EVIDENCE_LIMITED</span> 或 <span class="badge red">RESEARCH_MORE</span>，并明确指出未解决问题；不能把“查了 10 次”当成证据充分。</p>
+          </article>
+          <article class="panel">
+            <h3>错误结论</h3>
+            <p>不能仅因固定来源数量不够就认为语义失败，也不能因查询全部执行就认为研究完成。计数只能是风险信号，不能替代逐问题证明。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section section-dark" id="constraints">
+        <div class="section-head">
+          <span class="section-index">04 / Constraint model</span>
+          <div>
+            <h2>五类约束，各自拥有不同的默认后果</h2>
+            <p class="section-intro muted">每项检查必须声明类别、适用阶段、默认效果、升级为阻塞的条件，以及支持该判断的证据。任何未分类的布尔检查都不允许直接进入生产 Gate。</p>
+          </div>
+        </div>
+
+        <div class="constraint-tools" role="group" aria-label="约束卡片筛选">
+          <button class="filter-button" type="button" data-filter="all" aria-pressed="true">全部</button>
+          <button class="filter-button" type="button" data-filter="hard" aria-pressed="false">刚性边界</button>
+          <button class="filter-button" type="button" data-filter="adaptive" aria-pressed="false">自适应目标</button>
+        </div>
+
+        <div class="constraint-grid">
+          <article class="constraint-card" data-kind="hard">
+            <span class="tag">01 / invariant</span>
+            <h3>不变量</h3>
+            <p>保护真实性、完整性和不可逆操作。哈希不匹配、对象身份冲突、引用不存在、发布证明缺失时必须阻塞。</p>
+          </article>
+          <article class="constraint-card" data-kind="hard">
+            <span class="tag">02 / applicability</span>
+            <h3>适用性</h3>
+            <p>先判断某项义务是否适用于当前节点。未判断适用性前，不允许把通用模板的全部字段强加给每个 Job。</p>
+          </article>
+          <article class="constraint-card" data-kind="hard">
+            <span class="tag">03 / goal acceptance</span>
+            <h3>目标验收</h3>
+            <p>由 completion goal 和成熟度决定。reviewed publication 可以严格要求关键问题与关键字段，诊断运行则不应套用同一终态。</p>
+          </article>
+          <article class="constraint-card" data-kind="adaptive">
+            <span class="tag">04 / quality target</span>
+            <h3>质量目标</h3>
+            <p>来源多样性、双语覆盖、编辑丰富度用于驱动补充研究、披露债务与质量评分；默认不直接证明事实失败。</p>
+          </article>
+          <article class="constraint-card" data-kind="adaptive">
+            <span class="tag">05 / heuristic &amp; budget</span>
+            <h3>启发式与预算</h3>
+            <p>查询数量、Provider 顺序、重试次数和候选上限只控制资源与策略；它们不得伪装成业务语义 Gate。</p>
+          </article>
+        </div>
+
+        <pre aria-label="约束声明示例"><code>{
+  "check_id": "portfolio.bilingual_coverage",
+  "class": "quality_target",
+  "applies_at": ["research_execution", "reviewed_publication"],
+  "default_effect": "warn_and_expand",
+  "terminal_effect": "disclose_quality_debt",
+  "promote_to_blocking_when": {
+    "completion_goal": "reviewed_publication",
+    "critical_question_requires_cross_language_validation": true
+  },
+  "evidence_refs": ["question:identity.term-equivalence"]
+}</code></pre>
+      </section>
+
+      <section class="section" id="questions">
+        <div class="section-head">
+          <span class="section-index">05 / Research Question Contract v2</span>
+          <div>
+            <h2>把抽象关键词编译成稳定、可验证的问题契约</h2>
+            <p class="section-intro">
+              <code>identity_and_terminology</code> 继续作为维度标识，但不再直接交给新 Session 自行解释。系统使用版本化模板、节点上下文和确定性编译器生成问题；Agent 可以提出扩展问题，但不能静默改写核心语义。
+            </p>
+          </div>
+        </div>
+
+        <div class="pipeline" aria-label="研究问题编译链">
+          <div class="pipeline-step"><b>维度词典</b><span>定义语义槽与不变量</span></div>
+          <div class="pipeline-step"><b>节点上下文</b><span>对象、活动、上下游、区域</span></div>
+          <div class="pipeline-step"><b>问题编译器</b><span>生成主问题与排除项</span></div>
+          <div class="pipeline-step"><b>查询意图</b><span>允许多语言、多策略变体</span></div>
+          <div class="pipeline-step"><b>证据角色</b><span>要求什么来源证明什么</span></div>
+          <div class="pipeline-step"><b>验收谓词</b><span>逐问题判定是否闭环</span></div>
+        </div>
+
+        <pre aria-label="研究问题契约示例"><code>{
+  "question_id": "identity.activity-definition",
+  "dimension": "identity_and_terminology",
+  "question": {
+    "zh": "BIOS 配置是否是通用计算 2U 服务器制造中的独立活动？",
+    "en": "Is BIOS configuration a distinct activity in 2U general-purpose server manufacturing?"
+  },
+  "semantic_frame": {
+    "subject": "A019 BIOS configuration",
+    "predicate": "is_distinct_manufacturing_activity",
+    "scope": ["general-purpose compute", "2U server", "factory configuration"],
+    "exclusions": ["BIOS recovery", "firmware upgrade", "OS installation", "rack integration"]
+  },
+  "applicability": "required_for_identity_acceptance",
+  "source_role_requirements": ["manufacturer_technical", "authoritative_taxonomy"],
+  "acceptance": {
+    "support_type": "direct_or_explicitly_composed",
+    "must_cover": ["object", "activity", "boundary"],
+    "allow_explicit_gap": true
+  },
+  "query_intents": ["definition", "factory_process", "adjacent_distinction"],
+  "compiler": {"ontology_version": "wiki-research-question-v2", "template_hash": "…"}
+}</code></pre>
+
+        <div class="three-col">
+          <article class="panel">
+            <h3>系统决定</h3>
+            <p>问题骨架、对象范围、排除项、关键来源角色、验收条件、契约版本与哈希。</p>
+          </article>
+          <article class="panel">
+            <h3>Agent 决定</h3>
+            <p>查询措辞、语言、同义词、Provider、搜索顺序、是否追加探索问题和如何组合证据。</p>
+          </article>
+          <article class="panel">
+            <h3>Agent 必须解释</h3>
+            <p>新增问题为何相关、放弃某条路线的原因、每份证据支持到什么边界，以及哪些推论仍未成立。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="stages">
+        <div class="section-head">
+          <span class="section-index">06 / Stage responsibilities</span>
+          <div>
+            <h2>从计划到发布，每一阶段只承担自己的证明义务</h2>
+            <p class="section-intro">阶段边界应由输入契约、输出契约和推进条件定义，而不是由脚本退出码或文件存在性隐式定义。</p>
+          </div>
+        </div>
+
+        <div class="contract-table-wrap">
+          <table>
+            <thead>
+              <tr><th>阶段</th><th>必须产出</th><th>Gate 真正判断</th><th>不应判断</th><th>失败后的目标动作</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>研究计划</strong></td>
+                <td>问题契约、适用性、来源角色、查询意图、关键程度</td>
+                <td>问题是否明确、可执行、可验收；关键语义是否完整</td>
+                <td>英文是否 100% 翻译、固定查询数量</td>
+                <td>补全问题骨架或适用性，不直接重复搜索</td>
+              </tr>
+              <tr>
+                <td><strong>候选生成</strong></td>
+                <td>query → question → source role 的显式映射</td>
+                <td>每个关键问题是否至少有可执行策略</td>
+                <td>用索引轮转语言、问题与来源类别</td>
+                <td>为未覆盖问题生成不同意图或不同 Provider</td>
+              </tr>
+              <tr>
+                <td><strong>检索执行</strong></td>
+                <td>关键词、Provider、结果、执行状态、耗时、错误</td>
+                <td>声明的策略是否真实执行，执行记录是否完整</td>
+                <td>把“查询完成”解释为“研究成功”</td>
+                <td>基础设施失败则重试；零结果则改变策略</td>
+              </tr>
+              <tr>
+                <td><strong>证据核验</strong></td>
+                <td>采纳/拒绝理由、支持类型、范围、冲突与缺口</td>
+                <td>证据是否真实支持对应问题与结论边界</td>
+                <td>仅依赖 URL/域名计数证明充分性</td>
+                <td>精确定位未闭环问题，生成差异化修复输入</td>
+              </tr>
+              <tr>
+                <td><strong>组合质量</strong></td>
+                <td>来源组合、语言组合、独立性、代表性债务</td>
+                <td>组合风险与最终目标要求是否相容</td>
+                <td>默认用固定数量阻塞所有运行</td>
+                <td>补充来源或形成可见的 evidence-limited 结论</td>
+              </tr>
+              <tr>
+                <td><strong>正文与表格</strong></td>
+                <td>claim-evidence ledger、字段关键级、适用性和缺口</td>
+                <td>事实、范围、引用和关键字段是否足以支撑目标</td>
+                <td>以句数、标题数或“填了一个字段”替代语义完整</td>
+                <td>修正文/字段或降低成熟度，不伪造完成</td>
+              </tr>
+              <tr>
+                <td><strong>正式发布</strong></td>
+                <td>审查决策、不可变 release、产物与哈希绑定</td>
+                <td>所有目标验收约束与发布不变量是否满足</td>
+                <td>把 preview 可访问等同于生产成功</td>
+                <td>明确阻塞或回卷到精确缺口阶段</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <details open>
+          <summary><strong>来源多样性需要拆成两个组件</strong><span>“问题是否被证明”与“证据组合是否理想”不应由同一个计数 Gate 代替。</span></summary>
+          <div class="detail-body">
+            <ul>
+              <li><code>question_evidence_sufficiency_gate</code>：逐个关键问题检查直接支持、范围和来源角色，属于目标验收约束。</li>
+              <li><code>portfolio_quality_assessment</code>：评估独立来源、语言、地域与来源类型的组合风险，通常给出质量债务与扩展建议。</li>
+              <li>只有 completion goal 明确要求交叉验证，或单一来源无法支撑高风险结论时，组合质量才升级为阻塞。</li>
+            </ul>
+          </div>
+        </details>
+
+        <details>
+          <summary><strong>表格字段需要关键级，而不是统一必填</strong><span>将字段划分为 required_for_model、recommended 与 contextual。</span></summary>
+          <div class="detail-body">
+            对每个字段先记录 <code>applicable / not_applicable / unresolved</code>，再根据 completion goal 计算成熟度。
+            “已填字段 &gt; 0”只能表示出现进展，不能表示 model ready，更不能表示 reviewed publication ready。
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="gates">
+        <div class="section-head">
+          <span class="section-index">07 / Decision semantics</span>
+          <div>
+            <h2>Gate 不再只返回 PASS / BLOCKED</h2>
+            <p class="section-intro">决策必须说明：能否推进、携带什么债务、缺少什么证明、下一步由谁负责。这样既不会把质量建议误当硬失败，也不会把执行成功误当目标完成。</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="decision-state">
+            <b><span class="badge green">PASS</span></b>
+            <p>所有当前阶段的刚性约束与目标验收条件满足，可以进入下一阶段。</p>
+          </div>
+          <div class="decision-state">
+            <b><span class="badge green">PASS_WITH_DEBT</span></b>
+            <p>可以推进，但质量债务必须进入 Dashboard、后续提示词和最终发布决策，不能被丢失。</p>
+          </div>
+          <div class="decision-state">
+            <b><span class="badge gold">RESEARCH_MORE</span></b>
+            <p>关键问题尚未闭环，但存在可行动的新策略。修复系统必须先生成策略差异证明，再消费预算。</p>
+          </div>
+          <div class="decision-state">
+            <b><span class="badge gold">EVIDENCE_LIMITED</span></b>
+            <p>已合理探索但公开证据不足。允许以显式缺口结束研究阶段；能否发布由 completion goal 和风险等级决定。</p>
+          </div>
+          <div class="decision-state">
+            <b><span class="badge red">BLOCKED_INTEGRITY</span></b>
+            <p>事实冲突、身份/范围不一致、引用不可解析、哈希或不可逆发布证明失败。必须阻塞，不允许通过降级绕过。</p>
+          </div>
+          <div class="decision-state">
+            <b><span class="badge gray">NOT_APPLICABLE</span></b>
+            <p>该义务不适用于本节点，且有明确适用性判断依据。它不是跳过失败，而是可审计的契约结果。</p>
+          </div>
+        </div>
+
+        <pre aria-label="阶段状态三轴示例"><code>{
+  "execution_status": "completed",
+  "gate_decision": "RESEARCH_MORE",
+  "goal_effect": "partial_progress",
+  "failed_requirements": ["identity.activity-definition", "identity.term-equivalence"],
+  "quality_debt": ["single_language_only"],
+  "next_owner": "adaptive_research_repair",
+  "evidence_artifacts": ["source-diversity-gate.json", "evidence-ledger.json"]
+}</code></pre>
+      </section>
+
+      <section class="section section-dark" id="repair">
+        <div class="section-head">
+          <span class="section-index">08 / Autonomous repair loop</span>
+          <div>
+            <h2>自修复必须改变因果输入，而不是只改变随机样本</h2>
+            <p class="section-intro muted">没有失败证据包、没有策略差异、没有预期证明的修复，不是一次有效修复，只是重跑。</p>
+          </div>
+        </div>
+
+        <div class="loop-diagram">
+          <article><b>01 / OBSERVE</b><h3>完整失败包</h3><p>Gate JSON、失败 requirement IDs、指标、问题状态、输入/策略哈希和关联产物必须一起进入 Triage。</p></article>
+          <article><b>02 / EXPLAIN</b><h3>因果分类</h3><p>区分问题契约缺失、查询策略失配、抓取失败、解析零产出、证据稀缺、事实冲突和发布基础设施故障。</p></article>
+          <article><b>03 / CHANGE</b><h3>策略差异证明</h3><p>列出本轮改变了哪些问题、查询意图、Provider、解析器或代码路径，以及为何可能改变结果。</p></article>
+          <article><b>04 / VERIFY</b><h3>边际进展</h3><p>比较逐问题闭环率、证据支持强度与关键字段成熟度。两轮零增益后必须换因果方案或诚实终止。</p></article>
+        </div>
+
+        <div class="principle">修复预算属于“不同因果方案”，不属于“相同命令的重复次数”。</div>
+
+        <div class="contract-table-wrap">
+          <table>
+            <thead><tr><th>失败类型</th><th>修复目标</th><th>必须产生的变化</th><th>禁止动作</th></tr></thead>
+            <tbody>
+              <tr><td>身份证据缺失</td><td>问题契约 / 查询意图</td><td>更具体的对象、活动边界、排除项和权威来源角色</td><td>仅替换一个 URL 后重跑</td></tr>
+              <tr><td>查询零结果</td><td>词汇与 Provider</td><td>同义词、语言、制造商站点、文档类型或相邻概念路径改变</td><td>完全相同的 query/provider 组合</td></tr>
+              <tr><td>抓取失败</td><td>候选与网络路径</td><td>镜像、HTML 替代、存档或候选替换</td><td>回卷整个研究计划</td></tr>
+              <tr><td>解析零产出</td><td>抽取器</td><td>内容类型识别、OCR/表格抽取或解析适配</td><td>把解析问题误判成来源不足</td></tr>
+              <tr><td>公开证据稀缺</td><td>状态与披露</td><td>形成 evidence-limited、明确缺口与后续人工材料请求</td><td>无限搜索或伪造闭环</td></tr>
+              <tr><td>事实/范围冲突</td><td>证据与结论</td><td>降低结论范围、标记冲突或补充独立证据</td><td>以来源数量覆盖冲突</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <details open>
+          <summary><strong>故障指纹 v2</strong><span>指纹必须能区分“相同症状，不同因果方案”。</span></summary>
+          <div class="detail-body">
+            建议包含：<code>gate_id/version</code>、<code>failed_requirement_ids</code>、关键指标分桶、
+            <code>question_contract_hash</code>、<code>strategy_hash</code>、代码基线与输入产物哈希。
+            其中策略哈希单独参与“是否允许再修复”的判定，不能被输入文件变化掩盖。
+          </div>
+        </details>
+
+        <details>
+          <summary><strong>Logic Audit 保持只读审查</strong><span>它负责发现推理断点和提出疑问，不直接控制流水线推进。</span></summary>
+          <div class="detail-body">
+            Logic Audit 可以标记“结论缺少前置条件”“问题拆解在不同 Session 不一致”“引用只提供背景而非直接支持”。
+            若某类观察需要升级为 Gate，必须先经过约束治理：定义类别、适用范围、误报成本、验收数据和版本迁移，不能由审查器临时阻塞 Job。
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="maturity">
+        <div class="section-head">
+          <span class="section-index">09 / Completion ladder</span>
+          <div>
+            <h2>用成熟度阶梯替代含混的“预览成功”</h2>
+            <p class="section-intro">Preview 是呈现方式，不是业务完成状态。系统可以生成预览，但 Job 的 completion goal 只有在对应成熟度和发布证明满足时才完成。</p>
+          </div>
+        </div>
+
+        <div class="maturity" aria-label="Job 成熟度阶梯">
+          <article><b>L0</b><h3>diagnostic_complete</h3><p>执行链可观察，故障有证据包。</p></article>
+          <article><b>L1</b><h3>research_executed</h3><p>计划中的策略真实执行，但证据未必充分。</p></article>
+          <article><b>L2</b><h3>evidence_limited</h3><p>合理探索完成，关键缺口被诚实披露。</p></article>
+          <article><b>L3</b><h3>model_ready</h3><p>关键问题与 required_for_model 字段闭环。</p></article>
+          <article><b>L4</b><h3>reviewed_ready</h3><p>审查债务可接受，正式发布条件满足。</p></article>
+          <article><b>L5</b><h3>published</h3><p>不可变 release 与产物哈希证明有效。</p></article>
+        </div>
+
+        <div class="two-col">
+          <article class="panel"><h3>Preview 的新语义</h3><p>任何成熟度都可生成只读预览，用于观察、审查和修复；预览 URL 的存在不会改变 Job status，也不会让 Supervisor 退出。</p></article>
+          <article class="panel"><h3>Reviewed publication 的新语义</h3><p>只有 L5 才满足 <code>completion_goal=reviewed_publication</code>：publish 成功、审查有效、release record 不可变且与最终产物哈希绑定。</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="implementation">
+        <div class="section-head">
+          <span class="section-index">10 / Implementation sequence</span>
+          <div>
+            <h2>先修可观察性和语义，再迁移 Gate</h2>
+            <p class="section-intro">如果直接放宽现有 Gate，会得到更快但更不可控的流水线。实施顺序必须先保证失败可解释、问题可复现、修复可比较。</p>
+          </div>
+        </div>
+
+        <div class="roadmap">
+          <article><h3>事件与失败包</h3><p>拆分 execution / decision / goal effect；确保 blocked Gate 也附带原始 Gate JSON、失败要求和关联产物。修正仅在 <code>status=failed</code> 才附加 JSON 的分支。</p></article>
+          <article><h3>研究问题契约 v2</h3><p>新增版本化 ontology、确定性问题编译器和契约哈希；保留 Agent 扩展问题，但扩展必须有理由和 provenance。</p></article>
+          <article><h3>显式语义映射</h3><p>替换按 index/modulo 轮转的问题、语言与来源类别分配，建立 question → query intent → query → source role 全链路 ID。</p></article>
+          <article><h3>证据账本与 Gate 拆分</h3><p>新增逐问题证据闭环状态；将来源多样性拆成证据充分性 Gate 与组合质量评估。</p></article>
+          <article><h3>内容与表格成熟度</h3><p>引入字段适用性和关键级；正文检查从固定句数迁移到 claim-evidence entailment、范围与关键问题覆盖。</p></article>
+          <article><h3>差异化自修复</h3><p>升级故障指纹、策略哈希与边际进展；没有策略差异证明禁止重复，证据稀缺允许形成明确终态。</p></article>
+          <article><h3>Dashboard 投影</h3><p>按阶段展示行动、结论、Gate 依据、失败要求、查询与采纳/拒绝原因，并把原始 JSON 作为可核验底层证据。</p></article>
+        </div>
+
+        <h3 style="margin-top:3rem">当前实现的主要落点</h3>
+        <div class="code-map">
+          <article><code><a href="../scripts/build_wiki_research_plan.py">scripts/build_wiki_research_plan.py</a></code><p>从字符串维度升级为 Research Question Contract v2 的编译入口。</p></article>
+          <article><code><a href="../contracts/wiki-research-plan-v1.schema.json">contracts/wiki-research-plan-v1.schema.json</a></code><p>新增 v2 schema；v1 只做兼容读取，不能继续作为正式生产契约。</p></article>
+          <article><code><a href="../scripts/scout_wiki_research_plan.py">scripts/scout_wiki_research_plan.py</a></code><p>移除按 index 交替语言和来源类型，读取显式 query intent。</p></article>
+          <article><code><a href="../scripts/wiki_search_gates.py">scripts/wiki_search_gates.py</a></code><p>拆分执行完整性、逐问题证据充分性与 portfolio quality。</p></article>
+          <article><code><a href="../scripts/gate_wiki_content_closure.py">scripts/gate_wiki_content_closure.py</a></code><p>从“存在 CONFIRMED 引用”升级为支持类型、范围和关键问题覆盖。</p></article>
+          <article><code><a href="../src/lca_project/capability_runtime.py">src/lca_project/capability_runtime.py</a></code><p>blocked 状态同样附带 Gate JSON；所有 Gate 统一输出失败证据包。</p></article>
+          <article><code><a href="../src/lca_project/kernel/worker.py">src/lca_project/kernel/worker.py</a></code><p>升级事件三轴、故障指纹和允许修复的策略差异判定。</p></article>
+          <article><code><a href="../src/lca_project/kernel/goal_alignment/quality_trajectory.py">src/lca_project/kernel/goal_alignment/quality_trajectory.py</a></code><p>从 PASS=1/其他=0 改为逐问题闭环率、支持强度和边际增益。</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="acceptance">
+        <div class="section-head">
+          <span class="section-index">11 / Acceptance criteria</span>
+          <div>
+            <h2>何时算这次设计真正落地</h2>
+            <p class="section-intro">验收不以“测试通过”或“页面有新字段”为终点，而以系统是否能稳定做出不同、可解释、可复现的决策为终点。</p>
+          </div>
+        </div>
+
+        <div class="acceptance-list">
+          <article><h3>跨 Session 稳定</h3><p>同一节点与 ontology 版本生成相同核心问题、范围和排除项；Agent 扩展问题有显式 provenance。</p></article>
+          <article><h3>策略自由可审计</h3><p>Agent 可选择语言、关键词和 Provider，但每条查询都能回溯到 question_id 与 query_intent_id。</p></article>
+          <article><h3>Gate 不误权</h3><p>启发式默认不能直接阻塞；不变量失败不能通过降级、预览或人工描述绕过。</p></article>
+          <article><h3>证据逐问题闭环</h3><p>每个关键问题都有 confirmed、partial、contradicted、explicit_gap 或 not_applicable 状态及证据。</p></article>
+          <article><h3>零盲重试</h3><p>第二次修复前必须存在非空策略差异；两轮零边际增益后必须换因果方案或停止。</p></article>
+          <article><h3>完成度不再含混</h3><p>Preview 可查看但不改变 completion goal；reviewed publication 只有不可变 release 证明后完成。</p></article>
+          <article><h3>失败信息完整</h3><p>Dashboard 可查看 Gate 原文、失败要求、指标、查询、来源、采纳/拒绝理由和修复变化。</p></article>
+          <article><h3>A019 回归样例</h3><p>系统能区分“10 次查询已执行”与“身份问题未证明”，并给出定向补研或 evidence-limited，而非重复相同搜索。</p></article>
+        </div>
+
+        <div class="lede-box" style="margin-top:3rem">
+          <p>最终标准不是让 Agent 更自由，也不是让规则更严格，而是让自由发生在策略空间，让严格发生在证明边界。</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <aside class="final-callout">
+    <h2>用契约固定含义，用 Agent 探索路径。</h2>
+    <p>
+      2026-08-25 已完成第一阶段生产实现：Research Question Contract v2、精确 requirement 绑定、逐问题证据账本、
+      证据充分性与来源组合质量拆分、结构化 Gate 失败包、策略差异重检、三轴事件语义与 Dashboard 中文投影均已落入代码。
+      历史 Job 与数据库未被就地改写；需要从 research_plan 受控回卷或启动新 Job 才会生成 v2 产物。
+    </p>
+  </aside>
+
+  <footer>
+    <span>LCA Project / Implemented Design Baseline</span>
+    <span>Research constraint governance redesign · v1</span>
+  </footer>
+
+  <script>
+    (() => {
+      const links = [...document.querySelectorAll('.rail a')];
+      const sections = links
+        .map((link) => document.querySelector(link.getAttribute('href')))
+        .filter(Boolean);
+
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        links.forEach((link) => {
+          link.setAttribute('aria-current', String(link.getAttribute('href') === `#${visible.target.id}`));
+        });
+      }, { rootMargin: '-20% 0px -65% 0px', threshold: [0, 0.15, 0.5] });
+      sections.forEach((section) => observer.observe(section));
+
+      const detailToggle = document.getElementById('toggleDetails');
+      const details = [...document.querySelectorAll('details')];
+      let detailsOpen = false;
+      detailToggle?.addEventListener('click', () => {
+        detailsOpen = !detailsOpen;
+        details.forEach((detail) => { detail.open = detailsOpen; });
+        detailToggle.textContent = detailsOpen ? '收起全部说明' : '展开全部说明';
+      });
+
+      const filterButtons = [...document.querySelectorAll('.filter-button')];
+      const cards = [...document.querySelectorAll('.constraint-card')];
+      filterButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const filter = button.dataset.filter;
+          filterButtons.forEach((candidate) => candidate.setAttribute('aria-pressed', String(candidate === button)));
+          cards.forEach((card) => {
+            card.hidden = filter !== 'all' && card.dataset.kind !== filter;
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

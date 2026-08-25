@@ -58,10 +58,33 @@ def test_schema_migration_records_worker_registry(tmp_path: Path) -> None:
         (13, "goal-contract-governance-v2"),
         (14, "governance-reassessment-and-capability-assurance"),
         (15, "system-repair-scm-publications"),
+        (16, "goal-execution-ownership"),
+        (17, "dashboard-goal-alignment-query-indexes"),
+        (18, "dashboard-event-query-indexes"),
+        (19, "independent-logic-audits"),
     ]
     assert state._connection().execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='worker_instances'"
     ).fetchone()
+    expected_indexes = {
+        "deviation_reports_job_created_idx",
+        "repair_plans_deviation_created_idx",
+        "system_change_candidates_deviation_created_idx",
+        "system_change_candidates_created_idx",
+        "failure_triage_runs_job_created_idx",
+        "system_repair_runs_job_created_idx",
+        "events_event_type_idx",
+        "logic_audit_runs_job_created_idx",
+        "logic_audit_runs_status_idx",
+        "logic_audit_findings_run_idx",
+        "logic_audit_findings_status_idx",
+    }
+    actual_indexes = {
+        str(row["name"]) for row in state._connection().execute(
+            "SELECT name FROM sqlite_master WHERE type='index'"
+        )
+    }
+    assert expected_indexes <= actual_indexes
 
 
 def test_empty_verification_cannot_claim_formal_pass(tmp_path: Path) -> None:
@@ -85,6 +108,11 @@ def test_task_output_is_replayable_after_workspace_is_removed(tmp_path: Path) ->
         "task_input", "capability_manifest", "workflow_binding", "production_policy",
         "repair_policy", "node_profile", "workspace_manifest", "attempt_archive",
     }
+    logic_audit = orchestrator.control.state._connection().execute(
+        "SELECT stage_id,status FROM logic_audit_runs WHERE job_id=?",
+        (job_id,),
+    ).fetchone()
+    assert dict(logic_audit) == {"stage_id": "plan", "status": "queued"}
     archive = root / "var/workspaces/jobs" / job_id / "runs/attempts/plan" / str(cycle.attempt_id) / "manifest.json"
     assert json.loads(archive.read_text(encoding="utf-8"))["protocol"] == "task-attempt-archive-v1"
     workspace = root / "var/workspaces/jobs" / job_id

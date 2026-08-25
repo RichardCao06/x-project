@@ -13,6 +13,7 @@ import pytest
 from lca_project.control import ControlPlane
 from lca_project.dashboard import DashboardService
 from lca_project.dashboard.server import DashboardHTTPServer
+from lca_project.kernel.goal_alignment.change_controller import ChangeController
 from lca_project.kernel.goal_alignment.store import AlignmentStore
 from lca_project.kernel.skills import SkillInvoker
 from lca_project.kernel.worker import WorkerLoop
@@ -24,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def project_copy(tmp_path: Path) -> Path:
     root = tmp_path / "project"
     root.mkdir()
-    for name in ("skills", "workflows", "capabilities", "contracts", "policies", "agents"):
+    for name in ("skills", "workflows", "capabilities", "contracts", "policies", "agents", "vendor"):
         shutil.copytree(ROOT / name, root / name)
     return root
 
@@ -65,6 +66,126 @@ def test_dashboard_projects_job_dag_and_artifact_preview(tmp_path: Path) -> None
     assert artifact["preview_type"] == "json"
     assert artifact["preview"]["nodes"] == ["P003"]
     assert dashboard.overview()["counts"]["tasks"] == 26
+
+
+def test_dashboard_separates_nonblocking_logic_review_from_gate_and_repair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    created = DashboardService(root).create_job(
+        "generate-node-wiki",
+        {"industry": "ICT设备制造", "nodes": ["P030"], "publication_mode": "preview"},
+        materialize=True,
+    )
+    job_id, run_id = created["job_id"], created["run_id"]
+    cycle = WorkerLoop(root, worker_id="logic-dashboard-worker").run_once(run_id=run_id)
+    assert cycle.status == "succeeded" and cycle.task_id == "plan"
+
+    dashboard = DashboardService(root)
+    projection = dashboard.job(job_id)["logic_audit"]
+    assert projection["authority"] == {
+        "pipeline_effect": "none",
+        "mutation_authority": "none",
+        "automatic_promotion": False,
+        "promotion_requires_explicit_operator_action": True,
+    }
+    assert projection["summary"]["queued"] == 1
+    assert projection["findings"] == []
+
+    from lca_project.kernel.goal_alignment import work_dispatcher
+    monkeypatch.setattr(work_dispatcher, "dispatch_logic_audit", lambda *_args: True)
+    recovered = dashboard.reconcile_nonterminal_work_once()
+    assert recovered["logic_audits"] == [projection["runs"][0]["audit_run_id"]]
+    started = dashboard.start_logic_audit(job_id)
+    assert started["status"] == "dispatched"
+    assert started["dispatched"] == [projection["runs"][0]["audit_run_id"]]
+
+
+def test_dashboard_job_detail_scopes_repair_lineage_to_requested_job(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    first = dashboard.create_job(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["P003"]},
+    )
+    second = dashboard.create_job(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A019"]},
+    )
+    store = AlignmentStore(dashboard.state)
+    first_deviation = store.deviation(
+        job_id=first["job_id"], run_id=None, goal_id="wiki_goal",
+        value={"deviation_type": "first", "severity": "high",
+               "evidence": {"job": "first"}, "summary": "first deviation"},
+    )
+    second_deviation = store.deviation(
+        job_id=second["job_id"], run_id=None, goal_id="wiki_goal",
+        value={"deviation_type": "second", "severity": "high",
+               "evidence": {"job": "second"}, "summary": "second deviation"},
+    )
+    first_plan = store.repair_plan(first_deviation["deviation_id"], {
+        "repair_level": "L2", "action": "fix_first", "status": "proposed",
+    })
+    second_plan = store.repair_plan(second_deviation["deviation_id"], {
+        "repair_level": "L2", "action": "fix_second", "status": "proposed",
+    })
+    changes = ChangeController(root, dashboard.control)
+    first_candidate = changes.propose(
+        source_deviation_id=first_deviation["deviation_id"], target="first-target",
+        risk="low", change={"job": "first"}, rollback={"strategy": "discard"},
+    )
+    second_candidate = changes.propose(
+        source_deviation_id=second_deviation["deviation_id"], target="second-target",
+        risk="low", change={"job": "second"}, rollback={"strategy": "discard"},
+    )
+    first_certificate = changes.certify(
+        first_candidate["candidate_id"], phase="sandbox", suites={"golden": True},
+    )
+    changes.certify(
+        second_candidate["candidate_id"], phase="sandbox", suites={"golden": True},
+    )
+
+    alignment = dashboard.job(first["job_id"])["goal_alignment"]
+
+    assert [item["repair_plan_id"] for item in alignment["repair_plans"]] == [
+        first_plan["repair_plan_id"],
+    ]
+    assert second_plan["repair_plan_id"] not in {
+        item["repair_plan_id"] for item in alignment["repair_plans"]
+    }
+    assert [item["candidate_id"] for item in alignment["change_candidates"]] == [
+        first_candidate["candidate_id"],
+    ]
+    assert [item["certificate_id"] for item in alignment["validation_certificates"]] == [
+        first_certificate["certificate_id"],
+    ]
+    assert all(
+        item["candidate_id"] == first_candidate["candidate_id"]
+        for item in alignment["promotion_receipts"]
+    )
+
+
+def test_dashboard_job_detail_bounds_each_event_stream_before_merge(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_job(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["P003"]},
+        materialize=True,
+    )
+    for ordinal in range(130):
+        dashboard.control.events.append(
+            "job", created["job_id"], "test.job_event", {"ordinal": ordinal},
+            actor="test",
+        )
+        dashboard.control.events.append(
+            "workflow_run", created["run_id"], "test.run_event", {"ordinal": ordinal},
+            actor="test",
+        )
+
+    events = dashboard.job(created["job_id"])["events"]
+
+    assert len(events) == 100
+    sequences = [int(item["sequence"]) for item in events]
+    assert sequences == sorted(sequences, reverse=True)
+    assert {item["aggregate_type"] for item in events} == {"job", "workflow_run"}
 
 
 def test_dashboard_projects_execution_search_and_evidence_audit(tmp_path: Path) -> None:
@@ -159,7 +280,7 @@ def test_dashboard_projects_execution_search_and_evidence_audit(tmp_path: Path) 
 
     trace = dashboard.job(job_id)["execution_trace"]
 
-    assert trace["schema_version"] == "dashboard-execution-trace-v1"
+    assert trace["schema_version"] == "dashboard-execution-trace-v2"
     assert trace["summary"]["queries"] == 2
     assert trace["summary"]["candidate_results"] == 4
     assert trace["summary"]["candidate_accepted"] == 2
@@ -200,6 +321,57 @@ def test_dashboard_projects_execution_search_and_evidence_audit(tmp_path: Path) 
         "next_action": "继续自治修复",
         "blockers": ["accepted_field_evidence_nonzero"],
     }
+
+
+def test_dashboard_projects_unfetched_frozen_results_and_rejection_reason(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_job(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["P003"]},
+        materialize=True,
+    )
+    job_id, run_id = created["job_id"], created["run_id"]
+    batch = (root / "var/workspaces/jobs" / job_id / "runs/wiki-batches/ict_equipment"
+             / "p003-frozen")
+    batch.mkdir(parents=True)
+    excluded_url = "https://example.org/reused-source.pdf"
+    (batch / "source-evidence.json").write_text(json.dumps({"claims": [{
+        "claim": {"claim_id": "P003-claim-2"},
+        "query": {"query_id": "search-2", "search_hash": "search-2",
+                  "text": "server manufacturing BIOS"},
+        "candidates": [], "disposition": "sent_to_verification",
+    }]}), encoding="utf-8")
+    (batch / "frozen-provider-search-results.json").write_text(json.dumps({
+        "queries": [{"search_hash": "search-2", "status": "found",
+                     "query": "server manufacturing BIOS", "results": [{
+                         "title": "Manufacturing guide", "url": excluded_url,
+                         "provider": "research_scout", "snippet": "BIOS setup",
+                     }]}],
+        "provider_attempts": [{"search_hash": "search-2", "provider": "research_scout",
+                               "status": "candidate", "results": 1}],
+    }), encoding="utf-8")
+    (batch / "research-scout-diversity-repair.json").write_text(json.dumps({
+        "diversity_repair": {"excluded_urls": [excluded_url]},
+    }), encoding="utf-8")
+    AlignmentStore(dashboard.state).observation({
+        "schema_version": "quality-observation-v1", "job_id": job_id,
+        "run_id": run_id, "goal_id": "goal-test", "score": 0.1,
+        "dimensions": {}, "evidence": {"batch": str(batch)},
+    })
+
+    trace = dashboard.job(job_id)["execution_trace"]
+    query = next(item for item in trace["searches"] if item["query_id"] == "search-2")
+
+    assert query["providers"] == [{
+        "provider": "research_scout", "status": "candidate", "results": 1,
+        "cache_hit": False, "error": None,
+    }]
+    assert query["results"][0]["url"] == excluded_url
+    assert query["results"][0]["outcome"] == "rejected"
+    assert query["results"][0]["decision_stage"] == "diversity_repair"
+    assert query["results"][0]["reasons"] == ["excluded_by_diversity_repair"]
 
 
 def test_dashboard_skill_catalog_and_schema_controlled_creation(tmp_path: Path) -> None:
@@ -254,6 +426,38 @@ def test_dashboard_exposes_reviewed_publication_as_declared_goal(tmp_path: Path)
         )
     with pytest.raises(ValueError, match="unknown Skill"):
         dashboard.create_job("not-registered", {"target": "x"})
+
+
+def test_dashboard_recovers_running_campaign_without_pending_wakeup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_autonomy({
+        "schema_version": "autonomous-job-campaign-v1",
+        "name": "restart-recovery", "skill": "generate-node-wiki",
+        "requests": [{"industry": "ict_equipment", "nodes": ["A001"]}],
+        "completion_goal": "workflow_delivery", "max_concurrency": 1,
+        "max_auto_repairs_per_job": 1, "poll_seconds": 1,
+        "stop_on_failure": False,
+    }, start=False)
+    campaign_id = created["campaign"]["campaign_id"]
+    assert dashboard.conn.execute(
+        "SELECT COUNT(*) FROM goal_supervisor_wakeups WHERE status='pending'"
+    ).fetchone()[0] == 0
+    started: list[str] = []
+
+    def fake_start(value: str) -> dict[str, str]:
+        started.append(value)
+        return {"status": "started", "campaign_id": value}
+
+    monkeypatch.setattr(dashboard, "start_autonomy", fake_start)
+
+    result = dashboard.reconcile_nonterminal_work_once()
+
+    assert result["status"] == "recovered"
+    assert result["campaigns"] == [campaign_id]
+    assert started == [campaign_id]
 
 
 def test_dashboard_worker_start_is_job_scoped_and_non_blocking(tmp_path: Path, monkeypatch) -> None:
@@ -403,6 +607,301 @@ def test_dashboard_exposes_only_hash_bound_completed_preview_assets(tmp_path: Pa
         server.shutdown()
         server.server_close()
         thread.join(timeout=3)
+
+
+def test_dashboard_projects_stage_gate_reasoning_from_verified_output(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_job(
+        "generate-node-wiki",
+        {"industry": "ict_equipment", "nodes": ["A019"]},
+        materialize=True,
+    )
+    job_id, run_id = created["job_id"], created["run_id"]
+    workspace = root / "var" / "workspaces" / "jobs" / job_id
+    workspace.mkdir(parents=True, exist_ok=True)
+    gate_file = workspace / "research-plan-gate.json"
+    gate_file.write_text(json.dumps({
+        "decision": "PASS",
+        "checks": {
+            "research_questions_complete": True,
+            "english_field_translation_coverage_complete": False,
+        },
+        "advisory_checks": ["english_field_translation_coverage_complete"],
+        "warnings": ["英文辅助检索词尚未覆盖全部字段"],
+        "pipeline_continue": True,
+        "maturity_ceiling": "evidence_limited",
+    }), encoding="utf-8")
+    manifest = dashboard.control.artifacts.put_task_output_manifest(
+        workspace,
+        [{"path": gate_file.name, "size": gate_file.stat().st_size}],
+        {"status": "ok", "decision": "PASS"},
+        run_id=run_id,
+        task_id="research_plan_gate",
+        attempt_id="attempt_stage_audit",
+    )
+    with dashboard.state.transaction() as conn:
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',attempt=1,output_hash=? "
+            "WHERE run_id=? AND task_id='research_plan_gate'",
+            (manifest.digest, run_id),
+        )
+
+    trace = dashboard.job(job_id)["execution_trace"]
+    stage = next(item for item in trace["stages"] if item["task_id"] == "research_plan_gate")
+
+    assert stage["name_zh"] == "研究计划门禁"
+    assert stage["agent"]["logical_actor_zh"] == "确定性流程执行器"
+    assert stage["output"]["integrity"] == "verified"
+    assert stage["output"]["documents"][0]["path"] == gate_file.name
+    assert stage["gate"]["decision"] == "PASS"
+    assert stage["gate"]["passed"] is True
+    assert stage["gate"]["blocking_failures"] == []
+    assert stage["gate"]["advisory_failures"] == [
+        "english_field_translation_coverage_complete",
+    ]
+    assert stage["gate"]["reason_zh"] == (
+        "所有阻断性检查均已满足，因此 Gate 放行。 "
+        "未满足的建议项只限制成熟度，不阻止流程继续。"
+    )
+    assert stage["transition"]["allowed"] is True
+
+    batch = workspace / "runs" / "wiki-batches" / "ict_equipment" / "a019-audit"
+    batch.mkdir(parents=True)
+    diversity_file = batch / "source-diversity-gate.json"
+    diversity_file.write_text(json.dumps({
+        "decision": "BLOCKED",
+        "checks": {
+            "reviewed_confirmed_urls": False,
+            "reviewed_distinct_domains": False,
+        },
+        "metrics": {"confirmed_urls": 0, "confirmed_domains": 0},
+        "pipeline_continue": False,
+        "maturity_ceiling": "diagnostic_preview",
+    }), encoding="utf-8")
+    attempt_id = "attempt_failed_gate_audit"
+    archive = workspace / "runs" / "attempts" / "source_diversity_gate" / attempt_id
+    archive.mkdir(parents=True)
+    archive_manifest = {
+        "protocol": "task-attempt-archive-v1",
+        "run_id": run_id,
+        "task_id": "source_diversity_gate",
+        "attempt_id": attempt_id,
+        "execution_root": str(batch),
+        "files": [{
+            "path": diversity_file.name,
+            "change": "modified",
+            "sha256": hashlib.sha256(diversity_file.read_bytes()).hexdigest(),
+            "size": diversity_file.stat().st_size,
+        }],
+    }
+    (archive / "manifest.json").write_text(
+        json.dumps(archive_manifest), encoding="utf-8",
+    )
+    failure = dashboard.control.artifacts.put_json({
+        "protocol": "failure-envelope-v1",
+        "message": "gate returned blocked (2)",
+    })
+    failure_payload = {
+        "message": "gate returned blocked (2)",
+        "failure_fingerprint": "fingerprint-source-diversity",
+        "policy_decision": {
+            "action": "quarantine",
+            "reason": "repair budget exhausted for SOURCE_DIVERSITY_BLOCKED",
+        },
+    }
+    with dashboard.state.transaction() as conn:
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='quarantined',attempt=1,output_hash=?,"
+            "failure_code='SOURCE_DIVERSITY_BLOCKED',failure_payload=? "
+            "WHERE run_id=? AND task_id='source_diversity_gate'",
+            (failure.digest, json.dumps(failure_payload), run_id),
+        )
+        conn.execute(
+            "INSERT INTO orchestrator_attempts(attempt_id,run_id,task_id,attempt,status,"
+            "input_hashes,output_hash,failure_code,failure_payload,started_at,finished_at,worker_id) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            (attempt_id, run_id, "source_diversity_gate", 1, "quarantined", "[]",
+             failure.digest, "SOURCE_DIVERSITY_BLOCKED", json.dumps(failure_payload),
+             "2026-08-24T00:00:00+00:00", "2026-08-24T00:00:01+00:00", "test-worker"),
+        )
+    AlignmentStore(dashboard.state).observation({
+        "schema_version": "quality-observation-v1",
+        "job_id": job_id,
+        "run_id": run_id,
+        "goal_id": "goal-stage-audit",
+        "score": 0.2,
+        "dimensions": {},
+        "evidence": {"batch": str(batch)},
+    })
+
+    failed_trace = dashboard.job(job_id)["execution_trace"]
+    failed_stage = next(
+        item for item in failed_trace["stages"]
+        if item["task_id"] == "source_diversity_gate"
+    )
+    assert failed_stage["status"] == "quarantined"
+    assert failed_stage["output"]["protocol"] == "failure-envelope-v1"
+    assert failed_stage["output"]["diagnostic_integrity"] == (
+        "hash_verified_attempt_snapshot"
+    )
+    assert failed_stage["gate"]["decision"] == "BLOCKED"
+    assert failed_stage["gate"]["blocking_failures"] == [
+        "reviewed_confirmed_urls", "reviewed_distinct_domains",
+    ]
+    assert failed_stage["gate"]["evidence_source"] == (
+        "hash_verified_attempt_snapshot"
+    )
+    assert failed_stage["transition"]["allowed"] is False
+
+    official_digest = stage["output"]["documents"][0]["digest"]
+    official_json = dashboard.json_artifact(official_digest)
+    assert official_json["source_kind"] == "immutable_artifact"
+    assert official_json["verified"] is True
+    assert official_json["value"]["decision"] == "PASS"
+    snapshot_json = dashboard.json_attempt_snapshot(
+        job_id, "source_diversity_gate", attempt_id, diversity_file.name,
+    )
+    assert snapshot_json["source_kind"] == "attempt_archive_snapshot"
+    assert snapshot_json["verified"] is True
+    assert snapshot_json["value"]["decision"] == "BLOCKED"
+    assert snapshot_json["metadata"]["attempt_id"] == attempt_id
+
+    server = DashboardHTTPServer(("127.0.0.1", 0), root)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        with urlopen(f"{base}/api/json/artifacts/{official_digest}", timeout=3) as response:
+            assert json.load(response)["value"]["decision"] == "PASS"
+        snapshot_url = (
+            f"{base}/api/json/snapshots/{job_id}/source_diversity_gate/{attempt_id}"
+            f"?path={diversity_file.name}"
+        )
+        with urlopen(snapshot_url, timeout=3) as response:
+            assert json.load(response)["value"]["decision"] == "BLOCKED"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+    with pytest.raises(KeyError):
+        dashboard.json_attempt_snapshot(
+            job_id, "source_diversity_gate", attempt_id, "../state.db",
+        )
+    diversity_file.write_text('{"decision":"PASS"}', encoding="utf-8")
+    with pytest.raises(RuntimeError, match="hash does not match"):
+        dashboard.json_attempt_snapshot(
+            job_id, "source_diversity_gate", attempt_id, diversity_file.name,
+        )
+
+
+def test_dashboard_projects_question_contract_execution_and_evidence_as_one_chain() -> None:
+    contract_hash = "a" * 64
+    contract = {
+        "dimension": "identity_and_terminology",
+        "criticality": "required_for_model",
+        "required_question_ids": ["identity.activity_definition"],
+        "source_role_requirements": ["authoritative_or_current_job_manufacturer"],
+        "preferred_source_classes": ["manufacturer_technical"],
+        "subquestions": [{
+            "question_id": "identity.activity_definition",
+            "question": {"zh": "该节点究竟是什么活动？", "en": "What is this activity?"},
+            "requirement_ids": ["activity.identity.definition"],
+            "closure_rule": "all_bound_requirements_confirmed",
+            "semantic_frame": {"predicate": "defines_activity_identity"},
+            "query_intents": [{
+                "intent_id": "identity.activity_definition.definition",
+                "purpose": "definition", "priority": 1,
+                "seed_terms": {"zh": ["定义"], "en": ["definition"]},
+            }],
+        }],
+    }
+    evidence = {
+        "claim_id": "A019-identity-1",
+        "requirement_id": "activity.identity.definition",
+        "verdict": "CONFIRMED",
+        "claim_kind": "external_fact",
+        "url": "https://example.com/identity",
+        "support_type": "direct",
+    }
+    ledger = {
+        "question_contract_sha256": contract_hash,
+        "questions": [{
+            "question_id": "identity.activity_definition",
+            "dimension": "identity_and_terminology",
+            "criticality": "required_for_model",
+            "question": {"zh": "该节点究竟是什么活动？"},
+            "status": "confirmed",
+            "closure_rule": "all_bound_requirements_confirmed",
+            "bound_requirement_ids": ["activity.identity.definition"],
+            "confirmed_requirement_ids": ["activity.identity.definition"],
+            "missing_requirement_ids": [],
+            "evidence": [evidence],
+        }],
+    }
+    stages = [{
+        "task_id": "research_plan",
+        "output": {"documents": [{
+            "path": "research-plan.json", "digest": "plan-digest", "integrity": "verified",
+            "facts": {
+                "research_question_contract_version": "wiki-research-question-v2",
+                "question_contract_sha256": contract_hash,
+                "research_question_contracts": [contract],
+            },
+        }]},
+    }, {
+        "task_id": "source_diversity_gate",
+        "gate": {
+            "decision": "PASS", "passed": True, "pipeline_continue": True,
+            "reason_zh": "所有关键问题均已闭合。",
+            "maturity_ceiling": "wiki_candidate",
+            "question_evidence_ledger": ledger,
+        },
+        "output": {"documents": [{
+            "path": "source-diversity-gate.json", "digest": "gate-digest",
+            "integrity": "verified", "facts": {"question_evidence_ledger": ledger},
+        }]},
+    }]
+    searches = [{
+        "query_id": "query-1", "question_id": "identity.activity_definition",
+        "intent_id": "identity.activity_definition.definition", "language": "zh",
+        "query": "服务器 BIOS 配置 活动定义",
+        "providers": [{"provider": "technical_search", "status": "ok"}],
+        "results": [{"outcome": "accepted"}],
+    }]
+    citations = [{
+        "claim_id": "A019-identity-1", "question_id": "identity.activity_definition",
+        "requirement_id": "activity.identity.definition", "verdict": "CONFIRMED",
+    }]
+
+    projected = DashboardService._research_question_projection(
+        stages, searches, citations,
+    )
+
+    assert projected["available"] is True
+    assert projected["contract_integrity"] is True
+    assert projected["metrics"]["required_questions_confirmed"] == 1
+    assert projected["artifacts"]["plan"]["digest"] == "plan-digest"
+    question = projected["questions"][0]
+    assert question["status"] == "confirmed"
+    assert question["required_for_model"] is True
+    assert question["execution"]["queries"][0]["query"] == "服务器 BIOS 配置 活动定义"
+    assert question["execution"]["accepted_count"] == 1
+    assert question["evidence"][0]["url"] == "https://example.com/identity"
+
+
+def test_dashboard_does_not_invent_question_contract_for_legacy_plan() -> None:
+    projected = DashboardService._research_question_projection([{
+        "task_id": "research_plan",
+        "output": {"documents": [{
+            "path": "research-plan.json", "digest": "legacy-plan",
+            "facts": {"research_questions": ["identity_and_terminology"]},
+        }]},
+    }], [], [])
+
+    assert projected["available"] is False
+    assert projected["reason"] == "legacy_research_plan_without_question_contract"
+    assert projected["legacy_questions"] == ["identity_and_terminology"]
 
 
 def test_dashboard_http_creates_only_through_registered_skill(tmp_path: Path) -> None:

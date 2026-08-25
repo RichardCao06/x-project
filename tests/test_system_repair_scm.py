@@ -5,6 +5,7 @@ import hashlib
 from pathlib import Path
 import subprocess
 from types import SimpleNamespace
+import pytest
 
 from lca_project.control import ControlPlane
 from lca_project.kernel.goal_alignment import (
@@ -355,3 +356,49 @@ def test_required_scm_configuration_requires_draft_prs(tmp_path: Path) -> None:
         assert "must create Draft PRs" in str(exc)
     else:  # pragma: no cover - explicit failure reads better than pytest.raises here
         raise AssertionError("required SCM promotion accepted a no-PR policy")
+
+
+def test_base_revision_conflict_queues_causally_distinct_successor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    control = ControlPlane(root)
+    candidate = ChangeController(root, control).propose(
+        source_deviation_id="dev_replan", target="propose_code_change", risk="high",
+        change={"diagnosis": "STALE_BASE"}, rollback={"strategy": "restore"},
+    )
+    agent = SystemRepairAgent(root, control)
+    repair = agent.queue(
+        candidate_id=candidate["candidate_id"], source_job_id="job_replan",
+        source_run_id=None, request={
+            "source_failure_fingerprint": "fp-replan",
+            "causal_input_changes": [{
+                "causal_input": "repair_adapter", "change": "fix adapter",
+                "expected_effect": "pass validation",
+            }],
+        },
+    )
+    dispatched: list[str] = []
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.work_dispatcher.dispatch_system_repair",
+        lambda _root, run_id: dispatched.append(run_id) or True,
+    )
+    scm = {
+        "status": "publication_deferred",
+        "last_error": "source HEAD is not based on configured remote main",
+        "payload": {"patch": {"failure_kind": "base_revision_conflict"}},
+    }
+
+    assert agent._queue_scm_replan(repair, candidate, dict(repair["payload"]), scm)
+
+    replaced = agent.get(repair["repair_run_id"])
+    successor_id = replaced["payload"]["scm_replan"]["successor_repair_run_id"]
+    successor = agent.get(successor_id)
+    assert replaced["status"] == "replan_required"
+    assert successor_id != repair["repair_run_id"]
+    assert successor["payload"]["request"]["scm_replan_revision"] == 1
+    assert successor["payload"]["request"]["causal_input_changes"][-1][
+        "causal_input"
+    ] == "repository_base_revision"
+    assert dispatched == [successor_id]

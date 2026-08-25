@@ -80,6 +80,7 @@ class StateStore:
                     payload TEXT NOT NULL, trace_id TEXT, actor TEXT, occurred_at TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS events_aggregate_idx ON events(aggregate_type, aggregate_id, sequence);
+                CREATE INDEX IF NOT EXISTS events_event_type_idx ON events(event_type);
                 CREATE TABLE IF NOT EXISTS gate_results (
                     id TEXT PRIMARY KEY, run_id TEXT, gate_name TEXT NOT NULL, verdict TEXT NOT NULL,
                     evidence_digest TEXT, payload TEXT NOT NULL, created_at TEXT NOT NULL

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 import uuid
@@ -174,8 +175,16 @@ class SystemMetaSupervisor:
             ).fetchone()
             active = self.state._connection().execute(
                 "SELECT 1 FROM autonomous_job_items i JOIN autonomous_campaigns c "
-                "ON c.campaign_id=i.campaign_id WHERE i.job_id=? AND c.status='running'",
-                (row["job_id"],),
+                "ON c.campaign_id=i.campaign_id "
+                "JOIN goal_execution_owners o ON o.execution_type='autonomous-campaign' "
+                "AND o.execution_id=c.campaign_id AND o.status='running' "
+                "JOIN leases l ON l.resource=o.resource AND l.holder=o.owner_id "
+                "AND l.fencing_token=o.fencing_token "
+                "WHERE i.job_id=? AND c.status='running' AND o.heartbeat_at>? "
+                "AND l.expires_at>?",
+                (row["job_id"],
+                 (datetime.now(timezone.utc) - timedelta(seconds=120)).isoformat(),
+                 utcnow()),
             ).fetchone()
             if not has_wakeup and not active:
                 deviations.append(self._record(

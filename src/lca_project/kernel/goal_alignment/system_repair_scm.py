@@ -547,10 +547,21 @@ class SystemRepairScmPublisher:
             )
             return record
         except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
+            error = str(exc)
+            normalized = error.lower()
+            failure_kind = (
+                "base_revision_conflict"
+                if any(marker in normalized for marker in (
+                    "not based on configured remote main", "baseline conflict",
+                    "patch does not apply", "merge conflict", "unbound commit",
+                ))
+                else "transient_publication_failure"
+            )
             record = self._record(
                 repair_run_id, status="publication_deferred",
                 payload={"patch": {"branch": branch, "patch_hash": patch_hash,
-                                   "changed_files": safe_files, "error": str(exc),
+                                   "changed_files": safe_files, "error": error,
+                                   "failure_kind": failure_kind,
                                    "attempted_at": utcnow()}}, error=str(exc),
                 head_branch=branch,
                 commit_sha=commit_sha,
@@ -559,7 +570,8 @@ class SystemRepairScmPublisher:
             )
             self.control.events.append(
                 "system_repair", repair_run_id, "system_repair.scm_publication_deferred",
-                {"stage": "patch", "branch": branch, "error": str(exc)},
+                {"stage": "patch", "branch": branch, "error": error,
+                 "failure_kind": failure_kind},
                 actor="system-repair-scm",
             )
             return record

@@ -205,7 +205,7 @@
     {
       "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/wiki_source_discovery.py",
       "source_sha256": "3b3d3402ed9f1e1648506dba4a2de5c8c0adfc04314a64597dba6c10b510bdb9",
-      "target_sha256": "86d5e692aef0eaf55944bdbbf828fd0caac47b0240f15e4c550ffa3ca6b7fe8a",
+      "target_sha256": "6658fc217bf1db5617eb9ac78f118cc705831b7fe3d15671a339a467b84f0124",
       "target_path": "vendor/lca_cornerstone/scripts/wiki_source_discovery.py",
       "purpose": "deterministic domain gate or its direct dependency",
       "frozen": true

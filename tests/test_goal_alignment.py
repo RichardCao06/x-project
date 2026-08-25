@@ -1096,7 +1096,7 @@ def test_first_unknown_failure_survives_fast_retry_and_reaches_agent_triage(
                for action in repaired["actions"])
 
 
-def test_investigating_triage_is_not_restarted(tmp_path: Path) -> None:
+def test_stale_investigating_triage_is_recovered(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     calls = 0
 
@@ -1120,6 +1120,40 @@ def test_investigating_triage_is_not_restarted(tmp_path: Path) -> None:
                      "WHERE triage_run_id=?", (queued["triage_run_id"],))
 
     result = agent.execute(queued["triage_run_id"])
+
+    assert result["status"] == "completed"
+    assert calls == 1
+
+
+def test_live_investigating_triage_is_not_restarted(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    calls = 0
+
+    def runner(_sandbox: Path, _request: dict) -> dict:
+        nonlocal calls
+        calls += 1
+        return table_deadlock_triage_result()
+
+    agent = FailureTriageAgent(root, runner=runner)
+    deviation = AlignmentStore(agent.state).deviation(
+        job_id="job_live", run_id="run_live", goal_id="wiki-node-goal-v1",
+        value={"deviation_type": "unclassified_failure", "severity": "high",
+               "evidence": {"task_id": "table_collect"}, "summary": "unknown"},
+    )
+    queued = agent.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_live",
+        source_run_id="run_live", task_id="table_collect", request={"failure": {}},
+    )
+    with agent.state.transaction() as conn:
+        conn.execute("UPDATE failure_triage_runs SET status='investigating' "
+                     "WHERE triage_run_id=?", (queued["triage_run_id"],))
+    lease = agent.control.leases.acquire(
+        f"failure-triage:{queued['triage_run_id']}", "another-live-owner", seconds=60,
+    )
+    try:
+        result = agent.execute(queued["triage_run_id"])
+    finally:
+        agent.control.leases.release(lease)
 
     assert result["status"] == "investigating"
     assert calls == 0

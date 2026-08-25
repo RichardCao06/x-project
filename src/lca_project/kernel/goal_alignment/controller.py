@@ -478,7 +478,7 @@ class GoalAlignmentController:
         return len(ineffective), (str(rows[-1]["candidate_id"]) if rows else None)
 
     def audit_job(self, job_id: str, *, auto_repair: bool = False,
-                  trigger: str = "manual") -> dict[str, Any]:
+                  trigger: str = "manual", execute_triage: bool = True) -> dict[str, Any]:
         job = self.state.get("jobs", job_id)
         if job is None:
             raise KeyError(job_id)
@@ -551,7 +551,14 @@ class GoalAlignmentController:
                         "batch_path": str(batch) if batch else None,
                     },
                 )
-                triage_record = self.triage.execute(str(queued["triage_run_id"]))
+                # Interactive/manual audits retain their synchronous behaviour.
+                # Supervisors pass ``execute_triage=False`` so the durable
+                # triage row is dispatched outside their reconciliation lease.
+                triage_record = (
+                    self.triage.execute(str(queued["triage_run_id"]))
+                    if execute_triage and queued["status"] != "completed"
+                    else queued
+                )
                 actions.append({
                     "status": f"failure_triage_{triage_record['status']}",
                     "triage_run_id": triage_record["triage_run_id"],
@@ -833,14 +840,20 @@ class GoalAlignmentController:
             "goal_contracts": self.store.rows("goal_contracts", limit=20),
             "quality_observations": self.store.rows("quality_observations", job_id=job_id),
             "deviations": self.store.rows("deviation_reports", job_id=job_id),
-            "repair_plans": self.store.rows("repair_plans"),
-            "change_candidates": self.store.rows("system_change_candidates"),
+            "repair_plans": self.store.rows("repair_plans", job_id=job_id),
+            "change_candidates": self.store.rows(
+                "system_change_candidates", job_id=job_id,
+            ),
             "failure_triage_runs": self.triage.rows(job_id=job_id),
             "system_repair_runs": SystemRepairAgent(
                 self.root, self.control
             ).rows(job_id=job_id),
-            "validation_certificates": self.store.rows("validation_certificates"),
-            "promotion_receipts": self.store.rows("policy_promotion_receipts"),
+            "validation_certificates": self.store.rows(
+                "validation_certificates", job_id=job_id,
+            ),
+            "promotion_receipts": self.store.rows(
+                "policy_promotion_receipts", job_id=job_id,
+            ),
         }
     @staticmethod
     def _comparable_previous_score(

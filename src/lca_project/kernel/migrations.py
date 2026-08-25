@@ -310,6 +310,133 @@ def _system_repair_scm_publications(conn: sqlite3.Connection) -> None:
       ON system_repair_scm_publications(status,updated_at)""")
 
 
+def _goal_execution_ownership(conn: sqlite3.Connection) -> None:
+    """Track the live owner of long-running goal-alignment work.
+
+    Business states such as ``investigating`` and ``coding`` are durable audit
+    facts, not proof that their original process still exists.  This projection
+    binds those states to the same fenced leases used by ordinary Workers so a
+    restarted Dashboard can safely distinguish live work from an orphan.
+    """
+    conn.execute("""CREATE TABLE IF NOT EXISTS goal_execution_owners(
+      execution_type TEXT NOT NULL, execution_id TEXT NOT NULL,
+      resource TEXT NOT NULL UNIQUE, owner_id TEXT NOT NULL, owner_pid INTEGER NOT NULL,
+      fencing_token INTEGER NOT NULL, attempt INTEGER NOT NULL,
+      status TEXT NOT NULL, heartbeat_at TEXT NOT NULL, lease_expires_at TEXT NOT NULL,
+      started_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      PRIMARY KEY(execution_type,execution_id)
+    )""")
+    conn.execute("""CREATE INDEX IF NOT EXISTS goal_execution_owners_heartbeat_idx
+      ON goal_execution_owners(status,heartbeat_at,lease_expires_at)""")
+
+
+def _dashboard_goal_alignment_query_indexes(conn: sqlite3.Connection) -> None:
+    """Keep Job detail projections bounded as the repair ledger grows.
+
+    Job pages join repair records through their deviation/candidate lineage and
+    global overview pages read newest-first.  Both paths need explicit indexes;
+    otherwise SQLite scans and sorts every JSON payload in the shared ledger.
+    """
+    statements = (
+        "CREATE INDEX IF NOT EXISTS deviation_reports_job_created_idx "
+        "ON deviation_reports(job_id,created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS repair_plans_deviation_created_idx "
+        "ON repair_plans(deviation_id,created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS repair_plans_created_idx "
+        "ON repair_plans(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS system_change_candidates_deviation_created_idx "
+        "ON system_change_candidates(source_deviation_id,created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS system_change_candidates_created_idx "
+        "ON system_change_candidates(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS validation_certificates_candidate_created_idx "
+        "ON validation_certificates(candidate_id,created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS validation_certificates_created_idx "
+        "ON validation_certificates(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS policy_promotion_receipts_candidate_created_idx "
+        "ON policy_promotion_receipts(candidate_id,created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS policy_promotion_receipts_created_idx "
+        "ON policy_promotion_receipts(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS failure_triage_runs_job_created_idx "
+        "ON failure_triage_runs(source_job_id,created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS failure_triage_runs_created_idx "
+        "ON failure_triage_runs(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS system_repair_runs_job_created_idx "
+        "ON system_repair_runs(source_job_id,created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS system_repair_runs_created_idx "
+        "ON system_repair_runs(created_at DESC)",
+    )
+    for statement in statements:
+        conn.execute(statement)
+
+
+def _dashboard_event_query_indexes(conn: sqlite3.Connection) -> None:
+    """Use a covering index for the Dashboard event-type histogram."""
+    events_exists = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='events'"
+    ).fetchone()
+    if events_exists:
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS events_event_type_idx ON events(event_type)"
+        )
+
+
+def _independent_logic_audits(conn: sqlite3.Connection) -> None:
+    """Persist non-blocking, read-only logic reviews outside Gate/repair state.
+
+    A logic audit is deliberately not a deviation report.  Its findings have
+    no transition, retry, rewind, or mutation authority until an operator
+    explicitly promotes one finding into the existing investigation boundary.
+    """
+    statements = """
+    CREATE TABLE IF NOT EXISTS logic_audit_runs(
+      audit_run_id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      run_id TEXT,
+      stage_id TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      subject_hash TEXT NOT NULL,
+      policy_version TEXT NOT NULL,
+      status TEXT NOT NULL,
+      model TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      last_error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(job_id,run_id,stage_id,scope,subject_hash,policy_version)
+    );
+    CREATE INDEX IF NOT EXISTS logic_audit_runs_job_created_idx
+      ON logic_audit_runs(job_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS logic_audit_runs_status_idx
+      ON logic_audit_runs(status,updated_at);
+    CREATE TABLE IF NOT EXISTS logic_audit_findings(
+      finding_id TEXT PRIMARY KEY,
+      audit_run_id TEXT NOT NULL,
+      finding_type TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      confidence REAL NOT NULL,
+      title_zh TEXT NOT NULL,
+      observation_zh TEXT NOT NULL,
+      question_zh TEXT NOT NULL,
+      premise_refs TEXT NOT NULL,
+      conclusion_refs TEXT NOT NULL,
+      artifact_refs TEXT NOT NULL,
+      status TEXT NOT NULL,
+      promoted_deviation_id TEXT,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(audit_run_id) REFERENCES logic_audit_runs(audit_run_id)
+    );
+    CREATE INDEX IF NOT EXISTS logic_audit_findings_run_idx
+      ON logic_audit_findings(audit_run_id,created_at);
+    CREATE INDEX IF NOT EXISTS logic_audit_findings_status_idx
+      ON logic_audit_findings(status,severity,created_at DESC);
+    """
+    for statement in statements.split(";"):
+        if statement.strip():
+            conn.execute(statement)
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "worker-and-attempt-ownership", _worker_and_attempt_ownership),
     (2, "structured-failure-payloads", _structured_failures),
@@ -328,6 +455,11 @@ MIGRATIONS: tuple[Migration, ...] = (
     (14, "governance-reassessment-and-capability-assurance",
      _governance_reassessment_and_capability_assurance),
     (15, "system-repair-scm-publications", _system_repair_scm_publications),
+    (16, "goal-execution-ownership", _goal_execution_ownership),
+    (17, "dashboard-goal-alignment-query-indexes",
+     _dashboard_goal_alignment_query_indexes),
+    (18, "dashboard-event-query-indexes", _dashboard_event_query_indexes),
+    (19, "independent-logic-audits", _independent_logic_audits),
 )
 
 

@@ -84,7 +84,10 @@ def evaluate(batch: Path) -> dict[str, Any]:
         )
     checks = {
         "research_plan_candidate_ready": docs["research_plan_gate"].get("decision") == "PASS",
-        "source_roles_candidate_ready": docs["source_diversity_gate"].get("decision") == "PASS",
+        "source_roles_candidate_ready": (
+            docs["source_diversity_gate"].get("candidate_eligible") is True
+            or docs["source_diversity_gate"].get("decision") in {"PASS", "PASS_WITH_DEBT"}
+        ),
         "graph_semantic_conflicts_resolved": not unresolved_conflicts,
         "content_semantically_closed": docs["content_closure_gate"].get("candidate_eligible") is True,
         "draft_candidate_ready": docs["draft_content_gate"].get("candidate_eligible") is True,
@@ -126,7 +129,7 @@ def evaluate(batch: Path) -> dict[str, Any]:
         "draft_candidate_ready", "editorial_candidate_ready",
     ))
     source_repair_remains = (
-        docs["source_diversity_gate"].get("decision") != "PASS"
+        docs["source_diversity_gate"].get("decision") not in {"PASS", "PASS_WITH_DEBT"}
         and docs["source_diversity_gate"].get("pipeline_continue") is not False
     )
     pipeline_continue = bool(
@@ -145,7 +148,14 @@ def evaluate(batch: Path) -> dict[str, Any]:
         "checks": checks,
         "reason_codes": reasons,
         "quality_debt": {
-            "source_warnings": docs["source_diversity_gate"].get("warnings") or [],
+            "source_warnings": (
+                (docs["source_diversity_gate"].get("quality_assessment") or {}).get("warnings")
+                or docs["source_diversity_gate"].get("warnings") or []
+            ),
+            "question_evidence_metrics": (
+                (docs["source_diversity_gate"].get("question_evidence_ledger") or {}).get("metrics")
+                or {}
+            ),
             "draft_warnings": [warning for page in docs["draft_content_gate"].get("pages") or []
                                for warning in page.get("quality_warnings") or []],
             "unresolved_graph_conflicts": unresolved_conflicts,

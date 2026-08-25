@@ -9,13 +9,19 @@ from typing import Any
 import uuid
 
 from ...control import ControlPlane
-from ..leases import Lease, LeaseLost
+from ..leases import LeaseLost
 from ..orchestrator import PersistentOrchestrator
 from ..skills import SkillInvoker
 from ..state import utcnow
 from ..worker import WorkerLoop
 from .controller import GoalAlignmentController
+from .execution_ownership import ExecutionOwnership
 from .system_repair_agent import SystemRepairAgent
+from .work_dispatcher import (
+    dispatch_failure_triage,
+    dispatch_scm_publication,
+    dispatch_system_repair,
+)
 from .store import AlignmentStore, canonical, digest
 
 
@@ -28,6 +34,23 @@ ITEM_TERMINAL = {"succeeded", "evidence_limited", "failed", "blocked",
                  "awaiting_approval", "superseded"}
 COMPLETION_GOALS = {"lca_modeling_ready", "reviewed_publication", "workflow_delivery"}
 SCM_PUBLICATION_RETRY_SECONDS = 300
+_DEFAULT_SYSTEM_REPAIR_AGENT = SystemRepairAgent
+
+
+def _dispatch_repair(root: Path, repair_run_id: str) -> dict[str, Any]:
+    # Keep the Agent dependency injectable for deterministic unit tests while
+    # production execution remains outside the Supervisor thread.
+    if SystemRepairAgent is not _DEFAULT_SYSTEM_REPAIR_AGENT:
+        return SystemRepairAgent(root).execute(repair_run_id)
+    dispatch_system_repair(root, repair_run_id)
+    return {"repair_run_id": repair_run_id, "status": "dispatched"}
+
+
+def _dispatch_scm(root: Path, repair_run_id: str) -> dict[str, Any]:
+    if SystemRepairAgent is not _DEFAULT_SYSTEM_REPAIR_AGENT:
+        return SystemRepairAgent(root).publish_scm(repair_run_id)
+    dispatch_scm_publication(root, repair_run_id)
+    return {"repair_run_id": repair_run_id, "status": "scm_dispatched"}
 
 
 def _scm_publication_retry_due(updated_at: str) -> bool:
@@ -368,21 +391,20 @@ class AutonomousJobSupervisor:
         ).fetchone()
         system_repairs = []
         if queued_repair:
-            system_repairs.append(SystemRepairAgent(self.root).execute(
-                str(queued_repair["repair_run_id"])
-            ))
+            repair_run_id = str(queued_repair["repair_run_id"])
+            system_repairs.append(_dispatch_repair(self.root, repair_run_id))
         pending_scm = self.state._connection().execute(
             "SELECT repair_run_id,updated_at FROM system_repair_runs "
             "WHERE source_job_id=? AND status='awaiting_scm_publication' "
             "ORDER BY updated_at LIMIT 1", (job_id,),
         ).fetchone()
         if pending_scm and _scm_publication_retry_due(str(pending_scm["updated_at"])):
-            system_repairs.append(SystemRepairAgent(self.root).publish_scm(
-                str(pending_scm["repair_run_id"])
-            ))
+            repair_run_id = str(pending_scm["repair_run_id"])
+            system_repairs.append(_dispatch_scm(self.root, repair_run_id))
         allow_repair = int(item["repair_count"]) < int(campaign["max_auto_repairs_per_job"])
         audit = GoalAlignmentController(self.root).audit_job(
-            job_id, auto_repair=allow_repair, trigger=f"autonomy:{campaign['campaign_id']}"
+            job_id, auto_repair=allow_repair,
+            trigger=f"autonomy:{campaign['campaign_id']}", execute_triage=False,
         )
         consumed_wakeups = store.consume_wakeups(
             job_id=job_id, consumer=self.supervisor_id, wakeup_ids=claimed_wakeups
@@ -391,10 +413,17 @@ class AutonomousJobSupervisor:
             str(repair["repair_run_id"]) for repair in system_repairs
         }
         for action in audit["actions"]:
+            if str(action.get("status") or "") in {
+                "failure_triage_queued", "failure_triage_investigating",
+            }:
+                triage_run_id = str(action.get("triage_run_id") or "")
+                if triage_run_id:
+                    dispatch_failure_triage(self.root, triage_run_id)
+                    action["execution_status"] = "dispatched"
             repair_run_id = str(action.get("repair_run_id") or "")
             if (action.get("status") == "system_repair_queued"
                     and repair_run_id not in executed_repair_ids):
-                result = SystemRepairAgent(self.root).execute(str(action["repair_run_id"]))
+                result = _dispatch_repair(self.root, repair_run_id)
                 action["execution_status"] = result["status"]
                 system_repairs.append(result)
                 executed_repair_ids.add(repair_run_id)
@@ -657,9 +686,18 @@ class AutonomousJobSupervisor:
     def run(self, campaign_id: str, *, poll_seconds: float | None = None) -> dict[str, Any]:
         campaign = self.campaign(campaign_id)["campaign"]
         interval = float(poll_seconds or campaign["payload"].get("poll_seconds", 2))
-        resource = f"autonomous-campaign:{campaign_id}"
+        prior_owner = self.state._connection().execute(
+            "SELECT attempt FROM goal_execution_owners "
+            "WHERE execution_type='autonomous-campaign' AND execution_id=?",
+            (campaign_id,),
+        ).fetchone()
+        ownership = ExecutionOwnership.create(
+            self.control, "autonomous-campaign", campaign_id,
+            attempt=int(prior_owner["attempt"] if prior_owner else 0) + 1,
+            lease_seconds=60, heartbeat_seconds=10,
+        )
         try:
-            lease: Lease = self.control.leases.acquire(resource, self.supervisor_id, seconds=3600)
+            ownership.start()
         except LeaseLost:
             return {"campaign_id": campaign_id, "status": "already_running"}
         consecutive_failures = 0
@@ -672,7 +710,7 @@ class AutonomousJobSupervisor:
                     item_id = self._record_cycle_failure(
                         campaign_id, exc, consecutive_failures=consecutive_failures,
                     )
-                    lease = self.control.leases.renew(lease, seconds=3600)
+                    ownership.current()
                     if consecutive_failures >= self.MAX_CONSECUTIVE_CYCLE_FAILURES:
                         return self._open_cycle_circuit(campaign_id, item_id, exc)
                     time.sleep(min(interval * (2 ** (consecutive_failures - 1)), 60.0))
@@ -680,10 +718,10 @@ class AutonomousJobSupervisor:
                 consecutive_failures = 0
                 if report["status"] in {"paused", "completed", "needs_attention"}:
                     return report
-                lease = self.control.leases.renew(lease, seconds=3600)
+                ownership.current()
                 time.sleep(interval)
         finally:
-            self.control.leases.release(lease)
+            ownership.close()
 
     def pause(self, campaign_id: str) -> dict[str, Any]:
         view = self.campaign(campaign_id)

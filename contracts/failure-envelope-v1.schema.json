@@ -12,7 +12,15 @@
     "reported_retryable": {"type": ["boolean", "null"]},
     "reported_automatic_repair": {"type": ["string", "null"]},
     "reported_invalidates": {"type": "array", "items": {"type": "string"}},
-    "reported_preserves": {"type": "array", "items": {"type": "string"}}
+    "reported_preserves": {"type": "array", "items": {"type": "string"}},
+    "gate_id": {"type": ["string", "null"]},
+    "gate_version": {"type": ["string", "null"]},
+    "gate_decision": {"type": ["string", "null"]},
+    "failed_requirement_ids": {"type": "array", "items": {"type": "string"}},
+    "metrics": {"type": "object"},
+    "question_contract_sha256": {"type": ["string", "null"]},
+    "strategy_hash": {"type": ["string", "null"]},
+    "gate_result": {"type": "object"}
   },
   "additionalProperties": false
 }

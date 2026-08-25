@@ -320,7 +320,7 @@ def test_governance_migrations_install_v2_tables(tmp_path: Path) -> None:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("BEGIN IMMEDIATE")
     try:
-        assert migrate(conn) == 15
+        assert migrate(conn) == 19
     except Exception:
         conn.rollback()
         raise
@@ -341,6 +341,8 @@ def test_governance_migrations_install_v2_tables(tmp_path: Path) -> None:
         "governance_reassessments",
         "capability_certifications",
         "capability_observations",
+        "logic_audit_runs",
+        "logic_audit_findings",
     } <= tables
     assert conn.execute(
         "SELECT name FROM schema_migrations WHERE version=13"

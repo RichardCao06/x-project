@@ -6,8 +6,15 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from pathlib import Path
 from urllib.parse import urlsplit
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from wiki_research_contract import match_question, validate_question_contracts
 
 
 EXECUTED = {"found", "not_found"}
@@ -90,9 +97,108 @@ def source_language(row: dict) -> tuple[str, str]:
     return "unknown", "insufficient_language_signal"
 
 
+def _verified_rows(verified: dict) -> list[dict]:
+    rows = verified.get("claims") or verified.get("result", {}).get("claims") or []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def question_evidence_ledger(verified: dict, plan: dict) -> dict:
+    """Close evidence per explicit research question instead of URL counts."""
+    rows = _verified_rows(verified)
+    contracts = plan.get("research_question_contracts") or []
+    question_rows: list[dict] = []
+    evidence_by_question: dict[str, list[dict]] = {}
+    unmapped: list[dict] = []
+    for row in rows:
+        claim = row.get("claim") or {}
+        requirement_id = str(claim.get("requirement_id") or "")
+        binding = match_question(plan, requirement_id)
+        record = {
+            "claim_id": str(claim.get("claim_id") or ""),
+            "requirement_id": requirement_id,
+            "verdict": str((row.get("verify") or {}).get("verdict") or "UNRESOLVED"),
+            "claim_kind": str(claim.get("claim_kind") or ""),
+            "url": str((row.get("fetchResult") or {}).get("url") or ""),
+            "support_type": str((row.get("verify") or {}).get("support_type") or "direct_if_confirmed"),
+        }
+        if binding is None:
+            unmapped.append(record)
+            continue
+        record.update({
+            "question_id": binding["question_id"],
+            "dimension": binding["dimension"],
+            "source_role_requirements": binding["source_role_requirements"],
+        })
+        evidence_by_question.setdefault(str(binding["question_id"]), []).append(record)
+
+    required_ids: list[str] = []
+    for contract in contracts:
+        if contract.get("criticality") == "required_for_model":
+            required_ids.extend(str(value) for value in contract.get("required_question_ids") or [])
+        for question in contract.get("subquestions") or []:
+            question_id = str(question.get("question_id") or "")
+            evidence = evidence_by_question.get(question_id, [])
+            verdicts = {item["verdict"] for item in evidence}
+            claim_kinds = {item["claim_kind"] for item in evidence}
+            bound_requirements = {str(value) for value in question.get("requirement_ids") or []}
+            confirmed_requirements = {
+                item["requirement_id"] for item in evidence if item["verdict"] == "CONFIRMED"
+            }
+            if "CONTRADICTED" in verdicts:
+                status = "contradicted"
+            elif (bound_requirements and
+                  bound_requirements <= confirmed_requirements):
+                status = "confirmed"
+            elif not bound_requirements and "CONFIRMED" in verdicts:
+                status = "confirmed"
+            elif "evidence_gap" in claim_kinds:
+                status = "explicit_gap"
+            elif "CONFIRMED" in verdicts or verdicts & {
+                "INSUFFICIENT", "INSUFFICIENT_EVIDENCE", "NOT_FOUND", "NOT_CONFIRMED"
+            }:
+                status = "partially_supported" if evidence else "unresolved"
+            else:
+                status = "unresolved"
+            question_rows.append({
+                "question_id": question_id,
+                "dimension": contract.get("dimension"),
+                "criticality": contract.get("criticality"),
+                "required_for_stage": question_id in set(contract.get("required_question_ids") or []),
+                "question": question.get("question") or {},
+                "status": status,
+                "closure_rule": question.get("closure_rule") or "any_direct_confirmation",
+                "bound_requirement_ids": sorted(bound_requirements),
+                "confirmed_requirement_ids": sorted(confirmed_requirements),
+                "missing_requirement_ids": sorted(bound_requirements - confirmed_requirements),
+                "evidence": evidence,
+                "source_role_requirements": contract.get("source_role_requirements") or [],
+            })
+    critical_status = {
+        item["question_id"]: item["status"] for item in question_rows
+        if item["question_id"] in set(required_ids)
+    }
+    closed = all(critical_status.get(question_id) == "confirmed" for question_id in required_ids)
+    return {
+        "protocol": "wiki-question-evidence-ledger-v1",
+        "question_contract_sha256": plan.get("question_contract_sha256"),
+        "questions": question_rows,
+        "critical_question_ids": required_ids,
+        "critical_question_status": critical_status,
+        "critical_questions_closed": bool(required_ids) and closed,
+        "unmapped_claims": unmapped,
+        "metrics": {
+            "questions_total": len(question_rows),
+            "questions_confirmed": sum(item["status"] == "confirmed" for item in question_rows),
+            "critical_questions_total": len(required_ids),
+            "critical_questions_confirmed": sum(value == "confirmed" for value in critical_status.values()),
+            "unmapped_claims": len(unmapped),
+        },
+    }
+
+
 def diversity_gate(verified: dict, plan: dict, *, reviewed: bool,
                    attempt: int = 0, repair_budget: int = 2) -> dict:
-    rows = verified.get("claims") or verified.get("result", {}).get("claims") or []
+    rows = _verified_rows(verified)
     confirmed = [
         row for row in rows
         if (row.get("verify") or {}).get("verdict") == "CONFIRMED"
@@ -107,20 +213,15 @@ def diversity_gate(verified: dict, plan: dict, *, reviewed: bool,
     detected = [source_language(row) for row in confirmed]
     languages = {language for language, _method in detected if language != "unknown"}
     required = plan.get("minimum_source_diversity", {})
-    requirement_ids = {
-        str((row.get("claim") or {}).get("requirement_id") or "").lower()
-        for row in confirmed
+    ledger = question_evidence_ledger(verified, plan)
+    question_status = {
+        str(item.get("question_id") or ""): str(item.get("status") or "")
+        for item in ledger["questions"]
     }
     role_checks = {
-        "identity_source_role": any("identity" in value or "reference.product" in value
-                                    for value in requirement_ids),
-        "process_boundary_source_role": any(
-            any(token in value for token in ("boundary", "process", "origin", "route"))
-            for value in requirement_ids
-        ),
-        "adjacent_distinction_source_role": any(
-            "adjacent" in value or "distinction" in value for value in requirement_ids
-        ),
+        "identity_source_role": question_status.get("identity.activity_definition") == "confirmed",
+        "process_boundary_source_role": question_status.get("process.origin_boundary") == "confirmed",
+        "adjacent_distinction_source_role": question_status.get("identity.adjacent_distinction") == "confirmed",
     }
     quality_checks = {
         "preview_primary_sources": len(urls) >= int(required.get("preview_primary_sources", 3)),
@@ -130,6 +231,80 @@ def diversity_gate(verified: dict, plan: dict, *, reviewed: bool,
         **role_checks,
     }
     candidate_ready = bool(confirmed) and all(quality_checks.values())
+    contract_v2 = (
+        plan.get("schema_version") == "wiki-research-plan-v2"
+        and validate_question_contracts(plan)["valid"]
+    )
+    if contract_v2:
+        hard_checks = {"critical_questions_closed": ledger["critical_questions_closed"]}
+        warnings = [name for name, passed in quality_checks.items() if not passed]
+        if ledger["critical_questions_closed"]:
+            decision = "PASS_WITH_DEBT" if warnings else "PASS"
+            pipeline_continue = True
+            candidate_eligible = True
+        elif attempt < repair_budget:
+            decision = "RESEARCH_MORE"
+            pipeline_continue = False
+            candidate_eligible = False
+        else:
+            decision = "EVIDENCE_LIMITED"
+            pipeline_continue = not reviewed
+            candidate_eligible = False
+        strategy_signal = [{
+            "requirement_id": str((row.get("claim") or {}).get("requirement_id") or ""),
+            "locator": str((row.get("claim") or {}).get("believed_locator") or ""),
+            "source": str((row.get("claim") or {}).get("believed_source") or ""),
+            "url": str((row.get("fetchResult") or {}).get("url") or ""),
+        } for row in rows]
+        strategy_hash = hashlib.sha256(json.dumps(
+            strategy_signal, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest()
+        failed_ids = [
+            question_id for question_id, status in
+            ledger["critical_question_status"].items() if status != "confirmed"
+        ]
+        return {
+            "protocol": "wiki-source-diversity-gate-v2",
+            "gate_id": "question_evidence_sufficiency_gate",
+            "gate_version": "question-evidence-governance-v2",
+            "decision": decision,
+            "pipeline_continue": pipeline_continue,
+            "candidate_eligible": candidate_eligible,
+            "checks": hard_checks,
+            "failed_requirement_ids": failed_ids,
+            "quality_assessment": {
+                "protocol": "wiki-source-portfolio-quality-v1",
+                "constraint_class": "quality_target",
+                "default_effect": "warn_and_expand",
+                "checks": quality_checks,
+                "warnings": warnings,
+            },
+            "quality_checks": quality_checks,
+            "warnings": warnings,
+            "question_evidence_ledger": ledger,
+            "repair_target": "research_ready" if decision == "RESEARCH_MORE" else None,
+            "maturity_ceiling": (
+                "wiki_candidate" if candidate_eligible else "evidence_limited"
+                if decision == "EVIDENCE_LIMITED" else "diagnostic_preview"
+            ),
+            "attempt": attempt,
+            "repair_budget": repair_budget,
+            "metrics": {
+                "confirmed_urls": len(urls),
+                "confirmed_domains": len(domains),
+                "technical_domains": len(technical),
+                "confirmed_language_tracks": sorted(languages),
+                **ledger["metrics"],
+                "language_detection": [
+                    {"claim_id": str((row.get("claim") or {}).get("claim_id") or ""),
+                     "language": language, "method": method}
+                    for row, (language, method) in zip(confirmed, detected)
+                ],
+            },
+            "question_contract_sha256": plan.get("question_contract_sha256"),
+            "strategy_hash": strategy_hash,
+            "reviewed": reviewed,
+        }
     hard_checks = {"candidate_source_roles_and_diversity": candidate_ready}
     if reviewed:
         hard_checks.update({
@@ -157,12 +332,15 @@ def diversity_gate(verified: dict, plan: dict, *, reviewed: bool,
         decision = "LIMITED"
     return {
         "protocol": "wiki-source-diversity-gate-v1",
+        "gate_id": "legacy_source_diversity_gate",
+        "gate_version": "source-diversity-v1",
         "decision": decision,
         "pipeline_continue": decision in {"PASS", "LIMITED"},
         "candidate_eligible": decision == "PASS",
         "checks": hard_checks,
         "quality_checks": quality_checks,
         "warnings": warnings,
+        "failed_requirement_ids": [name for name, passed in hard_checks.items() if not passed],
         "repair_target": "research_ready" if decision == "REPAIR" else None,
         "maturity_ceiling": ("wiki_candidate" if decision == "PASS"
                              else "evidence_limited" if decision == "LIMITED"
@@ -210,7 +388,9 @@ def main() -> int:
         str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in inputs
     }
     dump(args.output, result)
-    return 0 if result["decision"] in {"PASS", "PARTIAL", "LIMITED"} else 2
+    return 0 if result.get("pipeline_continue", result["decision"] in {
+        "PASS", "PARTIAL", "LIMITED", "PASS_WITH_DEBT",
+    }) else 2
 
 
 if __name__ == "__main__":

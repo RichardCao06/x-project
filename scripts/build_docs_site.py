@@ -59,6 +59,12 @@ DOCUMENTS = [
         "goal-contract-governance-v2.html", generated=True, kind="design",
     ),
     Document(
+        "architecture", "研究约束治理重设计 v1",
+        "区分阻断契约与质量目标，并以稳定问题契约和逐问题证据闭合替代关键词启发式。",
+        "research-constraint-governance-redesign-v1.html",
+        "research-constraint-governance-redesign-v1.html", kind="design",
+    ),
+    Document(
         "architecture", "自治修复的受控 SCM 发布",
         "偏差 Issue、隔离分支、可追踪 commit、Draft PR、失败降级与基线一致性保护。",
         "system-repair-scm.md",
