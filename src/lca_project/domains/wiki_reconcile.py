@@ -63,6 +63,24 @@ def _paths_for(task_id: str, batch: Path) -> tuple[Path, ...]:
     return (*paths, *declared)
 
 
+def _valid_materialized_artifacts(
+    task_id: str, paths: tuple[Path, ...], *, expected_node: str | None,
+) -> bool:
+    """Apply task-specific protocol checks before hash-bound admission."""
+    if task_id != "content_blueprint":
+        return True
+    try:
+        blueprint = json.loads(paths[0].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return (
+        isinstance(blueprint, dict)
+        and blueprint.get("protocol") == "wiki-content-blueprint-v1"
+        and expected_node is not None
+        and blueprint.get("node_id") == expected_node
+    )
+
+
 def reconcile_wiki_run(root: str | Path, run_id: str, batch_dir: str | Path) -> dict[str, Any]:
     """Admit only present, non-empty, hash-bound artifacts in dependency order."""
     root, batch = Path(root).resolve(), Path(batch_dir).resolve()
@@ -77,6 +95,18 @@ def reconcile_wiki_run(root: str | Path, run_id: str, batch_dir: str | Path) -> 
     if not isinstance(journal.get("state"), str):
         raise WikiReconcileError("invalid Wiki journal")
     orchestrator = PersistentOrchestrator(root)
+    run = orchestrator.state._connection().execute(
+        "SELECT j.payload FROM orchestrator_runs r JOIN jobs j ON j.id=r.job_id "
+        "WHERE r.run_id=?", (run_id,),
+    ).fetchone()
+    if run is None:
+        raise WikiReconcileError(f"workflow run is missing: {run_id}")
+    try:
+        request = ((json.loads(run["payload"]).get("scope") or {}).get("request") or {})
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise WikiReconcileError("workflow Job payload is invalid") from exc
+    nodes = request.get("nodes") or []
+    expected_node = str(nodes[0]) if isinstance(nodes, list) and len(nodes) == 1 else None
     admitted: list[dict[str, Any]] = []
     while True:
         ready = orchestrator.ready(run_id)
@@ -88,6 +118,10 @@ def reconcile_wiki_run(root: str | Path, run_id: str, batch_dir: str | Path) -> 
             paths = _paths_for(task.task_id, batch)
             if not all(path.is_file() and path.stat().st_size > 0 for path in paths):
                 continue
+            if not _valid_materialized_artifacts(
+                task.task_id, paths, expected_node=expected_node,
+            ):
+                continue
             if task.task_id in {"draft_content_gate", "table_population_gate", "release_gate"}:
                 documents = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
                 words = {str(doc.get(key, "")).upper() for doc in documents
@@ -96,7 +130,8 @@ def reconcile_wiki_run(root: str | Path, run_id: str, batch_dir: str | Path) -> 
                     continue
             attempt_id, inputs = orchestrator.claim(run_id, task.task_id)
             receipt = {
-                "protocol": "wiki-artifact-admission-v1", "task_id": task.task_id,
+                "protocol": "wiki-artifact-admission-v1", "run_id": run_id,
+                "task_id": task.task_id,
                 "journal_state": journal["state"], "dependency_hashes": list(inputs),
                 "artifacts": [{"path": str(path.relative_to(root)), "sha256": _digest(path),
                                "bytes": path.stat().st_size} for path in paths],

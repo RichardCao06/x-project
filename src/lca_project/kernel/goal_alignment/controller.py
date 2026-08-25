@@ -858,7 +858,7 @@ class GoalAlignmentController:
     @staticmethod
     def _comparable_previous_score(
         prior: Any, observation: Any,
-    ) -> float | None:
+    ) -> dict[str, Any] | None:
         """Compare only observations from the same artifact-lineage semantics.
 
         A rewind or a newly introduced stale-artifact filter can lower the
@@ -869,19 +869,70 @@ class GoalAlignmentController:
         if prior is None:
             return None
         prior_payload = _payload(prior["payload"])
-        prior_completion = _payload(
-            _payload(prior_payload.get("evidence")).get("task_completion")
+        prior_lineage = _payload(
+            _payload(prior_payload.get("evidence")).get("quality_lineage")
         )
-        current_completion = _payload(
-            _payload(observation.evidence).get("task_completion")
+        current_lineage = _payload(
+            _payload(observation.evidence).get("quality_lineage")
         )
-        prior_tasks = _payload(prior_completion.get("tasks"))
-        current_tasks = _payload(current_completion.get("tasks"))
-        if not prior_tasks or not current_tasks:
+        prior_frontier = prior_lineage.get("protocol_frontier")
+        current_frontier = current_lineage.get("protocol_frontier")
+        if (not isinstance(prior_frontier, list) or not prior_frontier
+                or prior_frontier != current_frontier):
             return None
-        if any(
-            status == "succeeded" and current_tasks.get(task_id) != "succeeded"
-            for task_id, status in prior_tasks.items()
+        if (prior_lineage.get("accepted_protocols") != prior_frontier
+                or current_lineage.get("accepted_protocols") != current_frontier):
+            return None
+        prior_checkpoint = str(prior_lineage.get("quality_checkpoint") or "")
+        current_checkpoint = str(current_lineage.get("quality_checkpoint") or "")
+        if not prior_checkpoint or prior_checkpoint != current_checkpoint:
+            return None
+        prior_run_id = prior_lineage.get("run_id")
+        current_run_id = current_lineage.get("run_id")
+        if prior_checkpoint != "terminal" and prior_run_id != current_run_id:
+            return None
+        prior_producers = _payload(prior_lineage.get("producer_output_hashes"))
+        current_producers = _payload(current_lineage.get("producer_output_hashes"))
+        if set(prior_producers) != set(prior_frontier) or set(current_producers) != set(
+            current_frontier
         ):
             return None
-        return float(prior["score"])
+        if any(
+            not str(_payload(producers.get(protocol)).get("task_id") or "")
+            or not str(_payload(producers.get(protocol)).get("output_hash") or "")
+            for producers in (prior_producers, current_producers)
+            for protocol in prior_frontier
+        ):
+            return None
+        prior_dimensions = _payload(prior_lineage.get("dimension_vector"))
+        current_dimensions = _payload(current_lineage.get("dimension_vector"))
+        if (not prior_dimensions or set(prior_dimensions) != set(current_dimensions)
+                or prior_dimensions != _payload(prior_payload.get("dimensions"))
+                or current_dimensions != dict(observation.dimensions)):
+            return None
+        try:
+            deltas = {
+                name: round(float(current_dimensions[name]) - float(prior_dimensions[name]), 6)
+                for name in sorted(current_dimensions)
+            }
+        except (TypeError, ValueError):
+            return None
+        changed_producers = {
+            protocol: {
+                "prior": prior_producers[protocol],
+                "current": current_producers[protocol],
+            }
+            for protocol in prior_frontier
+            if prior_producers[protocol] != current_producers[protocol]
+        }
+        if not changed_producers:
+            return None
+        return {
+            "previous_score": float(prior["score"]),
+            "current_score": float(observation.score),
+            "lineage_compatible": True,
+            "prior_lineage": prior_lineage,
+            "current_lineage": current_lineage,
+            "dimension_deltas": deltas,
+            "changed_producers": changed_producers,
+        }

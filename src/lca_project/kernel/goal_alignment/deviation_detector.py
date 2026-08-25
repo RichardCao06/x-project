@@ -10,7 +10,7 @@ from .failure_taxonomy import taxonomy_record
 class DeviationDetector:
     def detect(self, *, job: dict[str, Any], run: dict[str, Any] | None,
                tasks: list[dict[str, Any]], observation: QualityObservation,
-               previous_score: float | None = None) -> list[Deviation]:
+               previous_score: float | dict[str, Any] | None = None) -> list[Deviation]:
         result: list[Deviation] = []
         by_id = {str(item["task_id"]): item for item in tasks}
         failed = [item for item in tasks if item.get("status") in {
@@ -95,11 +95,17 @@ class DeviationDetector:
                  "research_outcome": research_outcome},
                 "流程已经结束，但没有产生让 LCA 建模目标前进的字段级证据",
             ))
-        if previous_score is not None and observation.score + 1e-9 < previous_score:
+        comparison = self._eligible_quality_regression(previous_score, observation)
+        if comparison is not None:
             result.append(Deviation(
                 "quality_regression", "high",
-                {"previous_score": previous_score, "current_score": observation.score,
+                {"previous_score": comparison["previous_score"],
+                 "current_score": observation.score,
                  "lineage_compatible": True,
+                 "prior_lineage": comparison["prior_lineage"],
+                 "current_lineage": comparison["current_lineage"],
+                 "dimension_deltas": comparison["dimension_deltas"],
+                 "changed_producers": comparison["changed_producers"],
                  "task_statuses": {
                      task_id: str(item.get("status") or "")
                      for task_id, item in by_id.items()
@@ -107,6 +113,71 @@ class DeviationDetector:
                 "本次执行的目标质量向量相对上一观测发生回退",
             ))
         return result
+
+    @staticmethod
+    def _eligible_quality_regression(
+        value: float | dict[str, Any] | None,
+        observation: QualityObservation,
+    ) -> dict[str, Any] | None:
+        """Fail closed unless a complete frontier-aware comparison is supplied."""
+        if not isinstance(value, dict) or value.get("lineage_compatible") is not True:
+            return None
+        prior = value.get("prior_lineage")
+        current = value.get("current_lineage")
+        deltas = value.get("dimension_deltas")
+        changed = value.get("changed_producers")
+        if not all(isinstance(item, dict) for item in (prior, current, deltas, changed)):
+            return None
+        frontier = prior.get("protocol_frontier")
+        if (not isinstance(frontier, list) or not frontier
+                or frontier != current.get("protocol_frontier")
+                or prior.get("quality_checkpoint") != current.get("quality_checkpoint")):
+            return None
+        if (prior.get("accepted_protocols") != frontier
+                or current.get("accepted_protocols") != frontier):
+            return None
+        if (prior.get("quality_checkpoint") != "terminal"
+                and prior.get("run_id") != current.get("run_id")):
+            return None
+        for lineage in (prior, current):
+            producers = lineage.get("producer_output_hashes")
+            if not isinstance(producers, dict) or set(producers) != set(frontier):
+                return None
+            if any(not str((producers.get(name) or {}).get("task_id") or "")
+                   or not str((producers.get(name) or {}).get("output_hash") or "")
+                   for name in frontier):
+                return None
+        expected_changed = {
+            name: {"prior": prior["producer_output_hashes"][name],
+                   "current": current["producer_output_hashes"][name]}
+            for name in frontier
+            if prior["producer_output_hashes"][name]
+            != current["producer_output_hashes"][name]
+        }
+        if not changed or changed != expected_changed:
+            return None
+        current_dimensions = current.get("dimension_vector")
+        prior_dimensions = prior.get("dimension_vector")
+        if (not isinstance(current_dimensions, dict) or not isinstance(prior_dimensions, dict)
+                or current_dimensions != observation.dimensions
+                or set(current_dimensions) != set(prior_dimensions)
+                or set(deltas) != set(current_dimensions)):
+            return None
+        try:
+            previous = float(value["previous_score"])
+            current_score = float(value["current_score"])
+            expected_deltas = {
+                name: round(float(current_dimensions[name]) - float(prior_dimensions[name]), 6)
+                for name in current_dimensions
+            }
+        except (KeyError, TypeError, ValueError):
+            return None
+        if (abs(current_score - observation.score) > 1e-9
+                or observation.score + 1e-9 >= previous
+                or deltas != expected_deltas
+                or not any(delta < -1e-9 for delta in expected_deltas.values())):
+            return None
+        return value
 
     @staticmethod
     def user_escape(*, message: str, category: str = "user_feedback") -> Deviation:

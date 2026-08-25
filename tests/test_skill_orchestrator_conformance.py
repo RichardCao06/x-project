@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -240,6 +241,62 @@ def test_wiki_reconciler_advances_only_from_frozen_artifacts(tmp_path: Path) -> 
     report = reconcile_wiki_run(root, run_id, batch)
     assert [item["task_id"] for item in report["admitted"]] == ["prepare"]
     assert report["tasks"][2]["status"] == "ready"
+
+
+def test_wiki_reconciler_hash_binds_materialized_blueprint_to_current_freeze(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    job_id = SkillInvoker(root).invoke(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A039"]}
+    )["job_id"]
+    runner = PersistentOrchestrator(root)
+    run_id = runner.materialize(job_id)
+    while True:
+        tasks = {item.task_id: item for item in runner.tasks(run_id)}
+        if tasks["content_blueprint"].status == "ready":
+            break
+        ready = runner.ready(run_id)
+        assert ready
+        for task in ready:
+            attempt_id, _ = runner.claim(run_id, task.task_id)
+            runner.complete(attempt_id, {"task_id": task.task_id})
+    freeze_hash = {item.task_id: item for item in runner.tasks(run_id)}["freeze"].output_hash
+    assert freeze_hash
+    batch = root / "var" / "workspaces" / "a039" / "batch"
+    batch.mkdir(parents=True)
+    (batch / "journal.json").write_text('{"state":"frozen"}', encoding="utf-8")
+
+    missing = reconcile_wiki_run(root, run_id, batch)
+    assert missing["admitted"] == []
+    assert next(item for item in missing["tasks"]
+                if item["task_id"] == "content_blueprint")["status"] == "ready"
+
+    blueprint_path = batch / "content-blueprint.json"
+    blueprint_path.write_text(
+        '{"protocol":"wiki-content-blueprint-v1","node_id":"A040"}', encoding="utf-8"
+    )
+    invalid = reconcile_wiki_run(root, run_id, batch)
+    assert invalid["admitted"] == []
+    assert next(item for item in invalid["tasks"]
+                if item["task_id"] == "content_blueprint")["status"] == "ready"
+
+    blueprint = {"protocol": "wiki-content-blueprint-v1", "node_id": "A039"}
+    blueprint_path.write_text(json.dumps(blueprint), encoding="utf-8")
+    admitted = reconcile_wiki_run(root, run_id, batch)
+
+    row = next(item for item in admitted["tasks"]
+               if item["task_id"] == "content_blueprint")
+    assert row["status"] == "succeeded"
+    receipt = json.loads(runner.control.artifacts.get_bytes(row["output_hash"]))
+    assert receipt["protocol"] == "wiki-artifact-admission-v1"
+    assert receipt["run_id"] == run_id
+    assert receipt["dependency_hashes"] == [freeze_hash]
+    assert receipt["artifacts"] == [{
+        "path": str((batch / "content-blueprint.json").relative_to(root)),
+        "sha256": hashlib.sha256((batch / "content-blueprint.json").read_bytes()).hexdigest(),
+        "bytes": (batch / "content-blueprint.json").stat().st_size,
+    }]
 
 
 def test_repair_retry_is_bounded_and_bound_to_prior_failure(tmp_path: Path) -> None:

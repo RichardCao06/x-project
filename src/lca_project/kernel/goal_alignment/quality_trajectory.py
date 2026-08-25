@@ -120,7 +120,9 @@ class QualityTrajectory:
                 for key, relative in self.FILES.items()}
         rejected_protocols: dict[str, str] = {}
         task_statuses: dict[str, str] = {}
+        tasks_by_id: dict[str, dict[str, Any]] = {}
         if tasks is not None:
+            tasks_by_id = {str(item.get("task_id") or ""): item for item in tasks}
             accepted_tasks, rejected_tasks = self._current_succeeded_tasks(tasks)
             task_statuses = {str(item.get("task_id") or ""): str(item.get("status") or "")
                              for item in tasks}
@@ -192,5 +194,31 @@ class QualityTrajectory:
             },
             "task_completion": {"run_status": run_status, "tasks": task_statuses},
             "rejected_protocols": rejected_protocols,
+        }
+        accepted_protocols = sorted(key for key, value in docs.items() if value)
+        producer_output_hashes = {
+            protocol: {
+                "task_id": self.ARTIFACT_TASKS[protocol],
+                "output_hash": str(
+                    tasks_by_id.get(self.ARTIFACT_TASKS[protocol], {}).get("output_hash") or ""
+                ),
+            }
+            for protocol in accepted_protocols
+            if protocol in self.ARTIFACT_TASKS and tasks is not None
+        }
+        # This is the complete comparison input, persisted with every
+        # observation.  A consumer must not reconstruct lineage later from
+        # mutable task rows or from scalar scores alone.
+        evidence["quality_lineage"] = {
+            "run_id": run_id,
+            "quality_checkpoint": (
+                "terminal"
+                if run_status == "succeeded" and research_outcome.get("workflow_finished") is True
+                else "active"
+            ),
+            "accepted_protocols": accepted_protocols,
+            "protocol_frontier": accepted_protocols,
+            "producer_output_hashes": producer_output_hashes,
+            "dimension_vector": dict(dimensions),
         }
         return QualityObservation(job_id, run_id, goal["goal_id"], dimensions, score, evidence)

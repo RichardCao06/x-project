@@ -50,6 +50,25 @@ def observation(*, candidate: bool = False, score: float = 0.0) -> QualityObserv
                               score, {"maturity": {"candidate_eligible": candidate}})
 
 
+def with_lineage(
+    value: QualityObservation, *, run_id: str, checkpoint: str,
+    frontier: list[str], output_hash: str,
+) -> QualityObservation:
+    producers = {
+        protocol: {"task_id": protocol, "output_hash": output_hash}
+        for protocol in frontier
+    }
+    value.evidence["quality_lineage"] = {
+        "run_id": run_id,
+        "quality_checkpoint": checkpoint,
+        "accepted_protocols": list(frontier),
+        "protocol_frontier": list(frontier),
+        "producer_output_hashes": producers,
+        "dimension_vector": dict(value.dimensions),
+    }
+    return value
+
+
 def test_goal_contract_is_versioned_weighted_and_immutable(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     plane = ControlPlane(root)
@@ -78,34 +97,66 @@ def test_a040_mutation_is_detected_as_false_pass() -> None:
 
 
 def test_rewind_or_measurement_correction_is_not_quality_regression() -> None:
-    prior = {
-        "score": 0.33,
-        "payload": json.dumps({"evidence": {"task_completion": {"tasks": {
-            "content_compose": "succeeded", "maturity_gate": "succeeded",
-        }}}}),
-    }
-    current = observation(score=0.15)
-    current.evidence["task_completion"] = {"tasks": {
-        "content_compose": "ready", "maturity_gate": "pending",
-    }}
+    previous = with_lineage(
+        observation(score=0.33), run_id="run_previous", checkpoint="terminal",
+        frontier=["blueprint", "maturity"], output_hash="prior-output",
+    )
+    prior = {"score": previous.score, "payload": json.dumps(previous.asdict())}
+    current = with_lineage(
+        observation(score=0.15), run_id="run_current", checkpoint="active",
+        frontier=["blueprint"], output_hash="current-output",
+    )
 
     comparable = GoalAlignmentController._comparable_previous_score(prior, current)
 
     assert comparable is None
+    deviations = DeviationDetector().detect(
+        job={"status": "ready"}, run={"status": "ready"}, tasks=[],
+        observation=current, previous_score=comparable,
+    )
+    assert all(item.deviation_type != "quality_regression" for item in deviations)
 
 
 def test_comparable_regression_carries_lineage_proof() -> None:
-    current = observation(score=0.15)
+    previous = with_lineage(
+        observation(score=0.33), run_id="run_previous", checkpoint="terminal",
+        frontier=["maturity"], output_hash="prior-maturity-output",
+    )
+    current = with_lineage(
+        observation(score=0.15), run_id="run_current", checkpoint="terminal",
+        frontier=["maturity"], output_hash="current-maturity-output",
+    )
+    comparable = GoalAlignmentController._comparable_previous_score(
+        {"score": previous.score, "payload": json.dumps(previous.asdict())}, current,
+    )
+    assert comparable is not None
     deviations = DeviationDetector().detect(
-        job={"status": "ready"}, run={"status": "ready"},
+        job={"status": "evidence_limited"}, run={"status": "succeeded"},
         tasks=[{"task_id": "content_compose", "status": "succeeded"}],
-        observation=current, previous_score=0.33,
+        observation=current, previous_score=comparable,
     )
 
     regression = next(item for item in deviations
                       if item.deviation_type == "quality_regression")
     assert regression.evidence["lineage_compatible"] is True
     assert regression.evidence["task_statuses"]["content_compose"] == "succeeded"
+    assert regression.evidence["dimension_deltas"]["identity_fidelity"] == -0.18
+    assert regression.evidence["prior_lineage"]["protocol_frontier"] == ["maturity"]
+    assert regression.evidence["current_lineage"]["producer_output_hashes"]["maturity"][
+        "output_hash"
+    ] == "current-maturity-output"
+    assert set(regression.evidence["changed_producers"]) == {"maturity"}
+
+
+def test_scalar_score_alone_is_not_regression_evidence() -> None:
+    current = observation(score=0.15)
+
+    deviations = DeviationDetector().detect(
+        job={"status": "ready"}, run={"status": "ready"}, tasks=[],
+        observation=current, previous_score=0.33,
+    )
+
+    assert all(item.deviation_type != "quality_regression" for item in deviations)
 
 
 def test_quality_regression_requires_evidence_backed_agent_triage() -> None:
@@ -821,6 +872,46 @@ def test_pending_or_lineage_stale_maturity_cannot_finish_workflow(tmp_path: Path
         assert observed.evidence["research_outcome"]["workflow_finished"] is False
         assert observed.evidence["research_outcome"]["evaluated"] is False
         assert observed.evidence["rejected_protocols"]["maturity"] == reason
+
+
+def test_terminal_evidence_limited_observation_persists_hash_bound_lineage(
+    tmp_path: Path,
+) -> None:
+    batch = tmp_path / "batch"
+    batch.mkdir()
+    (batch / "maturity-gate.json").write_text(json.dumps({
+        "decision": "LIMITED",
+        "maturity": "evidence_limited",
+        "candidate_eligible": False,
+        "data_readiness": "no_eligible_public_data",
+        "checks": {"explicit_gaps_have_search_provenance": True},
+    }), encoding="utf-8")
+    goal = json.loads((ROOT / "policies/wiki-goal-contract-v1.json").read_text())
+
+    observed = QualityTrajectory().observe(
+        job_id="a039", run_id="run_terminal", goal=goal, batch=batch,
+        run_status="succeeded", tasks=[{
+            "task_id": "maturity_gate", "status": "succeeded", "dependencies": [],
+            "recorded_input_hashes": [], "output_hash": "maturity-output-manifest",
+        }],
+    )
+
+    lineage = observed.evidence["quality_lineage"]
+    assert observed.evidence["maturity"]["maturity"] == "evidence_limited"
+    assert observed.dimensions["gap_provenance"] == 1.0
+    assert lineage == {
+        "run_id": "run_terminal",
+        "quality_checkpoint": "terminal",
+        "accepted_protocols": ["maturity"],
+        "protocol_frontier": ["maturity"],
+        "producer_output_hashes": {
+            "maturity": {
+                "task_id": "maturity_gate",
+                "output_hash": "maturity-output-manifest",
+            },
+        },
+        "dimension_vector": observed.dimensions,
+    }
 
 
 def test_system_repair_claims_must_bind_causal_change_and_proof_to_patch() -> None:
