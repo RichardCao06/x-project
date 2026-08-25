@@ -21,7 +21,7 @@ def compile_action_graph(triage_run_id: str, result: dict[str, Any]) -> dict[str
     }
     graph_id = "crg_" + digest(graph_seed)[:32]
     actions: list[dict[str, Any]] = []
-    automatic_ids: list[str] = []
+    prior_ids: list[str] = []
     for ordinal, raw in enumerate(raw_actions):
         authority = str(raw.get("authority") or "operator")
         action_id = "cra_" + digest({
@@ -35,12 +35,14 @@ def compile_action_graph(triage_run_id: str, result: dict[str, Any]) -> dict[str
             "authority": authority,
             "risk": str(result.get("risk") or "high"),
             "status": "ready" if automatic else "awaiting_authority",
-            "dependencies": ([] if automatic else list(automatic_ids)),
+            # Operator-gated recovery steps are ordered as proposed.  This
+            # keeps materialization before rewind and rewind before resume,
+            # while every operator step remains blocked on earlier analysis.
+            "dependencies": ([] if automatic else list(prior_ids)),
             "proof_contract": list(result.get("proof_contract") or []),
         }
         actions.append(action)
-        if automatic:
-            automatic_ids.append(action_id)
+        prior_ids.append(action_id)
     return {
         "schema_version": "control-repair-action-graph-v1",
         "graph_id": graph_id,

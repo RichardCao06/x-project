@@ -189,6 +189,39 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _draft_apply_recovery_args(batch: Path) -> list[str]:
+    """Select rehydration only for the exact current plan generation."""
+    gate_path = batch / "draft-content-gate.json"
+    if not gate_path.is_file():
+        raise CapabilityAdapterError("draft apply requires a frozen draft content gate")
+    try:
+        gate = json.loads(gate_path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise CapabilityAdapterError("draft content gate is not valid JSON") from exc
+    plan_value = str(gate.get("plan") or "")
+    if not plan_value:
+        raise CapabilityAdapterError("draft content gate has no merge plan")
+    plan = Path(plan_value).resolve()
+    expected_digest = str(gate.get("plan_sha256") or "")
+    if not plan.is_file() or _sha256(plan) != expected_digest:
+        raise CapabilityAdapterError("draft content gate does not bind current plan bytes")
+    transaction_path = batch / "apply-transaction.json"
+    if transaction_path.is_file():
+        try:
+            transaction = json.loads(transaction_path.read_text(encoding="utf-8"))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise CapabilityAdapterError("draft apply transaction is not valid JSON") from exc
+        if (
+            transaction.get("state") == "committed"
+            and Path(str(transaction.get("plan") or "")).resolve() == plan
+            and transaction.get("plan_sha256") == expected_digest
+        ):
+            return ["--rehydrate"]
+    # Supplying the current plan explicitly selects the existing remediation
+    # branch, whose plan seed preflight remains fail closed on unknown drift.
+    return ["--plan", str(plan)]
+
+
 def _reusable_executed_table_matrix(plan_path: Path, executed_path: Path) -> bool:
     """Return true only for a completed execution bound to the current plan bytes."""
     if not plan_path.is_file() or not executed_path.is_file():
@@ -951,8 +984,9 @@ def release(value: dict[str, Any]) -> dict[str, Any]:
         workspace = _path(value.get("workspace"), "workspace")
         batch = _path(value.get("batch"), "batch")
         script = workspace / "scripts/wiki_batch.py"
+        recovery_args = _draft_apply_recovery_args(batch)
         return _run([sys.executable, str(script), "apply", str(batch / "prepared.json"),
-                     "--resume", "--rehydrate",
+                     "--resume", *recovery_args,
                      "--draft-gate", str(batch / "draft-content-gate.json"),
                      "--output", str(batch / "content-apply-report.json")],
                     cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)))

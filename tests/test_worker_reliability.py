@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -282,6 +283,59 @@ def test_operator_rewind_invalidates_target_and_descendants(tmp_path: Path) -> N
     assert tasks["research_plan"].status == "pending"
     assert orchestrator.control.state.get("jobs", job_id)["status"] == "ready"
     assert orchestrator.try_reuse(run_id, "prepare") is None
+
+
+def test_rewind_preserves_latest_materialized_output_lineage(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    job_id, run_id = create_run(root)
+    orchestrator = PersistentOrchestrator(root)
+    workspace = root / "var/workspaces/jobs" / job_id
+    page = workspace / "wiki/ict/activities/A039--lineage.md"
+    registry = workspace / "sources/ict/registry.json"
+    page.parent.mkdir(parents=True, exist_ok=True)
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text("draft output\n", encoding="utf-8")
+    registry.write_text('{"sources":{"draft":{}}}\n', encoding="utf-8")
+    outputs = [
+        {"path": str(page.relative_to(workspace)), "role": "materialized_output"},
+        {"path": str(registry.relative_to(workspace)), "role": "materialized_output"},
+    ]
+    draft = orchestrator.control.artifacts.put_task_output_manifest(
+        workspace, outputs, {"status": "ok"}, run_id=run_id,
+        task_id="draft_apply", attempt_id="attempt_draft",
+    )
+    page.write_text("table descendant output\n", encoding="utf-8")
+    registry.write_text('{"sources":{"table":{}}}\n', encoding="utf-8")
+    table = orchestrator.control.artifacts.put_task_output_manifest(
+        workspace, outputs, {"status": "ok"}, run_id=run_id,
+        task_id="table_apply", attempt_id="attempt_table",
+    )
+    with orchestrator.state.transaction() as conn:
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',attempt=1,output_hash=? "
+            "WHERE run_id=? AND task_id='draft_apply'", (draft.digest, run_id),
+        )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',attempt=1,output_hash=? "
+            "WHERE run_id=? AND task_id='table_apply'", (table.digest, run_id),
+        )
+
+    orchestrator.rewind_from(run_id, "draft_apply", reason="lineage regression")
+
+    preserved = orchestrator.materialized_output_lineage(run_id)
+    assert preserved["targets"][str(page.relative_to(workspace))]["classification"] == (
+        "legitimate_descendant_output"
+    )
+    assert preserved["targets"][str(registry.relative_to(workspace))]["sha256"] == (
+        hashlib.sha256(registry.read_bytes()).hexdigest()
+    )
+    assert {item["sha256"] for item in preserved["manifests"]} == {
+        draft.digest, table.digest,
+    }
+    event = [item for item in orchestrator.control.events.read(
+        "workflow_run", run_id
+    ) if item.event_type == "workflow.rewound"][-1]
+    assert event.payload["materialization_lineage"] == preserved
 
 
 def test_baseline_and_verification_are_immutable_artifacts(tmp_path: Path) -> None:
