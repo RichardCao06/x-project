@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from .models import Deviation, QualityObservation
+from .failure_taxonomy import taxonomy_record
 
 
 class DeviationDetector:
@@ -22,6 +23,10 @@ class DeviationDetector:
             if isinstance(payload, str):
                 payload = {}
             message = str(payload.get("message") or "")
+            taxonomy = taxonomy_record(
+                task_id=str(task.get("task_id") or ""), failure_code=code,
+                payload=payload,
+            )
             if (code == "CAPABILITY_PROCESS_FAILED"
                     and str(task.get("task_id")) == "draft_content_gate"
                     and "Editorial Review GO" in message):
@@ -30,6 +35,7 @@ class DeviationDetector:
                     {"task_id": task["task_id"], "failure_code": code,
                      "attempt": int(task.get("attempt") or 0),
                      "failure": payload,
+                     **taxonomy,
                      "contract": "editorial_policy_vs_raw_review"},
                     "Editorial Policy 已放行，但下游仍按原始 NO_GO 拒绝同一内容",
                 ))
@@ -39,7 +45,7 @@ class DeviationDetector:
                     "false_block", "high",
                     {"task_id": task["task_id"], "failure_code": code,
                      "attempt": int(task.get("attempt") or 0),
-                     "failure": payload},
+                     "failure": payload, **taxonomy},
                     "可恢复的发现查询翻译缺口被错误升级为人工阻塞",
                 ))
                 specialized = True
@@ -49,14 +55,15 @@ class DeviationDetector:
                     {"task_id": task["task_id"], "failure_code": code,
                      "attempt": int(task.get("attempt") or 0),
                      "failure_fingerprint": payload.get("failure_fingerprint"),
-                     "failure": payload},
+                     "failure": payload, **taxonomy},
                     "相同失败指纹重复出现，盲目重试没有改变系统行为",
                 ))
             elif not specialized:
                 result.append(Deviation(
                     "unclassified_failure", "high",
                     {"task_id": task["task_id"], "failure_code": code,
-                     "attempt": int(task.get("attempt") or 0), "failure": payload},
+                     "attempt": int(task.get("attempt") or 0), "failure": payload,
+                     **taxonomy},
                     "确定性规则无法解释该失败，需要基于问题本身进行只读根因调查",
                 ))
         maturity = observation.evidence.get("maturity") or {}

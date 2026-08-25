@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Validate that a frozen Wiki research plan can execute real bilingual discovery."""
+"""Validate that a frozen Wiki research plan can start evidence discovery.
+
+English terminology and field translations are discovery-quality signals.  They
+must remain visible, but an incomplete optional English track cannot prevent the
+Chinese track from executing.  Actual bilingual coverage is proven by the
+executed-search and source-diversity gates later in the workflow.
+"""
 from __future__ import annotations
 
 import argparse
@@ -7,6 +13,13 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import sys
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from wiki_research_contract import validate_question_contracts
 
 
 REQUIRED_QUESTIONS = {
@@ -73,16 +86,55 @@ def evaluate(plan: dict) -> dict:
             (plan.get("source_role_contract") or {}).keys()
         ),
     }
-    if str(plan.get("node_id")) == "A039" or field_contract:
+    contract_validation = validate_question_contracts(plan)
+    if plan.get("schema_version") == "wiki-research-plan-v2":
+        checks["research_question_contracts_valid"] = contract_validation["valid"]
+    # Static field translations make English queries more precise, but unknown
+    # activity schemas are expected to expand this track at table-collection
+    # time.  Keep the coverage signal without turning it into a G1 false block.
+    if str(plan.get("node_id") or "").startswith("A") or field_contract:
         checks["english_field_translation_coverage_complete"] = complete_field_contract
-    failures = [name for name, passed in checks.items() if not passed]
+    advisory_names = {
+        "english_discovery_terms_present",
+        "english_translation_audited",
+        "english_terms_are_actually_english",
+        "english_field_translation_coverage_complete",
+    }
+    failures = [
+        name for name, passed in checks.items()
+        if not passed and name not in advisory_names
+    ]
+    warnings = [
+        name for name, passed in checks.items()
+        if not passed and name in advisory_names
+    ]
+    constraint_classes = {
+        name: ("quality_target" if name in advisory_names else "goal_acceptance")
+        for name in checks
+    }
     return {
         "protocol": "wiki-research-plan-gate-v1",
+        "gate_id": "research_plan_gate",
+        "gate_version": "research-plan-governance-v2",
         "decision": "PASS" if not failures else "REPAIR",
+        "pipeline_continue": not failures,
         "checks": checks,
         "failures": failures,
+        "failed_requirement_ids": failures,
+        "warnings": warnings,
+        "advisory_checks": sorted(advisory_names & set(checks)),
+        "constraint_classes": constraint_classes,
+        "question_contract_validation": contract_validation,
+        "question_contract_sha256": plan.get("question_contract_sha256"),
+        "translation_policy": (
+            "execute_available_queries_and_expand_english_terms_from_runtime_results"
+        ),
         "repair_target": "research_plan" if failures else None,
-        "maturity_ceiling": "wiki_candidate" if not failures else "diagnostic_preview",
+        "maturity_ceiling": (
+            "evidence_limited" if not failures and warnings
+            else "wiki_candidate" if not failures
+            else "diagnostic_preview"
+        ),
     }
 
 

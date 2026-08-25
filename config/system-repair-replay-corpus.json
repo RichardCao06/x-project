@@ -1,0 +1,41 @@
+{
+  "schema_version": "system-repair-replay-corpus-v1",
+  "families": {
+    "research_contract": [
+      "tests/test_wiki_goal_aligned_gates.py",
+      "tests/test_table_collection_runtime.py"
+    ],
+    "evidence_fetch": [
+      "tests/test_table_collection_runtime.py",
+      "tests/test_dashboard.py"
+    ],
+    "evidence_extraction": [
+      "tests/test_table_evidence_selection.py",
+      "tests/test_table_collection_runtime.py"
+    ],
+    "table_contract": [
+      "tests/wiki_phase2/test_wiki_table_population.py",
+      "tests/test_table_evidence_selection.py"
+    ],
+    "content_semantics": [
+      "tests/test_wiki_draft_gate_policy.py",
+      "tests/test_editorial_policy.py"
+    ],
+    "editorial_patch": [
+      "tests/test_editorial_policy.py",
+      "tests/test_goal_alignment.py"
+    ],
+    "terminal_semantics": [
+      "tests/test_wiki_goal_aligned_gates.py",
+      "tests/test_autonomous_supervisor.py"
+    ],
+    "repair_governance": [
+      "tests/test_goal_alignment.py",
+      "tests/test_system_repair_scm.py"
+    ],
+    "runtime_protocol": [
+      "tests/test_structured_failures.py",
+      "tests/test_worker_reliability.py"
+    ]
+  }
+}

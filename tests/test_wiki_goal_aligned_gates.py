@@ -47,8 +47,13 @@ def test_missing_english_name_gets_audited_english_discovery_terms(tmp_path: Pat
     assert terms and all(not re.search(r"[\u3400-\u9fff]", term) for term in terms)
     assert "laptop computer" in " ".join(terms)
     gate = load_script("gate_wiki_research_plan.py").evaluate(plan)
+    # Static English field coverage is visible, but discovery can start on the
+    # Chinese track and expand English terms from runtime search evidence.
     assert gate["decision"] == "PASS"
+    assert gate["pipeline_continue"] is True
     assert gate["checks"]["english_translation_audited"] is True
+    assert gate["checks"]["english_field_translation_coverage_complete"] is False
+    assert gate["warnings"] == ["english_field_translation_coverage_complete"]
 
 
 def test_l1_translation_repair_artifact_changes_next_research_plan(tmp_path: Path) -> None:
@@ -92,8 +97,67 @@ def test_l1_translation_repair_artifact_changes_next_research_plan(tmp_path: Pat
 
     del plan["field_translations"]["返工率"]
     gate = load_script("gate_wiki_research_plan.py").evaluate(plan)
-    assert gate["decision"] == "REPAIR"
+    assert gate["decision"] == "PASS"
     assert gate["checks"]["english_field_translation_coverage_complete"] is False
+    assert "english_field_translation_coverage_complete" in gate["warnings"]
+
+
+def test_a013_activity_field_contract_matches_blueprint_and_gate_fails_closed() -> None:
+    blueprint_builder = load_script("build_wiki_content_blueprint.py")
+    plan_builder = load_script("build_wiki_research_plan.py")
+    gate_builder = load_script("gate_wiki_research_plan.py")
+    graph = json.loads((
+        ROOT / "vendor/lca_cornerstone/fixtures/wiki-phase2/docs/ict_equipment-name-graph.json"
+    ).read_text(encoding="utf-8"))
+    blueprint = blueprint_builder.build(graph, "A013")
+    translations, contract = plan_builder.field_translation_contract("A013")
+    expected = {
+        field for fields in blueprint["evidence_tables"].values() for field in fields
+    }
+
+    assert contract is not None
+    assert contract["required_field_count"] == 35
+    assert set(translations) == expected
+    assert all(not re.search(
+        r"[\u3400-\u9fff]|(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", value,
+    ) for value in translations.values())
+    plan = {
+        "node_id": "A013", "languages": ["zh", "en"],
+        "terminology": {
+            "canonical_zh": blueprint["node_name"],
+            "canonical_en": "100G/400G 2U network switch final assembly",
+            "candidate_aliases_en": [],
+        },
+        "research_questions": sorted(gate_builder.REQUIRED_QUESTIONS),
+        "source_role_contract": {
+            key: "test" for key in gate_builder.REQUIRED_SOURCE_ROLES
+        },
+        "field_translations": translations, "field_translation_contract": contract,
+    }
+    assert gate_builder.evaluate(plan)["decision"] == "PASS"
+
+    plan.pop("field_translation_contract")
+    plan["field_translations"] = {}
+    rejected = gate_builder.evaluate(plan)
+    assert rejected["decision"] == "PASS"
+    assert rejected["checks"]["english_field_translation_coverage_complete"] is False
+    assert rejected["maturity_ceiling"] == "evidence_limited"
+
+
+def test_research_plan_gate_still_blocks_missing_executable_chinese_identity() -> None:
+    gate = load_script("gate_wiki_research_plan.py")
+    result = gate.evaluate({
+        "node_id": "A019", "languages": ["zh", "en"],
+        "terminology": {},
+        "research_questions": sorted(gate.REQUIRED_QUESTIONS),
+        "source_role_contract": {
+            key: "test" for key in gate.REQUIRED_SOURCE_ROLES
+        },
+    })
+
+    assert result["decision"] == "REPAIR"
+    assert result["pipeline_continue"] is False
+    assert result["failures"] == ["canonical_chinese_present"]
 
 
 def test_semantic_closure_has_no_character_count_requirement() -> None:
@@ -151,7 +215,16 @@ def maturity_batch(tmp_path: Path, *, a040_like: bool) -> Path:
         "fields": [gap] if limited else [],
         "accepted_evidence": [] if limited else [{"field": "mass"}],
     })
-    _write(batch / "table-data/collection.json", {"tables": {}})
+    populated = 0 if limited else 1
+    _write(batch / "table-data/collection.json", {"tables": {
+        "props": ([] if limited else [{"field": "mass", "status": "populated"}]),
+    }})
+    _write(batch / "table-data/table-population-gate.json", {
+        "verdict": "INCOMPLETE" if limited else "GO",
+        "contract_valid": True,
+        "goal_readiness": {"populated_fields": populated,
+                           "goal_data_ready": bool(populated)},
+    })
     _write(batch / "verify-output.json", {"claims": [{
         "claim": {"requirement_id": "identity.definition"},
         "verify": {"verdict": "CONFIRMED"},
@@ -167,6 +240,8 @@ def test_a040_like_semantic_and_evidence_debt_cannot_become_candidate(tmp_path: 
     assert result["data_readiness"] == "no_eligible_public_data"
     assert result["checks"]["graph_semantic_conflicts_resolved"] is False
     assert result["checks"]["explicit_gaps_have_search_provenance"] is True
+    assert result["checks"]["accepted_field_evidence_nonzero"] is False
+    assert result["checks"]["populated_model_fields_nonzero"] is False
 
 
 def test_golden_case_reaches_wiki_candidate(tmp_path: Path) -> None:
@@ -176,3 +251,74 @@ def test_golden_case_reaches_wiki_candidate(tmp_path: Path) -> None:
     assert result["candidate_eligible"] is True
     assert result["maturity"] == "wiki_candidate"
     assert result["data_readiness"] == "data_ready"
+    assert result["checks"]["accepted_field_evidence_nonzero"] is True
+    assert result["checks"]["populated_model_fields_nonzero"] is True
+
+
+def test_source_diversity_limit_remains_evidence_limited_without_new_research(
+    tmp_path: Path,
+) -> None:
+    gate = load_script("gate_wiki_maturity.py")
+    batch = maturity_batch(tmp_path, a040_like=False)
+    _write(batch / "source-diversity-gate.json", {
+        "decision": "LIMITED", "pipeline_continue": True,
+        "warnings": ["only_two_confirmed_domains"],
+    })
+
+    result = gate.evaluate(batch)
+
+    assert result["decision"] == "LIMITED"
+    assert result["pipeline_continue"] is True
+    assert result["candidate_eligible"] is False
+    assert result["maturity"] == "evidence_limited"
+    assert result["checks"]["source_roles_candidate_ready"] is False
+
+
+def test_recoverable_fetch_or_extraction_gap_keeps_autonomous_pipeline_open(
+    tmp_path: Path,
+) -> None:
+    gate = load_script("gate_wiki_maturity.py")
+    batch = maturity_batch(tmp_path, a040_like=False)
+    _write(batch / "table-data/evidence-selection.json", {
+        "outcome": "NO_ELIGIBLE_PUBLIC_DATA", "accepted_evidence": [],
+        "fields": [], "reason_counts": {},
+        "candidate_audits": [{
+            "decision": "rejected", "reasons": ["payload_not_fetched"],
+        }],
+    })
+    _write(batch / "table-data/collection.json", {"tables": {"props": []}})
+    _write(batch / "table-data/table-population-gate.json", {
+        "verdict": "INCOMPLETE", "contract_valid": True,
+        "goal_readiness": {"populated_fields": 0, "goal_data_ready": False},
+    })
+
+    result = gate.evaluate(batch)
+
+    assert result["candidate_eligible"] is False
+    assert result["pipeline_continue"] is True
+    assert result["quality_debt"]["recoverable_reason_codes"] == [
+        "payload_not_fetched"
+    ]
+
+
+def test_exhausted_internal_only_gap_stops_autonomous_research_loop(
+    tmp_path: Path,
+) -> None:
+    gate = load_script("gate_wiki_maturity.py")
+    batch = maturity_batch(tmp_path, a040_like=False)
+    _write(batch / "table-data/evidence-selection.json", {
+        "outcome": "NO_ELIGIBLE_PUBLIC_DATA", "accepted_evidence": [],
+        "fields": [],
+        "reason_counts": {"field_requires_node_specific_internal_record": 2},
+        "candidate_audits": [],
+    })
+    _write(batch / "table-data/collection.json", {"tables": {"props": []}})
+    _write(batch / "table-data/table-population-gate.json", {
+        "verdict": "INCOMPLETE", "contract_valid": True,
+        "goal_readiness": {"populated_fields": 0, "goal_data_ready": False},
+    })
+
+    result = gate.evaluate(batch)
+
+    assert result["candidate_eligible"] is False
+    assert result["pipeline_continue"] is False

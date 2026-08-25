@@ -11,10 +11,13 @@ from typing import Any, Callable
 
 from ...control import ControlPlane
 from ...domains.wiki_workspace import WikiWorkspaceBuilder
+from ..leases import LeaseLost
 from ..orchestrator import PersistentOrchestrator
 from ..state import utcnow
 from .change_controller import ChangeController
+from .execution_ownership import ExecutionOwnership
 from .store import canonical, digest
+from .system_repair_scm import SystemRepairScmPublisher
 
 
 AgentRunner = Callable[[Path, dict[str, Any]], dict[str, Any]]
@@ -32,19 +35,22 @@ class SystemRepairAgent:
     # These states are non-executable.  ``awaiting_outcome_validation`` is not
     # a successful repair result; it only means the validated patch is live and
     # the official recovery branch must now prove goal improvement.
-    TERMINAL = {"promoted", "awaiting_outcome_validation", "effective",
+    TERMINAL = {"promoted", "awaiting_scm_publication", "replan_required",
+                "awaiting_outcome_validation", "effective",
                 "partially_effective", "ineffective", "awaiting_approval",
                 "rejected", "rolled_back"}
     ALLOWED_PREFIXES = (
         "src/lca_project/", "scripts/", "vendor/lca_cornerstone/scripts/",
         "tests/", "policies/", "contracts/", "workflows/", "capabilities/",
         "config/wiki-table-document-routes.json",
+        "docs/migration-manifest.json",
         "docs/wiki-phase2-migration-manifest.json",
     )
     PROTECTED_PATHS = {
         "policies/wiki-goal-contract-v1.json",
         "policies/governance-v1.json",
         "capabilities/release.apply@1.json",
+        "config/system-repair-replay-corpus.json",
     }
     IGNORED_NAMES = {
         ".git", ".idea", ".pytest_cache", ".mypy_cache", ".ruff_cache",
@@ -64,13 +70,15 @@ class SystemRepairAgent:
 
     def __init__(self, root: str | Path, control: ControlPlane | None = None, *,
                  agent_runner: AgentRunner | None = None,
-                 validator: Validator | None = None) -> None:
+                 validator: Validator | None = None,
+                 scm_publisher: SystemRepairScmPublisher | None = None) -> None:
         self.root = Path(root).resolve()
         self.control = control or ControlPlane(self.root)
         self.state = self.control.state
         self.agent_runner = agent_runner or self._run_codex
         self.validator = validator or self._validate
         self.changes = ChangeController(self.root, self.control)
+        self.scm = scm_publisher or SystemRepairScmPublisher(self.root, self.control)
 
     @staticmethod
     def _repair_fingerprint(request: dict[str, Any]) -> str:
@@ -83,10 +91,25 @@ class SystemRepairAgent:
             or ""
         )
 
+    @staticmethod
+    def _causal_plan_hash(request: dict[str, Any]) -> str:
+        """Hash the proposed causal intervention, independent of prose noise."""
+        changes = [
+            {
+                "causal_input": str(item.get("causal_input") or item.get("target") or ""),
+                "change": str(item.get("change") or item.get("implementation") or ""),
+                "expected_effect": str(item.get("expected_effect") or ""),
+            }
+            for item in request.get("causal_input_changes") or []
+            if isinstance(item, dict)
+        ]
+        return digest({"causal_input_changes": changes}) if changes else ""
+
     def queue(self, *, candidate_id: str, source_job_id: str,
               source_run_id: str | None, request: dict[str, Any]) -> dict[str, Any]:
         triage_run_id = str(request.get("triage_run_id") or "")
         repair_fingerprint = self._repair_fingerprint(request)
+        causal_plan_hash = self._causal_plan_hash(request)
         if triage_run_id or repair_fingerprint:
             rows = self.state._connection().execute(
                 "SELECT repair_run_id,status,payload FROM system_repair_runs "
@@ -94,10 +117,14 @@ class SystemRepairAgent:
                 "ORDER BY created_at DESC", (source_job_id, source_run_id),
             )
             active = {
-                "queued", "coding", "validating", "awaiting_approval", "promoted",
+                "queued", "coding", "validating", "awaiting_scm_publication",
+                "awaiting_approval", "promoted",
                 "awaiting_outcome_validation", "effective", "partially_effective",
             }
             for row in rows:
+                if str(request.get("supersedes_repair_run_id") or "") == str(
+                        row["repair_run_id"]):
+                    continue
                 payload = json.loads(row["payload"])
                 prior_request = payload.get("request") or {}
                 same_triage = bool(
@@ -108,6 +135,10 @@ class SystemRepairAgent:
                     repair_fingerprint
                     and self._repair_fingerprint(prior_request) == repair_fingerprint
                 )
+                same_causal_plan = bool(
+                    causal_plan_hash
+                    and self._causal_plan_hash(prior_request) == causal_plan_hash
+                )
                 if row["status"] in active and (same_triage or same_failure):
                     self.control.events.append(
                         "system_repair", str(row["repair_run_id"]),
@@ -115,6 +146,18 @@ class SystemRepairAgent:
                             "triage_run_id": triage_run_id,
                             "failure_fingerprint": repair_fingerprint,
                             "suppressed_candidate_id": candidate_id,
+                        }, actor="goal-alignment-controller",
+                    )
+                    return self.get(str(row["repair_run_id"]))
+                if (row["status"] in {"ineffective", "failed", "rejected", "rolled_back"}
+                        and same_failure and same_causal_plan):
+                    self.control.events.append(
+                        "system_repair", str(row["repair_run_id"]),
+                        "system_repair.causal_replan_required", {
+                            "failure_fingerprint": repair_fingerprint,
+                            "causal_plan_hash": causal_plan_hash,
+                            "suppressed_candidate_id": candidate_id,
+                            "prior_status": row["status"],
                         }, actor="goal-alignment-controller",
                     )
                     return self.get(str(row["repair_run_id"]))
@@ -129,6 +172,8 @@ class SystemRepairAgent:
             "repair_run_id": repair_run_id, "candidate_id": candidate_id,
             "source_job_id": source_job_id, "source_run_id": source_run_id,
             "request": request,
+            "failure_fingerprint": repair_fingerprint or None,
+            "causal_plan_hash": causal_plan_hash or None,
         }
         with self.state.transaction() as conn:
             conn.execute(
@@ -141,6 +186,12 @@ class SystemRepairAgent:
                                        "candidate_id": candidate_id,
                                        "source_job_id": source_job_id,
                                    }, actor="goal-alignment-controller")
+        if self.scm.enabled:
+            repair = self.get(repair_run_id)
+            scm = self.scm.publish_issue(repair, self.changes.get(candidate_id))
+            payload = dict(repair["payload"])
+            payload["scm"] = scm
+            self._set(repair_run_id, "queued", payload=payload)
         return self.get(repair_run_id)
 
     def supersede_duplicate(self, repair_run_id: str, *, canonical_repair_run_id: str) -> dict[str, Any]:
@@ -239,29 +290,91 @@ class SystemRepairAgent:
     def _refresh_integrity_anchors(
         sandbox: Path, before: dict[str, str], agent_changed: list[str],
     ) -> list[str]:
-        """Update only pre-existing immutable-asset anchors changed by the Agent."""
-        manifest_path = sandbox / "docs/wiki-phase2-migration-manifest.json"
-        if not manifest_path.is_file():
-            return []
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        anchors = manifest.get("anchor_hashes")
-        if not isinstance(anchors, dict):
-            return []
+        """Atomically refresh every declared anchor for changed vendored assets.
+
+        Both migration manifests are generated governance evidence.  The Agent
+        may not edit either directly; this deterministic adapter updates only
+        rows already bound to an asset that the Agent actually changed.
+        """
         updated: list[str] = []
         changed_set = set(agent_changed)
-        for relative in sorted(anchors):
-            repository_path = f"vendor/lca_cornerstone/{relative}"
-            target = sandbox / repository_path
-            if (repository_path not in changed_set or repository_path not in before
-                    or not target.is_file()):
-                continue
-            anchors[relative] = hashlib.sha256(target.read_bytes()).hexdigest()
-            updated.append(relative)
-        if updated:
-            manifest_path.write_text(
-                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-            )
+        phase2_path = sandbox / "docs/wiki-phase2-migration-manifest.json"
+        if phase2_path.is_file():
+            manifest = json.loads(phase2_path.read_text(encoding="utf-8"))
+            anchors = manifest.get("anchor_hashes")
+            changed_anchors: list[str] = []
+            if isinstance(anchors, dict):
+                for relative in sorted(anchors):
+                    repository_path = f"vendor/lca_cornerstone/{relative}"
+                    target = sandbox / repository_path
+                    if (repository_path not in changed_set
+                            or repository_path not in before or not target.is_file()):
+                        continue
+                    anchors[relative] = hashlib.sha256(target.read_bytes()).hexdigest()
+                    changed_anchors.append(relative)
+                    updated.append(relative)
+            if changed_anchors:
+                phase2_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+
+        migration_path = sandbox / "docs/migration-manifest.json"
+        if migration_path.is_file():
+            migration = json.loads(migration_path.read_text(encoding="utf-8"))
+            changed_assets: list[str] = []
+            for asset in migration.get("assets") or []:
+                if not isinstance(asset, dict):
+                    continue
+                repository_path = str(asset.get("target_path") or "")
+                target = sandbox / repository_path
+                if (repository_path not in changed_set
+                        or repository_path not in before or not target.is_file()):
+                    continue
+                asset["target_sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+                changed_assets.append(repository_path)
+                updated.append(f"migration:{repository_path}")
+            if changed_assets:
+                migration_path.write_text(
+                    json.dumps(migration, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
         return updated
+
+    def _repair_contract_targets(self, request: dict[str, Any]) -> list[str]:
+        targets: list[str] = []
+        for value in request.get("implementation_targets") or []:
+            raw = str(value).strip()
+            relative = raw.split("::", 1)[0].split(":", 1)[0]
+            if "/" in relative or relative.endswith((".py", ".json", ".js")):
+                targets.append(relative)
+        return sorted(set(targets))
+
+    def _validate_repair_contract(self, request: dict[str, Any]) -> None:
+        forbidden = [
+            path for path in self._repair_contract_targets(request)
+            if not self._is_allowed_path(path)
+        ]
+        if forbidden:
+            raise SystemRepairError(
+                "REPAIR_CONTRACT_UNSATISFIABLE: implementation targets are outside "
+                f"the governed mutation scope: {forbidden}"
+            )
+        migration_path = self.root / "docs/migration-manifest.json"
+        if not migration_path.is_file():
+            return
+        migration = json.loads(migration_path.read_text(encoding="utf-8"))
+        frozen = {
+            str(asset.get("target_path") or "")
+            for asset in migration.get("assets") or []
+            if isinstance(asset, dict) and asset.get("frozen") is True
+        }
+        anchored_targets = frozen & set(self._repair_contract_targets(request))
+        if anchored_targets and not self._is_allowed_path("docs/migration-manifest.json"):
+            raise SystemRepairError(
+                "REPAIR_CONTRACT_UNSATISFIABLE: frozen implementation targets require "
+                "an integrity-manifest migration outside the governed scope"
+            )
 
     def _run_codex(self, sandbox: Path, request: dict[str, Any]) -> dict[str, Any]:
         run_dir = Path(request["run_dir"])
@@ -369,7 +482,30 @@ class SystemRepairAgent:
             if (relative.startswith("tests/") and ".." not in Path(relative).parts
                     and (sandbox / relative).is_file()):
                 requested.append(relative)
-        focused = tuple(dict.fromkeys(requested)) or self.VALIDATION_COMMANDS["sandbox"]
+        evidence = request.get("evidence") or {}
+        mechanism_family = str(
+            request.get("mechanism_family")
+            or (evidence.get("mechanism_family") if isinstance(evidence, dict) else "")
+            or ""
+        )
+        corpus_tests: list[str] = []
+        corpus_path = self.root / "config/system-repair-replay-corpus.json"
+        if mechanism_family and corpus_path.is_file():
+            try:
+                corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+                if corpus.get("schema_version") == "system-repair-replay-corpus-v1":
+                    corpus_tests = [
+                        str(value) for value in
+                        (corpus.get("families") or {}).get(mechanism_family, [])
+                        if str(value).startswith("tests/")
+                        and ".." not in Path(str(value)).parts
+                        and (sandbox / str(value)).is_file()
+                    ]
+            except (OSError, TypeError, ValueError, json.JSONDecodeError):
+                corpus_tests = []
+        focused = tuple(dict.fromkeys([*requested, *corpus_tests]))
+        if not focused:
+            focused = self.VALIDATION_COMMANDS["sandbox"]
         return {
             "sandbox": focused,
             "shadow": self.VALIDATION_COMMANDS["shadow"],
@@ -389,14 +525,35 @@ class SystemRepairAgent:
 
     def _set(self, repair_run_id: str, status: str, *, payload: dict[str, Any],
              sandbox: Path | None = None, patch_hash: str | None = None,
-             error: str | None = None) -> None:
+             error: str | None = None,
+             ownership: ExecutionOwnership | None = None) -> None:
+        lease = None
+        if ownership is not None:
+            lease = ownership.current()
         with self.state.transaction() as conn:
-            conn.execute(
+            sql = (
                 "UPDATE system_repair_runs SET status=?,sandbox_path=?,patch_hash=?,payload=?,"
-                "last_error=?,updated_at=? WHERE repair_run_id=?",
-                (status, str(sandbox) if sandbox else None, patch_hash, canonical(payload),
-                error, utcnow(), repair_run_id),
+                "last_error=?,updated_at=? WHERE repair_run_id=?"
             )
+            params: list[Any] = [
+                status, str(sandbox) if sandbox else None, patch_hash,
+                canonical(payload), error, utcnow(), repair_run_id,
+            ]
+            if lease is not None:
+                sql += (
+                    " AND EXISTS(SELECT 1 FROM goal_execution_owners o JOIN leases l "
+                    "ON l.resource=o.resource AND l.holder=o.owner_id "
+                    "AND l.fencing_token=o.fencing_token WHERE o.execution_type=? "
+                    "AND o.execution_id=? AND o.owner_id=? AND o.fencing_token=? "
+                    "AND o.status='running' AND l.expires_at>?)"
+                )
+                params.extend([
+                    ownership.execution_type, ownership.execution_id,
+                    ownership.owner_id, lease.fencing_token, utcnow(),
+                ])
+            changed = conn.execute(sql, tuple(params)).rowcount
+        if changed != 1:
+            raise LeaseLost(f"repair row disappeared during fenced update: {repair_run_id}")
 
     def _materialized_state(self, run_id: str | None, workspace: Path) -> dict[str, str]:
         """Return the latest task-owned physical hashes for a running workflow."""
@@ -426,29 +583,77 @@ class SystemRepairAgent:
         return latest
 
     def execute(self, repair_run_id: str) -> dict[str, Any]:
+        """Execute a durable repair under a fenced single-consumer lease."""
+        record = self.get(repair_run_id)
+        prior = record["payload"].get("execution") or {}
+        ownership = ExecutionOwnership.create(
+            self.control, "system-repair", repair_run_id,
+            attempt=int(prior.get("attempt") or 0) + 1,
+        )
+        try:
+            ownership.start()
+        except LeaseLost:
+            return self.get(repair_run_id)
+        try:
+            return self._execute_owned(repair_run_id, ownership=ownership)
+        finally:
+            ownership.close()
+
+    def _execute_owned(
+        self, repair_run_id: str, *, ownership: ExecutionOwnership,
+    ) -> dict[str, Any]:
         record = self.get(repair_run_id)
         if record["status"] in self.TERMINAL:
             return record
         candidate = self.changes.get(str(record["candidate_id"]))
+        if (record["status"] in {"coding", "validating"}
+                and candidate["status"] != "proposed"):
+            self._queue_execution_recovery_replan(
+                record, candidate, ownership=ownership,
+            )
+            return self.get(repair_run_id)
         if record["status"] == "failed" and candidate["status"] != "proposed":
             return record
         run_dir = self.root / "var/system-repairs" / repair_run_id
         sandbox = run_dir / "sandbox"
         if sandbox.exists():
-            shutil.rmtree(sandbox)
+            subprocess.run(
+                ["git", "worktree", "remove", "--force", str(sandbox)],
+                cwd=self.root, text=True, capture_output=True, check=False,
+            )
+            if sandbox.exists():
+                shutil.rmtree(sandbox)
         run_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(self.root, sandbox, ignore=self._ignore)
+        request_payload = record["payload"].get("request") or {}
+        if request_payload.get("scm_replan"):
+            subprocess.run(
+                ["git", "fetch", self.scm.policy.remote, self.scm.policy.base_branch],
+                cwd=self.root, text=True, capture_output=True, check=True,
+            )
+            subprocess.run(
+                ["git", "worktree", "add", "--detach", str(sandbox),
+                 f"{self.scm.policy.remote}/{self.scm.policy.base_branch}"],
+                cwd=self.root, text=True, capture_output=True, check=True,
+            )
+        else:
+            shutil.copytree(self.root, sandbox, ignore=self._ignore)
         before = self._snapshot(sandbox)
         payload = dict(record["payload"])
         prior_execution = payload.get("execution") or {}
         payload["execution"] = {
-            "attempt": int(prior_execution.get("attempt") or 0) + 1,
+            "attempt": ownership.attempt,
             "started_at": utcnow(),
+            "owner_id": ownership.owner_id,
+            "fencing_token": ownership.current().fencing_token,
         }
-        self._set(repair_run_id, "coding", payload=payload, sandbox=sandbox)
+        self._set(
+            repair_run_id, "coding", payload=payload, sandbox=sandbox,
+            ownership=ownership,
+        )
         patch_hash: str | None = None
         try:
             self._validate_repair_request(payload["request"])
+            self._validate_repair_contract(payload["request"])
             request = {"run_dir": str(run_dir), "repair_request": {
                 **payload["request"], "candidate": candidate["payload"],
                 "allowed_paths": list(self.ALLOWED_PREFIXES),
@@ -459,7 +664,10 @@ class SystemRepairAgent:
             self._validate_goal_repair_claims(
                 payload["request"], agent_result, agent_changed
             )
-            if "docs/wiki-phase2-migration-manifest.json" in agent_changed:
+            if set(agent_changed) & {
+                "docs/migration-manifest.json",
+                "docs/wiki-phase2-migration-manifest.json",
+            }:
                 raise SystemRepairError(
                     "coding Agent may not edit generated integrity manifests directly"
                 )
@@ -477,17 +685,18 @@ class SystemRepairAgent:
             patch_hash = digest({path: after[path] for path in changed})
             validations: list[dict[str, Any]] = []
             payload.update({"agent_result": agent_result, "changed_files": changed,
+                            "scm_base_hashes": {path: before.get(path) for path in changed},
                             "generated_integrity_anchors": refreshed_anchors,
                             "patch_hash": patch_hash, "validations": validations})
             self._set(repair_run_id, "validating", payload=payload,
-                      sandbox=sandbox, patch_hash=patch_hash)
+                      sandbox=sandbox, patch_hash=patch_hash, ownership=ownership)
             for phase, tests in self._validation_commands(
                 sandbox, payload["request"]
             ).items():
                 result = self.validator(sandbox, phase, tests)
                 validations.append(result)
                 self._set(repair_run_id, "validating", payload=payload,
-                          sandbox=sandbox, patch_hash=patch_hash)
+                          sandbox=sandbox, patch_hash=patch_hash, ownership=ownership)
                 certificate = self.changes.certify(
                     str(record["candidate_id"]), phase=phase,
                     suites={"golden" if phase == "sandbox" else
@@ -498,21 +707,217 @@ class SystemRepairAgent:
                 )
                 if certificate["verdict"] != "pass":
                     raise SystemRepairError(f"{phase} validation failed")
+            scm = self.scm.publish_patch(
+                {**record, "payload": payload}, candidate,
+                sandbox=sandbox, changed_files=changed, patch_hash=patch_hash,
+                validations=validations,
+                base_hashes=payload["scm_base_hashes"],
+            )
+            payload["scm"] = scm
+            self._set(repair_run_id, "validating", payload=payload,
+                      sandbox=sandbox, patch_hash=patch_hash, ownership=ownership)
+            if (self.scm.policy.required_for_promotion
+                    and scm.get("status") != "published"):
+                if self._queue_scm_replan(
+                        record, candidate, payload, scm, ownership=ownership):
+                    return self.get(repair_run_id)
+                self._set(repair_run_id, "awaiting_scm_publication", payload=payload,
+                          sandbox=sandbox, patch_hash=patch_hash,
+                          error=str(scm.get("last_error") or "SCM publication is pending"),
+                          ownership=ownership)
+                return self.get(repair_run_id)
             if candidate["risk"] != "low":
                 self._set(repair_run_id, "awaiting_approval", payload=payload,
-                          sandbox=sandbox, patch_hash=patch_hash)
+                          sandbox=sandbox, patch_hash=patch_hash, ownership=ownership)
                 return self.get(repair_run_id)
-            self._promote(record, candidate, sandbox, changed, payload, patch_hash)
+            self._promote(
+                record, candidate, sandbox, changed, payload, patch_hash,
+                ownership=ownership,
+            )
+            return self.get(repair_run_id)
+
+        except LeaseLost:
             return self.get(repair_run_id)
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError,
                 json.JSONDecodeError) as exc:
             payload["execution"] = {**payload.get("execution", {}), "failed_at": utcnow()}
             self._set(repair_run_id, "failed", payload=payload, sandbox=sandbox,
-                      patch_hash=patch_hash, error=str(exc))
+                      patch_hash=patch_hash, error=str(exc), ownership=ownership)
             self.control.events.append("system_repair", repair_run_id,
                                        "system_repair.failed", {"error": str(exc)},
                                        actor="system-repair-agent")
             return self.get(repair_run_id)
+
+    def publish_scm(self, repair_run_id: str) -> dict[str, Any]:
+        """Retry a required Issue/commit/PR publication before promotion."""
+        record = self.get(repair_run_id)
+        if record["status"] != "awaiting_scm_publication":
+            raise ValueError("only an awaiting-SCM-publication repair can be published")
+        candidate = self.changes.get(str(record["candidate_id"]))
+        if candidate["status"] != "canary_passed":
+            raise ValueError("repair candidate is not canary validated")
+        payload = dict(record["payload"])
+        sandbox = Path(str(record.get("sandbox_path") or "")).resolve()
+        if not sandbox.is_dir() or not sandbox.is_relative_to(self.root / "var/system-repairs"):
+            raise ValueError("repair sandbox is unavailable or unsafe")
+        patch_hash = str(record.get("patch_hash") or "")
+        changed = [str(item) for item in payload.get("changed_files") or []]
+        if not patch_hash or not changed:
+            raise ValueError("validated repair has no bound patch")
+        scm = self.scm.publish_patch(
+            record, candidate, sandbox=sandbox, changed_files=changed,
+            patch_hash=patch_hash, validations=list(payload.get("validations") or []),
+            base_hashes=dict(payload.get("scm_base_hashes") or {}),
+        )
+        payload["scm"] = scm
+        if scm.get("status") != "published":
+            if self._queue_scm_replan(record, candidate, payload, scm):
+                return self.get(repair_run_id)
+            self._set(repair_run_id, "awaiting_scm_publication", payload=payload,
+                      sandbox=sandbox, patch_hash=patch_hash,
+                      error=str(scm.get("last_error") or "SCM publication is pending"))
+            return self.get(repair_run_id)
+        if candidate["risk"] != "low":
+            self._set(repair_run_id, "awaiting_approval", payload=payload,
+                      sandbox=sandbox, patch_hash=patch_hash)
+        else:
+            self._promote(record, candidate, sandbox, changed, payload, patch_hash)
+        return self.get(repair_run_id)
+
+    @staticmethod
+    def _scm_failure_kind(scm: dict[str, Any]) -> str:
+        patch = (scm.get("payload") or {}).get("patch") or {}
+        return str(patch.get("failure_kind") or "")
+
+    def _queue_scm_replan(
+        self, record: dict[str, Any], candidate: dict[str, Any],
+        payload: dict[str, Any], scm: dict[str, Any], *,
+        ownership: ExecutionOwnership | None = None,
+    ) -> bool:
+        """Replace an obsolete-base patch with a causally different repair run."""
+        if self._scm_failure_kind(scm) != "base_revision_conflict":
+            return False
+        request = dict(payload.get("request") or {})
+        revision = int(request.get("scm_replan_revision") or 0) + 1
+        if revision > 3:
+            return False
+        error = str(scm.get("last_error") or "SCM base revision conflict")
+        successor = self.changes.propose(
+            source_deviation_id=candidate.get("source_deviation_id"),
+            target="rebase_and_regenerate_system_repair",
+            risk=str(candidate.get("risk") or "high"),
+            change={
+                "action": "rebase_and_regenerate_system_repair",
+                "supersedes_candidate_id": candidate["candidate_id"],
+                "supersedes_repair_run_id": record["repair_run_id"],
+                "scm_replan_revision": revision,
+                "publication_error": error,
+            },
+            rollback={
+                "strategy": "discard_successor_repair_branch",
+                "trigger": "validation regression or repeated base conflict",
+            },
+        )
+        causal_changes = list(request.get("causal_input_changes") or [])
+        causal_changes.append({
+            "causal_input": "repository_base_revision",
+            "change": "regenerate the validated patch from the current configured main head",
+            "expected_effect": "produce a source-bound delta that applies without replaying stale hashes",
+        })
+        successor_run = self.queue(
+            candidate_id=str(successor["candidate_id"]),
+            source_job_id=str(record["source_job_id"]),
+            source_run_id=record.get("source_run_id"),
+            request={
+                **request,
+                "triage_run_id": None,
+                "scm_replan_revision": revision,
+                "supersedes_repair_run_id": record["repair_run_id"],
+                "causal_input_changes": causal_changes,
+                "scm_replan": {
+                    "failure_kind": "base_revision_conflict",
+                    "error": error,
+                    "replan_at": utcnow(),
+                },
+            },
+        )
+        payload["scm_replan"] = {
+            "revision": revision,
+            "successor_candidate_id": successor["candidate_id"],
+            "successor_repair_run_id": successor_run["repair_run_id"],
+            "reason": error,
+        }
+        self._set(
+            str(record["repair_run_id"]), "replan_required", payload=payload,
+            sandbox=Path(str(record.get("sandbox_path") or "")),
+            patch_hash=str(record.get("patch_hash") or ""), error=error,
+            ownership=ownership,
+        )
+        from .work_dispatcher import dispatch_system_repair
+        dispatch_system_repair(self.root, str(successor_run["repair_run_id"]))
+        self.control.events.append(
+            "system_repair", str(record["repair_run_id"]),
+            "system_repair.scm_causal_replan_queued", payload["scm_replan"],
+            actor="system-repair-agent",
+        )
+        return True
+
+    def _queue_execution_recovery_replan(
+        self, record: dict[str, Any], candidate: dict[str, Any], *,
+        ownership: ExecutionOwnership,
+    ) -> None:
+        """Restart a partially certified repair without reusing stale proofs."""
+        payload = dict(record["payload"])
+        request = dict(payload.get("request") or {})
+        revision = int(request.get("execution_recovery_revision") or 0) + 1
+        successor = self.changes.propose(
+            source_deviation_id=candidate.get("source_deviation_id"),
+            target=str(candidate.get("target") or "recover_system_repair_execution"),
+            risk=str(candidate.get("risk") or "high"),
+            change={
+                **((candidate.get("payload") or {}).get("change") or {}),
+                "execution_recovery_revision": revision,
+                "supersedes_candidate_id": candidate["candidate_id"],
+                "supersedes_repair_run_id": record["repair_run_id"],
+                "reason": "executor disappeared after candidate certification advanced",
+            },
+            rollback=((candidate.get("payload") or {}).get("rollback") or {
+                "strategy": "discard_recovery_candidate",
+            }),
+        )
+        causal_changes = list(request.get("causal_input_changes") or [])
+        causal_changes.append({
+            "causal_input": "repair_execution_snapshot",
+            "change": "regenerate and revalidate the repair in a new fenced execution epoch",
+            "expected_effect": "bind every certificate to one complete successor patch",
+        })
+        successor_run = self.queue(
+            candidate_id=str(successor["candidate_id"]),
+            source_job_id=str(record["source_job_id"]),
+            source_run_id=record.get("source_run_id"),
+            request={
+                **request,
+                "triage_run_id": None,
+                "execution_recovery_revision": revision,
+                "supersedes_repair_run_id": record["repair_run_id"],
+                "causal_input_changes": causal_changes,
+            },
+        )
+        payload["execution_replan"] = {
+            "revision": revision,
+            "successor_candidate_id": successor["candidate_id"],
+            "successor_repair_run_id": successor_run["repair_run_id"],
+            "queued_at": utcnow(),
+        }
+        self._set(
+            str(record["repair_run_id"]), "replan_required", payload=payload,
+            sandbox=Path(str(record.get("sandbox_path") or "")),
+            patch_hash=str(record.get("patch_hash") or ""),
+            error="stale executor left partially bound validation certificates",
+            ownership=ownership,
+        )
+        from .work_dispatcher import dispatch_system_repair
+        dispatch_system_repair(self.root, str(successor_run["repair_run_id"]))
 
     def approve(self, repair_run_id: str, *, recovery_task: str | None = None) -> dict[str, Any]:
         """Apply explicit promotion authority and its separately authorized rewind."""
@@ -606,7 +1011,8 @@ class SystemRepairAgent:
     def _promote(self, record: dict[str, Any], candidate: dict[str, Any], sandbox: Path,
                  changed: list[str], payload: dict[str, Any], patch_hash: str, *,
                  operator: bool = False,
-                 recovery_task_override: str | None = None) -> None:
+                 recovery_task_override: str | None = None,
+                 ownership: ExecutionOwnership | None = None) -> None:
         repair_run_id = str(record["repair_run_id"])
         backup = self.root / "var/system-repairs" / repair_run_id / "backup"
         copied: list[str] = []
@@ -681,7 +1087,7 @@ class SystemRepairAgent:
                                 (payload.get("request") or {}).get("proof_contract") or [],
                             }})
             self._set(repair_run_id, "awaiting_outcome_validation", payload=payload,
-                      sandbox=sandbox, patch_hash=patch_hash)
+                      sandbox=sandbox, patch_hash=patch_hash, ownership=ownership)
             self.control.events.append("system_repair", repair_run_id,
                                        "system_repair.promoted", {
                                            "candidate_id": candidate["candidate_id"],

@@ -21,11 +21,24 @@ def _pass(value: dict[str, Any]) -> float:
     if value.get("candidate_eligible") is True or value.get("go") is True:
         return 1.0
     decision = str(value.get("decision") or value.get("verdict") or "").upper()
-    if decision in {"PASS", "GO", "APPROVED", "ACCEPT", "ACCEPT_WITH_ADVISORIES"}:
+    if decision in {
+        "PASS", "PASS_WITH_DEBT", "GO", "APPROVED", "ACCEPT",
+        "ACCEPT_WITH_ADVISORIES",
+    }:
         return 1.0
     if not value:
         return 0.0
     return 0.0
+
+
+def _question_closure_score(value: dict[str, Any]) -> float:
+    ledger = value.get("question_evidence_ledger") or {}
+    metrics = ledger.get("metrics") if isinstance(ledger, dict) else {}
+    total = int((metrics or {}).get("critical_questions_total") or 0)
+    confirmed = int((metrics or {}).get("critical_questions_confirmed") or 0)
+    if total:
+        return round(min(1.0, confirmed / total), 6)
+    return _pass(value)
 
 
 class QualityTrajectory:
@@ -140,7 +153,7 @@ class QualityTrajectory:
             # Honest non-equivalence is valid identity handling; silently using
             # a discovery alias as canonical identity is not.
             "identity_fidelity": 1.0 if identity_ok else 0.0,
-            "source_role_coverage": _pass(docs["source_diversity"]),
+            "source_role_coverage": _question_closure_score(docs["source_diversity"]),
             "claim_provenance_coverage": min(_pass(docs["search_execution_gate"]),
                                                _pass(docs["closure"])),
             "semantic_closure": 1.0 if docs["blueprint"] and not unresolved
@@ -163,6 +176,20 @@ class QualityTrajectory:
             "maturity": docs["maturity"],
             "semantic_conflicts": unresolved,
             "research_outcome": research_outcome,
+            "research_progress": {
+                "question_closure_score": _question_closure_score(docs["source_diversity"]),
+                "question_evidence_metrics": (
+                    (docs["source_diversity"].get("question_evidence_ledger") or {}).get("metrics")
+                    or {}
+                ),
+                "failed_requirement_ids": docs["source_diversity"].get(
+                    "failed_requirement_ids"
+                ) or [],
+                "question_contract_sha256": docs["source_diversity"].get(
+                    "question_contract_sha256"
+                ),
+                "strategy_hash": docs["source_diversity"].get("strategy_hash"),
+            },
             "task_completion": {"run_status": run_status, "tasks": task_statuses},
             "rejected_protocols": rejected_protocols,
         }

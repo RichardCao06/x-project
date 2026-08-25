@@ -1,8 +1,9 @@
 """Hash-bound paragraph repair with deterministic non-regression checks."""
 from __future__ import annotations
 
-from copy import deepcopy
 from collections import Counter
+from collections.abc import Iterable
+from copy import deepcopy
 import hashlib
 import json
 import re
@@ -14,6 +15,7 @@ class EditorialPatchError(ValueError):
 
 
 LEGACY_CLAIM_NORMALIZER_REVISION = "fact-first-v1"
+MAXIMUM_CLAIM_USE_COUNT = 3
 
 
 def canonical_hash(value: Any) -> str:
@@ -50,10 +52,63 @@ def legacy_paragraph_manifest(document: dict[str, Any]) -> dict[str, str]:
 
 
 _SPLIT_INSTRUCTION = re.compile(r"(?:拆分|拆成|分成|分别成段|独立成段|split)", re.IGNORECASE)
+_DELETE_INSTRUCTION = re.compile(
+    r"(?:(?:删除|移除|去掉|剔除)\s*(?:整段|该段|本段|此段|这个段落|整个段落)"
+    r"|(?:删除|移除|去掉|剔除)\s*(?:该|本|此)?(?:独立)?段"
+    r"|(?:整段|该段|本段|此段|这个段落|整个段落)\s*(?:删除|移除|去掉|剔除)"
+    r"|不再另立一段"
+    r"|delete\s+(?:the\s+)?(?:whole\s+)?paragraph)",
+    re.IGNORECASE,
+)
+_IDENTIFIER_PATTERN = r"(?<![A-Za-z0-9])(?:A|P)\d{3}(?!\d)"
 _IDENTITY_TOKEN = re.compile(
-    r"(?<![A-Za-z0-9])(?:A|P)\d{3}\s+[^，。；;：:\n\"“”'‘’]+?,\s*服务器用"
+    rf"{_IDENTIFIER_PATTERN}\s+"
+    rf"(?:(?![、，；。\n\"“”'‘’]|(?:和|与|及)?{_IDENTIFIER_PATTERN}\s|(?:和|与|及)全部).)+?"
+    rf"(?=$|[、，；。\n\"“”'‘’]|(?:和|与|及)?{_IDENTIFIER_PATTERN}\s|(?:和|与|及)全部)"
 )
 _QUOTED_TOKEN = re.compile(r"[\"“'‘]([^\"”'’]+)[\"”'’]")
+_PROVENANCE_SUFFIX = re.compile(
+    r"对应(?:电子功能|供电|热管理|结构或导风)为(?:分类)?依据(?:识别时)?$"
+)
+_CORRECTION = re.compile(
+    rf"(?:将|把)?\s*(?P<old>{_IDENTIFIER_PATTERN})\s*"
+    rf"(?:更正|修正|纠正|改正|替换|改)(?:为|成)\s*"
+    rf"(?P<new>{_IDENTIFIER_PATTERN})"
+)
+_REMOVE_IDENTIFIER = re.compile(
+    rf"(?:删除|移除|去掉|剔除|不保留|不得保留)"
+    rf"\s*(?:错误的|误写的|原有的)?\s*(?P<identifier>{_IDENTIFIER_PATTERN})"
+)
+_MOVE_IDENTIFIER = re.compile(
+    rf"(?:将|把)?\s*(?P<identifier>{_IDENTIFIER_PATTERN})"
+    rf"(?:(?!{_IDENTIFIER_PATTERN})[^；;。\n]){{0,40}}(?:移入|移至|并入)",
+    re.IGNORECASE,
+)
+_MERGE_INTO_PARAGRAPH = re.compile(
+    r"(?:与第(?P<with>\d+)段合并|并入第(?P<into>\d+)段|"
+    r"将第(?P<prior>\d+)段与本段合并)",
+    re.IGNORECASE,
+)
+_REPEATS_PRIOR_PARAGRAPH = re.compile(
+    r"(?:重复第(?P<after>\d+)段|与第(?P<before>\d+)段重复)", re.IGNORECASE,
+)
+_MERGE_NUMBERED_PARAGRAPHS = re.compile(
+    r"将第(?P<left>\d+)段与第(?P<right>\d+)段合并", re.IGNORECASE,
+)
+_ONLY_RETAIN_CLAUSE = re.compile(
+    r"(?:本段|该段|此段)?\s*仅保留(?P<body>[^，；;。\n]+)", re.IGNORECASE,
+)
+_CURRENT_PARAGRAPH_SCOPE = re.compile(
+    r"(?:并使)?(?:本段|该段|此段)(?:连续表达|集中(?:说明|处理)|只(?:引用|保留)|仅(?:引用|保留))"
+    r"[:：]?(?P<body>[^，；;。\n]+)",
+    re.IGNORECASE,
+)
+_RELOCATE_LIST_INSTRUCTION = re.compile(
+    r"(?:(?:把|将)[^；;。\n]{0,60}(?:清单|完整流名称)[^；;。\n]{0,30}(?:移至|留在)"
+    r"|(?:清单|完整流名称)[^；;。\n]{0,30}(?:移至|留在)[^；;。\n]{0,60}"
+    r"(?:不在|不得))",
+    re.IGNORECASE,
+)
 
 
 def _paragraph_text(paragraph: dict[str, Any]) -> str:
@@ -63,17 +118,94 @@ def _paragraph_text(paragraph: dict[str, Any]) -> str:
     )
 
 
-def _legacy_tokens_to_preserve(paragraph: dict[str, Any], instructions: str) -> list[str]:
-    """Extract explicit local identities without guessing new graph facts."""
-    source = _paragraph_text(paragraph) + "\n" + instructions
-    tokens = [match.group(0).strip() for match in _IDENTITY_TOKEN.finditer(source)]
-    tokens.extend(
-        value.strip() for value in _QUOTED_TOKEN.findall(instructions)
-        if re.search(r"(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", value)
+def _superseded_identifiers(instructions: str) -> set[str]:
+    """Return identifiers that an explicit correction/removal permits replacing."""
+    identifiers = {match.group("old") for match in _CORRECTION.finditer(instructions)}
+    identifiers.update(
+        match.group("identifier") for match in _REMOVE_IDENTIFIER.finditer(instructions)
     )
+    identifiers.update(
+        match.group("identifier") for match in _MOVE_IDENTIFIER.finditer(instructions)
+    )
+    return identifiers
+
+
+def _identity_tokens(text: str) -> list[str]:
+    """Extract one graph identity per token without binding prose punctuation."""
+    tokens = []
+    for match in _IDENTITY_TOKEN.finditer(text):
+        token = match.group(0).strip().rstrip("和与及")
+        token = _PROVENANCE_SUFFIX.sub("", token).rstrip("，,；; ")
+        if token:
+            tokens.append(token)
+    return list(dict.fromkeys(tokens))
+
+
+def _quoted_identity_overrides(instructions: str) -> dict[str, list[str]]:
+    """Return explicitly quoted graph labels that supersede legacy shorthands.
+
+    Review prose frequently asks for a canonical full label and quotes it.  A
+    quoted phrase is an override only when the whole phrase is exactly one
+    identity; quoted lists and explanatory clauses remain instructions rather
+    than literal preservation tokens.
+    """
+    result: dict[str, list[str]] = {}
+    for value in _QUOTED_TOKEN.findall(instructions):
+        candidate = value.strip()
+        tokens = _identity_tokens(candidate)
+        if len(tokens) != 1 or tokens[0] != candidate:
+            continue
+        identifier = re.search(_IDENTIFIER_PATTERN, candidate)
+        if identifier:
+            result.setdefault(identifier.group(0), []).append(candidate)
+    return result
+
+
+def _legacy_tokens_to_preserve(paragraph: dict[str, Any], instructions: str) -> list[str]:
+    """Preserve atomic graph identities while allowing instructed normalization."""
+    paragraph_text = _paragraph_text(paragraph)
+    source = paragraph_text + "\n" + instructions
+    superseded = _superseded_identifiers(instructions)
+    overrides = _quoted_identity_overrides(instructions)
+    scoped_retain = (
+        _CURRENT_PARAGRAPH_SCOPE.search(instructions)
+        or _ONLY_RETAIN_CLAUSE.search(instructions)
+    )
+    if scoped_retain:
+        retained_identifiers = set(re.findall(
+            _IDENTIFIER_PATTERN, scoped_retain.group("body")
+        )) - superseded
+        if retained_identifiers:
+            tokens = [
+                token for token in _identity_tokens(paragraph_text)
+                if set(re.findall(_IDENTIFIER_PATTERN, token)) <= retained_identifiers
+            ]
+            tokens.extend(
+                value
+                for identifier, values in overrides.items()
+                if identifier in retained_identifiers
+                for value in values
+            )
+            tokens.extend(sorted(retained_identifiers))
+            return list(dict.fromkeys(token for token in tokens if token))
+    if _RELOCATE_LIST_INSTRUCTION.search(instructions):
+        return []
+    tokens = []
+    for token in _identity_tokens(paragraph_text):
+        identifiers = re.findall(_IDENTIFIER_PATTERN, token)
+        if superseded.intersection(identifiers) or any(item in overrides for item in identifiers):
+            continue
+        tokens.append(token)
+    for identifier, values in overrides.items():
+        if identifier not in superseded:
+            tokens.extend(values)
     # Preserve the identifier independently as a fail-closed floor if the
-    # review did not quote the full graph-local label.
-    tokens.extend(re.findall(r"(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", source))
+    # review did not quote the full graph-local label.  Instruction prose can
+    # introduce the replacement ID but never a new mandatory prose fragment.
+    tokens.extend(
+        identifier for identifier in re.findall(_IDENTIFIER_PATTERN, source)
+        if identifier not in superseded
+    )
     return list(dict.fromkeys(token for token in tokens if token))
 
 
@@ -82,6 +214,12 @@ def _repair_paragraphs(repair: dict[str, Any], operation: str) -> list[dict[str,
     raw = repair.get("replacements")
     if raw is None and repair.get("replacement") is not None:
         raw = [repair.get("replacement")]
+    if operation == "delete":
+        if raw is None:
+            raw = []
+        if raw != []:
+            raise EditorialPatchError("delete operation requires zero replacement paragraphs")
+        return []
     if not isinstance(raw, list) or not raw or not all(isinstance(item, dict) for item in raw):
         raise EditorialPatchError("repair requires one or more replacement paragraphs")
     if operation == "replace" and len(raw) != 1:
@@ -95,6 +233,8 @@ def _repair_paragraphs(repair: dict[str, Any], operation: str) -> list[dict[str,
 
 def _split_ids(paragraph_id: str, count: int) -> list[str]:
     """Keep the target ID and derive stable IDs solely from it and split ordinal."""
+    if count == 0:
+        return []
     return [paragraph_id, *(f"{paragraph_id}.split{ordinal}" for ordinal in range(2, count + 1))]
 
 
@@ -119,6 +259,17 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
         grouped.setdefault(key, []).append(issue)
     if not grouped:
         raise EditorialPatchError("NO_GO review requires at least one targetable issue")
+    merge_sources: set[tuple[str, int]] = set()
+    for key, observations in grouped.items():
+        heading, _paragraph_id = key.rsplit(".", 1)
+        for observation in observations:
+            instruction_text = str(observation.get("repair_instruction") or "")
+            for match in _MERGE_NUMBERED_PARAGRAPHS.finditer(instruction_text):
+                left, right = int(match.group("left")), int(match.group("right"))
+                if left != right and all(
+                    f"{heading}.p{index}" in manifest for index in (left, right)
+                ):
+                    merge_sources.add((heading, max(left, right)))
     issues = []
     for ordinal, (key, observations) in enumerate(grouped.items(), 1):
         heading, paragraph_id = key.rsplit(".", 1)
@@ -126,6 +277,34 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
         paragraph = section["paragraphs"][int(paragraph_id.removeprefix("p")) - 1]
         instruction = "\n".join(str(row.get("repair_instruction") or "").strip()
                                   for row in observations)
+        explanation_text = "\n".join(
+            str(row.get("explanation") or "").strip() for row in observations
+        )
+        operation = (
+            "delete" if _DELETE_INSTRUCTION.search(instruction)
+            else "split_replace" if _SPLIT_INSTRUCTION.search(instruction)
+            else "replace"
+        )
+        if (heading, int(paragraph_id.removeprefix("p"))) in merge_sources:
+            operation = "delete"
+        merge_target = _MERGE_INTO_PARAGRAPH.search(instruction)
+        repeated_prior = _REPEATS_PRIOR_PARAGRAPH.search(explanation_text)
+        target_index = None
+        if merge_target:
+            target_index = int(
+                merge_target.group("with")
+                or merge_target.group("into")
+                or merge_target.group("prior")
+            )
+        elif repeated_prior and re.search(r"合并|只保留一个", instruction):
+            target_index = int(
+                repeated_prior.group("after") or repeated_prior.group("before")
+            )
+        if target_index is not None:
+            if target_index < int(paragraph_id.removeprefix("p")) and (
+                f"{heading}.p{target_index}" in manifest
+            ):
+                operation = "delete"
         issues.append({
             "issue_id": f"E{ordinal:03d}",
             "section_id": heading,
@@ -133,11 +312,14 @@ def prepare_legacy_patch_review(document: dict[str, Any], review: dict[str, Any]
             "target_hash": manifest[key],
             "type": "+".join(dict.fromkeys(str(row.get("issue_type") or "other")
                                               for row in observations)),
-            "operation": "split_replace" if _SPLIT_INSTRUCTION.search(instruction) else "replace",
+            "operation": operation,
             "instruction": instruction,
             "explanations": [str(row.get("explanation") or "") for row in observations],
             "facts_must_preserve": [],
-            "tokens_must_preserve": _legacy_tokens_to_preserve(paragraph, instruction),
+            "tokens_must_preserve": (
+                [] if operation == "delete"
+                else _legacy_tokens_to_preserve(paragraph, instruction)
+            ),
         })
     return {
         "protocol": "wiki-editorial-patch-review-v1",
@@ -269,13 +451,7 @@ def normalize_legacy_repair_claim_bindings(
     }
     counts: Counter[str] = Counter()
     if document is not None:
-        for section in document.get("sections") or []:
-            heading = str(section.get("heading") or "")
-            for index, paragraph in enumerate(section.get("paragraphs") or [], 1):
-                if (heading, f"p{index}") in targets:
-                    continue
-                for sentence in paragraph.get("sentences") or []:
-                    counts.update(str(item) for item in sentence.get("evidence_claim_ids") or [])
+        counts.update(claim_uses_outside_targets(document, targets, kinds))
     sentences: list[tuple[dict[str, Any], list[str], bool]] = []
     for repair in result:
         replacements = repair.get("replacements")
@@ -302,7 +478,7 @@ def normalize_legacy_repair_claim_bindings(
     # set of fact bindings appear impossible.
     fact_rows = [(sentence, ids) for sentence, ids, required in sentences if required]
     capacities = {
-        claim_id: max(0, 3 - counts[claim_id])
+        claim_id: max(0, MAXIMUM_CLAIM_USE_COUNT - counts[claim_id])
         for _sentence, ids in fact_rows
         for claim_id in ids
     }
@@ -345,7 +521,7 @@ def normalize_legacy_repair_claim_bindings(
         for claim_id in ids:
             if claim_id == reserved:
                 kept.append(claim_id)
-            elif counts[claim_id] < 3:
+            elif counts[claim_id] < MAXIMUM_CLAIM_USE_COUNT:
                 kept.append(claim_id)
                 counts[claim_id] += 1
         sentence["evidence_claim_ids"] = kept
@@ -355,7 +531,7 @@ def normalize_legacy_repair_claim_bindings(
             continue
         kept = []
         for claim_id in ids:
-            if counts[claim_id] < 3:
+            if counts[claim_id] < MAXIMUM_CLAIM_USE_COUNT:
                 kept.append(claim_id)
                 counts[claim_id] += 1
         sentence["evidence_claim_ids"] = kept
@@ -371,6 +547,40 @@ def normalize_legacy_repair_claim_bindings(
             for claim_id in sentence.get("evidence_claim_ids") or []
         ))
     return result
+
+
+def claim_uses_outside_targets(
+    document: dict[str, Any],
+    targeted_paragraphs: set[tuple[str, str]],
+    claim_ids: Iterable[object] = (),
+) -> dict[str, int]:
+    """Count every claim use outside the hash-bound target paragraphs."""
+    counts: Counter[str] = Counter()
+    for section in document.get("sections") or []:
+        heading = str(section.get("heading") or "")
+        for index, paragraph in enumerate(section.get("paragraphs") or [], 1):
+            if (heading, f"p{index}") in targeted_paragraphs:
+                continue
+            for sentence in paragraph.get("sentences") or []:
+                counts.update(
+                    str(item) for item in sentence.get("evidence_claim_ids") or []
+                )
+    all_claim_ids = {str(claim_id) for claim_id in claim_ids if str(claim_id)}
+    all_claim_ids.update(counts)
+    return {claim_id: counts[claim_id] for claim_id in sorted(all_claim_ids)}
+
+
+def claim_remaining_uses(
+    document: dict[str, Any],
+    targeted_paragraphs: set[tuple[str, str]],
+    claim_ids: Iterable[object] = (),
+) -> dict[str, int]:
+    """Return every claim's replacement budget after untargeted uses."""
+    counts = claim_uses_outside_targets(document, targeted_paragraphs, claim_ids)
+    return {
+        claim_id: max(0, MAXIMUM_CLAIM_USE_COUNT - count)
+        for claim_id, count in counts.items()
+    }
 
 
 def claim_binding_metrics(document: dict[str, Any]) -> dict[str, Any]:
@@ -470,6 +680,8 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
     before_manifest = paragraph_manifest(before)
     result = deepcopy(document)
     touched: set[str] = set()
+    explicitly_removed_claims: set[str] = set()
+    explicitly_removed_chars = 0
     for issue_id, issue in issues.items():
         repair = supplied[issue_id]
         identity = (str(issue.get("section_id")), str(issue.get("paragraph_id")))
@@ -479,7 +691,22 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
         target_hash = str(issue.get("target_hash") or "")
         if target_hash != before_manifest.get(key) or repair.get("target_hash") != target_hash:
             raise EditorialPatchError(f"target hash conflict: {key}")
-        replacements = _repair_paragraphs(repair, str(issue.get("operation") or "replace"))
+        operation = str(issue.get("operation") or "replace")
+        replacements = _repair_paragraphs(repair, operation)
+        if operation == "delete":
+            before_section = next(
+                row for row in before["sections"] if row["section_id"] == identity[0]
+            )
+            before_paragraph = next(
+                row for row in before_section["paragraphs"]
+                if row["paragraph_id"] == identity[1]
+            )
+            explicitly_removed_claims.update(_claim_ids({
+                "sections": [{"paragraphs": [before_paragraph]}]
+            }))
+            explicitly_removed_chars += _body_chars({
+                "sections": [{"paragraphs": [before_paragraph]}]
+            })
         split_ids = _split_ids(identity[1], len(replacements))
         for replacement, split_id in zip(replacements, split_ids, strict=True):
             replacement["paragraph_id"] = split_id
@@ -521,10 +748,10 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
     if inserted != expected_inserted:
         raise EditorialPatchError("repair produced non-deterministic inserted paragraph IDs")
     before_claims, after_claims = _claim_ids(before), _claim_ids(result)
-    if not before_claims <= after_claims:
+    if not (before_claims - explicitly_removed_claims) <= after_claims:
         raise EditorialPatchError("repair removed previously bound claims")
     before_chars, after_chars = _body_chars(before), _body_chars(result)
-    if before_chars and after_chars < before_chars * 0.9:
+    if before_chars and after_chars < before_chars * 0.9 - explicitly_removed_chars:
         raise EditorialPatchError("repair reduced body length by more than 10%")
     receipt = {
         "protocol": "wiki-editorial-patch-receipt-v1",
@@ -548,7 +775,7 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
         } for issue_id, issue in sorted(issues.items())
           for key in [f"{issue['section_id']}.{issue['paragraph_id']}"]],
         "body_chars_before": before_chars, "body_chars_after": after_chars,
-        "preserved_claim_ids": sorted(before_claims),
+        "preserved_claim_ids": sorted(after_claims),
         "requires_independent_rereview": True,
     }
     return result, receipt

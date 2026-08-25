@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -176,6 +177,59 @@ def test_system_repair_deduplicates_same_triage_across_candidates(tmp_path: Path
         },
     )
     assert same_failure["repair_run_id"] == queued["repair_run_id"]
+
+
+def test_ineffective_repair_requires_a_different_causal_plan(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    changes = ChangeController(root)
+    first = changes.propose(
+        source_deviation_id="dev_plan_one", target="propose_code_change", risk="low",
+        change={"source": "first"}, rollback={"strategy": "restore"},
+    )
+    agent = SystemRepairAgent(root)
+    request = {
+        "source_failure_fingerprint": "same-failure",
+        "causal_input_changes": [{
+            "causal_input": "table_extractor", "change": "add same parser",
+        }],
+    }
+    prior = agent.queue(
+        candidate_id=first["candidate_id"], source_job_id="job_replan",
+        source_run_id="run_replan", request=request,
+    )
+    with agent.state.transaction() as conn:
+        conn.execute("UPDATE system_repair_runs SET status='ineffective' WHERE repair_run_id=?",
+                     (prior["repair_run_id"],))
+    second = changes.propose(
+        source_deviation_id="dev_plan_two", target="propose_code_change", risk="low",
+        change={"source": "second"}, rollback={"strategy": "restore"},
+    )
+
+    suppressed = agent.queue(
+        candidate_id=second["candidate_id"], source_job_id="job_replan",
+        source_run_id="run_replan", request=request,
+    )
+
+    assert suppressed["repair_run_id"] == prior["repair_run_id"]
+    assert len(agent.rows(job_id="job_replan")) == 1
+    assert agent.state._connection().execute(
+        "SELECT COUNT(*) FROM events WHERE event_type='system_repair.causal_replan_required'"
+    ).fetchone()[0] == 1
+
+    third = changes.propose(
+        source_deviation_id="dev_plan_three", target="propose_code_change", risk="low",
+        change={"source": "third"}, rollback={"strategy": "restore"},
+    )
+    replanned = agent.queue(
+        candidate_id=third["candidate_id"], source_job_id="job_replan",
+        source_run_id="run_replan", request={
+            **request,
+            "causal_input_changes": [{
+                "causal_input": "document_router", "change": "add route before parsing",
+            }],
+        },
+    )
+    assert replanned["repair_run_id"] != prior["repair_run_id"]
 
 
 def test_golden_candidate_maps_to_complete_goal_vector(tmp_path: Path) -> None:
@@ -473,6 +527,116 @@ def test_meta_supervisor_detects_and_executes_safe_analysis_lost_by_manual_proje
     assert repair_job["status"] == "awaiting_approval"
 
 
+def test_orphaned_goal_wakeup_resolves_only_after_supervisor_consumes_it(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    control = ControlPlane(root)
+    accepted = SkillInvoker(root).invoke(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A019"]},
+        idempotency_key="orphaned-goal-work",
+    )
+    run_id = PersistentOrchestrator(root).materialize(accepted["job_id"])
+    AlignmentStore(control.state).deviation(
+        job_id=accepted["job_id"], run_id=run_id, goal_id="wiki-node-goal-v1",
+        value={"deviation_type": "false_block", "severity": "high",
+               "evidence": {"task_id": "research_plan_gate"},
+               "summary": "orphaned repair work"},
+    )
+
+    report = SystemMetaSupervisor(root, control=control).reconcile(job_id=accepted["job_id"])
+
+    action = report["actions"][0]
+    wakeup_id = action["result"]["wakeup_id"]
+    meta_deviation_id = action["meta_deviation_id"]
+    assert action["result"]["awaiting_consumer"] is True
+    assert control.state._connection().execute(
+        "SELECT status FROM system_meta_deviations WHERE meta_deviation_id=?",
+        (meta_deviation_id,),
+    ).fetchone()["status"] == "awaiting_supervision"
+
+    consumed = AlignmentStore(control.state).consume_wakeups(
+        job_id=accepted["job_id"], consumer="test-supervisor", wakeup_ids=[wakeup_id],
+    )
+
+    assert consumed == [wakeup_id]
+    assert control.state._connection().execute(
+        "SELECT status FROM system_meta_deviations WHERE meta_deviation_id=?",
+        (meta_deviation_id,),
+    ).fetchone()["status"] == "resolved"
+
+
+def test_meta_supervisor_propagates_failed_child_repair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    control = ControlPlane(root)
+    deviation = AlignmentStore(control.state).deviation(
+        job_id="job_meta_failed", run_id="run_meta", goal_id="wiki-node-goal-v1",
+        value={"deviation_type": "unclassified_failure", "severity": "high",
+               "evidence": {"task_id": "editorial_review"}, "summary": "compound"},
+    )
+    triage = FailureTriageAgent(
+        root, control, runner=lambda _sandbox, _request: {
+            **workspace_overwrite_triage_result(), "problem_class": "contract_mismatch",
+        },
+    )
+    queued = triage.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_meta_failed",
+        source_run_id="run_meta", task_id="editorial_review",
+        request={"failure": {"message": "compound"}},
+    )
+    triage.execute(queued["triage_run_id"])
+    AlignmentStore(control.state).repair_plan(deviation["deviation_id"], {
+        "repair_level": "manual", "action": "request_operator", "authority": "operator",
+        "invalidates": [], "preserves": [], "validation": [], "automatic": False,
+        "status": "proposed",
+    })
+
+    class FakeChangeController:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def propose(self, **_: object) -> dict:
+            return {"candidate_id": "chg_meta_failed"}
+
+    class FakeRepairAgent:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def queue(self, **_: object) -> dict:
+            return {"repair_run_id": "srr_meta_failed", "status": "queued"}
+
+        def execute(self, repair_run_id: str) -> dict:
+            return {"repair_run_id": repair_run_id, "status": "failed"}
+
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.meta_supervisor.ChangeController",
+        FakeChangeController,
+    )
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.meta_supervisor.SystemRepairAgent",
+        FakeRepairAgent,
+    )
+
+    report = SystemMetaSupervisor(root, control=control).reconcile(
+        job_id="job_meta_failed",
+    )
+
+    assert report["actions"][0]["result"]["status"] == "failed"
+    repair_job = control.state._connection().execute(
+        "SELECT status,payload FROM control_plane_repair_jobs "
+        "WHERE job_id='job_meta_failed'",
+    ).fetchone()
+    assert repair_job["status"] == "failed"
+    action = json.loads(repair_job["payload"])["action_graph"]["actions"][0]
+    assert action["status"] == "failed"
+    assert action["proof_contract"][-1]["execution_status"] == "failed"
+    assert control.state._connection().execute(
+        "SELECT status FROM system_meta_deviations WHERE job_id='job_meta_failed'",
+    ).fetchone()["status"] == "needs_attention"
+
+
 def test_meta_supervisor_resolves_rewind_range_to_earliest_dag_task(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     accepted = SkillInvoker(root).invoke(
@@ -695,6 +859,25 @@ def test_system_repair_allows_only_governed_research_route_config() -> None:
     assert SystemRepairAgent._is_allowed_path("scripts/new_repair.py")
 
 
+def test_system_repair_replays_prior_cases_for_failure_family(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    (root / "config").mkdir()
+    (root / "config/system-repair-replay-corpus.json").write_text(json.dumps({
+        "schema_version": "system-repair-replay-corpus-v1",
+        "families": {"table_contract": ["tests/test_prior_table_case.py"]},
+    }), encoding="utf-8")
+    (root / "tests").mkdir()
+    (root / "tests/test_prior_table_case.py").write_text(
+        "def test_prior_table_case(): assert True\n", encoding="utf-8",
+    )
+
+    commands = SystemRepairAgent(root)._validation_commands(
+        root, {"mechanism_family": "table_contract"},
+    )
+
+    assert commands["sandbox"] == ("tests/test_prior_table_case.py",)
+
+
 def test_unknown_repeated_failure_requires_problem_based_agent_triage() -> None:
     failure = {"message": "unexpected table precondition", "identical_failure_repeated": True,
                "failure_fingerprint": "same"}
@@ -711,6 +894,42 @@ def test_unknown_repeated_failure_requires_problem_based_agent_triage() -> None:
     assert CausalAnalyzer.requires_agent_triage(
         CausalAnalyzer().analyze(deviations[0])
     )
+
+
+def test_repeated_research_plan_failure_escalates_beyond_translation_rewind() -> None:
+    deviation = Deviation(
+        "false_block", "high", {
+            "task_id": "research_plan_gate", "failure_code": "RESEARCH_PLAN_INVALID",
+            "failure": {
+                "identical_failure_repeated": True,
+                "failure_fingerprint": "same-research-plan-gate",
+            },
+        }, "translation repair repeated without a causal delta",
+    )
+
+    diagnosis = CausalAnalyzer().analyze(deviation)
+
+    assert diagnosis.cause_code == "REPAIR_DID_NOT_CHANGE_CAUSAL_INPUT"
+    assert CausalAnalyzer.requires_agent_triage(diagnosis)
+
+
+def test_english_only_research_gate_failure_is_classified_as_contract_drift() -> None:
+    deviation = Deviation(
+        "false_block", "high", {
+            "task_id": "research_plan_gate", "failure_code": "RESEARCH_PLAN_INVALID",
+            "failure": {"gate_result": {"failures": [
+                "english_translation_audited",
+                "english_field_translation_coverage_complete",
+            ]}},
+        }, "English discovery enhancement became a hard block",
+    )
+
+    diagnosis = CausalAnalyzer().analyze(deviation)
+    proposal = RepairPlanner().plan(diagnosis)
+
+    assert diagnosis.cause_code == "GATE_GOAL_CONTRACT_DRIFT"
+    assert proposal.level == "L2"
+    assert proposal.action == "propose_gate_change"
 
 
 def test_failure_triage_agent_persists_problem_based_route(tmp_path: Path) -> None:
@@ -733,6 +952,50 @@ def test_failure_triage_agent_persists_problem_based_route(tmp_path: Path) -> No
     assert result["payload"]["result"]["cause_code"] == "TABLE_COLLECTION_BOOTSTRAP_DEADLOCK"
     proposal = RepairPlanner.from_triage(result["payload"]["result"])
     assert proposal.level == "L2" and proposal.action == "propose_code_change"
+
+
+def test_failure_triage_queue_resolves_changed_dossier_to_canonical_deviation(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    agent = FailureTriageAgent(root, runner=lambda _sandbox, _request: table_deadlock_triage_result())
+    deviation = AlignmentStore(agent.state).deviation(
+        job_id="job_unknown", run_id="run_unknown", goal_id="wiki-node-goal-v1",
+        value={"deviation_type": "unclassified_failure", "severity": "high",
+               "evidence": {"task_id": "table_collect"}, "summary": "unknown"},
+    )
+    first = agent.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_unknown",
+        source_run_id="run_unknown", task_id="table_collect",
+        request={"failure": {"message": "first dossier"}},
+    )
+    second = agent.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_unknown",
+        source_run_id="run_unknown", task_id="table_collect",
+        request={"failure": {"message": "changed dossier"}},
+    )
+    repeated = agent.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_unknown",
+        source_run_id="run_unknown", task_id="table_collect",
+        request={"failure": {"message": "changed dossier"}},
+    )
+
+    assert second["triage_run_id"] == first["triage_run_id"]
+    assert repeated["triage_run_id"] == first["triage_run_id"]
+    assert agent.state._connection().execute(
+        "SELECT COUNT(*) FROM failure_triage_runs WHERE deviation_id=?",
+        (deviation["deviation_id"],),
+    ).fetchone()[0] == 1
+    events = list(agent.state._connection().execute(
+        "SELECT aggregate_id,event_type,payload FROM events "
+        "WHERE aggregate_type='failure_triage' ORDER BY sequence",
+    ))
+    assert [row["event_type"] for row in events] == [
+        "failure_triage.queued", "failure_triage.duplicate_suppressed",
+    ]
+    assert all(row["aggregate_id"] == first["triage_run_id"] for row in events)
+    suppressed = json.loads(events[-1]["payload"])
+    assert suppressed["suppressed_triage_run_id"] != first["triage_run_id"]
 
 
 def test_controller_routes_unknown_failure_from_triage_to_coding_agent(tmp_path: Path) -> None:
@@ -833,7 +1096,7 @@ def test_first_unknown_failure_survives_fast_retry_and_reaches_agent_triage(
                for action in repaired["actions"])
 
 
-def test_investigating_triage_is_not_restarted(tmp_path: Path) -> None:
+def test_stale_investigating_triage_is_recovered(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     calls = 0
 
@@ -857,6 +1120,40 @@ def test_investigating_triage_is_not_restarted(tmp_path: Path) -> None:
                      "WHERE triage_run_id=?", (queued["triage_run_id"],))
 
     result = agent.execute(queued["triage_run_id"])
+
+    assert result["status"] == "completed"
+    assert calls == 1
+
+
+def test_live_investigating_triage_is_not_restarted(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    calls = 0
+
+    def runner(_sandbox: Path, _request: dict) -> dict:
+        nonlocal calls
+        calls += 1
+        return table_deadlock_triage_result()
+
+    agent = FailureTriageAgent(root, runner=runner)
+    deviation = AlignmentStore(agent.state).deviation(
+        job_id="job_live", run_id="run_live", goal_id="wiki-node-goal-v1",
+        value={"deviation_type": "unclassified_failure", "severity": "high",
+               "evidence": {"task_id": "table_collect"}, "summary": "unknown"},
+    )
+    queued = agent.queue(
+        deviation_id=deviation["deviation_id"], source_job_id="job_live",
+        source_run_id="run_live", task_id="table_collect", request={"failure": {}},
+    )
+    with agent.state.transaction() as conn:
+        conn.execute("UPDATE failure_triage_runs SET status='investigating' "
+                     "WHERE triage_run_id=?", (queued["triage_run_id"],))
+    lease = agent.control.leases.acquire(
+        f"failure-triage:{queued['triage_run_id']}", "another-live-owner", seconds=60,
+    )
+    try:
+        result = agent.execute(queued["triage_run_id"])
+    finally:
+        agent.control.leases.release(lease)
 
     assert result["status"] == "investigating"
     assert calls == 0
@@ -997,6 +1294,127 @@ def test_medium_risk_repair_is_prepared_then_promoted_with_minimal_approval(
     assert promoted["payload"]["operator_authorization"][
         "authorized_recovery_task"
     ] == "content_compose"
+
+
+@pytest.mark.parametrize(
+    ("editorial_status", "proof_state", "expected_action", "expected_status"),
+    [
+        ("ready", "missing", None, "awaiting_outcome_validation"),
+        ("succeeded", "bound", "repair_effective", "effective"),
+        ("succeeded", "stale", "repair_ineffective", "ineffective"),
+        ("manual_review", "missing", "repair_ineffective", "ineffective"),
+    ],
+)
+def test_editorial_system_repair_honors_downstream_go_proof_before_effective(
+    tmp_path: Path, editorial_status: str, proof_state: str,
+    expected_action: str | None, expected_status: str,
+) -> None:
+    root = project_copy(tmp_path)
+    accepted = SkillInvoker(root).invoke(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A039"]}
+    )
+    orchestrator = PersistentOrchestrator(root)
+    run_id = orchestrator.materialize(accepted["job_id"])
+    candidate = ChangeController(root).propose(
+        source_deviation_id=f"dev_editorial_{editorial_status}",
+        target="propose_code_change", risk="low",
+        change={"diagnosis": "EDITORIAL_PRESERVATION_TOKENIZER_OVERCONSUMES_LISTS"},
+        rollback={"strategy": "restore"},
+    )
+    repair_run_id = f"srr_editorial_{editorial_status}"
+    promoted_at = "2000-01-01T00:00:00+00:00"
+    payload = {
+        "schema_version": "system-repair-run-v1", "repair_run_id": repair_run_id,
+        "candidate_id": candidate["candidate_id"], "source_job_id": accepted["job_id"],
+        "source_run_id": run_id, "promoted_at": promoted_at,
+        "request": {
+            "cause_code": "EDITORIAL_PRESERVATION_TOKENIZER_OVERCONSUMES_LISTS",
+            "source_failure_fingerprint": "editorial-preservation-fingerprint",
+            "recovery_task": "content_compose",
+            "goal_assessment": {"baseline_score": 0.1},
+            "causal_input_changes": [{
+                "causal_input": "editorial_patch.preservation_tokens",
+                "change": "derive preservation tokens from canonical flow identities",
+            }],
+            "proof_contract": [
+                {"metric": "content_compose task status", "target": "succeeded",
+                 "evidence_artifact": "orchestrator task record"},
+                {"metric": "independent editorial verdict after patch", "target": "GO",
+                 "evidence_artifact": "editorial-loop/editorial-review.json"},
+            ],
+        },
+    }
+    now = utcnow()
+    with orchestrator.control.state.transaction() as conn:
+        conn.execute(
+            "INSERT INTO system_repair_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (repair_run_id, candidate["candidate_id"], accepted["job_id"], run_id,
+             "awaiting_outcome_validation", "test-model", None, "request-hash", "patch-hash",
+             json.dumps(payload), None, now, now),
+        )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',updated_at=? "
+            "WHERE run_id=? AND task_id='content_compose'", (now, run_id),
+        )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status=?,updated_at=? "
+            "WHERE run_id=? AND task_id='editorial_review'",
+            (editorial_status, now, run_id),
+        )
+    controller = GoalAlignmentController(root, orchestrator.control)
+    if proof_state in {"bound", "stale"}:
+        (root / "vendor/lca_cornerstone/fixtures/wiki-phase2/wiki/ict_equipment").mkdir(
+            parents=True, exist_ok=True,
+        )
+        job = orchestrator.control.state.get("jobs", accepted["job_id"])
+        batch = controller._batch(job, run_id)
+        assert batch is not None
+        content_path = batch / "content-runtime/content-result.json"
+        review_path = batch / "editorial-loop/editorial-review.json"
+        policy_path = batch / "editorial-loop/editorial-policy-decision.json"
+        review_path.parent.mkdir(parents=True, exist_ok=True)
+        content_path.parent.mkdir(parents=True, exist_ok=True)
+        content_path.write_text('{"sections": [{"heading": "定义"}]}', encoding="utf-8")
+        review_path.write_text(json.dumps({
+            "protocol": "wiki-editorial-review-v1", "verdict": "GO",
+            "checks": {"single_center": True}, "issues": [],
+        }), encoding="utf-8")
+        content_sha256 = hashlib.sha256(content_path.read_bytes()).hexdigest()
+        review_sha256 = hashlib.sha256(review_path.read_bytes()).hexdigest()
+        policy_path.write_text(json.dumps({
+            "protocol": "wiki-editorial-policy-decision-v1", "decision": "accept",
+            "content_sha256": content_sha256,
+            "review_sha256": review_sha256,
+            "raw_review_sha256": review_sha256,
+        }), encoding="utf-8")
+        if proof_state == "stale":
+            content_path.write_text('{"sections": [{"heading": "已替换"}]}', encoding="utf-8")
+    current = SimpleNamespace(score=0.2, evidence={"research_outcome": {
+        "closer_to_modelling_goal": False, "metrics": {}, "proof_contract": [],
+    }})
+
+    actions = controller._evaluate_pending_system_repairs(
+        accepted["job_id"], run_id, controller._tasks(run_id), current
+    )
+
+    assert ([item["status"] for item in actions] or [None]) == [expected_action]
+    repair = SystemRepairAgent(root).get(repair_run_id)
+    assert repair["status"] == expected_status
+    if expected_action:
+        assert repair["payload"]["outcome_validation"]["proof"][
+            "required_replay_tasks"
+        ] == ["content_compose", "editorial_review"]
+    if expected_status == "effective":
+        proof = repair["payload"]["outcome_validation"]["proof"]
+        assert proof["patch_bound"] is True
+        assert proof["causal_inputs_bound"] is True
+        assert proof["failure_fingerprint_absent_after_replay"] is True
+        assert proof["quality_score_improved"] is True
+        assert proof["effective_contract_satisfied"] is True
+    if editorial_status == "manual_review" or proof_state == "stale":
+        assert repair["payload"]["outcome_validation"]["proof"][
+            "failed_proof_tasks"
+        ][0]["task_id"] == "editorial_review"
 
 
 def test_official_replay_marks_more_observations_but_zero_usable_data_as_partial(

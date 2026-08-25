@@ -19,6 +19,18 @@ class CausalAnalyzer:
         code = str(evidence.get("failure_code") or "")
         failure = evidence.get("failure") or {}
         message = str(failure.get("message") or "") if isinstance(failure, dict) else ""
+        gate_result = failure.get("gate_result") or {} if isinstance(failure, dict) else {}
+        gate_failures = {
+            str(name) for name in (gate_result.get("failures") or [])
+        } if isinstance(gate_result, dict) else set()
+        if (code == "RESEARCH_PLAN_INVALID" and isinstance(failure, dict)
+                and failure.get("identical_failure_repeated") is True):
+            return Diagnosis("REPAIR_DID_NOT_CHANGE_CAUSAL_INPUT", 0.99, evidence,
+                             "研究计划修复后同一 Gate 指纹再次出现，必须升级到问题驱动的 Agent Triage")
+        if (code == "RESEARCH_PLAN_INVALID" and gate_failures
+                and all(name.startswith("english_") for name in gate_failures)):
+            return Diagnosis("GATE_GOAL_CONTRACT_DRIFT", 0.99, evidence,
+                             "英文发现增强项被前置 Gate 错误提升为全流程硬阻塞")
         if (code == "CAPABILITY_PROCESS_FAILED"
                 and evidence.get("contract") == "editorial_policy_vs_raw_review"
                 and "Editorial Review GO" in message):
@@ -40,8 +52,10 @@ class CausalAnalyzer:
             return Diagnosis("REPAIR_DID_NOT_CHANGE_CAUSAL_INPUT", 0.92, evidence,
                              "修复没有改变失败指纹所依赖的输入、策略或能力")
         if deviation.deviation_type == "unclassified_failure":
-            return Diagnosis("UNMODELLED_FAILURE", 0.5, evidence,
-                             "规则库没有该问题的根因模型，必须进行只读 Agent 调查")
+            family = str(evidence.get("mechanism_family") or "unknown")
+            return Diagnosis("UNMODELLED_FAILURE", 0.65 if family != "unknown" else 0.5,
+                             evidence,
+                             f"失败已稳定归入机制族 {family}，但具体因果输入仍需只读 Agent 调查")
         if deviation.deviation_type == "quality_regression":
             return Diagnosis("QUALITY_TRAJECTORY_REGRESSION", 0.9, evidence,
                              "局部放行改善了可执行性，但降低了至少一个目标维度")

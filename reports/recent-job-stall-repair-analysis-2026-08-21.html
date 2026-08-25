@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>近期 Wiki Job 卡滞与自治修复复盘｜2026-08-21</title>
+  <style>
+    :root {
+      --paper: #f3f0e8;
+      --paper-2: #e8e3d7;
+      --ink: #17201d;
+      --muted: #65706b;
+      --line: #c9c2b4;
+      --orange: #ef6b35;
+      --amber: #d79d22;
+      --teal: #0f766e;
+      --red: #a83e32;
+      --green: #28734d;
+      --navy: #173b4d;
+      --white: #fffdf7;
+      --shadow: 0 16px 40px rgba(31, 37, 34, .10);
+      --sans: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+      --mono: "SFMono-Regular", "Roboto Mono", "Cascadia Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(23,32,29,.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 100% 28px;
+      font-family: var(--sans);
+      line-height: 1.65;
+    }
+    a { color: inherit; }
+    code, .mono { font-family: var(--mono); overflow-wrap: anywhere; }
+    .shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+    .rail {
+      position: sticky; top: 0; height: 100vh; padding: 28px 22px;
+      color: #e9eee9; background: var(--ink); overflow-y: auto;
+      border-right: 6px solid var(--orange);
+    }
+    .rail-mark { font: 700 12px/1.2 var(--mono); letter-spacing: .16em; color: #ffb18f; }
+    .rail h2 { margin: 16px 0 8px; font: 700 24px/1.25 var(--serif); }
+    .rail .scope { color: #aeb9b3; font-size: 12px; }
+    .rail nav { margin-top: 28px; display: grid; gap: 5px; }
+    .rail nav a { padding: 8px 10px; text-decoration: none; color: #bdc7c2; border-left: 2px solid #48524e; font-size: 13px; }
+    .rail nav a:hover, .rail nav a.active { color: white; border-left-color: var(--orange); background: rgba(255,255,255,.06); }
+    .rail footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #43504b; color: #94a19b; font-size: 11px; }
+    main { min-width: 0; }
+    .hero { position: relative; overflow: hidden; padding: 70px clamp(28px, 6vw, 96px) 58px; color: var(--white); background: var(--navy); }
+    .hero::after {
+      content: "13 / 606 / 204"; position: absolute; right: -18px; bottom: -28px;
+      font: 900 clamp(58px, 9vw, 140px)/1 var(--mono); letter-spacing: -.08em;
+      color: rgba(255,255,255,.055); white-space: nowrap;
+    }
+    .eyebrow { font: 700 12px/1.2 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: #ffb18f; }
+    .hero h1 { position: relative; z-index: 1; max-width: 1020px; margin: 18px 0 18px; font: 800 clamp(38px, 5vw, 70px)/1.08 var(--serif); letter-spacing: -.025em; }
+    .hero .deck { position: relative; z-index: 1; max-width: 900px; margin: 0; color: #c8d7dd; font-size: 17px; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 30px; color: #9fb5bf; font: 12px var(--mono); }
+    .content { padding: 0 clamp(22px, 5vw, 78px) 90px; }
+    section { max-width: 1260px; margin: 0 auto; padding: 66px 0 8px; scroll-margin-top: 20px; }
+    .section-head { display: grid; grid-template-columns: 170px 1fr; gap: 26px; margin-bottom: 28px; border-top: 2px solid var(--ink); padding-top: 16px; }
+    .section-num { font: 800 14px var(--mono); color: var(--orange); letter-spacing: .1em; }
+    .section-head h2 { margin: 0; font: 800 clamp(28px, 3vw, 42px)/1.15 var(--serif); }
+    .section-head p { margin: 10px 0 0; max-width: 800px; color: var(--muted); }
+    .verdict {
+      margin: -24px auto 0; max-width: 1260px; position: relative; z-index: 2;
+      display: grid; grid-template-columns: 1.15fr .85fr; box-shadow: var(--shadow); background: var(--white);
+    }
+    .verdict-main { padding: 34px 38px; border-left: 8px solid var(--orange); }
+    .verdict-main h2 { margin: 0 0 12px; font: 800 30px/1.2 var(--serif); }
+    .verdict-main p { margin: 0; }
+    .verdict-side { padding: 30px 34px; color: white; background: var(--teal); }
+    .verdict-side .big { display: block; font: 900 55px/1 var(--mono); }
+    .verdict-side small { color: #c6ebe5; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin: 26px 0; }
+    .metric { padding: 22px; background: var(--white); border: 1px solid var(--line); box-shadow: 4px 4px 0 var(--paper-2); }
+    .metric .value { display: block; font: 900 36px/1 var(--mono); color: var(--navy); }
+    .metric .label { display: block; margin-top: 10px; font-weight: 700; }
+    .metric .note { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .callout { padding: 20px 24px; border-left: 5px solid var(--amber); background: #fff7dd; }
+    .callout strong { color: #805800; }
+    .callout.red { border-left-color: var(--red); background: #f8e6e1; }
+    .callout.teal { border-left-color: var(--teal); background: #dfeeea; }
+    .two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 22px; }
+    .two-col > *, .repair-grid > * { min-width: 0; }
+    .card { min-width: 0; background: rgba(255,253,247,.78); border: 1px solid var(--line); padding: 24px; }
+    .card h3 { margin: 0 0 8px; font: 800 22px/1.25 var(--serif); }
+    .card p:last-child { margin-bottom: 0; }
+    .stat-strip { display: grid; gap: 13px; margin-top: 18px; }
+    .bar-row { display: grid; grid-template-columns: minmax(170px, 1.2fr) 3fr 90px; gap: 12px; align-items: center; font-size: 13px; }
+    .bar-track { height: 13px; background: #d9d3c6; overflow: hidden; }
+    .bar { height: 100%; width: var(--w); background: var(--teal); }
+    .bar.orange { background: var(--orange); }
+    .bar.red { background: var(--red); }
+    .bar.amber { background: var(--amber); }
+    .bar-value { text-align: right; font: 700 12px var(--mono); }
+    table { width: 100%; border-collapse: collapse; background: rgba(255,253,247,.8); font-size: 13px; }
+    th { position: sticky; top: 0; z-index: 1; text-align: left; padding: 12px 10px; color: white; background: var(--ink); font: 700 11px var(--mono); letter-spacing: .05em; }
+    td { padding: 12px 10px; vertical-align: top; border-bottom: 1px solid var(--line); }
+    tbody tr:hover { background: #fff9e9; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); }
+    .pill { display: inline-block; padding: 3px 8px; border-radius: 99px; font: 700 10px var(--mono); white-space: nowrap; }
+    .pill.good { color: #145334; background: #d7eadc; }
+    .pill.warn { color: #795200; background: #f3e3ad; }
+    .pill.bad { color: #7d2b25; background: #efd2cb; }
+    .pill.info { color: #164b62; background: #d8e8ee; }
+    .pill.neutral { color: #49514e; background: #dedbd2; }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+    button, input { font: inherit; }
+    .filter-row button { border: 1px solid var(--ink); background: transparent; padding: 7px 12px; cursor: pointer; }
+    .filter-row button.active { color: white; background: var(--ink); }
+    .filter-row input { margin-left: auto; min-width: 240px; padding: 8px 10px; border: 1px solid var(--line); background: var(--white); }
+    .taxonomy { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    .type-card { position: relative; min-height: 260px; padding: 24px; color: white; background: var(--navy); overflow: hidden; }
+    .type-card:nth-child(2n) { background: var(--teal); }
+    .type-card:nth-child(3n) { background: #54483e; }
+    .type-card .index { position: absolute; right: 12px; bottom: -22px; font: 900 88px/1 var(--mono); color: rgba(255,255,255,.08); }
+    .type-card h3 { margin: 10px 0; font: 800 22px/1.22 var(--serif); }
+    .type-card p { color: #d5e0e1; font-size: 13px; }
+    .type-card .count { font: 800 12px var(--mono); color: #ffba9e; }
+    .timeline { position: relative; margin: 26px 0 0; padding-left: 26px; border-left: 2px solid var(--line); }
+    .event { position: relative; padding: 0 0 26px 20px; }
+    .event::before { content: ""; position: absolute; left: -33px; top: 6px; width: 11px; height: 11px; border-radius: 50%; background: var(--orange); border: 3px solid var(--paper); }
+    .event time { font: 700 11px var(--mono); color: var(--teal); }
+    .event h3 { margin: 4px 0; font-size: 17px; }
+    .event p { margin: 0; color: var(--muted); font-size: 13px; }
+    .funnel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 22px 0; }
+    .funnel div { padding: 16px 10px; text-align: center; color: white; background: var(--navy); clip-path: polygon(0 0, 92% 0, 100% 50%, 92% 100%, 0 100%, 8% 50%); }
+    .funnel div:first-child { clip-path: polygon(0 0,92% 0,100% 50%,92% 100%,0 100%); }
+    .funnel b { display: block; font: 900 27px var(--mono); }
+    .funnel span { font-size: 11px; }
+    .repair-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 22px; }
+    .failure-box { padding: 22px; color: white; background: var(--red); }
+    .failure-box h3 { margin-top: 0; font: 800 23px var(--serif); }
+    .rank-list { list-style: none; padding: 0; margin: 0; counter-reset: rank; }
+    .rank-list li { counter-increment: rank; display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; padding: 14px 0; border-bottom: 1px solid rgba(23,32,29,.16); }
+    .rank-list li::before { content: counter(rank, decimal-leading-zero); font: 800 13px var(--mono); color: var(--orange); }
+    .rank-list b { font: 800 12px var(--mono); }
+    .decision { display: grid; grid-template-columns: 110px 1fr 115px; gap: 15px; align-items: start; padding: 18px 0; border-bottom: 1px solid var(--line); }
+    .decision .level { font: 800 12px var(--mono); color: var(--orange); }
+    .decision h3 { margin: 0 0 5px; font-size: 16px; }
+    .decision p { margin: 0; color: var(--muted); font-size: 13px; }
+    .decision .metric-tag { text-align: right; font: 700 11px var(--mono); color: var(--teal); }
+    details { border: 1px solid var(--line); background: rgba(255,253,247,.72); margin: 10px 0; }
+    summary { cursor: pointer; padding: 14px 18px; font-weight: 750; }
+    details > div { padding: 0 18px 18px; color: var(--muted); font-size: 13px; }
+    .footnotes { font-size: 12px; color: var(--muted); }
+    .source-list code { overflow-wrap: anywhere; }
+    .page-end { margin-top: 60px; padding: 28px; color: #c8d7d0; background: var(--ink); font-size: 12px; }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      .rail { position: relative; height: auto; border-right: 0; border-bottom: 5px solid var(--orange); }
+      .rail nav { display: none; }
+      .metric-grid, .taxonomy { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .verdict, .repair-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .hero { padding: 46px 22px 50px; }
+      .content { padding-inline: 16px; }
+      .section-head, .two-col { grid-template-columns: 1fr; gap: 8px; }
+      .metric-grid, .taxonomy { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: minmax(0,1fr) minmax(0,2fr) 62px; }
+      .bar-row > span:first-child { overflow-wrap: anywhere; }
+      .funnel { grid-template-columns: 1fr; }
+      .funnel div { clip-path: none !important; }
+      .decision { grid-template-columns: 1fr; }
+      .decision .metric-tag { text-align: left; }
+      .filter-row input { margin-left: 0; width: 100%; }
+    }
+    @media print {
+      body { background: white; }
+      .shell { display: block; }
+      .rail, .filter-row { display: none; }
+      .hero { padding: 34px; print-color-adjust: exact; }
+      .content { padding: 0 24px 30px; }
+      section { page-break-inside: auto; }
+      .metric, .card, .type-card, .callout, table { break-inside: avoid; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <div class="rail-mark">FORENSIC REVIEW / 2026.08</div>
+      <h2>Wiki 生产流水线<br>卡滞与修复复盘</h2>
+      <div class="scope">13 个 Job · 606 次尝试 · 82 个偏差报告<br>时间窗：2026-08-12—2026-08-20</div>
+      <nav aria-label="报告章节">
+        <a href="#summary">01 结论摘要</a>
+        <a href="#scope">02 范围与口径</a>
+        <a href="#recurrence">03 共性与复发</a>
+        <a href="#taxonomy">04 问题类型</a>
+        <a href="#jobs">05 Job 全景</a>
+        <a href="#fixed">06 已修复 / 未再现</a>
+        <a href="#a013">07 A013 深挖</a>
+        <a href="#autonomy">08 自治修复闭环</a>
+        <a href="#actions">09 改进建议</a>
+        <a href="#appendix">10 证据与限制</a>
+      </nav>
+      <footer>数据来自只读 <span class="mono">var/state.db</span>、关联 artifacts 与 Git 提交历史。报告生成未修改 Job、Campaign 或数据库。</footer>
+    </aside>
+
+    <main>
+      <header class="hero">
+        <div class="eyebrow">Incident patterns · autonomous recovery · quality closure</div>
+        <h1>近期 Job 卡滞与自治修复<br>完整复盘报告</h1>
+        <p class="deck">结论不是“某个脚本偶尔失败”，而是三类系统性缺口互相放大：失败分类过粗、修复未改变因果输入、以及质量不足被 preview 终态提前吸收。症状高度重复，根因标签却高度碎片化。</p>
+        <div class="hero-meta">
+          <span>REPORT_DATE 2026-08-21</span><span>TIMEZONE Asia/Singapore</span><span>COHORT 13 JOBS</span><span>MODE READ-ONLY FORENSICS</span>
+        </div>
+      </header>
+
+      <div class="content">
+        <div class="verdict">
+          <div class="verdict-main">
+            <div class="eyebrow">Primary verdict</div>
+            <h2>共性问题反复出现；“修复成功”的判定也需要修复。</h2>
+            <p>9 个具名失败码中有 8 个跨 Job 重复；在 50 个根因码中，只有 4 个跨 Job 复用，44 个仅出现一次。也就是说，运行时看到的是重复故障，诊断层却把它们拆成大量一次性标签，导致经验无法稳定复用。</p>
+          </div>
+          <div class="verdict-side">
+            <span class="big">8 / 9</span>
+            <strong>失败码跨 Job 重复</strong><br>
+            <small>而跨 Job 复用的根因码只有 4 / 50</small>
+          </div>
+        </div>
+
+        <section id="summary">
+          <div class="section-head"><div class="section-num">01 / SUMMARY</div><div><h2>结论摘要</h2><p>先回答“有多少反复出现、哪些已经消失、主要是什么类型”。</p></div></div>
+          <div class="metric-grid">
+            <div class="metric"><span class="value">13</span><span class="label">纳入分析的 Job</span><span class="note">2026-08-12 至 08-20；同一目标的重复创建也保留</span></div>
+            <div class="metric"><span class="value">204</span><span class="label">非成功尝试</span><span class="note">占 606 次任务尝试的 33.7%</span></div>
+            <div class="metric"><span class="value">67</span><span class="label">内容 / 编辑质量失败</span><span class="note">覆盖 6 个 Job，是最稳定复发的语义故障族</span></div>
+            <div class="metric"><span class="value">47</span><span class="label">System Repair 运行</span><span class="note">仅 3 次状态为 effective；21 次 failed</span></div>
+          </div>
+          <div class="two-col">
+            <div class="card">
+              <h3>可以确定的共性问题</h3>
+              <ul>
+                <li><strong>内容与编辑闭环：</strong>6 个 Job、67 次失败；A013 单个 Job 就需要 content_compose 39 次、editorial_review 26 次。</li>
+                <li><strong>研究 / 证据链：</strong>计划翻译覆盖、来源多样性、抓取与表格提取在多个 Job 重复。</li>
+                <li><strong>修复没有改变因果输入：</strong>20 个诊断记录、4 个 Job；重试改变模型采样，却不改变失败所依赖的输入或约束。</li>
+                <li><strong>自治修复自身失败：</strong>21 次 System Repair 失败中，9 次未声明全部因果输入、7 次 Canary 失败。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>“修好后未再出现”的真实口径</h3>
+              <ul>
+                <li><strong>明确未再观测：</strong><code>PROCESS_EXIT</code>、<code>WORKERERROR</code>、<code>OUTPUT_PROTOCOL</code>、<code>SIDE_EFFECT</code> 在后续新版本 Job 中不再出现；但缺少逐项修复提交绑定，置信度为中。</li>
+                <li><strong>同一 Case 已验证：</strong>A013 的 35/35 英文字段翻译与 table_collect bootstrap 已越过原故障点。</li>
+                <li><strong>仍不能称为根除：</strong>修复后没有新的独立 Job 样本；“本 Job 后续成功”不等于“跨 Job 不再复发”。</li>
+                <li><strong>尚未解决：</strong>0 条证据采纳、0 个表格字段填充仍可得到 GO，说明质量门禁仍会放行空结果。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout red" style="margin-top:22px"><strong>关键风险：</strong>当前系统同时存在“硬失败卡住”和“软失败被标记完成”。后者更危险，因为 Dashboard 看见成功，但最终内容离 golden case 仍然很远。</div>
+        </section>
+
+        <section id="scope">
+          <div class="section-head"><div class="section-num">02 / SCOPE</div><div><h2>范围、样本与判定口径</h2><p>避免把同一个失败码的重试次数误当成不同问题，也避免把暂未再现误判为永久解决。</p></div></div>
+          <div class="two-col">
+            <div class="card">
+              <h3>样本定义</h3>
+              <p>纳入数据库中创建于 2026-08-12 00:00 UTC 之后、截至 2026-08-20 有执行记录的 13 个 Wiki 生产 Job，目标涵盖 P030、A001、P026、A015、A040、A037、A039、A014、A013。</p>
+              <p>所有这些 Job 都处于 <code>publication_mode=preview</code>。因此 candidate / diagnostic_preview 只代表预览流水线终态，不代表 reviewed publish 完成。</p>
+            </div>
+            <div class="card">
+              <h3>三层复发判定</h3>
+              <ol>
+                <li><strong>失败码复发：</strong>同一 code 出现在多个 Job。</li>
+                <li><strong>根因复发：</strong>同一 cause_code 出现在多个 Job。</li>
+                <li><strong>机制复发：</strong>即使 cause_code 不同，仍落在同一系统机制，如“修复输入未变化”或“抽取零产出”。</li>
+              </ol>
+              <p>报告中的“已修复”必须至少有后续成功尝试或验证回执；“未再现”还必须说明观察窗口与独立样本数量。</p>
+            </div>
+          </div>
+          <details><summary>读取的数据表与证据链</summary><div>jobs、orchestrator_runs、orchestrator_tasks、orchestrator_attempts、exceptions、deviation_reports、causal_diagnoses、repair_plans、failure_triage_runs、system_repair_runs、system_change_candidates、repair_validation_receipts、system_meta_deviations、control_plane_repair_jobs、gate_results、decisions、releases、wiki_runtime_faults、artifacts，以及 2026-08-11 至 08-20 的 Git 提交历史。</div></details>
+        </section>
+
+        <section id="recurrence">
+          <div class="section-head"><div class="section-num">03 / RECURRENCE</div><div><h2>共性问题究竟有多普遍</h2><p>运行症状高度重复；诊断词汇却没有形成稳定、可复用的故障本体。</p></div></div>
+          <div class="two-col">
+            <div class="card">
+              <h3>失败码层：8 / 9 跨 Job 复发</h3>
+              <div class="stat-strip">
+                <div class="bar-row"><span>PROCESS_EXIT</span><div class="bar-track"><div class="bar orange" style="--w:100%"></div></div><span class="bar-value">66 / 6 Jobs</span></div>
+                <div class="bar-row"><span>EDITORIAL_LOCAL_ISSUES</span><div class="bar-track"><div class="bar red" style="--w:55%"></div></div><span class="bar-value">36 / 4</span></div>
+                <div class="bar-row"><span>CAPABILITY_PROCESS_FAILED</span><div class="bar-track"><div class="bar amber" style="--w:52%"></div></div><span class="bar-value">34 / 5</span></div>
+                <div class="bar-row"><span>CONTENT_LOCAL_ISSUES</span><div class="bar-track"><div class="bar red" style="--w:47%"></div></div><span class="bar-value">31 / 5</span></div>
+                <div class="bar-row"><span>SOURCE_DIVERSITY_BLOCKED</span><div class="bar-track"><div class="bar" style="--w:15%"></div></div><span class="bar-value">10 / 4</span></div>
+                <div class="bar-row"><span>RESEARCH_PLAN_INVALID</span><div class="bar-track"><div class="bar" style="--w:9%"></div></div><span class="bar-value">6 / 2</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>根因层：44 / 50 只出现一次</h3>
+              <p>127 条 causal diagnosis 被拆成 50 个 cause_code，其中 44 个是 singleton；只有 4 个 cause_code 真正跨 Job 复用。</p>
+              <div class="stat-strip">
+                <div class="bar-row"><span>UNMODELLED_FAILURE</span><div class="bar-track"><div class="bar red" style="--w:100%"></div></div><span class="bar-value">50 / 3 Jobs</span></div>
+                <div class="bar-row"><span>REPAIR_DID_NOT_CHANGE_CAUSAL_INPUT</span><div class="bar-track"><div class="bar orange" style="--w:40%"></div></div><span class="bar-value">20 / 4</span></div>
+                <div class="bar-row"><span>DISCOVERY_TRANSLATION_COVERAGE_GAP</span><div class="bar-track"><div class="bar" style="--w:12%"></div></div><span class="bar-value">6 / 2</span></div>
+                <div class="bar-row"><span>ZERO_YIELD_QUERY_AND_EXTRACTION_PIPELINE</span><div class="bar-track"><div class="bar" style="--w:4%"></div></div><span class="bar-value">2 / 2</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="callout" style="margin-top:22px"><strong>解释：</strong>失败码太粗，根因码又太细。前者无法指导修复，后者无法沉淀复用。应增加一个稳定的“故障族 / mechanism_family”层，把几十个 editorial patch 变体归并到 schema expressiveness、causal feedback、identity preservation、cache invalidation 等少数机制。</div>
+        </section>
+
+        <section id="taxonomy">
+          <div class="section-head"><div class="section-num">04 / TAXONOMY</div><div><h2>问题主要分为六类</h2><p>前四类是 Job 执行失败，后两类决定系统能否真正自愈和正确宣告完成。</p></div></div>
+          <div class="taxonomy">
+            <article class="type-card"><div class="count">75 ATTEMPTS · 8 JOBS</div><h3>运行时与协议封装</h3><p>PROCESS_EXIT、WORKERERROR、OUTPUT_PROTOCOL、SIDE_EFFECT。早期版本大量出现，错误信息不足以区分真实业务门禁失败和基础设施异常。</p><div class="index">01</div></article>
+            <article class="type-card"><div class="count">MULTI-JOB · RECURRING</div><h3>研究计划与来源覆盖</h3><p>字段英文翻译覆盖不足、research plan gate 阻塞、source diversity 失败。A037、A039、A014、A013 都出现过相邻问题。</p><div class="index">02</div></article>
+            <article class="type-card"><div class="count">ZERO-YIELD · TABLE PATH</div><h3>抓取、提取与表格契约</h3><p>payload 未抓取、document route 缺失、抽取器零产出、表格 bootstrap deadlock。A013 最终执行了 70 个查询但 0 条证据被采纳。</p><div class="index">03</div></article>
+            <article class="type-card"><div class="count">67 ATTEMPTS · 6 JOBS</div><h3>内容生成与编辑质量</h3><p>近重复、claim dump、unsupported fusion、identity drift、poor transition。修复常是逐条扩展 patch schema，缺少更高层的重规划。</p><div class="index">04</div></article>
+            <article class="type-card"><div class="count">47 REPAIR RUNS</div><h3>自治修复与治理闭环</h3><p>修复不改变因果输入、diff 声明不完整、Canary 失败、成功回执过早。System Repair 自身成为新的故障源。</p><div class="index">05</div></article>
+            <article class="type-card"><div class="count">PREVIEW ≠ PRODUCTION</div><h3>终态语义与可观测性</h3><p>diagnostic_preview 会结束 Job；空表格仍能 GO；50 个 unclassified_failure 保持 open。Dashboard 的“完成”与用户的生产目标不一致。</p><div class="index">06</div></article>
+          </div>
+        </section>
+
+        <section id="jobs">
+          <div class="section-head"><div class="section-num">05 / JOBS</div><div><h2>13 个 Job 的执行全景</h2><p>可搜索、可按终态筛选。失败数是 attempt 级别，不等同于独立根因数量。</p></div></div>
+          <div class="filter-row">
+            <button class="active" data-filter="all">全部</button>
+            <button data-filter="success">预览流水线完成</button>
+            <button data-filter="blocked">卡滞 / 人工 / 失败</button>
+            <input id="jobSearch" type="search" placeholder="搜索目标、Job ID 或失败码…" aria-label="搜索 Job">
+          </div>
+          <div class="table-wrap">
+            <table id="jobTable">
+              <thead><tr><th>目标 / Job</th><th>终态</th><th>尝试</th><th>非成功</th><th>主要失败</th><th>自治记录</th><th>判断</th></tr></thead>
+              <tbody>
+                <tr data-group="success"><td><strong>P030</strong><br><code>job_7cf1695d…</code></td><td><span class="pill good">candidate</span></td><td>40</td><td>17</td><td>PROCESS_EXIT 15<br>WORKERERROR 2</td><td>0 repair</td><td>靠重试完成；早期错误封装粗</td></tr>
+                <tr data-group="success"><td><strong>P030</strong><br><code>job_f4331313…</code></td><td><span class="pill good">candidate</span></td><td>104</td><td>34</td><td>PROCESS_EXIT 33<br>SIDE_EFFECT 1</td><td>0 repair</td><td>高重试成本完成</td></tr>
+                <tr data-group="blocked"><td><strong>A001</strong><br><code>job_94e7523b…</code></td><td><span class="pill warn">repairable</span></td><td>5</td><td>2</td><td>PROCESS_EXIT 2</td><td>0 repair</td><td>第一次创建未完成</td></tr>
+                <tr data-group="blocked"><td><strong>A001</strong><br><code>job_676c149f…</code></td><td><span class="pill warn">repairable</span></td><td>8</td><td>1</td><td>PROCESS_EXIT 1</td><td>0 repair</td><td>第二次创建未完成</td></tr>
+                <tr data-group="blocked"><td><strong>A001</strong><br><code>job_23eee664…</code></td><td><span class="pill warn">repairable</span></td><td>8</td><td>1</td><td>PROCESS_EXIT 1</td><td>0 repair</td><td>第三次创建未完成</td></tr>
+                <tr data-group="success"><td><strong>A001</strong><br><code>job_570946c0…</code></td><td><span class="pill good">candidate</span></td><td>59</td><td>14</td><td>PROCESS_EXIT 14</td><td>0 repair</td><td>第四次创建才完成</td></tr>
+                <tr data-group="blocked"><td><strong>P026</strong><br><code>job_a91441c4…</code></td><td><span class="pill bad">failed / quarantined</span></td><td>1</td><td>1</td><td>OUTPUT_PROTOCOL 1</td><td>0 repair</td><td>协议输出直接隔离</td></tr>
+                <tr data-group="blocked"><td><strong>A015</strong><br><code>job_3c4c330b…</code></td><td><span class="pill bad">paused</span></td><td>52</td><td>33</td><td>CAPABILITY 8 · SOURCE 4<br>CONTENT 4 · SIDE_EFFECT 4 · 未编码 12</td><td>0 repair</td><td>多层故障叠加，早于自治闭环</td></tr>
+                <tr data-group="success"><td><strong>A040</strong><br><code>job_31cec529…</code></td><td><span class="pill good">candidate</span></td><td>47</td><td>19</td><td>CAPABILITY 10<br>CONTENT 5 · EDITORIAL 4</td><td>0 repair</td><td>语义失败后靠重试完成</td></tr>
+                <tr data-group="blocked"><td><strong>A037</strong><br><code>job_eddde2e4…</code></td><td><span class="pill bad">manual_review</span></td><td>19</td><td>5</td><td>CONTENT 4<br>RESEARCH_PLAN 1</td><td>2 deviations</td><td>近重复与 claim 类型漂移</td></tr>
+                <tr data-group="blocked"><td><strong>A039</strong><br><code>job_b2e66721…</code></td><td><span class="pill bad">running / ready</span></td><td>99</td><td>27</td><td>CAPABILITY 10 · EDITORIAL 7<br>PLAN 5 · CONTENT 3 · SOURCE 2</td><td>29 deviations<br>19 triage · 14 repair</td><td>状态陈旧；修复链未闭合</td></tr>
+                <tr data-group="blocked"><td><strong>A014</strong><br><code>job_c4ad07f7…</code></td><td><span class="pill bad">manual_review</span></td><td>34</td><td>6</td><td>SOURCE 2 · EDITORIAL 2<br>CAPABILITY 2</td><td>6 deviations<br>5 triage · 4 repair</td><td>Supervisor 后置，未救回原 Job</td></tr>
+                <tr data-group="success"><td><strong>A013</strong><br><code>job_c350c809…</code></td><td><span class="pill info">diagnostic_preview</span></td><td>130</td><td>44</td><td>EDITORIAL 23 · CONTENT 15<br>CAPABILITY 4 · SOURCE 2</td><td>45 deviations<br>43 triage · 29 repair</td><td>越过硬故障，但质量目标未完成</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="footnotes">终态分布：4 candidate、1 diagnostic_preview、3 repairable、2 manual_review、1 paused、1 running、1 failed。只有 5 / 13 的 workflow run 为 succeeded；且全部为 preview 模式。</p>
+        </section>
+
+        <section id="fixed">
+          <div class="section-head"><div class="section-num">06 / FIX STATUS</div><div><h2>哪些修复后没有再出现</h2><p>分成“跨后续 Job 未再观测”“同一 Case 已越过”“仍在复发”三种，不做过度承诺。</p></div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>问题</th><th>修复 / 变化</th><th>后续证据</th><th>结论</th><th>置信度</th></tr></thead>
+              <tbody>
+                <tr><td>早期通用 PROCESS_EXIT / WORKERERROR</td><td>工作流演进后转为结构化 failure_code</td><td>最后出现于 08-13；A040、A037、A039、A014、A013 均未再出现这些码</td><td><span class="pill good">未再观测</span></td><td>中：缺少一对一提交绑定</td></tr>
+                <tr><td>OUTPUT_PROTOCOL / SIDE_EFFECT</td><td>协议与 side-effect 路径后续未触发</td><td>最后出现于 08-13；后续 5 个目标未出现</td><td><span class="pill good">未再观测</span></td><td>中：样本有限</td></tr>
+                <tr><td>A013 英文字段翻译覆盖缺失</td><td><code>2622601</code>：research plan 生成与 gate 修复</td><td>新 research-plan 为 35 / 35；<code>english_field_translation_coverage_complete=true</code>；gate PASS</td><td><span class="pill good">同 Case 修复</span></td><td>高（Case 内）；低（跨新 Job）</td></tr>
+                <tr><td>A013 table_collect bootstrap deadlock</td><td><code>2622601</code>：受控回卷与流水线修复</td><td>前两次失败，attempt 3 succeeded；随后 table verify / population / apply 全部 succeeded</td><td><span class="pill good">越过原故障点</span></td><td>高（Case 内）</td></tr>
+                <tr><td>Dashboard 找不到 preview</td><td><code>73b5108</code>：verified preview route 与 UI 展示</td><td>203 行变更、76 行测试；属于可观测性修复，不改变内容质量</td><td><span class="pill good">代码回归覆盖</span></td><td>高（UI 单元）</td></tr>
+                <tr><td>内容 / editorial patch 缺陷族</td><td><code>51216a1</code> + 08-20 连续 10 个 editorial 修复提交</td><td>提交后仍出现 near-duplicate、claim dump、fusion、identity 与 relocation 等新变体，直到 attempt 26 才通过</td><td><span class="pill bad">机制仍复发</span></td><td>高</td></tr>
+                <tr><td>查询与提取零产出</td><td>多个 A013 evidence-path System Repair；多次 Canary failed / awaiting approval</td><td>70 queries、350 audits、0 accepted、0 populated；最终仍 diagnostic_preview</td><td><span class="pill bad">未解决</span></td><td>高</td></tr>
+                <tr><td>System Repair effectiveness 判定</td><td>已有 receipt 与 outcome validation</td><td>A013 两次 effective 后同路径继续失败；receipt 内 <code>closer_to_modelling_goal=false</code></td><td><span class="pill bad">判定过早</span></td><td>高</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout teal" style="margin-top:22px"><strong>严格回答：</strong>目前只能说有 2 个早期运行时 / 协议故障族在后续 Job 中未再观测，另有 2 个 A013 具体阻塞点在同一恢复周期内被验证越过。没有足够的“修复后独立新 Job”样本，不能宣称最新研究与 editorial 修复已经永久根除。</div>
+        </section>
+
+        <section id="a013">
+          <div class="section-head"><div class="section-num">07 / CASE A013</div><div><h2>A013：硬故障修好了，成功目标仍未达到</h2><p>这是最完整的自治恢复 Case，也最能暴露“流程成功”和“生产成功”的差异。</p></div></div>
+          <div class="metric-grid">
+            <div class="metric"><span class="value">130</span><span class="label">总任务尝试</span><span class="note">44 次非成功</span></div>
+            <div class="metric"><span class="value">39 / 26</span><span class="label">compose / editorial 尝试</span><span class="note">修复主要消耗在语义闭环</span></div>
+            <div class="metric"><span class="value">29</span><span class="label">System Repair</span><span class="note">其中 18 failed、5 queued、2 effective 等</span></div>
+            <div class="metric"><span class="value">0 / 35</span><span class="label">最终填充字段</span><span class="note">35 个字段全部是显式 gap</span></div>
+          </div>
+          <div class="funnel" aria-label="A013 查询漏斗">
+            <div><b>70</b><span>查询执行</span></div>
+            <div><b>350</b><span>候选审计</span></div>
+            <div><b>0</b><span>证据采纳</span></div>
+            <div><b>0</b><span>字段填充</span></div>
+            <div><b>GO</b><span>表格门禁</span></div>
+          </div>
+          <div class="two-col">
+            <div class="card">
+              <h3>修复真正奏效的部分</h3>
+              <ul>
+                <li>research-plan.json 从不完整覆盖升级为 35 / 35 英文翻译。</li>
+                <li>research-plan-gate 从阻塞恢复为 PASS。</li>
+                <li>table_collect attempt 1、2 失败后，attempt 3 成功。</li>
+                <li>search matrix、executed matrix、execution manifest、collection、evidence-selection 五类关键产物均生成。</li>
+                <li>最终全部 workflow task 结束；preview 产物可访问。</li>
+              </ul>
+            </div>
+            <div class="failure-box">
+              <h3>但生产目标没有完成</h3>
+              <ul>
+                <li><code>collection.data_collection_outcome = NO_ELIGIBLE_PUBLIC_DATA</code></li>
+                <li>350 条 candidate audit 全部 rejected。</li>
+                <li>22 个字段无 field-specific observation；13 个字段缺 public extraction rule。</li>
+                <li>Cisco C9500 LCA PDF 因 <code>payload_not_fetched</code> / <code>payload_or_hash_missing</code> 被拒。</li>
+                <li>source-verdict 仍 PASS，table-population-gate 仍 GO。</li>
+                <li>maturity 降级为 diagnostic_preview；candidate_eligible=false。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="timeline">
+            <div class="event"><time>2026-08-19 17:03 SGT</time><h3>来源多样性首次阻塞</h3><p>source_diversity_gate 连续两次 blocked，随后进入内容和 editorial 故障链。</p></div>
+            <div class="event"><time>2026-08-19 17:10—20:00 SGT</time><h3>修复输入与 editorial contract 来回震荡</h3><p>claim reuse、replace cardinality、preservation token、unique thesis 等失败交替出现；两次 repair receipt 被标为 effective，但故障继续。</p></div>
+            <div class="event"><time>2026-08-19 20:18 / 2026-08-20 11:16 SGT</time><h3>table_collect 两次失败</h3><p>第一次 repairable，第二次 manual_review。根因后来归入 activity 字段翻译契约与 bootstrap 恢复缺口。</p></div>
+            <div class="event"><time>2026-08-20 11:07 SGT</time><h3>提交 2622601 并受控回卷</h3><p>修复 research plan、gate、Supervisor / controller、triage、System Repair 与 workflow；新计划 35/35，原 table_collect 故障点被越过。</p></div>
+            <div class="event"><time>2026-08-20 13:41—16:18 SGT</time><h3>editorial 故障持续 18 次</h3><p>claim dump、unsupported fusion、redundant、identity drift、near duplicate 等变体不断出现；期间连续提交 10 个 schema / feedback / identity 修复。</p></div>
+            <div class="event"><time>2026-08-20 16:26 SGT</time><h3>workflow succeeded，但 maturity=diagnostic_preview</h3><p>release_gate、reviewed_apply、publish 因 preview 模式跳过；表格 0 填充、3 个 graph conflict 与多项 source warning 保留。</p></div>
+          </div>
+          <div class="callout red"><strong>结论：</strong>A013 证明系统能够在人工提交与受控回卷后越过具体代码阻塞，但还不能自主判断“结果是否达到完整成功目标”。当前 preview 终态把质量债务转化成了可接受终态，Supervisor 因而停止继续优化。</div>
+        </section>
+
+        <section id="autonomy">
+          <div class="section-head"><div class="section-num">08 / AUTONOMY</div><div><h2>自治修复模块为什么没有稳定解决</h2><p>问题不在于“没有发现”，而在于发现、归类、修改、验证、推广五个环节没有形成强闭环。</p></div></div>
+          <div class="repair-grid">
+            <div class="card">
+              <h3>47 次 System Repair 的状态</h3>
+              <div class="stat-strip">
+                <div class="bar-row"><span>failed</span><div class="bar-track"><div class="bar red" style="--w:100%"></div></div><span class="bar-value">21 · 44.7%</span></div>
+                <div class="bar-row"><span>queued</span><div class="bar-track"><div class="bar amber" style="--w:57%"></div></div><span class="bar-value">12 · 25.5%</span></div>
+                <div class="bar-row"><span>effective</span><div class="bar-track"><div class="bar" style="--w:14%"></div></div><span class="bar-value">3 · 6.4%</span></div>
+                <div class="bar-row"><span>rejected</span><div class="bar-track"><div class="bar orange" style="--w:14%"></div></div><span class="bar-value">3</span></div>
+                <div class="bar-row"><span>promoted</span><div class="bar-track"><div class="bar" style="--w:10%"></div></div><span class="bar-value">2</span></div>
+                <div class="bar-row"><span>awaiting approval / validation</span><div class="bar-track"><div class="bar amber" style="--w:19%"></div></div><span class="bar-value">4</span></div>
+                <div class="bar-row"><span>coding / ineffective</span><div class="bar-track"><div class="bar orange" style="--w:10%"></div></div><span class="bar-value">2</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>21 次 failed 的直接原因</h3>
+              <ol class="rank-list">
+                <li><span>未声明全部因果输入变更</span><b>9</b></li>
+                <li><span>Canary 验证失败</span><b>7</b></li>
+                <li><span>因果声明未绑定实际 diff</span><b>3</b></li>
+                <li><span>编码 Agent 异常 / 协议失败</span><b>1</b></li>
+                <li><span>没有产出 patch</span><b>1</b></li>
+              </ol>
+            </div>
+          </div>
+          <div class="two-col" style="margin-top:22px">
+            <div class="card">
+              <h3>设计缺陷 1：诊断不能沉淀</h3>
+              <p>50 个根因码中 44 个只出现一次，说明 causal diagnosis 更像自由文本命名，而不是稳定本体。同一 editorial 机制被拆成 capacity blind、one-to-many、delete unrepresentable、list relocation、identity suffix 等大量标签，Supervisor 很难直接命中已有修复策略。</p>
+            </div>
+            <div class="card">
+              <h3>设计缺陷 2：修复成功判定过窄</h3>
+              <p>A013 两个 receipt 标为 effective 后，同一路径仍继续失败；receipt payload 中甚至记录 <code>closer_to_modelling_goal=false</code>。验证只证明局部 patch / test 通过，没有证明 Job 的目标质量向量改善。</p>
+            </div>
+            <div class="card">
+              <h3>设计缺陷 3：只修补当前 validator</h3>
+              <p>08-20 在不到 90 分钟内连续 10 个 editorial 提交，依次增加 capacity、cross-paragraph、relocation、split、feedback、merge、identity、duplicate 等能力。这是 schema chase：每次修掉一个表现，下一个不可表达操作继续暴露。</p>
+            </div>
+            <div class="card">
+              <h3>设计缺陷 4：终态吞掉质量债务</h3>
+              <p>diagnostic_preview 允许 pipeline_continue，且 preview 模式跳过发布尾链。Supervisor 看到 workflow succeeded 后停止，而用户目标是 golden-case 级完整内容。这不是模型不够努力，而是 Goal Contract 与终态机定义错位。</p>
+            </div>
+          </div>
+          <div class="callout" style="margin-top:22px"><strong>总体判断：</strong>自治模块“会发现问题”，但其闭环仍是局部的：发现的是 validator symptom，修复的是局部代码，验证的是测试或一次尝试，缺少以最终质量向量为准的跨阶段验收。因此问题会以新 failure_code / 新 cause_code 变体继续出现。</div>
+        </section>
+
+        <section id="actions">
+          <div class="section-head"><div class="section-num">09 / ACTIONS</div><div><h2>建议的修复优先级</h2><p>目标是把“能继续跑”升级为“能证明完成”，并让已修问题真正成为系统经验。</p></div></div>
+          <div class="decision"><div class="level">P0 · 终态</div><div><h3>把 preview 产物与 Job 完成状态彻底解耦</h3><p>preview 只应是 artifact / milestone；若 Goal Contract 要求完整成功，0 采纳、0 填充、candidate_eligible=false 时 Job 必须保持 active、repairable 或 needs_evidence，不能进入 completed 语义。</p></div><div class="metric-tag">KPI: false-complete = 0</div></div>
+          <div class="decision"><div class="level">P0 · 门禁</div><div><h3>禁止空结果 GO</h3><p>table population gate 至少要求：公开可提取字段非零、关键表填充率阈值、已抓取 payload 比例、accepted_evidence 非零；若确属内部数据需求，必须产生明确的数据请求，而不是空表成功。</p></div><div class="metric-tag">KPI: 0/35 ⇒ BLOCK</div></div>
+          <div class="decision"><div class="level">P0 · 修复</div><div><h3>effectiveness 必须绑定目标质量增量</h3><p>repair receipt 同时验证 patch hash、因果输入 hash、失败 fingerprint 消失、质量向量改善、后续 N 个阶段不回归。只通过单测或单次 gate 不得标 effective。</p></div><div class="metric-tag">KPI: false-effective = 0</div></div>
+          <div class="decision"><div class="level">P1 · 本体</div><div><h3>建立稳定 failure mechanism family</h3><p>新增标准层：runtime/protocol、research-contract、fetch-route、extractor-yield、editorial-schema、causal-feedback、identity-lineage、terminal-semantics。cause_code 作为实例，family 作为策略索引。</p></div><div class="metric-tag">KPI: singleton &lt; 40%</div></div>
+          <div class="decision"><div class="level">P1 · 规划</div><div><h3>从 patch retry 升级为 bounded replanning</h3><p>同一 family 连续 2 次且 causal input hash 不变时，禁止再次随机生成；必须重建 research route、content blueprint 或 operation plan。连续 3 次则升级为 system repair / human approval。</p></div><div class="metric-tag">KPI: unchanged retry = 0</div></div>
+          <div class="decision"><div class="level">P1 · 证据</div><div><h3>修复 fetch → route → extract → select 的闭环</h3><p>对 PDF / HTML 文献记录每一步：查询词、数据源、候选、抓取状态、payload hash、route、抽取观察、采纳/拒绝原因。Cisco LCA PDF 这类高相关文献不能以 payload_not_fetched 静默落入 evidence_limited。</p></div><div class="metric-tag">KPI: fetched payload ≥ 95%</div></div>
+          <div class="decision"><div class="level">P2 · 评估</div><div><h3>建立独立 post-fix replay corpus</h3><p>每个 promoted repair 必须在原 Job、相邻节点、新建独立 Job 三层回放；至少观察一个后续独立 Job 后，才允许标注“未再现”。</p></div><div class="metric-tag">KPI: 3-level replay</div></div>
+          <div class="decision"><div class="level">P2 · 看板</div><div><h3>把修复谱系与质量债务作为一等信息</h3><p>在 Job 页展示 failure family、causal input diff、修复提交 / PR、验证回执、查询漏斗、被拒证据理由、当前未满足的 Goal Contract；不要只展示 task succeeded。</p></div><div class="metric-tag">KPI: explainability 100%</div></div>
+        </section>
+
+        <section id="appendix">
+          <div class="section-head"><div class="section-num">10 / EVIDENCE</div><div><h2>证据、提交与局限</h2><p>报告可复核，但结论边界也必须透明。</p></div></div>
+          <div class="two-col">
+            <div class="card source-list">
+              <h3>关键修复提交</h3>
+              <ul>
+                <li><code>2622601</code> — Repair autonomous recovery and A013 pipeline</li>
+                <li><code>51216a1</code> — Fix governed editorial repair validation</li>
+                <li><code>248b6c5</code> — Fix capacity-aware editorial patch recovery</li>
+                <li><code>4874343</code> → <code>f503af8</code> — 9 个 cross-paragraph / relocation / split / feedback / identity / merge 修复</li>
+                <li><code>73b5108</code> — Expose verified job preview in dashboard</li>
+              </ul>
+            </div>
+            <div class="card source-list">
+              <h3>A013 关键 artifacts</h3>
+              <ul>
+                <li><code>research-plan.json</code> / <code>research-plan-gate.json</code></li>
+                <li><code>table-data/search-matrix.json</code>（70 queries）</li>
+                <li><code>table-data/search-matrix.executed.json</code></li>
+                <li><code>table-data/search-execution-manifest.json</code></li>
+                <li><code>table-data/collection.json</code></li>
+                <li><code>table-data/evidence-selection.json</code>（350 audits）</li>
+                <li><code>table-data/source-verdict.json</code></li>
+                <li><code>table-data/table-population-gate.json</code></li>
+                <li><code>maturity-gate.json</code> / <code>preview-report.json</code></li>
+              </ul>
+            </div>
+          </div>
+          <details open><summary>统计限制</summary><div>
+            <ol>
+              <li>13 个 Job 是当前数据库中的近期 cohort，不代表长期总体分布。</li>
+              <li>最新修复集中在 08-20，同日缺少多个独立新 Job，因此“未再现”证据窗口很短。</li>
+              <li>早期 PROCESS_EXIT 缺少结构化 failure_payload，无法可靠还原每次业务根因。</li>
+              <li>多个 Job 是同一节点重复创建（P030、A001），本报告保留它们以衡量真实重试成本。</li>
+              <li>全部 Job 为 preview 模式，无法验证 reviewed_apply / publish 尾链。</li>
+              <li>Git 提交时间与运行时间只能证明时间相关；除非有 repair receipt / replay 绑定，否则不宣称严格因果。</li>
+            </ol>
+          </div></details>
+          <details><summary>核心数字的复核口径</summary><div>
+            <ul>
+              <li>606 = cohort 内 orchestrator_attempts 总数；204 = status 非 succeeded / skipped。</li>
+              <li>67 = EDITORIAL_LOCAL_ISSUES 36 + CONTENT_LOCAL_ISSUES 31。</li>
+              <li>8 / 9 = 9 个非空 failure_code 中，8 个至少出现在 2 个 Job。</li>
+              <li>44 / 50 = 50 个 distinct cause_code 中，44 个仅有 1 条诊断记录。</li>
+              <li>47 = cohort 关联 system_repair_runs；状态分布来自数据库当前快照。</li>
+              <li>A013 的 70 / 350 / 0 / 0 来自 search execution manifest 与 evidence selection，不是推断值。</li>
+            </ul>
+          </div></details>
+          <div class="page-end">
+            <strong>报告结论：</strong>系统目前具备发现、生成修复、测试和继续执行的基本能力，但尚未形成以最终生产质量为中心的自治闭环。最优先的工作不是增加更多重试，而是修正完成语义、空结果门禁和 repair effectiveness 证明。
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const buttons = [...document.querySelectorAll('[data-filter]')];
+    const rows = [...document.querySelectorAll('#jobTable tbody tr')];
+    const search = document.querySelector('#jobSearch');
+    let activeFilter = 'all';
+    function applyFilter() {
+      const q = search.value.trim().toLowerCase();
+      rows.forEach(row => {
+        const groupOk = activeFilter === 'all' || row.dataset.group === activeFilter;
+        const textOk = !q || row.textContent.toLowerCase().includes(q);
+        row.hidden = !(groupOk && textOk);
+      });
+    }
+    buttons.forEach(button => button.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      button.classList.add('active');
+      activeFilter = button.dataset.filter;
+      applyFilter();
+    }));
+    search.addEventListener('input', applyFilter);
+    const links = [...document.querySelectorAll('.rail nav a')];
+    const sections = [...document.querySelectorAll('section[id]')];
+    const observer = new IntersectionObserver(entries => {
+      entries.filter(e => e.isIntersecting).forEach(entry => {
+        links.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id));
+      });
+    }, { rootMargin: '-20% 0px -65% 0px' });
+    sections.forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>

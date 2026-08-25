@@ -764,8 +764,13 @@ Task 成功或失败后自动审计；失败形态先持久化再执行 rewind�
 调用 <code>SkillInvoker</code> 创建 Job，不能直接写 Job 表。每个请求使用
 <code>autonomy:{campaign_id}:{item_id}</code> 幂等键，随后自动物化 Workflow、执行 Task、调用
 Goal Alignment 审计、执行白名单 L0/L1 修复并验证。成熟度终态的聚合必须服从 Goal
-Contract。Campaign 现在冻结 <code>completion_goal</code>：默认 <code>lca_modeling_ready</code> 只有实际成功结果
-才能标记 <code>completed</code>，<code>evidence_limited</code> 进入 <code>needs_attention</code>；明确选择
+Contract。Campaign 现在冻结 <code>completion_goal</code>：preview 请求使用 <code>lca_modeling_ready</code>，只有
+建模成熟度、非零采纳证据和非零实际填充字段共同通过才能标记 <code>completed</code>；正式生产请求
+使用 <code>reviewed_publication</code>，必须同时声明 <code>publication_mode=reviewed</code>，并且只有 Job 到达
+<code>published</code>、<code>publish</code> Task 成功且不可变输出 Manifest 内的 <code>release-record-v1</code> 与当前
+Job、候选哈希和审核发布证明绑定后才能完成。<code>preview + reviewed_publication</code> 以及
+<code>reviewed + lca_modeling_ready</code> 会在创建 Campaign 前被拒绝，Candidate、Gate 和 Apply
+均不能提前结束正式发布目标。<code>evidence_limited</code> 进入 <code>needs_attention</code>；明确选择
 <code>workflow_delivery</code> 时，诚实的 evidence-limited 流程产物才可算交付完成。<code>needs_research</code>
 会继续触发有界研究修复，<code>data_required</code>、预算耗尽、人工阻塞或失败均进入
 <code>needs_attention</code>。migration v7 已持久化 Campaign、Item 和 Supervisor Heartbeat；新增
@@ -797,6 +802,10 @@ Contract。Campaign 现在冻结 <code>completion_goal</code>：默认 <code>lca
 </tr>
 </tbody>
 </table></div>
+<p>正式生产完成证明链为：</p>
+<p><code>modeling_ready → candidate → release_gate → reviewed_apply → publish → immutable release-record</code></p>
+<p>其中 preview 可以被展示和审计，但不能跨越发布授权边界，也不能满足
+<code>completion_goal=reviewed_publication</code>。</p>
 <p><code>completed</code> 只是某一时刻基于已有证据的投影，不是不可变事实。对
 <code>completion_goal=lca_modeling_ready</code> 的 Campaign，后到达的高/严重偏差会撤销旧完成投影；
 对 <code>needs_attention</code>，只有新的未消费 Wakeup 才能重新激活，避免旧偏差造成空转。</p>

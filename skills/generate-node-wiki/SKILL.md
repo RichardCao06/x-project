@@ -14,6 +14,12 @@ description: "为 LCA 骨架数据库创建、补全、重建、修复或审计�
 - 一个 Job 只处理一个节点。用户同时提供多个节点时，为每个节点建立独立请求；不得共享 Verify、Gate、预算、重试或发布资格。
 - 保留用户提供的 `batch_id`；没有提供时交给控制平面生成。
 - 用户没有明确要求正式审核发布时，使用 `publication_mode: preview`；只有明确要求进入正式审核发布时才使用 `reviewed`。
+- `preview` 只是可查看的中间产物，不是正式生产成功。自治 Campaign 对 preview 请求使用
+  `completion_goal: lca_modeling_ready`；正式发布请求必须同时使用
+  `publication_mode: reviewed` 与 `completion_goal: reviewed_publication`。
+- `reviewed_publication` 只有在 Job 到达 `published`，且 `publish` Task 的不可变输出 Manifest
+  包含与当前 Job、候选哈希、G10/G11 证明绑定的 `release-record-v1` 时才算完成。禁止用
+  preview、Candidate、Gate 或 reviewed apply 的阶段成功提前结束 Campaign。
 
 ## 执行多语证据检索
 
@@ -35,6 +41,19 @@ description: "为 LCA 骨架数据库创建、补全、重建、修复或审计�
   "industry": "ict_equipment",
   "nodes": ["P003"],
   "publication_mode": "preview"
+}
+```
+
+需要正式生产完成时，Campaign 必须显式冻结：
+
+```json
+{
+  "completion_goal": "reviewed_publication",
+  "requests": [{
+    "industry": "ict_equipment",
+    "nodes": ["P003"],
+    "publication_mode": "reviewed"
+  }]
 }
 ```
 

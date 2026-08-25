@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from collections import Counter
 from copy import deepcopy
+import re
 
 import pytest
 
 from lca_project.domains.editorial_patch import (
     EditorialPatchError, apply_legacy_repairs, apply_repairs, canonical_hash,
-    claim_binding_metrics, legacy_paragraph_manifest, normalize_legacy_repair_claim_bindings,
-    paragraph_manifest, prepare_legacy_patch_review, render_sections,
+    claim_binding_metrics, claim_remaining_uses, legacy_paragraph_manifest,
+    normalize_legacy_repair_claim_bindings, paragraph_manifest,
+    prepare_legacy_patch_review, render_sections,
 )
 
 
@@ -210,6 +212,395 @@ def test_two_legacy_splits_have_stable_ids_and_preserve_local_identity_and_peers
         apply_legacy_repairs(draft, bound, repairs)
 
 
+def test_legacy_preservation_tokens_split_ideographic_identity_lists_atomically() -> None:
+    identities = [
+        "P022 交换机主板PCBA", "P046 光模块", "P029 PSU电源模组",
+        "P055 散热器", "P057 钢钣金机箱/导轨, 服务器用",
+    ]
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入边界", "paragraphs": [{
+            "focus": "冻结图投入清单", "sentences": [{
+                "text": f"冻结图投入包括{'、'.join(identities)}。",
+                "claim_kind": "internal_graph_fact", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入边界", "paragraph_index": 1, "issue_type": "local",
+                  "explanation": "规范化投入名称。", "repair_instruction": "保持所有冻结图投入标识。",
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert all(identity in tokens for identity in identities)
+    assert all(identity.split()[0] in tokens for identity in identities)
+    assert not [token for token in tokens
+                if len(re.findall(r"(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", token)) > 1]
+
+
+def test_legacy_correction_requires_replacement_identifier_not_superseded_identifier() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "定义", "paragraphs": [{
+            "focus": "节点标识纠错", "sentences": [{
+                "text": "原段误将当前活动写成A039。", "claim_kind": "modeling_judgment",
+                "rhetorical_role": "thesis", "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "定义", "paragraph_index": 1, "issue_type": "identity_drift",
+                  "explanation": "节点标识错误。", "repair_instruction": "将A039更正为A013。",
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert "A013" in tokens
+    assert "A039" not in tokens
+
+
+def test_legacy_only_retain_instruction_drops_relocated_identifiers() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入产出与脊边对账", "paragraphs": [{
+            "focus": "脊边与功能核验", "sentences": [{
+                "text": (
+                    "P063 TIM用于导热，P061 低压铜电缆线束用于供电；"
+                    "P022 主板、P046 光模块和P008 成品构成完整清单。"
+                ),
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入产出与脊边对账", "paragraph_index": 1,
+                  "issue_type": "disconnected", "explanation": "清单打断论点。",
+                  "repair_instruction": (
+                      "把完整脊边清单移至本节首段；本段仅保留P063与P061为何必须"
+                      "分开核验及其证据要求。"
+                  ),
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert "P063" in tokens
+    assert "P061" in tokens
+    assert "P022" not in tokens
+    assert "P046" not in tokens
+    assert "P008" not in tokens
+
+
+def test_legacy_relocation_scope_preserves_only_current_paragraph_identifiers() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入产出与脊边对账", "paragraphs": [{
+            "focus": "脊边与功能核验", "sentences": [{
+                "text": "P063 TIM与P061 线束需要核验，清单还包括P022、P046和P008。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入产出与脊边对账", "paragraph_index": 1,
+                  "issue_type": "disconnected", "explanation": "清单打断论点。",
+                  "repair_instruction": (
+                      "把全部脊边清单移至专门的图谱对账段，并使本段连续表达："
+                      "P063与P061为何必须分项、需要什么证据。"
+                  ),
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert set(tokens) >= {"P063", "P061"}
+    assert {"P022", "P046", "P008"}.isdisjoint(tokens)
+
+
+def test_legacy_relocation_instruction_allows_classification_list_to_collapse() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入产出与脊边对账", "paragraphs": [{
+            "focus": "分类", "sentences": [{
+                "text": "电子类包括P022 主板和P046 光模块，供电类包括P029 电源。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入产出与脊边对账", "paragraph_index": 1,
+                  "issue_type": "claim_dump", "explanation": "逐项堆列。",
+                  "repair_instruction": (
+                      "只概括电子和供电类别；完整流名称留在脊边对账清单中，"
+                      "不在分类说明里再次逐项堆列。"
+                  ),
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert tokens == []
+
+
+def test_legacy_identifier_move_does_not_preserve_source_identifier() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": [{
+            "focus": "电子分类", "sentences": [{
+                "text": "P022 主板与P038 ASIC都列在电子分类中。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 1, "issue_type": "claim_dump",
+                  "explanation": "分类与重复计量混杂。",
+                  "repair_instruction": "保留P022分类，并将P038移入重复计量段。",
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert "P022" in tokens
+    assert "P038" not in tokens
+
+
+def test_legacy_merge_into_earlier_paragraph_deletes_later_target() -> None:
+    paragraphs = [{
+        "focus": f"段落{index}", "sentences": [{
+            "text": f"第{index}段包含P055的适配性说明。",
+            "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+            "evidence_claim_ids": [],
+        }],
+    } for index in range(1, 9)]
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": paragraphs,
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 8, "issue_type": "redundant",
+                  "explanation": "与前段重复。",
+                  "repair_instruction": "与第4段合并并压缩为不超过三句。",
+              }]}
+
+    issue = prepare_legacy_patch_review(draft, review)["issues"][0]
+
+    assert issue["operation"] == "delete"
+    assert issue["tokens_must_preserve"] == []
+
+
+def test_legacy_current_paragraph_scope_overrides_cross_paragraph_rule() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": [{
+            "focus": "电子输入", "sentences": [{
+                "text": "P022 主板、P046 光模块与P038 ASIC都在本段说明。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 1, "issue_type": "redundant",
+                  "explanation": "重复计量规则出现两次。",
+                  "repair_instruction": (
+                      "只保留一处P022与P038的重复计量规则；本段集中说明P022和P046的"
+                      "配置归属，第7段集中说明P038的包含关系。"
+                  ),
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert set(tokens) >= {"P022", "P046"}
+    assert "P038" not in tokens
+
+
+def test_legacy_identity_tokens_exclude_provenance_suffixes() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": [{
+            "focus": "输入分类", "sentences": [{
+                "text": (
+                    "P029 PSU电源模组对应供电为依据，"
+                    "P051 风扇模组, 服务器/机架用, 成品对应热管理为依据。"
+                ),
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 1,
+                  "issue_type": "unsupported_fusion", "explanation": "来源字段粘连。",
+                  "repair_instruction": "删除‘对应供电为依据’式残句，不要机械插入来源/依据字段。",
+              }]}
+
+    tokens = prepare_legacy_patch_review(draft, review)["issues"][0]["tokens_must_preserve"]
+
+    assert "P029 PSU电源模组" in tokens
+    assert "P051 风扇模组, 服务器/机架用, 成品" in tokens
+    assert not [token for token in tokens if "对应供电为依据" in token]
+    assert not [token for token in tokens if "对应热管理为依据" in token]
+
+
+@pytest.mark.parametrize(
+    ("explanation", "instruction"),
+    [
+        ("本段与前文重复。", "将第3段与本段合并为一个产品族冲突段。"),
+        ("本段重复第4段的全部信息。", "只保留一个P064段落。"),
+        ("本段与第5段重复，没有新增边界。", "合并两段并保留一套规则。"),
+    ],
+)
+def test_legacy_backward_merge_deletes_later_duplicate(
+    explanation: str, instruction: str,
+) -> None:
+    paragraphs = [{
+        "focus": f"段落{index}", "sentences": [{
+            "text": f"第{index}段的输入核验说明保持完整。",
+            "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+            "evidence_claim_ids": [],
+        }],
+    } for index in range(1, 9)]
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "对账", "paragraphs": paragraphs,
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "对账", "paragraph_index": 8, "issue_type": "redundant",
+                  "explanation": explanation, "repair_instruction": instruction,
+              }]}
+
+    issue = prepare_legacy_patch_review(draft, review)["issues"][0]
+
+    assert issue["operation"] == "delete"
+    assert issue["tokens_must_preserve"] == []
+
+
+def test_legacy_numbered_cross_target_merge_deletes_later_target() -> None:
+    paragraphs = [{
+        "focus": f"段落{index}", "sentences": [{
+            "text": f"第{index}段说明代理适用状态与证据边界。",
+            "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+            "evidence_claim_ids": [],
+        }],
+    } for index in range(1, 7)]
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "数据适用状态与缺口", "paragraphs": paragraphs,
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [
+                  {"section": "数据适用状态与缺口", "paragraph_index": 3,
+                   "issue_type": "redundant", "explanation": "与第6段重复。",
+                   "repair_instruction": "将第3段与第6段合并为一个代理适用状态段。"},
+                  {"section": "数据适用状态与缺口", "paragraph_index": 6,
+                   "issue_type": "poor_transition", "explanation": "出现两个中心。",
+                   "repair_instruction": "代理段只保留适用、失效、停止和重启条件。"},
+              ]}
+
+    issues = prepare_legacy_patch_review(draft, review)["issues"]
+    by_paragraph = {issue["paragraph_id"]: issue for issue in issues}
+
+    assert by_paragraph["p3"]["operation"] == "replace"
+    assert by_paragraph["p6"]["operation"] == "delete"
+    assert by_paragraph["p6"]["tokens_must_preserve"] == []
+
+
+@pytest.mark.parametrize(
+    "instruction",
+    ["删除该独立段。", "把影响并入前段，不再另立一段。"],
+)
+def test_legacy_explicit_independent_paragraph_removal_is_delete(instruction: str) -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "数据缺口", "paragraphs": [{
+            "focus": "重复段", "sentences": [{
+                "text": "该段重复前文已经定义的数据缺口规则。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "数据缺口", "paragraph_index": 1,
+                  "issue_type": "redundant", "explanation": "重复前文。",
+                  "repair_instruction": instruction,
+              }]}
+
+    issue = prepare_legacy_patch_review(draft, review)["issues"][0]
+
+    assert issue["operation"] == "delete"
+    assert issue["tokens_must_preserve"] == []
+
+
+def test_a013_canonical_label_instruction_replaces_legacy_shorthand_tokens() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "投入产出与脊边对账", "paragraphs": [{
+            "focus": "全部输入至总装的映射", "sentences": [{
+                "text": (
+                    "组件包括P022 交换机主板PCBA、P038 ASIC和P064 塑料件；"
+                    "同时计入P038 ASIC与P022 交换机主板PCBA前应核验BOM。"
+                ),
+                "claim_kind": "internal_graph_fact", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A013",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "投入产出与脊边对账", "paragraph_index": 1,
+                  "issue_type": "claim_dump+identity_drift",
+                  "explanation": "旧简称与规范流名冲突。",
+                  "repair_instruction": (
+                      "拆成完整流对账和BOM核验两个段落；统一使用图谱完整名称，例如"
+                      "“P022 交换机主板PCBA, 100G/400G”和"
+                      "“P038 交换ASIC封装器件, 100G/400G”。"
+                  ),
+              }]}
+
+    bound = prepare_legacy_patch_review(draft, review)
+    issue = bound["issues"][0]
+    tokens = issue["tokens_must_preserve"]
+
+    assert "P022 交换机主板PCBA, 100G/400G" in tokens
+    assert "P038 交换ASIC封装器件, 100G/400G" in tokens
+    assert "P022 交换机主板PCBA" not in tokens
+    assert "P038 ASIC" not in tokens
+    assert {
+        "P038 ASIC和",
+        "P022 交换机主板PCBA, 100G/400G”和“",
+        "P038 交换ASIC封装器件, 100G/400G”",
+    }.isdisjoint(tokens)
+    assert not [token for token in tokens if token.endswith(("和", "与", "”", "“"))]
+
+    repairs = [{
+        "issue_id": issue["issue_id"], "section_id": issue["section_id"],
+        "paragraph_id": issue["paragraph_id"], "target_hash": issue["target_hash"],
+        "preserved_claim_ids": [], "replacements": [{
+            "focus": "完整规范流名对账", "sentences": [{
+                "text": (
+                    "A013将P022 交换机主板PCBA, 100G/400G、"
+                    "P038 交换ASIC封装器件, 100G/400G和P064 塑料件映射为输入。"
+                ),
+                "claim_kind": "internal_graph_fact", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }, {
+            "focus": "BOM重复计量核验", "sentences": [{
+                "text": "同时计入P022与P038前必须核验型号级BOM，不能确认时修正输入流。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]
+
+    result, receipt = apply_legacy_repairs(draft, bound, repairs)
+
+    assert len(result["sections"][0]["paragraphs"]) == 2
+    assert receipt["targeted_paragraphs"] == ["投入产出与脊边对账.p1"]
+
+
 def test_v3_split_assigns_deterministic_ids_and_preserves_untargeted_hashes() -> None:
     blueprint, draft, review, repair = fixtures()
     review["issues"][0]["operation"] = "split_replace"
@@ -349,6 +740,117 @@ def test_legacy_patch_fails_closed_when_required_fact_binding_has_no_capacity() 
 
     with pytest.raises(EditorialPatchError, match="required fact binding"):
         normalize_legacy_repair_claim_bindings(repairs, rows, document)
+
+
+def test_a013_five_graph_fact_uses_are_rejected_with_two_slots_remaining() -> None:
+    document = {"sections": [{"heading": "组成", "paragraphs": [
+        {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+        {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+        {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+    ]}]}
+    repairs = [
+        {"issue_id": "E001", "section_id": "组成", "paragraph_id": "p2",
+         "preserved_claim_ids": ["A013-16"], "replacement": {
+             "focus": "部件角色一", "sentences": [
+                 {"text": f"第{index}项功能角色解释。", "claim_kind": "internal_graph_fact",
+                  "evidence_claim_ids": ["A013-16"]}
+                 for index in range(1, 4)
+             ],
+         }},
+        {"issue_id": "E002", "section_id": "组成", "paragraph_id": "p3",
+         "preserved_claim_ids": ["A013-16"], "replacement": {
+             "focus": "部件角色二", "sentences": [
+                 {"text": f"第{index}项功能角色解释。", "claim_kind": "internal_graph_fact",
+                  "evidence_claim_ids": ["A013-16"]}
+                 for index in range(4, 6)
+             ],
+         }},
+    ]
+    rows = [{"claim": {
+        "claim_id": "A013-16", "claim_kind": "internal_graph_fact",
+        "claim_text": "十一项输入为消耗边，P008为输出边。",
+    }}]
+
+    assert claim_remaining_uses(
+        document, {("组成", "p2"), ("组成", "p3")}, ["A013-16", "A013-17"],
+    ) == {"A013-16": 2, "A013-17": 3}
+    with pytest.raises(EditorialPatchError, match="required fact binding"):
+        normalize_legacy_repair_claim_bindings(repairs, rows, document)
+
+
+def test_a013_golden_repair_does_not_classify_unsupported_roles_as_graph_facts() -> None:
+    document = {"sections": [{"heading": "组成", "paragraphs": [
+        {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
+        {"sentences": []},
+    ]}]}
+    repairs = [{
+        "issue_id": "E001", "section_id": "组成", "paragraph_id": "p2",
+        "preserved_claim_ids": ["A013-16"], "replacement": {
+            "focus": "图事实与解释边界", "sentences": [
+                {"text": "冻结图将十一项输入记录为消耗边，并将P008记录为输出边。",
+                 "claim_kind": "internal_graph_fact", "evidence_claim_ids": ["A013-16"]},
+                {"text": "P029可解释为供电角色。", "claim_kind": "modeling_judgment",
+                 "evidence_claim_ids": []},
+                {"text": "P055和P051可解释为热管理角色。", "claim_kind": "modeling_judgment",
+                 "evidence_claim_ids": []},
+                {"text": "P057和P064的结构或导风功能缺少当前证据。",
+                 "claim_kind": "evidence_gap", "evidence_claim_ids": []},
+            ],
+        },
+    }]
+    rows = [{"claim": {
+        "claim_id": "A013-16", "claim_kind": "internal_graph_fact",
+        "claim_text": "十一项输入为消耗边，P008为输出边。",
+    }}]
+
+    normalized = normalize_legacy_repair_claim_bindings(repairs, rows, document)
+    sentences = normalized[0]["replacement"]["sentences"]
+
+    assert [sentence["claim_kind"] for sentence in sentences] == [
+        "internal_graph_fact", "modeling_judgment", "modeling_judgment", "evidence_gap",
+    ]
+    assert sentences[0]["evidence_claim_ids"] == ["A013-16"]
+    assert all(sentence["evidence_claim_ids"] == [] for sentence in sentences[1:])
+
+
+def test_legacy_patch_supports_explicit_hash_bound_whole_paragraph_delete() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A013", "sections": [{
+        "heading": "数据适用状态与缺口", "paragraphs": [
+            {"focus": "保留段", "sentences": [{
+                "text": "本段属于未被审查点名的内容。", "claim_kind": "modeling_judgment",
+                "rhetorical_role": "thesis", "evidence_claim_ids": [],
+            }]},
+            {"focus": "无关段", "sentences": [{
+                "text": "本段错误引入了与A013无关的产品。", "claim_kind": "modeling_judgment",
+                "rhetorical_role": "thesis", "evidence_claim_ids": [],
+            }]},
+        ],
+    }]}
+    review = {
+        "protocol": "wiki-editorial-review-v1", "node_id": "A013", "verdict": "NO_GO",
+        "issues": [{
+            "section": "数据适用状态与缺口", "paragraph_index": 2,
+            "issue_type": "irrelevant_paragraph", "explanation": "整段与目标节点无关。",
+            "repair_instruction": "删除整个段落，不要生成占位文本。",
+        }],
+    }
+    bound = prepare_legacy_patch_review(draft, review)
+    issue = bound["issues"][0]
+
+    assert issue["operation"] == "delete"
+    assert issue["tokens_must_preserve"] == []
+    before = legacy_paragraph_manifest(draft)
+    patched, receipt = apply_legacy_repairs(draft, bound, [{
+        "issue_id": issue["issue_id"], "section_id": issue["section_id"],
+        "paragraph_id": issue["paragraph_id"], "target_hash": issue["target_hash"],
+        "preserved_claim_ids": [], "replacements": [],
+    }])
+
+    assert [row["focus"] for row in patched["sections"][0]["paragraphs"]] == ["保留段"]
+    assert receipt["unchanged_paragraphs"] == {
+        "数据适用状态与缺口.p1": before["数据适用状态与缺口.p1"]
+    }
+    assert receipt["paragraph_changes"][0]["after"] == []
 
 
 def test_editorial_patch_proof_metrics_report_cap_and_graph_bindings() -> None:

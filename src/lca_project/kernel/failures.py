@@ -1,7 +1,7 @@
 """Validated failure envelopes emitted by capabilities or infrastructure adapters."""
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
@@ -22,6 +22,14 @@ class FailureEnvelope:
     reported_automatic_repair: str | None = None
     reported_invalidates: tuple[str, ...] = ()
     reported_preserves: tuple[str, ...] = ()
+    gate_id: str | None = None
+    gate_version: str | None = None
+    gate_decision: str | None = None
+    failed_requirement_ids: tuple[str, ...] = ()
+    metrics: dict[str, Any] = field(default_factory=dict)
+    question_contract_sha256: str | None = None
+    strategy_hash: str | None = None
+    gate_result: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_capability(cls, value: Any) -> "FailureEnvelope":
@@ -44,6 +52,14 @@ class FailureEnvelope:
                                        if value.get("automatic_repair") else None),
             reported_invalidates=_strings(value.get("invalidates")),
             reported_preserves=_strings(value.get("preserves")),
+            gate_id=_optional_string(value.get("gate_id")),
+            gate_version=_optional_string(value.get("gate_version")),
+            gate_decision=_optional_string(value.get("gate_decision")),
+            failed_requirement_ids=_strings(value.get("failed_requirement_ids")),
+            metrics=_mapping(value.get("metrics"), "failure.metrics"),
+            question_contract_sha256=_optional_string(value.get("question_contract_sha256")),
+            strategy_hash=_optional_string(value.get("strategy_hash")),
+            gate_result=_mapping(value.get("gate_result"), "failure.gate_result"),
         )
 
     @classmethod
@@ -62,3 +78,16 @@ def _strings(value: Any) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
         raise ValueError("failure list fields must contain non-empty strings")
     return tuple(value)
+
+
+def _optional_string(value: Any) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _mapping(value: Any, label: str) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be an object")
+    return dict(value)

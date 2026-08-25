@@ -621,6 +621,129 @@ def extract_excerpt(
     return media_type, excerpt[:max_chars]
 
 
+def research_binding_for_claim(research_plan: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any] | None:
+    """Resolve a claim through explicit contract patterns, never index rotation."""
+    requirement_id = str(claim.get("requirement_id") or "").strip().lower()
+    if not requirement_id:
+        return None
+    has_compiled_bindings = False
+    for contract in research_plan.get("research_question_contracts") or []:
+        if not isinstance(contract, dict):
+            continue
+        for question in contract.get("subquestions") or []:
+            if not isinstance(question, dict):
+                continue
+            exact = {str(value).strip().lower()
+                     for value in question.get("requirement_ids") or []}
+            has_compiled_bindings = has_compiled_bindings or bool(exact)
+            if requirement_id in exact:
+                intents = [item for item in question.get("query_intents") or []
+                           if isinstance(item, dict)]
+                intent = (sorted(intents, key=lambda item: int(item.get("priority") or 999))[0]
+                          if intents else {})
+                return {
+                    "dimension": contract.get("dimension"),
+                    "criticality": contract.get("criticality"),
+                    "question_id": question.get("question_id"),
+                    "question": question.get("question") or {},
+                    "intent": intent,
+                    "source_roles": contract.get("source_role_requirements") or [],
+                    "source_classes": (intent.get("preferred_source_classes")
+                                       or contract.get("preferred_source_classes") or []),
+                    "mapping_status": "exact_contract_binding",
+                }
+    if has_compiled_bindings:
+        return None
+    for contract in research_plan.get("research_question_contracts") or []:
+        if not isinstance(contract, dict):
+            continue
+        for question in contract.get("subquestions") or []:
+            if not isinstance(question, dict):
+                continue
+            patterns = [str(value).strip().lower()
+                        for value in question.get("requirement_patterns") or []]
+            if not any(pattern and pattern in requirement_id for pattern in patterns):
+                continue
+            intents = [item for item in question.get("query_intents") or []
+                       if isinstance(item, dict)]
+            intent = (sorted(intents, key=lambda item: int(item.get("priority") or 999))[0]
+                      if intents else {})
+            return {
+                "dimension": contract.get("dimension"),
+                "criticality": contract.get("criticality"),
+                "question_id": question.get("question_id"),
+                "question": question.get("question") or {},
+                "intent": intent,
+                "source_roles": contract.get("source_role_requirements") or [],
+                "source_classes": (intent.get("preferred_source_classes")
+                                   or contract.get("preferred_source_classes") or []),
+            }
+    return None
+
+
+def research_tracks_for_claim(
+    research_plan: dict[str, Any], claim: dict[str, Any], *, legacy_index: int = 0
+) -> list[dict[str, Any]]:
+    """Compile semantically bound bilingual tracks with an auditable fallback."""
+    terminology = research_plan.get("terminology") or {}
+    binding = research_binding_for_claim(research_plan, claim)
+    if binding is None:
+        # Preserve replay compatibility for frozen v1 plans. New v2 plans
+        # never enter this branch: an unmapped claim remains explicitly
+        # unmapped instead of receiving an arbitrary semantic assignment.
+        is_legacy = not research_plan.get("research_question_contracts")
+        language = ("zh", "en")[legacy_index % 2] if is_legacy else "zh"
+        canonical = str(terminology.get(f"canonical_{language}") or "").strip()
+        aliases = [str(value).strip() for value in
+                   terminology.get(f"candidate_aliases_{language}") or []
+                   if str(value).strip()]
+        query = normalize_source(" ".join(value for value in (
+            canonical, *aliases, str(claim.get("claim_text") or ""),
+        ) if value))
+        return [{
+            "language": language, "query": query,
+            "research_question": None, "question_id": None, "intent_id": None,
+            "source_class": "node_specific_records", "source_roles": [],
+            "criticality": "unmapped", "mapping_status": "unmapped_claim_requirement",
+            "terms": [value for value in (canonical, *aliases) if value],
+        }]
+    intent = binding.get("intent") or {}
+    languages = (["zh", "en"] if binding.get("criticality") == "required_for_model"
+                 else ["zh"])
+    tracks: list[dict[str, Any]] = []
+    for language in languages:
+        canonical_values = [terminology.get(f"canonical_{language}")]
+        canonical_values.extend(terminology.get(f"candidate_aliases_{language}") or [])
+        if language == "en":
+            canonical_values.extend(terminology.get("translated_search_terms_en") or [])
+        terms: list[str] = []
+        for value in canonical_values:
+            text = str(value or "").strip()
+            if text and text not in terms:
+                terms.append(text)
+        seed_terms = [str(value).strip() for value in
+                      ((intent.get("seed_terms") or {}).get(language) or [])
+                      if str(value).strip()]
+        question_text = str((binding.get("question") or {}).get(language) or "").strip()
+        track_query = normalize_source(" ".join([*terms, *seed_terms, question_text]))
+        if not track_query:
+            continue
+        source_classes = binding.get("source_classes") or ["node_specific_records"]
+        tracks.append({
+            "language": language, "query": track_query,
+            "research_question": binding.get("dimension"),
+            "question_id": binding.get("question_id"),
+            "intent_id": intent.get("intent_id"),
+            "source_class": source_classes[0],
+            "source_classes": source_classes,
+            "source_roles": binding.get("source_roles") or [],
+            "criticality": binding.get("criticality"),
+            "mapping_status": binding.get("mapping_status") or "contract_bound",
+            "terms": [*terms, *seed_terms],
+        })
+    return tracks
+
+
 def command_plan(args: argparse.Namespace) -> int:
     input_path = args.claims.resolve()
     claims, mode = frozen_claims(read_json(input_path))
@@ -671,20 +794,10 @@ def command_plan(args: argparse.Namespace) -> int:
             deferred.append({"claim": claim, "disposition": "batch_search_budget"})
             continue
         source_slots.add(search_key)
-        research_tracks = []
-        if research_plan is not None:
-            language = "zh" if claim_index % 2 == 0 else "en"
-            canonical = str(terminology.get(f"canonical_{language}", "")).strip()
-            aliases = terminology.get(f"candidate_aliases_{language}") or []
-            alias = str(aliases[claim_index % len(aliases)]).strip() if aliases else ""
-            question = str(questions[claim_index % len(questions)])
-            source_class = str(source_classes[claim_index % len(source_classes)])
-            track_query = normalize_source(" ".join(x for x in (
-                canonical, alias, question.replace("_", " "), source_class.replace("_", " ")
-            ) if x))
-            research_tracks.append({"language": language, "query": track_query,
-                                    "research_question": question, "source_class": source_class,
-                                    "terms": [x for x in (canonical, alias) if x]})
+        research_tracks = (
+            research_tracks_for_claim(research_plan, claim, legacy_index=claim_index)
+            if research_plan is not None else []
+        )
         queue.append({
             "query_id": stable_hash(str(claim["claim_id"]), search_key)[:24],
             "claim": claim,
@@ -1127,6 +1240,11 @@ def execute_queue(
         evidence_item = {
             "claim": item["claim"],
             "query": {"query_id": item["query_id"], "text": item["query"], "source_first": True, "search_hash": item["search_hash"]},
+            # Preserve the frozen semantic route all the way into evidence so
+            # the Dashboard can prove which question and intent caused this
+            # concrete query.  These tracks were previously validated in the
+            # queue but discarded during collection.
+            "research_tracks": item.get("research_tracks") or [],
             "search_status": search_record.get("status", "error"),
             "candidates": candidates,
         }

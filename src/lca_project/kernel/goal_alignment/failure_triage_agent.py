@@ -9,7 +9,9 @@ import subprocess
 from typing import Any, Callable
 
 from ...control import ControlPlane
+from ..leases import LeaseLost
 from ..state import utcnow
+from .execution_ownership import ExecutionOwnership
 from .store import canonical, digest
 
 
@@ -115,18 +117,53 @@ class FailureTriageAgent:
             "source_job_id": source_job_id, "source_run_id": source_run_id,
             "task_id": task_id, "dossier": dossier,
         }
+        inserted = False
         with self.state.transaction() as conn:
-            conn.execute(
+            inserted = conn.execute(
                 "INSERT OR IGNORE INTO failure_triage_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (triage_run_id, deviation_id, source_job_id, source_run_id, task_id,
                  "queued", self.MODEL, None, dossier_hash, canonical(payload), None, now, now),
+            ).rowcount == 1
+            # ``deviation_id`` is the durable identity in the production
+            # schema.  A later observation can produce a different dossier
+            # hash (and therefore a different proposed triage_run_id) for the
+            # same deviation.  Resolve that uniqueness conflict to the
+            # canonical persisted row instead of emitting a phantom queued
+            # event and then reading an ID that was never inserted.
+            persisted = conn.execute(
+                "SELECT triage_run_id FROM failure_triage_runs WHERE deviation_id=?",
+                (deviation_id,),
+            ).fetchone()
+        if persisted is None:
+            raise FailureTriageError("triage queue did not persist a canonical row")
+        persisted_id = str(persisted["triage_run_id"])
+        if inserted:
+            self.control.events.append(
+                "failure_triage", persisted_id, "failure_triage.queued",
+                {"deviation_id": deviation_id, "job_id": source_job_id,
+                 "task_id": task_id, "dossier_hash": dossier_hash},
+                actor="goal-alignment-controller",
             )
-        self.control.events.append(
-            "failure_triage", triage_run_id, "failure_triage.queued",
-            {"deviation_id": deviation_id, "job_id": source_job_id, "task_id": task_id},
-            actor="goal-alignment-controller",
-        )
-        return self.get(triage_run_id)
+        elif persisted_id != triage_run_id:
+            duplicate_payload = {
+                "deviation_id": deviation_id, "job_id": source_job_id,
+                "task_id": task_id, "suppressed_triage_run_id": triage_run_id,
+                "suppressed_dossier_hash": dossier_hash,
+            }
+            self.control.events.append(
+                "failure_triage", persisted_id, "failure_triage.duplicate_suppressed",
+                duplicate_payload,
+                actor="goal-alignment-controller",
+                # Repeated Supervisor cycles over the same stale observation
+                # are idempotent at the event ledger too.  This turns the
+                # production 22k-event amplification into one truthful audit
+                # record per distinct suppressed dossier.
+                event_id="evt_" + digest({
+                    "event": "failure_triage.duplicate_suppressed",
+                    "canonical": persisted_id, "payload": duplicate_payload,
+                })[:32],
+            )
+        return self.get(persisted_id)
 
     def get(self, triage_run_id: str) -> dict[str, Any]:
         row = self.state._connection().execute(
@@ -148,14 +185,35 @@ class FailureTriageAgent:
         return rows
 
     def _set(self, triage_run_id: str, status: str, *, payload: dict[str, Any],
-             sandbox: Path | None = None, error: str | None = None) -> None:
+             sandbox: Path | None = None, error: str | None = None,
+             ownership: ExecutionOwnership | None = None) -> None:
+        lease = None
+        if ownership is not None:
+            lease = ownership.current()
         with self.state.transaction() as conn:
-            conn.execute(
+            sql = (
                 "UPDATE failure_triage_runs SET status=?,sandbox_path=?,payload=?,last_error=?,"
-                "updated_at=? WHERE triage_run_id=?",
-                (status, str(sandbox) if sandbox else None, canonical(payload), error,
-                 utcnow(), triage_run_id),
+                "updated_at=? WHERE triage_run_id=?"
             )
+            params: list[Any] = [
+                status, str(sandbox) if sandbox else None, canonical(payload), error,
+                utcnow(), triage_run_id,
+            ]
+            if lease is not None:
+                sql += (
+                    " AND EXISTS(SELECT 1 FROM goal_execution_owners o JOIN leases l "
+                    "ON l.resource=o.resource AND l.holder=o.owner_id "
+                    "AND l.fencing_token=o.fencing_token WHERE o.execution_type=? "
+                    "AND o.execution_id=? AND o.owner_id=? AND o.fencing_token=? "
+                    "AND o.status='running' AND l.expires_at>?)"
+                )
+                params.extend([
+                    ownership.execution_type, ownership.execution_id,
+                    ownership.owner_id, lease.fencing_token, utcnow(),
+                ])
+            changed = conn.execute(sql, tuple(params)).rowcount
+        if changed != 1:
+            raise LeaseLost(f"triage row disappeared during fenced update: {triage_run_id}")
 
     @classmethod
     def _validate_result(cls, value: dict[str, Any], *, failed_task: str,
@@ -218,60 +276,86 @@ class FailureTriageAgent:
         record = self.get(triage_run_id)
         if record["status"] in self.TERMINAL:
             return record
-        if record["status"] == "investigating":
-            # A supervisor tick may overlap a long-running Codex investigation.
-            # Never delete or restart its frozen sandbox from a second caller.
-            return record
-        run_dir = self.root / "var/failure-triage" / triage_run_id
-        sandbox = run_dir / "repository"
-        if sandbox.exists():
-            shutil.rmtree(sandbox)
-        run_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(self.root, sandbox, ignore=self._ignore)
-        payload = dict(record["payload"])
-        dossier_path = sandbox / ".triage/dossier.json"
-        dossier_path.parent.mkdir(parents=True, exist_ok=True)
-        dossier_path.write_text(
-            json.dumps(payload["dossier"], ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
+        prior = record["payload"].get("execution") or {}
+        ownership = ExecutionOwnership.create(
+            self.control, "failure-triage", triage_run_id,
+            attempt=int(prior.get("attempt") or 0) + 1,
         )
-        prior = payload.get("execution") or {}
-        payload["execution"] = {
-            "attempt": int(prior.get("attempt") or 0) + 1, "started_at": utcnow(),
-        }
-        self._set(triage_run_id, "investigating", payload=payload, sandbox=sandbox)
         try:
-            result = self.runner(sandbox, {
-                "run_dir": str(run_dir), "dossier_path": str(dossier_path),
-                "dossier": payload["dossier"],
-            })
-            allowed_tasks = {
-                str(item.get("task_id") or "")
-                for item in (payload.get("dossier") or {}).get("task_graph") or []
-                if item.get("task_id")
+            ownership.start()
+        except LeaseLost:
+            # A *live fenced owner*, rather than the persisted business state,
+            # is the authority that prevents overlapping investigations.
+            return record
+        try:
+            run_dir = self.root / "var/failure-triage" / triage_run_id
+            sandbox = run_dir / "repository"
+            if sandbox.exists():
+                shutil.rmtree(sandbox)
+            run_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(self.root, sandbox, ignore=self._ignore)
+            payload = dict(record["payload"])
+            dossier_path = sandbox / ".triage/dossier.json"
+            dossier_path.parent.mkdir(parents=True, exist_ok=True)
+            dossier_path.write_text(
+                json.dumps(payload["dossier"], ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            payload["execution"] = {
+                "attempt": ownership.attempt, "started_at": utcnow(),
+                "owner_id": ownership.owner_id,
+                "fencing_token": ownership.current().fencing_token,
             }
-            result = self._validate_result(
-                result, failed_task=str(record.get("task_id") or ""),
-                allowed_tasks=allowed_tasks or None,
+            self._set(
+                triage_run_id, "investigating", payload=payload, sandbox=sandbox,
+                ownership=ownership,
             )
-            payload.update({"result": result, "completed_at": utcnow()})
-            self._set(triage_run_id, "completed", payload=payload, sandbox=sandbox)
-            self.control.events.append(
-                "failure_triage", triage_run_id, "failure_triage.completed",
-                {"problem_class": result["problem_class"],
-                 "cause_code": result["cause_code"], "repair_action": result["repair_action"],
-                 "risk": result["risk"], "confidence": result["confidence"]},
-                actor="failure-triage-agent",
-            )
-        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError,
-                json.JSONDecodeError) as exc:
-            payload["execution"] = {**payload.get("execution", {}), "failed_at": utcnow()}
-            self._set(triage_run_id, "failed", payload=payload, sandbox=sandbox,
-                      error=str(exc))
-            self.control.events.append(
-                "failure_triage", triage_run_id, "failure_triage.failed",
-                {"error": str(exc)}, actor="failure-triage-agent",
-            )
+            try:
+                result = self.runner(sandbox, {
+                    "run_dir": str(run_dir), "dossier_path": str(dossier_path),
+                    "dossier": payload["dossier"],
+                })
+                allowed_tasks = {
+                    str(item.get("task_id") or "")
+                    for item in (payload.get("dossier") or {}).get("task_graph") or []
+                    if item.get("task_id")
+                }
+                result = self._validate_result(
+                    result, failed_task=str(record.get("task_id") or ""),
+                    allowed_tasks=allowed_tasks or None,
+                )
+                payload.update({"result": result, "completed_at": utcnow()})
+                self._set(
+                    triage_run_id, "completed", payload=payload, sandbox=sandbox,
+                    ownership=ownership,
+                )
+                self.control.events.append(
+                    "failure_triage", triage_run_id, "failure_triage.completed",
+                    {"problem_class": result["problem_class"],
+                     "cause_code": result["cause_code"],
+                     "repair_action": result["repair_action"],
+                     "risk": result["risk"], "confidence": result["confidence"]},
+                    actor="failure-triage-agent",
+                )
+            except LeaseLost:
+                # A successor owns the durable row; this stale executor must
+                # not overwrite its result or manufacture a failure.
+                return self.get(triage_run_id)
+            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError,
+                    json.JSONDecodeError) as exc:
+                payload["execution"] = {
+                    **payload.get("execution", {}), "failed_at": utcnow()
+                }
+                self._set(
+                    triage_run_id, "failed", payload=payload, sandbox=sandbox,
+                    error=str(exc), ownership=ownership,
+                )
+                self.control.events.append(
+                    "failure_triage", triage_run_id, "failure_triage.failed",
+                    {"error": str(exc)}, actor="failure-triage-agent",
+                )
+        finally:
+            ownership.close()
         return self.get(triage_run_id)
 
     def _run_codex(self, sandbox: Path, request: dict[str, Any]) -> dict[str, Any]:

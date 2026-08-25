@@ -8,11 +8,17 @@ import hashlib
 import importlib.util
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from wiki_research_contract import iter_query_tasks
 
 # Longest phrases win.  This glossary is deliberately limited to discovery
 # terminology used by the ICT/LCA node catalogue.  Its output is never treated
@@ -156,7 +162,13 @@ def translate_zh_search_terms(
     }
 
 
-def build_query(terminology: dict[str, Any], language: str, research_question: str) -> dict[str, Any]:
+def build_query(
+    terminology: dict[str, Any], language: str, research_question: str | dict[str, Any]
+) -> dict[str, Any]:
+    task = research_question if isinstance(research_question, dict) else None
+    dimension = str((task or {}).get("dimension") or research_question)
+    question_id = str((task or {}).get("question_id") or dimension)
+    intent = (task or {}).get("intent") or {}
     canonical_zh = str(terminology.get("canonical_zh") or "").strip()
     zh_terms = _unique_text([
         canonical_zh,
@@ -209,19 +221,45 @@ def build_query(terminology: dict[str, Any], language: str, research_question: s
     else:
         translation = translate_zh_search_terms(zh_discovery_terms)
         effective_terms = translation["translated_terms"]
+        if (translation["method"] == "bilingual_passthrough_no_glossary_match"
+                or any(CJK_RE.search(str(term)) for term in effective_terms)):
+            # Do not label a Chinese passthrough as an English query.  The
+            # research-question/focus terms still provide a valid broad English
+            # discovery route, while the missing translation remains auditable.
+            effective_terms = []
+            translation = {
+                **translation,
+                "query_fallback": "english_research_question_and_focus_only",
+            }
 
-    question_text = str(research_question).replace("_", " ").strip()
-    focus = (QUERY_FOCUS.get(language, {}).get(research_question, "")
-             if "|" in canonical_zh else "")
+    question_text = str(
+        ((task or {}).get("question") or {}).get(language)
+        or dimension.replace("_", " ")
+    ).strip()
+    if task:
+        focus = " ".join(
+            str(value).strip()
+            for value in ((intent.get("seed_terms") or {}).get(language) or [])
+            if str(value).strip()
+        )
+    else:
+        focus = (QUERY_FOCUS.get(language, {}).get(dimension, "")
+                 if "|" in canonical_zh else "")
     # English research-question labels dilute Chinese technical searches and
     # previously pushed activity jobs toward product marketing pages.  The
     # auditable focus phrase carries the same intent in the query language.
     query_parts = [*effective_terms, focus]
-    if language == "en":
+    if language == "en" and not task:
         query_parts.insert(len(effective_terms), question_text)
     query = " ".join(query_parts).strip()
     return {
-        "research_question": research_question,
+        "research_question": dimension,
+        "question_id": question_id,
+        "question_text": question_text,
+        "intent_id": str(intent.get("intent_id") or f"legacy.{dimension}"),
+        "criticality": str((task or {}).get("criticality") or "legacy"),
+        "preferred_source_roles": intent.get("preferred_source_roles") or [],
+        "preferred_source_classes": intent.get("preferred_source_classes") or [],
         "language": language,
         "query": query,
         "effective_terms": effective_terms,
@@ -234,6 +272,8 @@ def main() -> int:
     parser.add_argument("plan", type=Path)
     parser.add_argument("config", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--repair-gate", type=Path)
+    parser.add_argument("--previous-scout", type=Path)
     args = parser.parse_args()
 
     plan, config = load(args.plan), load(args.config)
@@ -249,73 +289,135 @@ def main() -> int:
     providers = config.get("providers") or {}
     routing = config.get("routing") or {}
     terminology = plan.get("terminology") or {}
+    repair_gate = load(args.repair_gate) if args.repair_gate else {}
+    previous_scout = load(args.previous_scout) if args.previous_scout else {}
+    failed_question_ids = {
+        str(value) for value in repair_gate.get("failed_requirement_ids") or []
+        if str(value).strip()
+    }
+    previous_candidates = [
+        item for item in previous_scout.get("candidates") or [] if isinstance(item, dict)
+    ]
     candidates: list[dict[str, Any]] = []
     attempts: list[dict[str, Any]] = []
     query_audit: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    seen: set[str] = {
+        str(item.get("url")) for item in previous_candidates if item.get("url")
+    }
     max_per_question = 5
     max_per_provider = 2
 
-    for index, question in enumerate(plan.get("research_questions", [])):
-        language = "zh" if index % 2 == 0 else "en"
-        query_record = build_query(terminology, language, str(question))
-        query_audit.append(query_record)
-        query = query_record["query"]
-        for provider_name in routing.get(language, routing.get("technical", [])):
-            cfg = providers.get(provider_name) or {}
-            if not cfg.get("enabled", False):
-                continue
-            attempt_base = {
-                "research_question": question,
-                "language": language,
-                "provider": provider_name,
-                "query": query,
-                "effective_terms": query_record["effective_terms"],
-                "translation": query_record["translation"],
-            }
-            try:
-                hits, status = provider.provider_search(
-                    provider_name,
-                    cfg,
-                    query,
-                    locator=str(question),
-                    secrets=secrets,
-                    timeout=30,
-                    limit=5,
-                )
-                attempts.append({**attempt_base, "status": status, "results": len(hits)})
-                provider_added = 0
-                for hit in hits:
-                    url = hit.get("url")
-                    if url in seen:
-                        continue
-                    seen.add(url)
-                    candidates.append({
-                        **hit,
-                        "research_question": question,
-                        "language": language,
-                        "query": query,
-                        "translation_method": query_record["translation"]["method"],
-                        "current_job_status": "candidate_unverified",
+    all_tasks = iter_query_tasks(plan)
+    if args.repair_gate:
+        target_priority = max(2, int(repair_gate.get("attempt") or 0) + 2)
+        available_priorities = sorted({
+            int((task.get("intent") or {}).get("priority") or 1)
+            for task in all_tasks
+            if not failed_question_ids or str(task.get("question_id") or "") in failed_question_ids
+        })
+        selected_priority = next(
+            (value for value in available_priorities if value >= target_priority),
+            available_priorities[-1] if available_priorities else 1,
+        )
+        tasks = [
+            task for task in all_tasks
+            if (not failed_question_ids or str(task.get("question_id") or "") in failed_question_ids)
+            and int((task.get("intent") or {}).get("priority") or 1) == selected_priority
+        ]
+    else:
+        selected_priority = 1
+        tasks = [
+            task for task in all_tasks
+            if int((task.get("intent") or {}).get("priority") or 1) == 1
+        ]
+    for task in tasks:
+        dimension = str(task.get("dimension") or task.get("question_id") or "")
+        languages = (["zh", "en"] if task.get("criticality") == "required_for_model"
+                     else ["zh"])
+        if task.get("criticality") == "legacy":
+            languages = ["zh"]
+        for language in languages:
+            query_record = build_query(terminology, language, task)
+            query_audit.append(query_record)
+            query = query_record["query"]
+            for provider_name in routing.get(language, routing.get("technical", [])):
+                cfg = providers.get(provider_name) or {}
+                if not cfg.get("enabled", False):
+                    continue
+                attempt_base = {
+                    "research_question": dimension,
+                    "question_id": query_record["question_id"],
+                    "intent_id": query_record["intent_id"],
+                    "criticality": query_record["criticality"],
+                    "preferred_source_roles": query_record["preferred_source_roles"],
+                    "preferred_source_classes": query_record["preferred_source_classes"],
+                    "language": language,
+                    "provider": provider_name,
+                    "query": query,
+                    "effective_terms": query_record["effective_terms"],
+                    "translation": query_record["translation"],
+                }
+                try:
+                    hits, status = provider.provider_search(
+                        provider_name,
+                        cfg,
+                        query,
+                        locator=query_record["intent_id"],
+                        secrets=secrets,
+                        timeout=30,
+                        limit=5,
+                    )
+                    attempts.append({**attempt_base, "status": status, "results": len(hits)})
+                    provider_added = 0
+                    for hit in hits:
+                        url = hit.get("url")
+                        if url in seen:
+                            continue
+                        seen.add(url)
+                        candidates.append({
+                            **hit,
+                            "research_question": dimension,
+                            "question_id": query_record["question_id"],
+                            "intent_id": query_record["intent_id"],
+                            "criticality": query_record["criticality"],
+                            "preferred_source_roles": query_record["preferred_source_roles"],
+                            "preferred_source_classes": query_record["preferred_source_classes"],
+                            "language": language,
+                            "query": query,
+                            "translation_method": query_record["translation"]["method"],
+                            "current_job_status": "candidate_unverified",
+                        })
+                        provider_added += 1
+                        if sum(x.get("question_id") == query_record["question_id"] for x in candidates) >= max_per_question:
+                            break
+                        if provider_added >= max_per_provider:
+                            break
+                    if sum(x.get("question_id") == query_record["question_id"] for x in candidates) >= max_per_question:
+                        break
+                except Exception as exc:
+                    attempts.append({
+                        **attempt_base,
+                        "status": "provider_error",
+                        "results": 0,
+                        "error": {"code": type(exc).__name__, "message": str(exc)},
                     })
-                    provider_added += 1
-                    if sum(x["research_question"] == question for x in candidates) >= max_per_question:
-                        break
-                    if provider_added >= max_per_provider:
-                        break
-                if sum(x["research_question"] == question for x in candidates) >= max_per_question:
-                    break
-            except Exception as exc:
-                attempts.append({
-                    **attempt_base,
-                    "status": "provider_error",
-                    "results": 0,
-                    "error": {"code": type(exc).__name__, "message": str(exc)},
-                })
 
+    if args.repair_gate:
+        candidates.extend(previous_candidates)
+    strategy_signal = {
+        "failed_question_ids": sorted(failed_question_ids),
+        "selected_intent_priority": selected_priority,
+        "queries": [
+            {"question_id": item.get("question_id"), "intent_id": item.get("intent_id"),
+             "language": item.get("language"), "query": item.get("query")}
+            for item in query_audit
+        ],
+        "previous_strategy_hash": repair_gate.get("strategy_hash"),
+    }
     result = {
         "protocol": "wiki-research-scout-v1",
-        "query_policy_version": "activity-process-focus-v2",
+        "query_policy_version": "question-contract-adaptive-v3",
+        "question_contract_sha256": plan.get("question_contract_sha256"),
         "node_id": plan["node_id"],
         "research_plan": {
             "path": str(args.plan.resolve()),
@@ -324,6 +426,17 @@ def main() -> int:
         "candidates": candidates,
         "attempts": attempts,
         "query_audit": query_audit,
+        "diversity_repair": ({
+            "protocol": "wiki-source-diversity-repair-v2",
+            "trigger_gate_sha256": hashlib.sha256(args.repair_gate.read_bytes()).hexdigest(),
+            "failed_question_ids": sorted(failed_question_ids),
+            "selected_intent_priority": selected_priority,
+            "previous_candidate_count": len(previous_candidates),
+            "novel_candidate_count": max(0, len(candidates) - len(previous_candidates)),
+            "strategy_hash": hashlib.sha256(json.dumps(
+                strategy_signal, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ).encode()).hexdigest(),
+        } if args.repair_gate else None),
         "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -24,6 +24,7 @@ def evaluate(batch: Path) -> dict[str, Any]:
         "table_verdict": batch / "table-data/source-verdict.json",
         "table_selection": batch / "table-data/evidence-selection.json",
         "table_collection": batch / "table-data/collection.json",
+        "table_population": batch / "table-data/table-population-gate.json",
         "verified": batch / "verify-output.json",
     }
     missing = [name for name, path in paths.items() if not path.is_file()]
@@ -43,6 +44,7 @@ def evaluate(batch: Path) -> dict[str, Any]:
     unresolved_conflicts = [] if mapping_confirmed else conflicts
     selection = docs["table_selection"]
     collection = docs["table_collection"]
+    population = docs["table_population"]
     gap_fields = [row for row in selection.get("fields") or []
                   if row.get("decision") == "explicit_gap"]
     gap_cells: list[dict[str, Any]] = []
@@ -71,9 +73,21 @@ def evaluate(batch: Path) -> dict[str, Any]:
         and bool(gap.get("query_hashes"))
         for gap in gap_records
     )
+    accepted = selection.get("accepted_evidence") or []
+    populated_fields = int(
+        ((population.get("goal_readiness") or {}).get("populated_fields") or 0)
+    )
+    if populated_fields == 0:
+        populated_fields = sum(
+            1 for rows in (collection.get("tables") or {}).values()
+            for row in rows if row.get("status") == "populated"
+        )
     checks = {
         "research_plan_candidate_ready": docs["research_plan_gate"].get("decision") == "PASS",
-        "source_roles_candidate_ready": docs["source_diversity_gate"].get("decision") == "PASS",
+        "source_roles_candidate_ready": (
+            docs["source_diversity_gate"].get("candidate_eligible") is True
+            or docs["source_diversity_gate"].get("decision") in {"PASS", "PASS_WITH_DEBT"}
+        ),
         "graph_semantic_conflicts_resolved": not unresolved_conflicts,
         "content_semantically_closed": docs["content_closure_gate"].get("candidate_eligible") is True,
         "draft_candidate_ready": docs["draft_content_gate"].get("candidate_eligible") is True,
@@ -81,6 +95,9 @@ def evaluate(batch: Path) -> dict[str, Any]:
             "accept", "accept_with_advisories",
         },
         "table_contract_valid": docs["table_verdict"].get("verdict") == "PASS",
+        "table_population_contract_valid": population.get("verdict") in {"GO", "INCOMPLETE"},
+        "accepted_field_evidence_nonzero": bool(accepted),
+        "populated_model_fields_nonzero": populated_fields > 0,
         "explicit_gaps_have_search_provenance": gap_provenance_ok,
     }
     candidate_eligible = all(checks.values())
@@ -91,26 +108,64 @@ def evaluate(batch: Path) -> dict[str, Any]:
         maturity = "diagnostic_preview"
     else:
         maturity = "evidence_limited"
-    accepted = selection.get("accepted_evidence") or []
     data_readiness = ("data_ready" if accepted
                       else "no_eligible_public_data" if selection.get("outcome") == "NO_ELIGIBLE_PUBLIC_DATA"
                       else "partial_data")
+    recoverable_reason_codes = {
+        "payload_not_fetched", "public_extraction_rule_missing",
+        "fetch_failed", "extraction_failed", "document_route_missing",
+        "FIELD_EXTRACTION_ZERO_YIELD", "MISSING_DOCUMENT_ROUTES",
+    }
+    observed_reason_codes = {
+        str(reason)
+        for audit in selection.get("candidate_audits") or []
+        for reason in (audit.get("reason_codes") or audit.get("reasons") or [])
+    } | {
+        str(reason) for reason, count in (selection.get("reason_counts") or {}).items()
+        if int(count or 0) > 0
+    }
+    non_research_repairs_remain = any(not checks[name] for name in (
+        "graph_semantic_conflicts_resolved", "content_semantically_closed",
+        "draft_candidate_ready", "editorial_candidate_ready",
+    ))
+    source_repair_remains = (
+        docs["source_diversity_gate"].get("decision") not in {"PASS", "PASS_WITH_DEBT"}
+        and docs["source_diversity_gate"].get("pipeline_continue") is not False
+    )
+    pipeline_continue = bool(
+        not candidate_eligible and (
+            non_research_repairs_remain or source_repair_remains
+            or bool(observed_reason_codes & recoverable_reason_codes)
+        )
+    )
     return {
         "protocol": "wiki-maturity-gate-v1",
         "decision": "PASS" if candidate_eligible else "LIMITED",
-        "pipeline_continue": True,
+        "pipeline_continue": pipeline_continue,
         "candidate_eligible": candidate_eligible,
         "maturity": maturity,
         "data_readiness": data_readiness,
         "checks": checks,
         "reason_codes": reasons,
         "quality_debt": {
-            "source_warnings": docs["source_diversity_gate"].get("warnings") or [],
+            "source_warnings": (
+                (docs["source_diversity_gate"].get("quality_assessment") or {}).get("warnings")
+                or docs["source_diversity_gate"].get("warnings") or []
+            ),
+            "question_evidence_metrics": (
+                (docs["source_diversity_gate"].get("question_evidence_ledger") or {}).get("metrics")
+                or {}
+            ),
             "draft_warnings": [warning for page in docs["draft_content_gate"].get("pages") or []
                                for warning in page.get("quality_warnings") or []],
             "unresolved_graph_conflicts": unresolved_conflicts,
             "explicit_gap_fields": len(gap_fields),
             "explicit_gap_cells": len(gap_cells),
+            "accepted_field_evidence": len(accepted),
+            "populated_model_fields": populated_fields,
+            "recoverable_reason_codes": sorted(
+                observed_reason_codes & recoverable_reason_codes
+            ),
         },
         "inputs_sha256": {
             name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in paths.items()

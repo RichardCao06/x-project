@@ -9,7 +9,7 @@
   "runtime_fingerprint": {
     "model": "agent-set@sha256:a159ee391fd6148daf97f96049df980eb180750158fdc57f124129e2724f9dfe",
     "prompt": "prompt-set@sha256:8f028f278efc81025c9c368c451707f1036a00b46e75a4fc164a18794447e741",
-    "toolset": "capability-set@sha256:5368be1c6acc2b0dd47f095d07b6b96b12abb8ae0e45634216b68d52fac4cddb",
+    "toolset": "capability-set@sha256:ab0324329017c17817a689cc7c4d32c48bf43fe802df2887442cf9ad03b0f79d",
     "workflow": "wiki-node-production@9"
   },
   "input_scope": {

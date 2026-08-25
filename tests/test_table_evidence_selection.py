@@ -58,6 +58,12 @@ def test_authoritative_field_observation_is_promoted_as_proxy(tmp_path: Path) ->
     assert row["unit"] == "%" and row["basis"] == "proxy"
     assert report["accepted_evidence"][0]["verification_mode"] == "authoritative_single_source"
     assert report["outcome"] == "FULLY_POPULATED"
+    assert report["candidate_audits"][0]["decision"] == "accepted"
+    assert report["candidate_audits"][0]["reasons"] == [
+        "accepted_field_specific_observation"
+    ]
+    assert report["audit_closure"]["complete"] is True
+    assert report["proof_metrics"]["candidate_audit_closure_complete"] is True
 
 
 def test_single_non_authoritative_candidate_remains_an_audited_gap(tmp_path: Path) -> None:
@@ -71,6 +77,10 @@ def test_single_non_authoritative_candidate_remains_an_audited_gap(tmp_path: Pat
     assert report["fields"][0]["candidate_count"] == 1
     assert report["outcome"] == "NO_ELIGIBLE_PUBLIC_DATA"
     assert report["reason_counts"] == {"uncorroborated_public_proxy": 1}
+    assert report["candidate_audits"][0]["decision"] == "rejected"
+    assert report["candidate_audits"][0]["reasons"] == [
+        "uncorroborated_public_proxy"
+    ]
     row = updated["tables"]["indicators"][0]
     assert row["int_source"] == "" and row["cn_source"] == ""
     assert row["gap_evidence"]["protocol"] == "wiki-table-gap-evidence-v1"

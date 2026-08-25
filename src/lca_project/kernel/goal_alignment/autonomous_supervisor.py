@@ -1,6 +1,7 @@
 """Finite, policy-bounded autonomous Job creation and execution campaigns."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import time
@@ -8,27 +9,105 @@ from typing import Any
 import uuid
 
 from ...control import ControlPlane
-from ..leases import Lease, LeaseLost
+from ..leases import LeaseLost
 from ..orchestrator import PersistentOrchestrator
 from ..skills import SkillInvoker
 from ..state import utcnow
 from ..worker import WorkerLoop
 from .controller import GoalAlignmentController
+from .execution_ownership import ExecutionOwnership
 from .system_repair_agent import SystemRepairAgent
+from .work_dispatcher import (
+    dispatch_failure_triage,
+    dispatch_scm_publication,
+    dispatch_system_repair,
+)
 from .store import AlignmentStore, canonical, digest
 
 
 ACTIVE_JOB_STATES = {"planned", "ready", "leased", "running", "stalled", "retryable",
                      "repairable", "manual_review", "blocked_budget"}
-SUCCESS_JOB_STATES = {"diagnostic_preview", "evidence_limited", "candidate", "gated",
-                      "applied", "published"}
+GOAL_READY_JOB_STATES = {"candidate", "gated", "applied", "published"}
+LIMITED_JOB_STATES = {"diagnostic_preview", "evidence_limited"}
 FAILURE_JOB_STATES = {"failed", "quarantined", "superseded"}
 ITEM_TERMINAL = {"succeeded", "evidence_limited", "failed", "blocked",
                  "awaiting_approval", "superseded"}
+COMPLETION_GOALS = {"lca_modeling_ready", "reviewed_publication", "workflow_delivery"}
+SCM_PUBLICATION_RETRY_SECONDS = 300
+_DEFAULT_SYSTEM_REPAIR_AGENT = SystemRepairAgent
+
+
+def _dispatch_repair(root: Path, repair_run_id: str) -> dict[str, Any]:
+    # Keep the Agent dependency injectable for deterministic unit tests while
+    # production execution remains outside the Supervisor thread.
+    if SystemRepairAgent is not _DEFAULT_SYSTEM_REPAIR_AGENT:
+        return SystemRepairAgent(root).execute(repair_run_id)
+    dispatch_system_repair(root, repair_run_id)
+    return {"repair_run_id": repair_run_id, "status": "dispatched"}
+
+
+def _dispatch_scm(root: Path, repair_run_id: str) -> dict[str, Any]:
+    if SystemRepairAgent is not _DEFAULT_SYSTEM_REPAIR_AGENT:
+        return SystemRepairAgent(root).publish_scm(repair_run_id)
+    dispatch_scm_publication(root, repair_run_id)
+    return {"repair_run_id": repair_run_id, "status": "scm_dispatched"}
+
+
+def _scm_publication_retry_due(updated_at: str) -> bool:
+    try:
+        updated = datetime.fromisoformat(updated_at)
+        if updated.tzinfo is None:
+            updated = updated.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - updated).total_seconds() >= (
+            SCM_PUBLICATION_RETRY_SECONDS
+        )
+    except (TypeError, ValueError):
+        return True
+
+
+def verify_reviewed_publication(
+    control: ControlPlane, job_id: str, run_id: str | None,
+) -> tuple[bool, str | None]:
+    """Verify the immutable publish manifest and its Job-bound release record."""
+    if not run_id:
+        return False, "reviewed publication has no Workflow Run"
+    task = control.state._connection().execute(
+        "SELECT status,output_hash FROM orchestrator_tasks "
+        "WHERE run_id=? AND task_id='publish'",
+        (run_id,),
+    ).fetchone()
+    if not task or task["status"] != "succeeded" or not task["output_hash"]:
+        return False, "publish task has no successful immutable output manifest"
+    try:
+        manifest = control.artifacts.verify_task_output_manifest(str(task["output_hash"]))
+        release_file = next(
+            item for item in manifest.get("files") or []
+            if str(item.get("path") or "").endswith("/release-record.json")
+            or str(item.get("path") or "") == "release-record.json"
+        )
+        record = json.loads(control.artifacts.get_bytes(str(release_file["sha256"])))
+    except (KeyError, StopIteration, ValueError, RuntimeError, OSError, json.JSONDecodeError):
+        return False, "publish output does not contain a valid immutable release-record"
+    required_hashes = (
+        "gate_report_sha256", "reviewed_apply_sha256", "publish_report_sha256",
+    )
+    valid = bool(
+        record.get("protocol") == "release-record-v1"
+        and record.get("publication_status") == "published"
+        and record.get("job_id") == job_id
+        and record.get("release_id")
+        and record.get("candidate_hashes")
+        and all(len(str(record.get(name) or "")) == 64 for name in required_hashes)
+    )
+    return (True, None) if valid else (
+        False, "release-record is not bound to this Job and reviewed publication proofs",
+    )
 
 
 class AutonomousJobSupervisor:
     """Create Jobs only through Skills, then supervise them to an honest terminal state."""
+
+    MAX_CONSECUTIVE_CYCLE_FAILURES = 3
 
     def __init__(self, root: str | Path, *, supervisor_id: str | None = None,
                  control: ControlPlane | None = None) -> None:
@@ -66,9 +145,35 @@ class AutonomousJobSupervisor:
             raise ValueError("max_auto_repairs_per_job must be 0..20")
         if not 0 < poll_seconds <= 300:
             raise ValueError("poll_seconds must be >0 and <=300")
-        completion_goal = str(spec.get("completion_goal") or "lca_modeling_ready")
-        if completion_goal not in {"lca_modeling_ready", "workflow_delivery"}:
-            raise ValueError("completion_goal must be lca_modeling_ready or workflow_delivery")
+        request_modes = {
+            str(item.get("publication_mode") or "preview") for item in requests
+        } if skill == "generate-node-wiki" else set()
+        if len(request_modes) > 1:
+            raise ValueError("one Wiki campaign cannot mix preview and reviewed publication modes")
+        completion_goal = str(spec.get("completion_goal") or (
+            "reviewed_publication"
+            if skill == "generate-node-wiki" and request_modes == {"reviewed"}
+            else "lca_modeling_ready"
+        ))
+        if completion_goal not in COMPLETION_GOALS:
+            raise ValueError(
+                "completion_goal must be lca_modeling_ready, reviewed_publication, "
+                "or workflow_delivery"
+            )
+        if completion_goal == "reviewed_publication":
+            if skill != "generate-node-wiki":
+                raise ValueError("reviewed_publication is supported only for generate-node-wiki")
+            if request_modes != {"reviewed"}:
+                raise ValueError(
+                    "completion_goal=reviewed_publication requires every request to set "
+                    "publication_mode=reviewed"
+                )
+        if (skill == "generate-node-wiki" and request_modes == {"reviewed"}
+                and completion_goal == "lca_modeling_ready"):
+            raise ValueError(
+                "reviewed Wiki requests must use completion_goal=reviewed_publication; "
+                "lca_modeling_ready would terminate before governed publication"
+            )
         return {"schema_version": "autonomous-job-campaign-v1", "name": name,
                 "skill": skill, "requests": requests, "max_concurrency": max_concurrency,
                 "max_auto_repairs_per_job": max_repairs, "poll_seconds": poll_seconds,
@@ -84,6 +189,12 @@ class AutonomousJobSupervisor:
             invoker.validate_request(value["skill"], request)
             for request in value["requests"]
         ]
+        if value["completion_goal"] == "reviewed_publication" and any(
+            request.get("publication_mode") != "reviewed" for request in value["requests"]
+        ):
+            raise ValueError(
+                "completion_goal=reviewed_publication requires normalized reviewed requests"
+            )
         normalized_hashes = [digest(request) for request in value["requests"]]
         if len(normalized_hashes) != len(set(normalized_hashes)):
             raise ValueError("campaign requests must remain unique after Skill normalization")
@@ -171,26 +282,78 @@ class AutonomousJobSupervisor:
             "SELECT run_id,status FROM orchestrator_runs WHERE job_id=?", (job_id,)
         ).fetchone()
         status = item["status"]
+        last_error = item.get("last_error")
+        completion_goal = self._completion_goal_for_item(item)
         if job is None:
             status = "failed"
         elif job["status"] in FAILURE_JOB_STATES:
             status = "superseded" if job["status"] == "superseded" else "failed"
         elif pending_supervision:
             status = "running"
-        elif job["status"] in SUCCESS_JOB_STATES or (run and run["status"] == "succeeded"):
-            status = "evidence_limited" if job["status"] in {
-                "diagnostic_preview", "evidence_limited"
-            } else "succeeded"
-        elif job["status"] == "paused":
-            status = "paused"
+        # An active Job state is authoritative over a previously succeeded run:
+        # preview generation can finish while the declared modelling goal still
+        # has bounded repair work to perform.
         elif job["status"] in ACTIVE_JOB_STATES:
             status = "running"
+            last_error = None
+        elif job["status"] in LIMITED_JOB_STATES:
+            status = "evidence_limited"
+        elif completion_goal == "reviewed_publication":
+            if job["status"] == "published":
+                proof_valid, proof_error = self._valid_release_proof(
+                    str(job_id), str(run["run_id"]) if run else item.get("run_id")
+                )
+                status = "succeeded" if proof_valid else "blocked"
+                last_error = None if proof_valid else proof_error
+            elif job["status"] in GOAL_READY_JOB_STATES:
+                unfinished = bool(run and self.state._connection().execute(
+                    "SELECT 1 FROM orchestrator_tasks WHERE run_id=? "
+                    "AND status NOT IN ('succeeded','skipped','failed','quarantined') LIMIT 1",
+                    (run["run_id"],),
+                ).fetchone())
+                if unfinished or (run and run["status"] != "succeeded"):
+                    status = "running"
+                    last_error = None
+                else:
+                    status = "blocked"
+                    last_error = (
+                        "reviewed_publication requires Job status=published and a valid "
+                        "hash-bound release-record proof"
+                    )
+            elif run and run["status"] == "succeeded":
+                status = "blocked"
+                last_error = "workflow ended without satisfying reviewed_publication"
+        elif completion_goal == "lca_modeling_ready" and job["status"] in GOAL_READY_JOB_STATES:
+            status = "succeeded"
+            last_error = None
+        elif completion_goal == "workflow_delivery" and run and run["status"] == "succeeded":
+            status = "succeeded"
+            last_error = None
+        elif job["status"] == "paused":
+            status = "paused"
         with self.state.transaction() as conn:
-            conn.execute("UPDATE autonomous_job_items SET status=?,run_id=?,updated_at=? WHERE item_id=?",
-                         (status, str(run["run_id"]) if run else item.get("run_id"),
-                          utcnow(), item["item_id"]))
+            conn.execute(
+                "UPDATE autonomous_job_items SET status=?,run_id=?,last_error=?,updated_at=? "
+                "WHERE item_id=?",
+                (status, str(run["run_id"]) if run else item.get("run_id"),
+                 last_error, utcnow(), item["item_id"]),
+            )
         return {**item, "status": status,
-                "run_id": str(run["run_id"]) if run else item.get("run_id")}
+                "run_id": str(run["run_id"]) if run else item.get("run_id"),
+                "last_error": last_error}
+
+    def _completion_goal_for_item(self, item: dict[str, Any]) -> str:
+        row = self.state._connection().execute(
+            "SELECT payload FROM autonomous_campaigns WHERE campaign_id=?",
+            (item["campaign_id"],),
+        ).fetchone()
+        payload = json.loads(row["payload"]) if row else {}
+        return str(payload.get("completion_goal") or "lca_modeling_ready")
+
+    def _valid_release_proof(
+        self, job_id: str, run_id: str | None,
+    ) -> tuple[bool, str | None]:
+        return verify_reviewed_publication(self.control, job_id, run_id)
 
     def _create_item_job(self, campaign: dict[str, Any], item: dict[str, Any]) -> dict[str, Any]:
         request = item["payload"]["request"]
@@ -219,19 +382,51 @@ class AutonomousJobSupervisor:
         claimed_wakeups = [
             str(row["wakeup_id"]) for row in store.pending_wakeups(job_id=job_id)
         ]
+        # A queued repair is durable work in its own right.  Consume one before
+        # starting a fresh audit so a later poison deviation cannot orphan a
+        # repair that a previous cycle already committed.
+        queued_repair = self.state._connection().execute(
+            "SELECT repair_run_id FROM system_repair_runs WHERE source_job_id=? "
+            "AND status='queued' ORDER BY created_at LIMIT 1", (job_id,),
+        ).fetchone()
+        system_repairs = []
+        if queued_repair:
+            repair_run_id = str(queued_repair["repair_run_id"])
+            system_repairs.append(_dispatch_repair(self.root, repair_run_id))
+        pending_scm = self.state._connection().execute(
+            "SELECT repair_run_id,updated_at FROM system_repair_runs "
+            "WHERE source_job_id=? AND status='awaiting_scm_publication' "
+            "ORDER BY updated_at LIMIT 1", (job_id,),
+        ).fetchone()
+        if pending_scm and _scm_publication_retry_due(str(pending_scm["updated_at"])):
+            repair_run_id = str(pending_scm["repair_run_id"])
+            system_repairs.append(_dispatch_scm(self.root, repair_run_id))
         allow_repair = int(item["repair_count"]) < int(campaign["max_auto_repairs_per_job"])
         audit = GoalAlignmentController(self.root).audit_job(
-            job_id, auto_repair=allow_repair, trigger=f"autonomy:{campaign['campaign_id']}"
+            job_id, auto_repair=allow_repair,
+            trigger=f"autonomy:{campaign['campaign_id']}", execute_triage=False,
         )
         consumed_wakeups = store.consume_wakeups(
             job_id=job_id, consumer=self.supervisor_id, wakeup_ids=claimed_wakeups
         )
-        system_repairs = []
+        executed_repair_ids = {
+            str(repair["repair_run_id"]) for repair in system_repairs
+        }
         for action in audit["actions"]:
-            if action.get("status") == "system_repair_queued":
-                result = SystemRepairAgent(self.root).execute(str(action["repair_run_id"]))
+            if str(action.get("status") or "") in {
+                "failure_triage_queued", "failure_triage_investigating",
+            }:
+                triage_run_id = str(action.get("triage_run_id") or "")
+                if triage_run_id:
+                    dispatch_failure_triage(self.root, triage_run_id)
+                    action["execution_status"] = "dispatched"
+            repair_run_id = str(action.get("repair_run_id") or "")
+            if (action.get("status") == "system_repair_queued"
+                    and repair_run_id not in executed_repair_ids):
+                result = _dispatch_repair(self.root, repair_run_id)
                 action["execution_status"] = result["status"]
                 system_repairs.append(result)
+                executed_repair_ids.add(repair_run_id)
         repairs = sum(action.get("status") == "scheduled" for action in audit["actions"])
         repairs += sum(item.get("status") in {
             "awaiting_outcome_validation", "effective", "partially_effective", "ineffective"
@@ -301,8 +496,6 @@ class AutonomousJobSupervisor:
         status = str(campaign["status"])
         if status not in {"completed", "needs_attention"}:
             return view
-        if campaign["payload"].get("completion_goal", "lca_modeling_ready") != "lca_modeling_ready":
-            return view
         store = AlignmentStore(self.state)
         affected: list[tuple[dict[str, Any], str]] = []
         for item in view["items"]:
@@ -361,7 +554,8 @@ class AutonomousJobSupervisor:
 
     def _finish_campaign_if_terminal(self, campaign_id: str) -> str:
         rows = list(self.state._connection().execute(
-            "SELECT status FROM autonomous_job_items WHERE campaign_id=?", (campaign_id,)
+            "SELECT status,job_id,run_id FROM autonomous_job_items WHERE campaign_id=?",
+            (campaign_id,),
         ))
         statuses = {str(row["status"]) for row in rows}
         if rows and all(str(row["status"]) in ITEM_TERMINAL for row in rows):
@@ -371,9 +565,17 @@ class AutonomousJobSupervisor:
             campaign_payload = json.loads(campaign_row["payload"]) if campaign_row else {}
             completion_goal = campaign_payload.get("completion_goal", "lca_modeling_ready")
             workflow_complete = statuses <= {"succeeded", "evidence_limited"}
-            goal_complete = statuses <= {"succeeded"} or (
-                completion_goal == "workflow_delivery" and workflow_complete
-            )
+            if completion_goal == "reviewed_publication":
+                goal_complete = statuses <= {"succeeded"} and all(
+                    self._valid_release_proof(
+                        str(row["job_id"]), str(row["run_id"]) if row["run_id"] else None,
+                    )[0]
+                    for row in rows
+                )
+            else:
+                goal_complete = statuses <= {"succeeded"} or (
+                    completion_goal == "workflow_delivery" and workflow_complete
+                )
             target = "completed" if goal_complete else "needs_attention"
             with self.state.transaction() as conn:
                 conn.execute("UPDATE autonomous_campaigns SET status=?,updated_at=? WHERE campaign_id=?",
@@ -432,23 +634,94 @@ class AutonomousJobSupervisor:
         finally:
             self.control.leases.release(lease)
 
+    def _record_cycle_failure(self, campaign_id: str, exc: Exception, *,
+                              consecutive_failures: int) -> str | None:
+        heartbeat = self.state._connection().execute(
+            "SELECT current_item_id FROM autonomous_supervisor_heartbeats "
+            "WHERE campaign_id=?", (campaign_id,),
+        ).fetchone()
+        item_id = str(heartbeat["current_item_id"]) if (
+            heartbeat and heartbeat["current_item_id"]
+        ) else None
+        message = f"{type(exc).__name__}: {exc}"
+        if item_id:
+            with self.state.transaction() as conn:
+                conn.execute(
+                    "UPDATE autonomous_job_items SET last_error=?,updated_at=? WHERE item_id=?",
+                    (message, utcnow(), item_id),
+                )
+        self.control.events.append(
+            "autonomous_campaign", campaign_id, "autonomy.supervision_cycle_failed",
+            {"item_id": item_id, "error_type": type(exc).__name__,
+             "message": str(exc), "consecutive_failures": consecutive_failures},
+            actor=self.supervisor_id,
+        )
+        self._heartbeat(campaign_id, "degraded", item_id=item_id, error=message)
+        return item_id
+
+    def _open_cycle_circuit(self, campaign_id: str, item_id: str | None,
+                            exc: Exception) -> dict[str, Any]:
+        message = (
+            f"supervision circuit opened after {self.MAX_CONSECUTIVE_CYCLE_FAILURES} "
+            f"consecutive failures: {type(exc).__name__}: {exc}"
+        )
+        with self.state.transaction() as conn:
+            conn.execute(
+                "UPDATE autonomous_campaigns SET status='needs_attention',updated_at=? "
+                "WHERE campaign_id=?", (utcnow(), campaign_id),
+            )
+            if item_id:
+                conn.execute(
+                    "UPDATE autonomous_job_items SET status='blocked',last_error=?,updated_at=? "
+                    "WHERE item_id=?", (message, utcnow(), item_id),
+                )
+        self.control.events.append(
+            "autonomous_campaign", campaign_id, "autonomy.supervision_circuit_opened",
+            {"item_id": item_id, "message": message}, actor=self.supervisor_id,
+        )
+        self._heartbeat(campaign_id, "needs_attention", item_id=item_id, error=message)
+        return {"campaign_id": campaign_id, "status": "needs_attention",
+                "action": "supervision_circuit_opened", "error": message}
+
     def run(self, campaign_id: str, *, poll_seconds: float | None = None) -> dict[str, Any]:
         campaign = self.campaign(campaign_id)["campaign"]
         interval = float(poll_seconds or campaign["payload"].get("poll_seconds", 2))
-        resource = f"autonomous-campaign:{campaign_id}"
+        prior_owner = self.state._connection().execute(
+            "SELECT attempt FROM goal_execution_owners "
+            "WHERE execution_type='autonomous-campaign' AND execution_id=?",
+            (campaign_id,),
+        ).fetchone()
+        ownership = ExecutionOwnership.create(
+            self.control, "autonomous-campaign", campaign_id,
+            attempt=int(prior_owner["attempt"] if prior_owner else 0) + 1,
+            lease_seconds=60, heartbeat_seconds=10,
+        )
         try:
-            lease: Lease = self.control.leases.acquire(resource, self.supervisor_id, seconds=3600)
+            ownership.start()
         except LeaseLost:
             return {"campaign_id": campaign_id, "status": "already_running"}
+        consecutive_failures = 0
         try:
             while True:
-                report = self._tick_owned(campaign_id, execute_task=True)
+                try:
+                    report = self._tick_owned(campaign_id, execute_task=True)
+                except Exception as exc:
+                    consecutive_failures += 1
+                    item_id = self._record_cycle_failure(
+                        campaign_id, exc, consecutive_failures=consecutive_failures,
+                    )
+                    ownership.current()
+                    if consecutive_failures >= self.MAX_CONSECUTIVE_CYCLE_FAILURES:
+                        return self._open_cycle_circuit(campaign_id, item_id, exc)
+                    time.sleep(min(interval * (2 ** (consecutive_failures - 1)), 60.0))
+                    continue
+                consecutive_failures = 0
                 if report["status"] in {"paused", "completed", "needs_attention"}:
                     return report
-                lease = self.control.leases.renew(lease, seconds=3600)
+                ownership.current()
                 time.sleep(interval)
         finally:
-            self.control.leases.release(lease)
+            ownership.close()
 
     def pause(self, campaign_id: str) -> dict[str, Any]:
         view = self.campaign(campaign_id)

@@ -98,14 +98,47 @@ class AlignmentStore:
                    "goal_supervisor_wakeups", "repair_validation_receipts"}
         if table not in allowed:
             raise ValueError(f"unsupported alignment table: {table}")
-        where, params = "", []
-        if job_id and table in {"quality_observations", "deviation_reports",
-                               "goal_supervisor_wakeups", "repair_validation_receipts"}:
-            where, params = " WHERE job_id=?", [job_id]
+        alias = "t"
+        join, where, params = "", "", []
+        if job_id:
+            direct_job_tables = {
+                "quality_observations", "deviation_reports",
+                "goal_supervisor_wakeups", "repair_validation_receipts",
+            }
+            deviation_tables = {
+                "causal_diagnoses": "deviation_id",
+                "repair_plans": "deviation_id",
+                "system_change_candidates": "source_deviation_id",
+            }
+            candidate_tables = {
+                "validation_certificates", "policy_promotion_receipts",
+            }
+            if table in direct_job_tables:
+                where, params = f" WHERE {alias}.job_id=?", [job_id]
+            elif table in deviation_tables:
+                deviation_column = deviation_tables[table]
+                join = (
+                    " JOIN deviation_reports d"
+                    f" ON d.deviation_id={alias}.{deviation_column}"
+                )
+                where, params = " WHERE d.job_id=?", [job_id]
+            elif table in candidate_tables:
+                # Drive certificate/receipt queries from their small,
+                # newest-first stream.  Joining from deviations first can
+                # fan out through tens of thousands of duplicate candidates
+                # before discovering that only a handful have receipts.
+                where = (
+                    " WHERE EXISTS(SELECT 1 FROM system_change_candidates c"
+                    " JOIN deviation_reports d"
+                    " ON d.deviation_id=c.source_deviation_id"
+                    f" WHERE c.candidate_id={alias}.candidate_id AND d.job_id=?)"
+                )
+                params = [job_id]
         order = "created_at"
         result = []
         for row in self.state._connection().execute(
-            f"SELECT * FROM {table}{where} ORDER BY {order} DESC LIMIT ?", (*params, limit)
+            f"SELECT {alias}.* FROM {table} {alias}{join}{where} "
+            f"ORDER BY {alias}.{order} DESC LIMIT ?", (*params, limit)
         ):
             item = dict(row)
             if "payload" in item:
@@ -172,6 +205,15 @@ class AlignmentStore:
                     "updated_at=? WHERE wakeup_id=? AND status='pending'",
                     (canonical(payload), now, row["wakeup_id"]),
                 )
+                meta_deviation_id = str(
+                    (payload.get("context") or {}).get("meta_deviation_id") or ""
+                )
+                if meta_deviation_id:
+                    conn.execute(
+                        "UPDATE system_meta_deviations SET status='resolved',updated_at=? "
+                        "WHERE meta_deviation_id=? AND status='awaiting_supervision'",
+                        (now, meta_deviation_id),
+                    )
         return [str(row["wakeup_id"]) for row in rows]
 
     def repair_validation_receipt(self, *, repair_run_id: str, job_id: str,

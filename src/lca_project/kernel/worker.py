@@ -597,6 +597,33 @@ class WorkerLoop:
                 "trigger": trigger, "error": type(exc).__name__, "message": str(exc),
             }, actor="worker")
 
+    def _queue_logic_audits(self, job_id: str, *, trigger: str) -> None:
+        """Persist advisory reviews without making them part of task success.
+
+        The Dashboard's background reconciler executes these durable rows.
+        A missing Dashboard therefore delays only the review, never the Job.
+        """
+        try:
+            from .logic_audit import LogicAuditAgent
+            rows = LogicAuditAgent(
+                self.root, self.control
+            ).queue_ready_for_job(job_id)
+            self.control.events.append(
+                "job", job_id, "logic_audit.snapshot_queued",
+                {"trigger": trigger, "audit_run_ids": [
+                    str(item["audit_run_id"]) for item in rows
+                    if item.get("status") == "queued"
+                ], "pipeline_effect": "none"},
+                actor="worker",
+            )
+        except (OSError, ValueError, RuntimeError, KeyError) as exc:
+            self.control.events.append(
+                "job", job_id, "logic_audit.queue_failed",
+                {"trigger": trigger, "error": type(exc).__name__,
+                 "message": str(exc), "pipeline_effect": "none"},
+                actor="worker",
+            )
+
     def _reconcile_goal_supervision(self, job_id: str) -> None:
         """Let a live Worker recover supervision abandoned by a dead campaign loop."""
         try:
@@ -754,10 +781,25 @@ class WorkerLoop:
 
     @staticmethod
     def _failure_fingerprint(task_id: str, code: str, envelope: dict[str, Any]) -> str:
+        metrics = envelope.get("metrics") if isinstance(envelope.get("metrics"), dict) else {}
+        metric_signal = {
+            str(key): (round(value, 4) if isinstance(value, float) else value)
+            for key, value in sorted(metrics.items())
+            if isinstance(value, (str, int, float, bool)) or value is None
+        }
         signal = {
             "task_id": task_id, "code": code,
             "category": envelope.get("category"), "scope": envelope.get("scope"),
             "message": str(envelope.get("message") or "").strip(),
+            "gate_id": envelope.get("gate_id"),
+            "gate_version": envelope.get("gate_version"),
+            "gate_decision": envelope.get("gate_decision"),
+            "failed_requirement_ids": sorted(
+                str(item) for item in envelope.get("failed_requirement_ids") or []
+            ),
+            "question_contract_sha256": envelope.get("question_contract_sha256"),
+            "strategy_hash": envelope.get("strategy_hash"),
+            "metrics": metric_signal,
         }
         return hashlib.sha256(json.dumps(
             signal, ensure_ascii=False, sort_keys=True, separators=(",", ":")
@@ -788,6 +830,8 @@ class WorkerLoop:
                 self.control.events.append("workflow_run", task.run_id, "task.reused", {
                     "task_id": task.task_id, "attempt_id": attempt_id,
                     "output_hash": output_hash, "reuse_receipt_hash": receipt_hash,
+                    "execution_status": "reused", "gate_decision": "NOT_APPLICABLE",
+                    "goal_effect": "progress",
                 }, actor="worker")
                 return WorkerCycle("succeeded", self.worker_id, task.run_id, task.task_id,
                                    attempt_id, output_hash)
@@ -832,6 +876,8 @@ class WorkerLoop:
                 self.control.events.append("workflow_run", task.run_id, "task.claimed", {
                     "task_id": task.task_id, "attempt_id": attempt_id, "worker_id": self.worker_id,
                     "fencing_token": lease.fencing_token, "input_hashes": list(input_hashes),
+                    "execution_status": "running", "gate_decision": "PENDING",
+                    "goal_effect": "pending",
                 }, actor="worker")
                 capability = self.orchestrator.registry.get(task.capability_id)
                 task_executor = self._executor_for(
@@ -949,17 +995,33 @@ class WorkerLoop:
                         maturity = load_json(maturity_path) if maturity_path.is_file() else {}
                         maturity_name = str(maturity.get("maturity") or "diagnostic_preview")
                         target = (JobState.CANDIDATE if maturity.get("candidate_eligible") is True
+                                  else JobState.REPAIRABLE
+                                  if maturity.get("pipeline_continue") is True
                                   else JobState.EVIDENCE_LIMITED
                                   if maturity_name == "evidence_limited"
                                   else JobState.DIAGNOSTIC_PREVIEW)
                         self.control.transition_job(
                             job_id_value, target,
-                            reason=f"preview completed with maturity={maturity_name}",
+                            reason=(f"preview artifact completed with maturity={maturity_name}; "
+                                    f"goal_complete={maturity.get('candidate_eligible') is True}; "
+                                    f"pipeline_continue={maturity.get('pipeline_continue') is True}"),
                         )
+                gate_result = (result.payload.get("gate_result")
+                               if isinstance(result.payload.get("gate_result"), dict) else {})
+                gate_decision = str(gate_result.get("decision") or "NOT_APPLICABLE")
+                goal_effect = ("progress_with_debt" if gate_decision == "PASS_WITH_DEBT"
+                               else "progress")
                 self.control.events.append("workflow_run", task.run_id, "task.succeeded", {
                     "task_id": task.task_id, "attempt_id": attempt_id, "output_hash": digest,
                     "worker_id": self.worker_id,
+                    "execution_status": "completed", "gate_decision": gate_decision,
+                    "goal_effect": goal_effect,
+                    "failed_requirement_ids": gate_result.get("failed_requirement_ids") or [],
+                    "gate_artifact": result.payload.get("gate_artifact"),
                 }, actor="worker")
+                self._queue_logic_audits(
+                    job_id_value, trigger=f"task_succeeded:{task.task_id}"
+                )
                 self._audit_goal_alignment(
                     job_id_value, trigger=f"task_succeeded:{task.task_id}"
                 )
@@ -1000,7 +1062,7 @@ class WorkerLoop:
                 )
                 configured_rule = self.repair_policy.rules.get(code) or {}
                 configured_action = RepairAction(str(configured_rule.get("action", "quarantine")))
-                if repeated and code != "SOURCE_DIVERSITY_BLOCKED" and configured_action in {
+                if repeated and configured_action in {
                     RepairAction.RETRY, RepairAction.RECOVER, RepairAction.REPAIR,
                 }:
                     decision = RepairDecision(
@@ -1062,6 +1124,9 @@ class WorkerLoop:
                     self._audit_goal_alignment(
                         job_id_value, trigger=f"task_failed:{task.task_id}:{code}"
                     )
+                    self._queue_logic_audits(
+                        job_id_value, trigger=f"task_failed:{task.task_id}:{code}"
+                    )
                     if decision.action in {RepairAction.RETRY, RepairAction.RECOVER}:
                         self.orchestrator.recover(task.run_id, task.task_id)
                     elif (code in {"CONTENT_LOCAL_ISSUES", "EDITORIAL_LOCAL_ISSUES"}
@@ -1078,7 +1143,8 @@ class WorkerLoop:
                           and decision.action == RepairAction.REPAIR):
                         self.orchestrator.rewind_from(
                             task.run_id, "research_ready",
-                            reason="source diversity repair selected alternate frozen candidates",
+                            reason=("question evidence gate requested a strategy-different "
+                                    "research pass"),
                             actor="worker",
                         )
                         rewound = True
@@ -1099,6 +1165,13 @@ class WorkerLoop:
                     "task_id": task.task_id, "attempt_id": attempt_id, "failure_code": code,
                     "worker_id": self.worker_id, "repair_action": str(decision.action),
                     "repair_policy_hash": decision.policy_hash,
+                    "execution_status": ("ownership_lost" if code == "WORKER_LOST"
+                                         else "completed_with_block"),
+                    "gate_decision": envelope.get("gate_decision") or "BLOCKED",
+                    "goal_effect": "blocked",
+                    "failed_requirement_ids": envelope.get("failed_requirement_ids") or [],
+                    "strategy_hash": envelope.get("strategy_hash"),
+                    "failure_fingerprint": fingerprint,
                 }, actor="worker")
                 cycle_status = ("retry_scheduled" if rewound or decision.action in {
                     RepairAction.RETRY, RepairAction.RECOVER

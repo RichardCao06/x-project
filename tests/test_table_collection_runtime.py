@@ -253,6 +253,8 @@ def test_a039_queries_have_complete_english_fields_no_internal_ids_and_bounded_r
     matrix = json.loads((output / "search-matrix.json").read_text(encoding="utf-8"))
     assert matrix["query_quality_metrics"] == {
         "english_field_translation_coverage": "33/33",
+        "runtime_english_field_translation_coverage": "0/33",
+        "unresolved_english_field_translations": 0,
         "mixed_language_english_queries": 0,
         "internal_identifier_queries": 0,
         "a039_document_routes": 4,
@@ -278,6 +280,53 @@ def test_query_serializer_fails_closed_on_mixed_language_english_query() -> None
         assert "retains CJK" in str(exc)
     else:
         raise AssertionError("mixed-language English query was accepted")
+
+
+def test_unknown_activity_executes_available_queries_and_records_translation_gaps(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    table_builder = load_script("build_wiki_table_collection.py")
+    blueprint = tmp_path / "content-blueprint.json"
+    blueprint.write_text(json.dumps({
+        "node_id": "A019", "node_name": "未知活动", "node_type": "activity",
+        "identity_tokens": ["A019"],
+        "evidence_tables": {"params": ["测试", "完全未知字段"]},
+    }, ensure_ascii=False), encoding="utf-8")
+    verified = tmp_path / "verify-output.json"
+    verified.write_text('{"claims": []}\n', encoding="utf-8")
+    research_plan = tmp_path / "research-plan.json"
+    research_plan.write_text(json.dumps({
+        "terminology": {
+            "canonical_zh": "未知活动", "candidate_aliases_zh": [],
+            "canonical_en": "unknown manufacturing activity",
+            "candidate_aliases_en": [],
+        },
+        "field_translations": {},
+        "field_translation_policy": {"mode": "adaptive_runtime_expansion"},
+    }, ensure_ascii=False), encoding="utf-8")
+    output = tmp_path / "table-data"
+    monkeypatch.setattr(sys, "argv", [
+        "build_wiki_table_collection.py", str(blueprint), str(verified), str(output),
+        "--research-plan", str(research_plan),
+        "--document-routes", str(tmp_path / "no-routes.json"),
+    ])
+
+    assert table_builder.main() == 0
+    matrix = json.loads((output / "search-matrix.json").read_text(encoding="utf-8"))
+    assert {(row["field"], row["language"]) for row in matrix["queries"]} == {
+        ("测试", "zh"), ("测试", "en"), ("完全未知字段", "zh"),
+    }
+    assert matrix["runtime_field_translations"] == {"测试": "testing"}
+    assert matrix["field_translation_audit"] == [
+        {"table": "params", "field": "测试", "status": "runtime_translated",
+         "method": "deterministic_technical_glossary", "unmatched_fragments": []},
+        {"table": "params", "field": "完全未知字段", "status": "unresolved",
+         "method": "bilingual_passthrough_no_glossary_match",
+         "unmatched_fragments": ["完全未知字段"]},
+    ]
+    assert matrix["query_quality_metrics"]["english_field_translation_coverage"] == "0/2"
+    assert matrix["query_quality_metrics"]["runtime_english_field_translation_coverage"] == "1/2"
+    assert matrix["query_quality_metrics"]["unresolved_english_field_translations"] == 1
 
 
 def test_table_search_gate_rejects_planned_and_errors(tmp_path: Path) -> None:
@@ -320,5 +369,6 @@ def test_v9_adds_goal_aligned_plan_content_and_maturity_gates() -> None:
     assert by_id["research_ready"]["needs"] == ["research_plan_gate"]
     assert by_id["content_closure_gate"]["needs"] == ["content_compose"]
     assert by_id["editorial_review"]["needs"] == ["content_closure_gate"]
+    assert by_id["table_collect"]["needs"] == ["content_blueprint"]
     assert by_id["maturity_gate"]["needs"] == ["table_apply"]
     assert by_id["preview"]["needs"] == ["maturity_gate"]

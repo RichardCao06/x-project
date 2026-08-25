@@ -73,6 +73,29 @@ def external_search_term(value: Any) -> str:
     return re.sub(r"\s+", " ", text).strip(" ,，;；|/-")
 
 
+def load_query_translator() -> Any:
+    scout_path = Path(__file__).resolve().with_name("scout_wiki_research_plan.py")
+    spec = importlib.util.spec_from_file_location("wiki_query_translation", scout_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load auditable query translation fallback")
+    translator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(translator)
+    return translator
+
+
+def runtime_field_translation(field: str, translator: Any) -> tuple[str | None, dict[str, Any]]:
+    """Derive a discovery-only English field seed without inventing evidence."""
+    source = external_search_term(field)
+    audit = translator.translate_zh_search_terms([source])
+    candidates = [
+        str(value).strip() for value in audit.get("translated_terms") or []
+        if str(value or "").strip() and not CJK.search(str(value))
+    ]
+    if audit.get("method") == "bilingual_passthrough_no_glossary_match" or not candidates:
+        return None, audit
+    return candidates[0], audit
+
+
 def append_query(queries: list[dict[str, Any]], *, table: str, field: str,
                  language: str, query: str, **metadata: Any) -> None:
     query = external_search_term(query)
@@ -152,13 +175,8 @@ def main() -> int:
     zh_aliases = terminology.get("candidate_aliases_zh", terminology.get("synonyms_zh", []))
     en_aliases = terminology.get("candidate_aliases_en", terminology.get("synonyms_en", []))
     terminology = dict(terminology)
+    translator = load_query_translator()
     if not any(str(x or "").strip() for x in [terminology.get("canonical_en"), *en_aliases]):
-        scout_path = Path(__file__).resolve().with_name("scout_wiki_research_plan.py")
-        spec = importlib.util.spec_from_file_location("wiki_query_translation", scout_path)
-        if spec is None or spec.loader is None:
-            raise RuntimeError("cannot load auditable query translation fallback")
-        translator = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(translator)
         translated = translator.translate_zh_search_terms([
             terminology.get("canonical_zh"), *zh_aliases,
         ])
@@ -168,6 +186,8 @@ def main() -> int:
     translations = plan.get("field_translations") or {}
     fields = blueprint.get("evidence_tables") or {}
     queries = []
+    runtime_translations: dict[str, str] = {}
+    translation_audit: list[dict[str, Any]] = []
     for kind, names in fields.items():
         for field in names:
             for language, terms in (
@@ -175,13 +195,29 @@ def main() -> int:
                 ("en", [terminology.get("canonical_en"), *en_aliases]),
             ):
                 clean = [external_search_term(x) for x in terms if external_search_term(x)]
+                if language == "en":
+                    clean = [term for term in clean if not CJK.search(term)]
                 if clean:
-                    if language == "en" and not str(translations.get(field) or "").strip():
-                        raise ValueError(f"missing English field translation for {kind}.{field}")
-                    field_term = translations[field] if language == "en" else external_search_term(field)
+                    strategy = "field_term"
+                    if language == "en":
+                        field_term = str(translations.get(field) or "").strip()
+                        if not field_term:
+                            field_term, audit = runtime_field_translation(str(field), translator)
+                            translation_audit.append({
+                                "table": kind, "field": field,
+                                "status": "runtime_translated" if field_term else "unresolved",
+                                "method": audit.get("method"),
+                                "unmatched_fragments": audit.get("unmatched_fragments") or [],
+                            })
+                            if not field_term:
+                                continue
+                            runtime_translations[str(field)] = field_term
+                            strategy = "runtime_field_translation"
+                    else:
+                        field_term = external_search_term(field)
                     query = f"{' OR '.join(clean)} {field_term}"
                     append_query(queries, table=kind, field=field, language=language, query=query,
-                                 query_strategy="field_term")
+                                 query_strategy=strategy)
     route_ids: list[str] = []
     if args.document_routes.is_file():
         route_config = load(args.document_routes)
@@ -209,12 +245,18 @@ def main() -> int:
     matrix = {"protocol": "wiki-multilingual-table-search-v1", "node_id": blueprint["node_id"],
               "terminology": terminology, "queries": queries,
               "document_routes": route_ids,
+              "runtime_field_translations": runtime_translations,
+              "field_translation_audit": translation_audit,
               "coverage_status": ("executed" if queries and all(q.get("status") in terminal for q in queries)
                                   else "partially_reused" if reused_queries else "planned_not_executed"),
               "reused_executed_queries": reused_queries,
               "rule": "related terms discover candidates only; excluded terms never establish identity"}
     matrix["query_quality_metrics"] = {
         "english_field_translation_coverage": f"{sum(1 for names in fields.values() for field in names if field in translations)}/{sum(len(names) for names in fields.values())}",
+        "runtime_english_field_translation_coverage": f"{len(runtime_translations)}/{sum(len(names) for names in fields.values())}",
+        "unresolved_english_field_translations": sum(
+            row["status"] == "unresolved" for row in translation_audit
+        ),
         "mixed_language_english_queries": sum(
             bool(CJK.search(str(row["query"]))) for row in queries if row["language"] == "en"
         ),

@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
 """Freeze a multilingual Research Plan before any claim nomination."""
 from __future__ import annotations
-import argparse, hashlib, importlib.util, json, re
+import argparse, hashlib, importlib.util, json, re, sys
 from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from wiki_research_contract import (
+    ONTOLOGY_VERSION,
+    build_question_contracts,
+    contract_sha256,
+)
 
 FIELD_EN = {
     "product": {
@@ -74,6 +84,44 @@ FIELD_EN = {
             "地理与时间代表性": "geographical and temporal representativeness",
             "代理选择与失效条件": "proxy selection and invalidation conditions",
         },
+    },
+}
+
+# A013 uses the same activity-table contract as A039, with a graph-specific
+# flow ledger and reference-product identity.  Keeping every flow label in the
+# frozen map prevents the English query serializer from falling back to mixed
+# Chinese/internal-ID queries for the 35-field switch-assembly schema.
+FIELD_EN["A013"] = {
+    "flows": {
+        "P022 交换机主板PCBA, 100G/400G": "100G/400G switch motherboard PCBA",
+        "P046 光模块, 400G/800G": "400G/800G optical transceiver module",
+        "P029 PSU电源模组": "power supply unit module",
+        "P055 铝散热器/铝挤型, 服务器用": "server aluminum heat sink and extrusion",
+        "P057 钢钣金机箱/导轨, 服务器用": "server steel sheet-metal chassis and rails",
+        "P051 风扇模组, 服务器/机架用, 成品": "finished server and rack fan module",
+        "P066 中压电力, ICT制造用": "medium-voltage electricity for ICT manufacturing",
+        "P038 交换ASIC封装器件, 100G/400G": "100G/400G switch ASIC package",
+        "P063 导热硅脂/导热垫, TIM": "thermal interface material grease and pad",
+        "P064 塑料导风罩/前面板/线缆护套": "plastic air baffle, front panel, and cable jacket",
+        "P061 低压铜电缆线束, ICT设备电源用": (
+            "low-voltage copper cable harness for ICT equipment power"
+        ),
+        "P008 网络交换机, 100G/400G, 2U": "100G/400G 2U network switch",
+    },
+    "props": {
+        "参考产品身份（网络交换机, 100G/400G, 2U）": (
+            "reference product identity for a 100G/400G 2U network switch"
+        ),
+        **{
+            field: english
+            for field, english in FIELD_EN["A039"]["props"].items()
+            if not field.startswith("参考产品身份（")
+        },
+    },
+    **{
+        table: dict(fields)
+        for table, fields in FIELD_EN["A039"].items()
+        if table not in {"flows", "props"}
     },
 }
 
@@ -163,7 +211,65 @@ def main():
                 if match: candidates.append({"source_id":source_id,"title":item.get("title"),"url":match.group(0),"topics":[],"provenance":"historical_registry","historical_status":item.get("status"),"current_job_status":"candidate_unverified"})
     unique={str(row.get("url")):row for row in candidates if row.get("url")}; candidates=list(unique.values())
     field_translations,translation_contract=field_translation_contract(str(node["node_id"]))
-    plan={"protocol":"wiki-research-plan-v1","node_id":node["node_id"],"node_name":node["name"],"terminology":terms,"terminology_review":terminology_review,"languages":["zh","en"],"research_questions":["identity_and_terminology","process_origin_and_boundary","collection_and_handoff","composition_and_quantity","recovery_and_destination","representativeness_and_quality"],"source_classes":["government_or_regulator","standard_or_industry_body","manufacturer_technical","peer_reviewed_research","node_specific_records"],"source_role_contract":{"identity":"authoritative_or_current_job_manufacturer","process_boundary":"technical_primary_source","adjacent_distinction":"technical_or_industry_source","regional_representativeness":"target_region_source_or_explicit_gap","quantitative":"authoritative_single_or_independent_two_source"},"minimum_source_diversity":{"preview_hard_confirmed_sources":1,"preview_primary_sources":3,"preview_distinct_domains":3,"preview_technical_sources":1,"preview_language_tracks":2,"reviewed_primary_sources":3,"reviewed_distinct_domains":3,"reviewed_technical_sources":2,"reviewed_language_tracks":2,"quantitative_independent_sources":2,"node_specific_source_overrides_quantitative_minimum":False},"advisory_candidates":candidates,"historical_registry_policy":"candidate_only_refetch_and_reverify","hint_policy":"advisory_nonexclusive","field_translations":field_translations}
+    requirement_ids = sorted(set(re.findall(
+        r'''["']requirement_id["']\s*:\s*["']([^"']+)["']''', source
+    )))
+    question_contracts = build_question_contracts(
+        str(node["node_id"]), str(node["name"]), terms, requirement_ids
+    )
+    plan={
+        "protocol":"wiki-research-plan-v1",
+        "schema_version":"wiki-research-plan-v2",
+        "node_id":node["node_id"],
+        "node_name":node["name"],
+        "terminology":terms,
+        "terminology_review":terminology_review,
+        "languages":["zh","en"],
+        "research_questions":[contract["dimension"] for contract in question_contracts],
+        "research_question_contract_version":ONTOLOGY_VERSION,
+        "research_question_contracts":question_contracts,
+        "question_contract_sha256":contract_sha256(question_contracts),
+        "source_classes":[
+            "government_or_regulator","standard_or_industry_body",
+            "manufacturer_technical","peer_reviewed_research","node_specific_records",
+        ],
+        "source_role_contract":{
+            "identity":"authoritative_or_current_job_manufacturer",
+            "process_boundary":"technical_primary_source",
+            "adjacent_distinction":"technical_or_industry_source",
+            "regional_representativeness":"target_region_source_or_explicit_gap",
+            "quantitative":"authoritative_single_or_independent_two_source",
+        },
+        # Count targets are portfolio quality goals.  The downstream v2 gate
+        # uses question-level evidence sufficiency for blocking decisions.
+        "minimum_source_diversity":{
+            "constraint_class":"quality_target",
+            "default_effect":"warn_and_expand",
+            "preview_hard_confirmed_sources":1,
+            "preview_primary_sources":3,
+            "preview_distinct_domains":3,
+            "preview_technical_sources":1,
+            "preview_language_tracks":2,
+            "reviewed_primary_sources":3,
+            "reviewed_distinct_domains":3,
+            "reviewed_technical_sources":2,
+            "reviewed_language_tracks":2,
+            "quantitative_independent_sources":2,
+            "node_specific_source_overrides_quantitative_minimum":False,
+        },
+        "advisory_candidates":candidates,
+        "historical_registry_policy":"candidate_only_refetch_and_reverify",
+        "hint_policy":"advisory_nonexclusive",
+        "field_translations":field_translations,
+        "field_translation_policy":{
+            "constraint_class":"quality_target",
+            "default_effect":"warn_and_expand",
+            "mode":"adaptive_runtime_expansion",
+            "static_coverage_complete":bool(translation_contract),
+            "missing_translation_behavior":"execute_chinese_track_record_gap_and_expand_from_results",
+            "reviewed_bilingual_coverage_verified_downstream":True,
+        },
+    }
     if translation_contract:
         plan["field_translation_contract"]=translation_contract
     plan["plan_sha256"]=hashlib.sha256(json.dumps(plan,ensure_ascii=False,sort_keys=True).encode()).hexdigest(); dump(a.output,plan); return 0

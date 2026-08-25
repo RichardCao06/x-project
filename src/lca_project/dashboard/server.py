@@ -79,6 +79,24 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def _preview(self, job_id: str, filename: str) -> None:
+        path = self.server.dashboard.preview_asset(job_id, filename)
+        content = path.read_bytes()
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; connect-src 'self' https://cdn.jsdelivr.net",
+        )
+        self.end_headers()
+        self.wfile.write(content)
+
     @staticmethod
     def _arg(query: dict[str, list[str]], name: str, default: str = "") -> str:
         return query.get(name, [default])[0]
@@ -101,6 +119,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._json(self.server.dashboard.workers())
             elif match := re.fullmatch(r"/api/jobs/([^/]+)", route):
                 self._json(self.server.dashboard.job(match.group(1)))
+            elif match := re.fullmatch(r"/api/json/artifacts/([0-9a-f]{64})", route):
+                self._json(self.server.dashboard.json_artifact(match.group(1)))
+            elif match := re.fullmatch(
+                r"/api/json/snapshots/([^/]+)/([^/]+)/([^/]+)", route
+            ):
+                self._json(self.server.dashboard.json_attempt_snapshot(
+                    match.group(1), match.group(2), match.group(3),
+                    self._arg(query, "path"),
+                ))
             elif route == "/api/workflows":
                 self._json(self.server.dashboard.workflow_runs(
                     status=self._arg(query, "status"), limit=int(self._arg(query, "limit", "100"))))
@@ -128,6 +155,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     limit=int(self._arg(query, "limit", "100"))))
             elif match := re.fullmatch(r"/api/autonomy/([^/]+)", route):
                 self._json(self.server.dashboard.autonomy(campaign_id=match.group(1)))
+            elif match := re.fullmatch(r"/preview/([^/]+)/([^/]+)", route):
+                self._preview(match.group(1), match.group(2))
             elif route.startswith("/api/"):
                 self._json({"status": "error", "message": "API route not found"}, 404)
             else:
@@ -179,6 +208,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 if not isinstance(auto_repair, bool):
                     raise ValueError("auto_repair must be boolean")
                 self._json(self.server.dashboard.audit_goal(match.group(1), auto_repair=auto_repair))
+            elif match := re.fullmatch(r"/api/jobs/([^/]+)/logic-audit", route):
+                if body:
+                    raise ValueError("logic audit does not accept mutation options")
+                self._json(self.server.dashboard.start_logic_audit(match.group(1)), 202)
+            elif match := re.fullmatch(r"/api/logic-audit/findings/([^/]+)/promote", route):
+                if body.get("confirm") is not True:
+                    raise ValueError("logic finding promotion requires confirm=true")
+                extras = sorted(set(body) - {"confirm"})
+                if extras:
+                    raise ValueError(f"unknown logic finding promotion fields: {extras}")
+                self._json(self.server.dashboard.promote_logic_finding(match.group(1)))
             elif match := re.fullmatch(r"/api/jobs/([^/]+)/goal-feedback", route):
                 message = str(body.get("message") or "").strip()
                 if not message:

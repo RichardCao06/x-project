@@ -48,6 +48,57 @@ def _run(command: list[str], *, cwd: Path, timeout: int,
     return {"status": "ok", "stdout": completed.stdout[-8000:], "stderr": completed.stderr[-8000:]}
 
 
+def _gate_failure_ids(gate: dict[str, Any]) -> list[str]:
+    explicit = gate.get("failed_requirement_ids")
+    if isinstance(explicit, list):
+        return sorted({str(item) for item in explicit if str(item).strip()})
+    failures = gate.get("failures")
+    if isinstance(failures, list):
+        return sorted({str(item) for item in failures if str(item).strip()})
+    checks = gate.get("checks")
+    if isinstance(checks, dict):
+        return sorted(str(key) for key, value in checks.items() if value is False)
+    return []
+
+
+def _attach_gate_evidence(result: dict[str, Any], output: Path) -> dict[str, Any]:
+    """Attach the immutable gate document to both success and failure results.
+
+    Command completion, gate decision and goal impact are separate facts.  The
+    worker and Dashboard need the gate bytes even when the command exits with
+    the conventional ``blocked`` return code.
+    """
+    if not output.is_file():
+        return result
+    try:
+        gate = json.loads(output.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return result
+    if not isinstance(gate, dict):
+        return result
+    result["gate_result"] = gate
+    result["gate_artifact"] = str(output)
+    if result.get("status") == "ok":
+        return result
+    failure = dict(result.get("failure") or {})
+    failure.update({
+        "gate_id": str(gate.get("gate_id") or gate.get("protocol") or output.stem),
+        "gate_version": str(gate.get("gate_version") or gate.get("version") or ""),
+        "gate_decision": str(gate.get("decision") or "BLOCKED"),
+        "failed_requirement_ids": _gate_failure_ids(gate),
+        "metrics": gate.get("metrics") if isinstance(gate.get("metrics"), dict) else {},
+        "question_contract_sha256": str(gate.get("question_contract_sha256") or ""),
+        "strategy_hash": str(gate.get("strategy_hash") or ""),
+        "gate_result": gate,
+        "evidence_artifacts": sorted({
+            *[str(item) for item in failure.get("evidence_artifacts") or []],
+            str(output),
+        }),
+    })
+    result["failure"] = failure
+    return result
+
+
 def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
     """Exclude candidates proven unusable by the previous frozen fetch pass."""
     gate_path = batch / "source-diversity-gate.json"
@@ -57,8 +108,11 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
         gate = json.loads(gate_path.read_text(encoding="utf-8"))
     except (OSError, ValueError, json.JSONDecodeError):
         return scout_path
-    if gate.get("decision") not in {"REPAIR", "BLOCKED"}:
+    if gate.get("decision") not in {"REPAIR", "BLOCKED", "RESEARCH_MORE"}:
         return scout_path
+    failed_question_ids = {
+        str(item) for item in gate.get("failed_requirement_ids") or [] if str(item).strip()
+    }
     failed_urls: set[str] = set()
     saw_failed_pdf = False
     for record_path in sorted((batch / "search-cache/fetch").glob("*.json")):
@@ -78,13 +132,34 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
         if isinstance(row, dict) and str(row.get("url") or "") not in failed_urls
         and not (saw_failed_pdf and urlsplit(str(row.get("url") or "")).path.lower().endswith(".pdf"))
     ]
-    if len({urlsplit(str(row.get("url") or "")).hostname for row in candidates}) < 3:
+    candidates.sort(key=lambda row: (
+        0 if str(row.get("question_id") or "") in failed_question_ids else 1,
+        str(row.get("question_id") or ""), str(row.get("url") or ""),
+    ))
+    previous_urls = [str(row.get("url") or "") for row in scout.get("candidates", [])
+                     if isinstance(row, dict)]
+    repaired_urls = [str(row.get("url") or "") for row in candidates]
+    if previous_urls == repaired_urls and not failed_question_ids:
         return scout_path
     output = batch / "research-scout-diversity-repair.json"
-    repaired = {**scout, "candidates": candidates, "diversity_repair": {
-        "protocol": "wiki-source-diversity-repair-v1",
+    strategy_delta = {
         "excluded_urls": sorted(failed_urls),
         "excluded_pdf_candidates": saw_failed_pdf,
+        "prioritized_question_ids": sorted(failed_question_ids),
+        "previous_candidate_count": len(previous_urls),
+        "repair_candidate_count": len(repaired_urls),
+    }
+    strategy_hash = hashlib.sha256(json.dumps(
+        {"candidates": repaired_urls, **strategy_delta}, ensure_ascii=False,
+        sort_keys=True, separators=(",", ":"),
+    ).encode()).hexdigest()
+    repaired = {**scout, "candidates": candidates, "diversity_repair": {
+        "protocol": "wiki-source-diversity-repair-v2",
+        "excluded_urls": sorted(failed_urls),
+        "excluded_pdf_candidates": saw_failed_pdf,
+        "strategy_delta": strategy_delta,
+        "strategy_hash": strategy_hash,
+        "previous_strategy_hash": str(gate.get("strategy_hash") or ""),
         "trigger_gate_sha256": hashlib.sha256(gate_path.read_bytes()).hexdigest(),
     }}
     output.write_text(json.dumps(repaired, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -295,11 +370,13 @@ def wiki_batch(value: dict[str, Any]) -> dict[str, Any]:
             command.extend(["--registry", str(_path(value["registry"], "registry"))])
         return _run(command, cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)))
     if operation == "research-plan-gate":
-        return _run([
+        output = _path(value.get("output"), "output")
+        result = _run([
             sys.executable, str(project_scripts / "gate_wiki_research_plan.py"),
-            str(_path(value.get("plan"), "plan")), str(_path(value.get("output"), "output")),
+            str(_path(value.get("plan"), "plan")), str(output),
         ], cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)),
             blocked_code="RESEARCH_PLAN_INVALID")
+        return _attach_gate_evidence(result, output)
     if operation in {"search-execution-gate", "source-diversity-gate"}:
         output = _path(value.get("output"), "output")
         command = [sys.executable, str(project_scripts / "wiki_search_gates.py")]
@@ -312,11 +389,12 @@ def wiki_batch(value: dict[str, Any]) -> dict[str, Any]:
             if value.get("reviewed"): command.append("--reviewed")
             command += ["--attempt", str(int(value.get("attempt", 0))),
                         "--repair-budget", str(int(value.get("repair_budget", 2)))]
-        return _run(
+        result = _run(
             command, cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)),
             blocked_code=("SOURCE_DIVERSITY_BLOCKED"
                           if operation == "source-diversity-gate" else "SEARCH_EXECUTION_BLOCKED"),
         )
+        return _attach_gate_evidence(result, output)
     if operation == "terminology-verify":
         return _run([sys.executable, str(project_scripts / "verify_terminology.py"),
                      str(_path(value.get("plan"), "plan")),
@@ -340,14 +418,16 @@ def wiki_batch(value: dict[str, Any]) -> dict[str, Any]:
                     timeout=int(value.get("timeout_seconds", 1800)))
     if operation == "content-closure-gate":
         batch = _path(value.get("batch"), "batch")
-        return _run([
+        output = batch / "content-closure-gate.json"
+        result = _run([
             sys.executable, str(project_scripts / "gate_wiki_content_closure.py"),
             str(batch / "content-blueprint.json"),
             str(batch / "content-runtime/content-result.json"),
             str(batch / "verify-output.json"), str(batch / "source-diversity-gate.json"),
-            str(batch / "content-closure-gate.json"),
+            str(output),
         ], cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)),
             blocked_code="CONTENT_LOCAL_ISSUES")
+        return _attach_gate_evidence(result, output)
     if operation == "draft-content-pipeline":
         batch = _path(value.get("batch"), "batch")
         scripts = workspace / "scripts"
@@ -529,17 +609,39 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
         research_plan_value = value.get("research_plan")
         research_plan = _path(research_plan_value, "research_plan") if research_plan_value else None
         research_scout = batch / "research-scout.json"
+        diversity_gate_path = batch / "source-diversity-gate.json"
+        diversity_repair_scout = batch / "research-scout-diversity-repair.json"
         scout_current = False
         if research_scout.is_file():
             try:
                 scout_current = (
                     json.loads(research_scout.read_text(encoding="utf-8"))
-                    .get("query_policy_version") == "activity-process-focus-v2"
+                    .get("query_policy_version") == "question-contract-adaptive-v3"
                 )
             except (OSError, ValueError, json.JSONDecodeError):
                 scout_current = False
+        repair_requested = False
+        repair_gate_sha256 = ""
+        if scout_current and diversity_gate_path.is_file():
+            try:
+                repair_gate = json.loads(diversity_gate_path.read_text(encoding="utf-8"))
+                repair_requested = repair_gate.get("decision") == "RESEARCH_MORE"
+                repair_gate_sha256 = _sha256(diversity_gate_path)
+            except (OSError, ValueError, json.JSONDecodeError):
+                repair_requested = False
+        repair_scout_current = False
+        if repair_requested and diversity_repair_scout.is_file():
+            try:
+                repair_scout_current = (
+                    (json.loads(diversity_repair_scout.read_text(encoding="utf-8"))
+                     .get("diversity_repair") or {}).get("trigger_gate_sha256")
+                    == repair_gate_sha256
+                )
+            except (OSError, ValueError, json.JSONDecodeError):
+                repair_scout_current = False
         active_research_scout = (
-            _diversity_repair_scout(batch, research_scout)
+            diversity_repair_scout if repair_requested
+            else _diversity_repair_scout(batch, research_scout)
             if scout_current else research_scout
         )
         open_discovery = bool(value.get("open_discovery"))
@@ -591,9 +693,17 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
         scout_command = [
             sys.executable, str(Path(__file__).resolve().parents[2] / "scripts/scout_wiki_research_plan.py"),
             str(research_plan), str(Path(__file__).resolve().parents[2] / "config/search-providers.json"),
-            str(research_scout),
+            str(active_research_scout),
         ] if research_plan else None
-        initial_commands = ([scout_command] if scout_command and not scout_current else [])
+        if scout_command and repair_requested:
+            scout_command.extend([
+                "--repair-gate", str(diversity_gate_path),
+                "--previous-scout", str(research_scout),
+            ])
+        scout_needed = bool(
+            scout_command and (not scout_current or repair_requested and not repair_scout_current)
+        )
+        initial_commands = ([scout_command] if scout_needed else [])
         initial_commands += [plan_command] if nomination_ready else [nomination_command, plan_command]
         initial = _pipeline(initial_commands, cwd=workspace,
                             timeout=int(value.get("timeout_seconds", 1800)))

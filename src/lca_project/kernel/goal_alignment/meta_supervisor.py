@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 import uuid
@@ -174,8 +175,16 @@ class SystemMetaSupervisor:
             ).fetchone()
             active = self.state._connection().execute(
                 "SELECT 1 FROM autonomous_job_items i JOIN autonomous_campaigns c "
-                "ON c.campaign_id=i.campaign_id WHERE i.job_id=? AND c.status='running'",
-                (row["job_id"],),
+                "ON c.campaign_id=i.campaign_id "
+                "JOIN goal_execution_owners o ON o.execution_type='autonomous-campaign' "
+                "AND o.execution_id=c.campaign_id AND o.status='running' "
+                "JOIN leases l ON l.resource=o.resource AND l.holder=o.owner_id "
+                "AND l.fencing_token=o.fencing_token "
+                "WHERE i.job_id=? AND c.status='running' AND o.heartbeat_at>? "
+                "AND l.expires_at>?",
+                (row["job_id"],
+                 (datetime.now(timezone.utc) - timedelta(seconds=120)).isoformat(),
+                 utcnow()),
             ).fetchone()
             if not has_wakeup and not active:
                 deviations.append(self._record(
@@ -281,6 +290,7 @@ class SystemMetaSupervisor:
         )
         had_failure = False
         awaiting_approval = False
+        in_progress = False
         for action in runnable:
             action["status"] = "running"
             self._save_repair_job(record, "running", graph)
@@ -336,6 +346,7 @@ class SystemMetaSupervisor:
                         source_run_id=triage.get("source_run_id"),
                         request={
                             "cause_code": result.get("cause_code"),
+                            "mechanism_family": source_evidence.get("mechanism_family"),
                             "source_failure_fingerprint": str(
                                 source_evidence.get("failure_fingerprint")
                                 or (source_failure.get("failure_fingerprint")
@@ -371,14 +382,26 @@ class SystemMetaSupervisor:
                     repair = (SystemRepairAgent(self.root, self.control).execute(
                         str(queued["repair_run_id"])
                     ) if queued["status"] == "queued" else queued)
-                    action["status"] = "completed"
                     action["proof_contract"] = [
                         *action.get("proof_contract", []),
                         {"repair_run_id": repair["repair_run_id"],
                          "execution_status": repair["status"]},
                     ]
                     if repair["status"] == "awaiting_approval":
+                        action["status"] = "completed"
                         awaiting_approval = True
+                    elif repair["status"] in {
+                        "failed", "rejected", "rolled_back", "ineffective",
+                    }:
+                        action["status"] = "failed"
+                        had_failure = True
+                    elif repair["status"] in {"queued", "coding", "validating"}:
+                        # A concurrent repair executor owns the durable child.
+                        # Keep this action retryable and the parent nonterminal.
+                        action["status"] = "ready"
+                        in_progress = True
+                    else:
+                        action["status"] = "completed"
                 else:
                     action["status"] = "completed"
             except (OSError, ValueError, RuntimeError, KeyError) as exc:
@@ -390,9 +413,15 @@ class SystemMetaSupervisor:
                 had_failure = True
                 continue
         final_status = ("failed" if had_failure else
-                        "awaiting_approval" if awaiting_approval else "completed")
+                        "awaiting_approval" if awaiting_approval else
+                        "running" if in_progress else "completed")
         self._save_repair_job(record, final_status, graph)
-        if final_status != "failed":
+        if final_status == "failed":
+            # A failed automatic child is an honest operator-attention boundary,
+            # not a resolved control-plane deviation.  Keep the evidence but
+            # stop the two-second meta loop from replaying the same failed graph.
+            self._set_meta_status(deviation["meta_deviation_id"], "needs_attention")
+        elif final_status != "running":
             self._set_meta_status(deviation["meta_deviation_id"], "resolved")
         return {"meta_repair_id": record["meta_repair_id"], "status": final_status,
                 "action_graph": graph}
@@ -548,8 +577,12 @@ class SystemMetaSupervisor:
             observation_hash=str(deviation["evidence"]["newest_deviation_at"]),
             context={"meta_deviation_id": deviation["meta_deviation_id"]},
         )
-        self._set_meta_status(deviation["meta_deviation_id"], "resolved")
-        return {"status": "wakeup_created", "wakeup_id": wakeup["wakeup_id"]}
+        # Creating durable work is not the same as completing it.  Resolution
+        # is acknowledged by AlignmentStore.consume_wakeups after a Supervisor
+        # has actually reclaimed the Job.
+        self._set_meta_status(deviation["meta_deviation_id"], "awaiting_supervision")
+        return {"status": "wakeup_created", "wakeup_id": wakeup["wakeup_id"],
+                "awaiting_consumer": True}
 
     def reconcile(self, *, job_id: str | None = None) -> dict[str, Any]:
         """Run one bounded meta cycle; never change the immutable governance layer."""
