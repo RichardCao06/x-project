@@ -1,0 +1,30 @@
+{
+  "advisory_checks": [
+    "english_discovery_terms_present",
+    "english_field_translation_coverage_complete",
+    "english_terms_are_actually_english",
+    "english_translation_audited"
+  ],
+  "checks": {
+    "bilingual_tracks_declared": true,
+    "canonical_chinese_present": true,
+    "english_discovery_terms_present": true,
+    "english_field_translation_coverage_complete": false,
+    "english_terms_are_actually_english": true,
+    "english_translation_audited": false,
+    "research_questions_complete": true,
+    "source_role_contract_complete": true
+  },
+  "decision": "PASS",
+  "failures": [],
+  "maturity_ceiling": "evidence_limited",
+  "pipeline_continue": true,
+  "plan_sha256": "42728138e5448b4540f3ad29b645255576fd0f41819c5fc6bef06c21267d2f31",
+  "protocol": "wiki-research-plan-gate-v1",
+  "repair_target": null,
+  "translation_policy": "execute_available_queries_and_expand_english_terms_from_runtime_results",
+  "warnings": [
+    "english_translation_audited",
+    "english_field_translation_coverage_complete"
+  ]
+}

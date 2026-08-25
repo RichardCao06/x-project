@@ -1,0 +1,54 @@
+{
+  "attempt": 3,
+  "candidate_eligible": false,
+  "checks": {
+    "candidate_source_roles_and_diversity": false,
+    "reviewed_confirmed_urls": false,
+    "reviewed_distinct_domains": false,
+    "reviewed_language_tracks": false,
+    "reviewed_technical_sources": false
+  },
+  "decision": "BLOCKED",
+  "inputs_sha256": {
+    "research-plan.json": "42728138e5448b4540f3ad29b645255576fd0f41819c5fc6bef06c21267d2f31",
+    "verify-output.json": "f30be59426b0a4e6ea0d8d635e40ed6b673223c03c1e218613934f0e2a8057ea"
+  },
+  "maturity_ceiling": "diagnostic_preview",
+  "metrics": {
+    "confirmed_domains": 1,
+    "confirmed_language_tracks": [
+      "zh"
+    ],
+    "confirmed_urls": 1,
+    "language_detection": [
+      {
+        "claim_id": "A019-5",
+        "language": "zh",
+        "method": "content_script_ratio"
+      }
+    ],
+    "technical_domains": 1
+  },
+  "pipeline_continue": false,
+  "protocol": "wiki-source-diversity-gate-v1",
+  "quality_checks": {
+    "adjacent_distinction_source_role": false,
+    "identity_source_role": false,
+    "preview_distinct_domains": false,
+    "preview_language_tracks": false,
+    "preview_primary_sources": false,
+    "preview_technical_source": true,
+    "process_boundary_source_role": false
+  },
+  "repair_budget": 2,
+  "repair_target": null,
+  "reviewed": true,
+  "warnings": [
+    "preview_primary_sources",
+    "preview_distinct_domains",
+    "preview_language_tracks",
+    "identity_source_role",
+    "process_boundary_source_role",
+    "adjacent_distinction_source_role"
+  ]
+}

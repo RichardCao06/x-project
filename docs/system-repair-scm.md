@@ -20,6 +20,21 @@ operations from the control plane.
    `system_repair_scm_publications` and copied into the repair payload shown by the
    Dashboard.
 
+## Canary baseline semantics
+
+The canary suite is a regression comparison, not an implicit assertion that the
+repository was green before the repair. Before coding begins, the repair runner
+creates an untouched baseline snapshot beside the editable sandbox. If the candidate
+canary is red, the same command runs against that baseline. Promotion may continue
+only when pytest produced concrete node IDs for both runs and every candidate failure
+already existed in the baseline. The validation certificate records the raw candidate
+result, baseline failures, and any newly introduced failures. Collection errors or
+unparseable failures remain blocking.
+
+Known baseline defects still need their own repair and must not be hidden in runtime
+documentation. Committed reports therefore link to versioned evidence snapshots under
+`reports/evidence/`, never to mutable or machine-local files under `var/`.
+
 The publisher never merges a PR. Merge authority remains outside the coding Agent.
 
 ## Safety boundaries

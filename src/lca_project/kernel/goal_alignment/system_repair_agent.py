@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from typing import Any, Callable
@@ -520,8 +521,54 @@ class SystemRepairAgent:
                                    capture_output=True, timeout=1800, check=False)
         return {"phase": phase, "passed": completed.returncode == 0,
                 "command": command, "exit_code": completed.returncode,
+                "failed_tests": sorted(set(re.findall(
+                    r"^(?:FAILED|ERROR)\s+(\S+)", completed.stdout,
+                    flags=re.MULTILINE,
+                ))),
                 "stdout_tail": completed.stdout[-12000:],
                 "stderr_tail": completed.stderr[-12000:]}
+
+    @staticmethod
+    def _compare_canary_with_baseline(
+        candidate: dict[str, Any], baseline: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Accept a red canary only when the untouched baseline is identically red.
+
+        The comparison is deliberately fail-closed: a non-zero test run without
+        parseable pytest node IDs cannot be waived, and every candidate failure
+        must already exist in the baseline snapshot.  The raw candidate and
+        baseline results remain attached to the validation certificate so this
+        is a regression decision, not a claim that the repository is healthy.
+        """
+        result = dict(candidate)
+        candidate_failed = {
+            str(item) for item in candidate.get("failed_tests") or [] if str(item)
+        }
+        baseline_failed = {
+            str(item) for item in baseline.get("failed_tests") or [] if str(item)
+        }
+        new_failures = sorted(candidate_failed - baseline_failed)
+        baseline_equivalent = bool(
+            not candidate.get("passed")
+            and not baseline.get("passed")
+            and candidate_failed
+            and baseline_failed
+            and not new_failures
+        )
+        result.update({
+            "raw_candidate_passed": bool(candidate.get("passed")),
+            "passed": bool(candidate.get("passed")) or baseline_equivalent,
+            "baseline_equivalent": baseline_equivalent,
+            "new_failed_tests": new_failures,
+            "baseline": {
+                "passed": bool(baseline.get("passed")),
+                "exit_code": baseline.get("exit_code"),
+                "failed_tests": sorted(baseline_failed),
+                "stdout_tail": str(baseline.get("stdout_tail") or ""),
+                "stderr_tail": str(baseline.get("stderr_tail") or ""),
+            },
+        })
+        return result
 
     def _set(self, repair_run_id: str, status: str, *, payload: dict[str, Any],
              sandbox: Path | None = None, patch_hash: str | None = None,
@@ -616,6 +663,7 @@ class SystemRepairAgent:
             return record
         run_dir = self.root / "var/system-repairs" / repair_run_id
         sandbox = run_dir / "sandbox"
+        baseline = run_dir / "baseline"
         if sandbox.exists():
             subprocess.run(
                 ["git", "worktree", "remove", "--force", str(sandbox)],
@@ -623,6 +671,8 @@ class SystemRepairAgent:
             )
             if sandbox.exists():
                 shutil.rmtree(sandbox)
+        if baseline.exists():
+            shutil.rmtree(baseline)
         run_dir.mkdir(parents=True, exist_ok=True)
         request_payload = record["payload"].get("request") or {}
         if request_payload.get("scm_replan"):
@@ -637,6 +687,7 @@ class SystemRepairAgent:
             )
         else:
             shutil.copytree(self.root, sandbox, ignore=self._ignore)
+        shutil.copytree(sandbox, baseline, ignore=self._ignore)
         before = self._snapshot(sandbox)
         payload = dict(record["payload"])
         prior_execution = payload.get("execution") or {}
@@ -694,6 +745,11 @@ class SystemRepairAgent:
                 sandbox, payload["request"]
             ).items():
                 result = self.validator(sandbox, phase, tests)
+                if phase == "canary" and not result.get("passed"):
+                    baseline_result = self.validator(baseline, phase, tests)
+                    result = self._compare_canary_with_baseline(
+                        result, baseline_result,
+                    )
                 validations.append(result)
                 self._set(repair_run_id, "validating", payload=payload,
                           sandbox=sandbox, patch_hash=patch_hash, ownership=ownership)
