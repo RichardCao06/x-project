@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import copy
 import hashlib
 import json
 from pathlib import Path
 import sys
+
+import pytest
 
 from lca_project.capability_runtime import _reusable_executed_table_matrix
 
@@ -169,6 +172,52 @@ def test_completed_table_search_matrix_can_be_reused_without_network(tmp_path: P
     assert not _reusable_executed_table_matrix(plan, executed)
 
 
+def test_hash_validated_request_reuse_fans_out_new_flow_directions(tmp_path: Path) -> None:
+    builder = load_script("build_wiki_table_collection.py")
+    query = "reference server mass flow"
+    query_hash = hashlib.sha256(query.encode()).hexdigest()
+    old_row = {
+        "table": "flows", "field": "P001 reference server", "direction": "out",
+        "language": "en", "query": query, "query_hash": query_hash,
+        "status": "planned",
+    }
+    plan = tmp_path / "search-matrix.json"
+    plan.write_text(json.dumps({"queries": [old_row]}), encoding="utf-8")
+    manifest = tmp_path / "search-execution-manifest.json"
+    manifest.write_text("{}\n", encoding="utf-8")
+    executed = tmp_path / "search-matrix.executed.json"
+    executed.write_text(json.dumps({
+        "protocol": "wiki-table-search-executed-v2", "coverage_status": "executed",
+        "plan_sha256": hashlib.sha256(plan.read_bytes()).hexdigest(),
+        "execution_manifest": str(manifest),
+        "queries": [{**old_row, "status": "not_found", "results": [],
+                     "provider_attempts": [{"provider": "fixture", "status": "ok"}]}],
+    }), encoding="utf-8")
+    logical_rows = [
+        {**old_row, "direction": "in", "status": "planned"},
+        {**old_row, "direction": "out", "status": "planned"},
+    ]
+
+    reuse = builder.reuse_executed_queries(plan, executed, logical_rows)
+
+    assert reuse["count"] == 2
+    assert all(row["status"] == "not_found" for row in logical_rows)
+    assert {row["direction"] for row in logical_rows} == {"in", "out"}
+    rebuilt = {
+        "coverage_status": "executed", "queries": logical_rows,
+        "reused_executed_matrix_sha256": reuse["executed_sha256"],
+        "reused_execution_manifest": reuse["execution_manifest"],
+    }
+    plan.write_text(json.dumps(rebuilt), encoding="utf-8")
+    assert _reusable_executed_table_matrix(plan, executed) is True
+    rehydrated = json.loads(executed.read_text(encoding="utf-8"))
+    assert rehydrated["plan_sha256"] == hashlib.sha256(plan.read_bytes()).hexdigest()
+    assert rehydrated["usage"]["search_requests"] == 0
+    assert [(row["field"], row["direction"]) for row in rehydrated["queries"]] == [
+        ("P001 reference server", "in"), ("P001 reference server", "out"),
+    ]
+
+
 def test_activity_collection_uses_the_six_activity_table_kinds() -> None:
     source = (ROOT / "scripts/build_wiki_table_collection.py").read_text()
     assert 'if blueprint["node_type"] == "activity"' in source
@@ -190,6 +239,128 @@ def test_activity_flow_directions_come_from_the_graph_bound_blueprint() -> None:
     ) == "out"
 
 
+def test_activity_collection_preserves_dual_role_flow_and_deduplicates_execution(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    builder = load_script("build_wiki_table_collection.py")
+    normalized, audit = builder.normalize_evidence_tables({
+        "flows": ["P001 reference server", "P066 electricity", "P017 tested server",
+                  "P001 reference server", "P034 packaging waste"],
+        "props": ["configuration version"],
+    })
+    assert normalized["flows"] == [
+        "P001 reference server", "P066 electricity", "P017 tested server",
+        "P001 reference server", "P034 packaging waste",
+    ]
+    assert audit == []
+
+    blueprint = tmp_path / "content-blueprint.json"
+    blueprint.write_text(json.dumps({
+        "node_id": "A019", "node_type": "activity", "node_name": "BIOS config",
+        "identity_tokens": ["A019", "reference server"],
+        "flow_ledger": [
+            {"field": "P001 reference server", "direction": "in"},
+            {"field": "P066 electricity", "direction": "in"},
+            {"field": "P017 tested server", "direction": "in"},
+            {"field": "P001 reference server", "direction": "out"},
+            {"field": "P034 packaging waste", "direction": "out"},
+        ],
+        "evidence_tables": {
+            "flows": ["P001 reference server", "P066 electricity", "P017 tested server",
+                      "P001 reference server", "P034 packaging waste"],
+            "props": [], "params": [], "emissions": [], "indicators": [], "quality": [],
+        },
+    }), encoding="utf-8")
+    verified = tmp_path / "verify-output.json"
+    verified.write_text('{"claims": []}\n', encoding="utf-8")
+    research_plan = tmp_path / "research-plan.json"
+    research_plan.write_text(json.dumps({
+        "terminology": {
+            "canonical_zh": "BIOS config", "candidate_aliases_zh": [],
+            "canonical_en": "BIOS config", "candidate_aliases_en": [],
+        },
+        "field_translations": {
+            "P001 reference server": "reference server", "P066 electricity": "electricity",
+            "P017 tested server": "tested server", "P034 packaging waste": "packaging waste",
+        },
+    }), encoding="utf-8")
+    output = tmp_path / "table-data"
+    monkeypatch.setattr(sys, "argv", [
+        "build_wiki_table_collection.py", str(blueprint), str(verified), str(output),
+        "--research-plan", str(research_plan),
+        "--document-routes", str(tmp_path / "no-routes.json"),
+    ])
+
+    assert builder.main() == 0
+    collection = json.loads((output / "collection.json").read_text(encoding="utf-8"))
+    assert [(row["field"], row["direction"]) for row in collection["tables"]["flows"]] == [
+        ("P001 reference server", "in"),
+        ("P066 electricity", "in"),
+        ("P017 tested server", "in"),
+        ("P001 reference server", "out"),
+        ("P034 packaging waste", "out"),
+    ]
+    assert collection["schema_normalization"]["duplicate_fields_collapsed"] == audit
+    matrix = json.loads((output / "search-matrix.json").read_text(encoding="utf-8"))
+    p001 = [row for row in matrix["queries"] if row["field"] == "P001 reference server"]
+    assert {(row["direction"], row["language"]) for row in p001} == {
+        ("in", "zh"), ("in", "en"), ("out", "zh"), ("out", "en"),
+    }
+    executor = load_script("execute_table_search_matrix.py")
+    unique, keys = executor.deduplicate_execution_rows(matrix["queries"])
+    assert len(unique) == 8
+    assert len(keys) == 10
+    assert keys[0] == keys[6] and keys[1] == keys[7]
+
+    executed = {
+        **matrix, "protocol": "wiki-table-search-executed-v2", "coverage_status": "executed",
+        "queries": [{**row, "status": "not_found", "results": []}
+                    for row in matrix["queries"]],
+    }
+    executed_path = output / "search-matrix.executed.json"
+    executed_path.write_text(json.dumps(executed), encoding="utf-8")
+    selector = load_script("select_wiki_table_evidence.py")
+    selection_path = output / "evidence-selection.json"
+    monkeypatch.setattr(sys, "argv", [
+        "select_wiki_table_evidence.py", str(output / "collection.json"),
+        str(executed_path), str(selection_path), "--workspace", str(tmp_path),
+    ])
+    assert selector.main() == 0
+    verifier = load_script("verify_wiki_table_collection.py")
+    monkeypatch.setattr(sys, "argv", [
+        "verify_wiki_table_collection.py", str(blueprint), str(verified), str(output),
+    ])
+    assert verifier.main() == 0
+    verdict = json.loads((output / "source-verdict.json").read_text(encoding="utf-8"))
+    assert verdict["verdict"] == "PASS"
+    assert verdict["proof_metrics"] == {
+        "graph_edge_to_flow_identity_parity": True,
+        "table_contract_validity": 1,
+        "gap_provenance_preserved": True,
+        "candidate_audit_closure_complete": True,
+    }
+
+
+def test_activity_flow_ledger_rejects_lossy_dual_role_compatibility_inputs() -> None:
+    builder = load_script("build_wiki_table_collection.py")
+    lossy = {
+        "flow_ledger": [
+            {"field": "P001 reference server", "direction": "in"},
+            {"field": "P001 reference server", "direction": "out"},
+        ],
+        "flow_directions": {"P001 reference server": "out"},
+        "evidence_tables": {"flows": [
+            "P001 reference server", "P001 reference server",
+        ]},
+    }
+    with pytest.raises(ValueError, match="ambiguous flow_directions"):
+        builder.activity_flow_ledger(lossy)
+
+    without_ledger = {key: value for key, value in lossy.items() if key != "flow_ledger"}
+    with pytest.raises(ValueError, match="occurrence-preserving flow_ledger"):
+        builder.activity_flow_ledger(without_ledger)
+
+
 def test_table_verifier_requires_a_hash_bound_evidence_selection() -> None:
     verifier = (ROOT / "scripts/verify_wiki_table_collection.py").read_text()
     assert 'matrix_path = args.output / "search-matrix.executed.json"' in verifier
@@ -198,6 +369,24 @@ def test_table_verifier_requires_a_hash_bound_evidence_selection() -> None:
     assert '"evidence_selection_hash_bound"' in verifier
     assert '"populated_rows_are_selected"' in verifier
     assert '"selection_decisions_match_collection"' in verifier
+
+
+def test_table_verifier_rejects_deleted_or_flipped_flow_edges() -> None:
+    verifier = load_script("verify_wiki_table_collection.py")
+    blueprint = {"flow_ledger": [
+        {"field": "P001 reference server", "direction": "in"},
+        {"field": "P066 electricity", "direction": "in"},
+        {"field": "P001 reference server", "direction": "out"},
+    ]}
+    collection = {"node_type": "activity", "tables": {"flows": copy.deepcopy(
+        blueprint["flow_ledger"]
+    )}}
+    assert verifier.flow_identity_parity(blueprint, collection) is True
+    collection["tables"]["flows"].pop()
+    assert verifier.flow_identity_parity(blueprint, collection) is False
+    collection["tables"]["flows"] = copy.deepcopy(blueprint["flow_ledger"])
+    collection["tables"]["flows"][0]["direction"] = "out"
+    assert verifier.flow_identity_parity(blueprint, collection) is False
 
 
 def test_table_search_uses_audited_translation_when_english_terms_are_missing() -> None:

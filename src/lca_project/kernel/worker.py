@@ -728,6 +728,7 @@ class WorkerLoop:
             self.root / "var/scratch",
             protected_roots=tuple(path for path in protected if path.is_file()),
             project_root=self.root,
+            coordination_locks=(WikiWorkspaceBuilder.lock_path(workspace),),
         )
 
     @staticmethod
@@ -1139,19 +1140,13 @@ class WorkerLoop:
                             job_id_value, target_state,
                             reason=f"task {task.task_id} failed: {code}"
                         )
-                    # Observe the persisted failed shape before a bounded
-                    # rewind clears it.  This is what lets the supervisor learn
-                    # from auto-recovered false blocks instead of hiding them.
-                    self._audit_goal_alignment(
-                        job_id_value, trigger=f"task_failed:{task.task_id}:{code}"
-                    )
-                    self._queue_logic_audits(
-                        job_id_value, trigger=f"task_failed:{task.task_id}:{code}"
-                    )
-                    if decision.action in {RepairAction.RETRY, RepairAction.RECOVER}:
-                        self.orchestrator.recover(task.run_id, task.task_id)
-                    elif (code in {"CONTENT_LOCAL_ISSUES", "EDITORIAL_LOCAL_ISSUES"}
-                          and decision.action == RepairAction.REPAIR):
+                    # Content/editorial local failures already have a bounded,
+                    # deterministic repair path.  Rewind that path before any
+                    # advisory audit work: audits may invoke long-running Agent
+                    # triage and must never hold the workflow in ``repairable``
+                    # while a safe local normalization is ready to run.
+                    if (code in {"CONTENT_LOCAL_ISSUES", "EDITORIAL_LOCAL_ISSUES"}
+                            and decision.action == RepairAction.REPAIR):
                         self.orchestrator.rewind_from(
                             task.run_id, "content_compose",
                             reason=("editorial review requested a bounded content repair"
@@ -1160,6 +1155,19 @@ class WorkerLoop:
                             actor="worker",
                         )
                         rewound = True
+                    # Observe the persisted failed shape before a bounded
+                    # retry clears it.  Local content normalization is the one
+                    # exception above: its durable failure envelope and rewind
+                    # event are sufficient evidence, while delaying the rewind
+                    # behind advisory analysis can deadlock forward progress.
+                    self._audit_goal_alignment(
+                        job_id_value, trigger=f"task_failed:{task.task_id}:{code}"
+                    )
+                    self._queue_logic_audits(
+                        job_id_value, trigger=f"task_failed:{task.task_id}:{code}"
+                    )
+                    if decision.action in {RepairAction.RETRY, RepairAction.RECOVER}:
+                        self.orchestrator.recover(task.run_id, task.task_id)
                     elif (code == "SOURCE_DIVERSITY_BLOCKED"
                           and decision.action == RepairAction.REPAIR):
                         self.orchestrator.rewind_from(

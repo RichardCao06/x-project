@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from lca_project.kernel.leases import LeaseManager
+from lca_project.kernel.leases import LeaseLost, LeaseManager
 from lca_project.kernel.artifacts import ArtifactStore
 from lca_project.kernel.orchestrator import OrchestratorError, PersistentOrchestrator
 from lca_project.kernel.skills import SkillInvoker
@@ -194,6 +194,19 @@ def test_stale_fencing_token_cannot_commit_after_takeover(tmp_path: Path) -> Non
         "SELECT status FROM orchestrator_attempts WHERE attempt_id=?", (attempt_id,)
     ).fetchone()
     assert attempt["status"] == "running"
+
+
+def test_release_preserves_monotonic_fencing_generation(tmp_path: Path) -> None:
+    state = StateStore(tmp_path / "state.db")
+    leases = LeaseManager(state)
+    first = leases.acquire("system-repair:repair-1", "first-owner", 30)
+
+    assert leases.release(first)
+    with pytest.raises(LeaseLost):
+        leases.assert_valid(first)
+
+    successor = leases.acquire("system-repair:repair-1", "successor-owner", 30)
+    assert successor.fencing_token == first.fencing_token + 1
 
 
 def test_watchdog_requeues_orphan_once_and_replacement_resumes(tmp_path: Path) -> None:

@@ -36,6 +36,22 @@ RULES: dict[tuple[str, str], re.Pattern[str]] = {
         + NUMBER + r"\s*(?P<unit>台|块|pcs?|units?)", re.I),
 }
 
+HANDOFF_STATE_PATTERNS = (
+    re.compile(
+        r"(?:按\s*F10\s*)?保存(?:更改|设置|配置)?并(?:退出|重新启动)|"
+        r"选择\s*(?:保存并退出|Exit\s*以保存并重新启动)", re.I,
+    ),
+    re.compile(
+        r"(?:下次(?:引导|关开机循环)|next\s+(?:boot|power\s+cycle))"
+        r"[^。.!?\n]{0,180}(?:BIOS|UEFI)[^。.!?\n]{0,180}"
+        r"(?:设置|更改|reset|changes?)", re.I,
+    ),
+    re.compile(
+        r"(?:persistent\s+changes?|持久更改)[^。.!?\n]{0,120}"
+        r"(?:NVRAM|reboot|重启|生效|appl(?:y|ied))", re.I,
+    ),
+)
+
 # Evidence availability is independent from current parser coverage. Keeping
 # the two explicit prevents a missing rule from becoming a false assertion
 # that only a private node record could ever support the field.
@@ -54,6 +70,8 @@ def extraction_support(table: str, field: str) -> str:
     clean = re.sub(r"^P\d{3}\s+", "", field)
     if (table, clean) in RULES:
         return "generic_pattern"
+    if (table, field) == ("props", "参考产品交接状态"):
+        return "categorical_multi_source_pattern"
     if table == "flows" or (table, field) in {
         ("props", "参考产品单件净质量"), ("params", "装配批次产量"),
         ("params", "有效运行时间"), ("params", "生产负荷与良率"),
@@ -322,6 +340,25 @@ def extract_observations(table: str, field: str, text: str,
     routed = extract_document_observations(table, field, text, document_type)
     if routed:
         return routed
+    if (table, field) == ("props", "参考产品交接状态"):
+        for pattern in HANDOFF_STATE_PATTERNS:
+            match = pattern.search(text)
+            if match:
+                start, end = max(0, match.start() - 100), min(len(text), match.end() + 140)
+                return [{
+                    "value": "BIOS 配置已持久保存并进入退出或重启应用状态",
+                    "unit": "状态",
+                    "quote": text[start:end],
+                    "comparability_score": 4,
+                    "label": "代理状态",
+                    "source_scope": "manufacturer BIOS configuration handoff semantics",
+                    "derivation": (
+                        "categorical normalization of an explicit save/apply/reboot state; "
+                        "no quantitative inference"
+                    ),
+                    "proxy_role": "handoff_state_reference",
+                }]
+        return []
     rule = RULES.get((table, re.sub(r"^P\d{3}\s+", "", field)))
     if not rule:
         return []
@@ -364,13 +401,26 @@ def region_for(query: dict[str, Any], result: dict[str, Any]) -> str:
 def corroborated(proposal: dict[str, Any], proposals: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if proposal["source_class"] in AUTHORITATIVE | INSTITUTIONAL:
         return [proposal]
-    value = float(proposal["observation"]["value"])
+    raw_value = str(proposal["observation"]["value"])
+    try:
+        numeric_value: float | None = float(raw_value)
+    except ValueError:
+        numeric_value = None
+    categorical_value = re.sub(r"\s+", " ", raw_value).strip().casefold()
     peers = []
     for item in proposals:
         if item["region"] != proposal["region"] or item["observation"]["unit"].lower() != proposal["observation"]["unit"].lower():
             continue
-        other = float(item["observation"]["value"])
-        if abs(other - value) <= max(abs(value), 1.0) * 0.02:
+        raw_other = str(item["observation"]["value"])
+        if numeric_value is None:
+            matches = re.sub(r"\s+", " ", raw_other).strip().casefold() == categorical_value
+        else:
+            try:
+                other = float(raw_other)
+            except ValueError:
+                continue
+            matches = abs(other - numeric_value) <= max(abs(numeric_value), 1.0) * 0.02
+        if matches:
             peers.append(item)
     hosts = {(urlsplit(item["url"]).hostname or "").lower() for item in peers}
     return peers if len(hosts) >= 2 else []
@@ -397,11 +447,12 @@ def register_source(collection: dict[str, Any], proposal: dict[str, Any], worksp
 
 
 def logical_result_identity(row: dict[str, Any], result: dict[str, Any] | None = None) -> tuple[str, ...]:
-    """Return the field-scoped identity of a matrix result or candidate audit."""
+    """Return the edge-scoped identity of a matrix result or candidate audit."""
     candidate = result if result is not None else row
     return (
         str(row.get("table") or ""),
         str(row.get("field") or ""),
+        str(row.get("direction") or "") if row.get("table") == "flows" else "",
         str(row.get("language") or ""),
         str(row.get("query_hash") or ""),
         str(candidate.get("url") or ""),
@@ -439,10 +490,11 @@ def candidate_audit_closure(matrix: dict[str, Any], audits: list[dict[str, Any]]
 def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspace: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     if matrix.get("coverage_status") != "executed":
         raise ValueError("table evidence selection requires an executed search matrix")
-    proposals_by_field: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    proposals_by_field: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     audits: list[dict[str, Any]] = []
     for query in matrix.get("queries", []):
         table, field = str(query.get("table")), str(query.get("field"))
+        direction = str(query.get("direction") or "") if table == "flows" else ""
         for result in query.get("results", []):
             path, reasons = frozen_candidate(result, workspace)
             observations = [] if reasons else extract_observations(
@@ -454,12 +506,14 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
                     reasons.append("pcf_not_decomposable_to_unit_process_or_reference_product_mismatch")
                 else:
                     reasons.append("no_field_specific_observation")
-            audit = {"table": table, "field": field, "language": query.get("language"),
+            audit = {"table": table, "field": field,
+                     **({"direction": direction} if table == "flows" else {}),
+                     "language": query.get("language"),
                      "query_hash": query.get("query_hash"), "url": result.get("url"),
                      "title": result.get("title"), "decision": "rejected", "reasons": reasons,
                      "audit_id": hashlib.sha256(json.dumps({
                          "query_hash": query.get("query_hash"), "url": result.get("url"),
-                         "table": table, "field": field,
+                         "table": table, "field": field, "direction": direction,
                      }, ensure_ascii=False, sort_keys=True).encode()).hexdigest(),
                      "provider": result.get("provider"),
                      "fetch_status": result.get("fetch_status"),
@@ -470,7 +524,7 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
                      "observations": observations}
             audits.append(audit)
             for observation in observations:
-                proposals_by_field[(table, field)].append({
+                proposals_by_field[(table, field, direction)].append({
                     **audit, "observation": observation, "source_class": result.get("source_class"),
                     "content_sha256": result.get("content_sha256"), "payload_path": str(path),
                     "region": region_for(query, result), "url": str(result.get("url")),
@@ -479,15 +533,21 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
     accepted: list[dict[str, Any]] = []
     field_reports = []
     matrix_sha = hashlib.sha256(json.dumps(matrix, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
-    query_hashes_by_field: dict[tuple[str, str], list[str]] = defaultdict(list)
+    query_hashes_by_field: dict[tuple[str, str, str], list[str]] = defaultdict(list)
     for query in matrix.get("queries", []):
-        key = (str(query.get("table")), str(query.get("field")))
+        table = str(query.get("table"))
+        key = (table, str(query.get("field")),
+               str(query.get("direction") or "") if table == "flows" else "")
         query_hash = str(query.get("query_hash") or "")
         if query_hash and query_hash not in query_hashes_by_field[key]:
             query_hashes_by_field[key].append(query_hash)
     for table, rows in collection.get("tables", {}).items():
         for row in rows:
-            field = str(row["field"]); proposals = proposals_by_field.get((table, field), [])
+            field = str(row["field"])
+            direction = str(row.get("direction") or "") if table == "flows" else ""
+            identity = (table, field, direction)
+            identity_metadata = ({"direction": direction} if table == "flows" else {})
+            proposals = proposals_by_field.get(identity, [])
             for source_key, value_key in (("source", "value"), ("int_source", "int_value"),
                                           ("cn_source", "cn_value")):
                 if source_key in row and str(row.get(value_key) or "").startswith("缺口"):
@@ -500,14 +560,16 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
                 source_keys = [key for key in ("source", "int_source", "cn_source")
                                if row.get(key) and not str(row.get(key)).startswith("internal-")]
                 source = str(row[source_keys[0]]) if source_keys else ""
-                record = {"table": table, "field": field, "track": "preverified",
+                record = {"table": table, "field": field, **identity_metadata,
+                          "track": "preverified",
                           "value": str(row.get("value") or row.get("int_value") or row.get("cn_value") or ""),
                           "unit": str(row.get("unit") or ""), "source_id": source,
                           "supporting_source_ids": [source] if source else [],
                           "quote": "", "decision": "accepted_preverified_input",
                           "verification_mode": "upstream_independent_verification"}
                 accepted.append(record)
-                field_reports.append({"table": table, "field": field, "decision": "populated",
+                field_reports.append({"table": table, "field": field, **identity_metadata,
+                                      "decision": "populated",
                                       "candidate_count": len(proposals), "evidence": record})
                 continue
             if selector_generated:
@@ -544,7 +606,7 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
                     row["unit"] = chosen["observation"]["unit"]
                     row["pedigree"] = "verified_public_proxy_with_explicit_derivation"
                     row["status"] = "populated"
-                record = {"table": table, "field": field, "track": track,
+                record = {"table": table, "field": field, **identity_metadata, "track": track,
                           "value": chosen["observation"]["value"], "unit": chosen["observation"]["unit"],
                           "source_id": sid, "url": chosen["url"],
                           "supporting_source_ids": sorted({source_id(x["url"]) for x in support}),
@@ -563,7 +625,8 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
                                                 if chosen["source_class"] in INSTITUTIONAL
                                                 else "independent_two_source_corroboration")}
                 accepted.append(record)
-                field_reports.append({"table": table, "field": field, "decision": "populated",
+                field_reports.append({"table": table, "field": field, **identity_metadata,
+                                      "decision": "populated",
                                       "candidate_count": len(proposals), "evidence": record})
             else:
                 availability = public_extractability(table, field)
@@ -574,22 +637,24 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
                     if availability == "internal_record_only"
                     else "public_extraction_rule_missing" if support == "not_implemented"
                     else "no_field_specific_observation"
-                    if query_hashes_by_field.get((table, field))
+                    if query_hashes_by_field.get(identity)
                     else "field_specific_search_not_executed"
                 )
                 rejected = sorted({
                     str(audit.get("url") or "") for audit in audits
                     if audit.get("table") == table and audit.get("field") == field
+                    and (str(audit.get("direction") or "") if table == "flows" else "") == direction
                     and audit.get("url")
                 })
                 row["gap_evidence"] = {
                     "protocol": "wiki-table-gap-evidence-v1",
                     "reason": reason,
                     "matrix_sha256": matrix_sha,
-                    "query_hashes": query_hashes_by_field.get((table, field), []),
+                    "query_hashes": query_hashes_by_field.get(identity, []),
                     "rejected_candidate_urls": rejected,
                 }
-                field_reports.append({"table": table, "field": field, "decision": "explicit_gap",
+                field_reports.append({"table": table, "field": field, **identity_metadata,
+                                      "decision": "explicit_gap",
                                       "candidate_count": len(proposals), "reason": reason,
                                       "public_extractability": availability,
                                       "extraction_support": support,
@@ -602,6 +667,7 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
             rejected = sorted({
                 str(audit.get("url") or "") for audit in audits
                 if audit.get("table") == table and audit.get("field") == field
+                and (str(audit.get("direction") or "") if table == "flows" else "") == direction
                 and audit.get("url")
             })
             for source_key, value_key, track in (
@@ -615,16 +681,22 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
                     "protocol": "wiki-table-gap-evidence-v1",
                     "reason": "no_eligible_source_for_track",
                     "matrix_sha256": matrix_sha,
-                    "query_hashes": query_hashes_by_field.get((table, field), []),
+                    "query_hashes": query_hashes_by_field.get(identity, []),
                     "rejected_candidate_urls": rejected,
                 }
             if gap_tracks:
                 row["gap_evidence_by_track"] = gap_tracks
                 field_reports[-1]["gap_tracks"] = gap_tracks
 
-    accepted_pairs = {(row["table"], row["field"], row.get("url")) for row in accepted}
+    accepted_pairs = {
+        (row["table"], row["field"],
+         str(row.get("direction") or "") if row["table"] == "flows" else "", row.get("url"))
+        for row in accepted
+    }
     for audit in audits:
-        if (audit["table"], audit["field"], audit.get("url")) in accepted_pairs:
+        if (audit["table"], audit["field"],
+            str(audit.get("direction") or "") if audit["table"] == "flows" else "",
+            audit.get("url")) in accepted_pairs:
             audit["decision"] = "accepted"
             audit["reasons"] = [
                 *audit["reasons"], "accepted_field_specific_observation",

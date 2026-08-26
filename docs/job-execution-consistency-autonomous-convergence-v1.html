@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="定义 Job/Run/Task/Item/Campaign 原子恢复、Artifact 代际、唯一 Repair Graph、差分 Canary 与最终发布收尾。">
+  <title>Job 跨阶段状态一致性与自主收敛设计 v1 · LCA 项目文档</title>
+  <style>
+    :root {
+      --ink: #132321; --muted: #60706c; --paper: #f2eee4; --panel: #fffdf7;
+      --line: #c9c2b2; --teal: #006f67; --teal-soft: #d9ebe5; --rust: #c54e2f;
+      --navy: #102b2d; --code: #102a2b; --code-ink: #e7f0e8;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; overflow-x: hidden; color: var(--ink); background:
+      linear-gradient(90deg, rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px,
+      linear-gradient(rgba(16,43,45,.035) 1px, transparent 1px) 0 0/34px 34px, var(--paper);
+      font: 16px/1.78 var(--sans); }
+    a { color: var(--teal); text-underline-offset: .2em; }
+    .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; min-height: 58px; padding: .7rem clamp(1rem,4vw,3.5rem);
+      color: #eff8f2; background: rgba(16,43,45,.96); border-bottom: 3px solid #d98b45;
+      backdrop-filter: blur(12px); }
+    .topbar a { color: inherit; text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: .7rem; font-weight: 700; letter-spacing: .04em; }
+    .brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #8acbc1;
+      border-radius: 50%; color: #f2bd72; font: 700 12px var(--mono); }
+    .source-link { padding: .32rem .7rem; border: 1px solid rgba(255,255,255,.3); border-radius: 999px;
+      font: 12px var(--mono); }
+    .shell { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 850px); gap: clamp(2rem,5vw,5rem);
+      max-width: 1260px; margin: 0 auto; padding: clamp(2rem,5vw,5rem) clamp(1rem,4vw,3.5rem) 6rem; }
+    .toc { position: sticky; top: 90px; align-self: start; max-height: calc(100vh - 120px); overflow: auto;
+      padding: 1rem 1rem 1.2rem; background: rgba(255,253,247,.76); border: 1px solid var(--line);
+      box-shadow: 8px 8px 0 rgba(16,43,45,.07); }
+    .toc-label { margin: 0 0 .8rem; color: var(--rust); font: 700 11px var(--mono); letter-spacing: .16em; }
+    .toc ul { margin: 0; padding-left: 1rem; list-style: none; }
+    .toc > ul { padding-left: 0; }
+    .toc li { margin: .25rem 0; }
+    .toc a { display: block; padding: .22rem .35rem; color: #41534f; border-left: 2px solid transparent;
+      font-size: .82rem; line-height: 1.45; text-decoration: none; }
+    .toc a:hover { color: var(--teal); border-left-color: var(--rust); background: #fff; }
+    .document { min-width: 0; }
+    .document-meta { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 2rem; }
+    .chip { padding: .25rem .58rem; color: var(--teal); background: var(--teal-soft); border-radius: 999px;
+      font: 700 11px var(--mono); letter-spacing: .06em; }
+    article { padding: clamp(1.4rem,4vw,4rem); overflow-wrap: anywhere; background: rgba(255,253,247,.92); border: 1px solid var(--line);
+      box-shadow: 18px 22px 0 rgba(16,43,45,.07); }
+    h1, h2, h3, h4 { font-family: var(--serif); line-height: 1.24; text-wrap: balance; }
+    h1 { max-width: 17ch; margin: 0 0 1.8rem; font-size: clamp(2.25rem,6vw,4.7rem); letter-spacing: -.045em; }
+    h2 { margin: 3.5rem 0 1rem; padding-top: .75rem; border-top: 2px solid var(--navy);
+      font-size: clamp(1.55rem,3vw,2.2rem); }
+    h3 { margin-top: 2.4rem; color: #194c4a; font-size: 1.35rem; }
+    h4 { color: #344c48; }
+    .headerlink { margin-left: .35em; color: var(--teal); opacity: 0; font: .45em var(--mono); text-decoration: none; }
+    h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink, h4:hover .headerlink,
+    .headerlink:focus { opacity: .65; }
+    p, li { max-width: 78ch; }
+    strong { color: #0c4b47; }
+    blockquote { margin: 1.5rem 0; padding: .8rem 1.2rem; color: #374b47; background: #edf2e9;
+      border-left: 4px solid var(--rust); }
+    code { padding: .12em .34em; color: #8c311e; background: #eee5d8; border-radius: 3px; font: .88em var(--mono); }
+    pre { max-width: 100%; overflow: auto; padding: 1.2rem; color: var(--code-ink); background: var(--code);
+      border-left: 4px solid #d98b45; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    pre code { padding: 0; color: inherit; background: transparent; }
+    pre.mermaid { color: var(--ink); background: #f7f3e9; border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 1.4rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { color: #f5f7ef; background: var(--navy); text-align: left; }
+    th, td { padding: .65rem .75rem; border: 1px solid #bbb6aa; vertical-align: top; }
+    tr:nth-child(even) td { background: #f4f0e7; }
+    hr { margin: 3rem 0; border: 0; border-top: 1px solid var(--line); }
+    .footer { max-width: 1260px; margin: 0 auto; padding: 0 3.5rem 3rem; color: var(--muted); font-size: .8rem; }
+    @media (max-width: 860px) {
+      .shell { display: block; padding-top: 1.5rem; }
+      .toc { position: relative; top: auto; max-height: 18rem; margin-bottom: 1.5rem; }
+      article { padding: 1.25rem; box-shadow: 8px 10px 0 rgba(16,43,45,.07); }
+      h1 { font-size: clamp(2rem,12vw,3.25rem); }
+      .topbar { align-items: flex-start; }
+    }
+    @media print { .topbar, .toc { display: none; } .shell { display: block; max-width: none; padding: 0; }
+      article { border: 0; box-shadow: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+  <!-- Generated by scripts/build_docs_site.py; edit the Markdown source, not this file. -->
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">LCA</span><span>项目文档中心</span></a>
+    <a class="source-link" href="job-execution-consistency-autonomous-convergence-v1.md">查看 Markdown 源文档</a>
+  </header>
+  <main class="shell">
+    <nav class="toc" aria-label="本文目录"><p class="toc-label">CONTENTS / 目录</p><div class="toc">
+<ul>
+<li><a href="#1">1. 执行结论</a></li>
+<li><a href="#2-a019">2. A019 提供的生产证据</a><ul>
+<li><a href="#21">2.1 已暴露的跨阶段断点</a></li>
+<li><a href="#22">2.2 不是跨阶段错误的诚实结果</a></li>
+</ul>
+</li>
+<li><a href="#3">3. 根因模型：严格性与自治的错位</a><ul>
+<li><a href="#31-fail-closed">3.1 必须继续 fail-closed 的边界</a></li>
+<li><a href="#32">3.2 应从阻塞改为自适应或债务的边界</a></li>
+</ul>
+</li>
+<li><a href="#4">4. 设计原则与不变量</a><ul>
+<li><a href="#41">4.1 单一事实源</a></li>
+<li><a href="#42">4.2 单写者与显式所有权</a></li>
+<li><a href="#43">4.3 幂等、带前置条件、可回放</a></li>
+<li><a href="#44">4.4 最终目标优先于局部完成</a></li>
+</ul>
+</li>
+<li><a href="#5-job-execution-aggregate">5. Job Execution Aggregate</a><ul>
+<li><a href="#51">5.1 聚合边界</a></li>
+<li><a href="#52">5.2 三类状态</a><ul>
+<li><a href="#_1">执行状态</a></li>
+<li><a href="#_2">决策状态</a></li>
+<li><a href="#_3">目标状态</a></li>
+</ul>
+</li>
+<li><a href="#53">5.3 统一阶段结果</a></li>
+</ul>
+</li>
+<li><a href="#6">6. 原子状态转移协议</a><ul>
+<li><a href="#61">6.1 转移命令</a></li>
+<li><a href="#62-recovery-transaction">6.2 Recovery Transaction</a></li>
+<li><a href="#63">6.3 状态不变量</a></li>
+</ul>
+</li>
+<li><a href="#7-artifact-generation-ledger">7. Artifact Generation Ledger</a><ul>
+<li><a href="#71">7.1 为什么需要代际账本</a></li>
+<li><a href="#72-ledger">7.2 Ledger 记录</a></li>
+<li><a href="#73">7.3 派生文件策略</a></li>
+</ul>
+</li>
+<li><a href="#8-repair-graph">8. Repair Graph 与自主收敛</a><ul>
+<li><a href="#81-repair-key">8.1 Repair Key</a></li>
+<li><a href="#82-repair-graph">8.2 Repair Graph</a></li>
+<li><a href="#83">8.3 因果差异与边际进展</a></li>
+<li><a href="#84-agent">8.4 Agent 自由边界</a></li>
+</ul>
+</li>
+<li><a href="#9-canaryscm">9. Canary、SCM 与运行时更新</a><ul>
+<li><a href="#91-canary">9.1 差分 Canary</a></li>
+<li><a href="#92-scm">9.2 SCM 自动收敛</a></li>
+<li><a href="#93">9.3 风险等级</a></li>
+</ul>
+</li>
+<li><a href="#10-completion-transaction">10. Completion Transaction 与收尾</a><ul>
+<li><a href="#101-reviewed-publication-verifier">10.1 Reviewed Publication Verifier</a></li>
+<li><a href="#102-final-reconciliation">10.2 Final Reconciliation</a></li>
+</ul>
+</li>
+<li><a href="#11-supervisor-worker">11. Supervisor 与 Worker 协议</a><ul>
+<li><a href="#111-supervisor-cycle">11.1 Supervisor 每个 Cycle 的顺序</a></li>
+<li><a href="#112-worker">11.2 Worker 规则</a></li>
+</ul>
+</li>
+<li><a href="#12-dashboard">12. 可观察性与 Dashboard 投影</a></li>
+<li><a href="#13">13. 实施差距矩阵</a></li>
+<li><a href="#14">14. 实施顺序</a><ul>
+<li><a href="#p0">P0：保证不会再被状态不一致卡住</a></li>
+<li><a href="#p1">P1：保证修复能够收敛</a></li>
+<li><a href="#p2-hash">P2：消除 Hash 与物化特例</a></li>
+<li><a href="#p3">P3：生产验收与迁移</a></li>
+</ul>
+</li>
+<li><a href="#15">15. 验收与故障注入</a><ul>
+<li><a href="#151">15.1 必须通过的端到端场景</a></li>
+<li><a href="#152">15.2 通过标准</a></li>
+</ul>
+</li>
+<li><a href="#16">16. 代码落点</a></li>
+<li><a href="#17">17. 与研究约束设计的边界</a></li>
+<li><a href="#18">18. 决策记录</a><ul>
+<li><a href="#adr-01-gate">ADR-01：不通过放宽 Gate 提高完成率</a></li>
+<li><a href="#adr-02">ADR-02：状态由事件和证明投影，而不是组件互相覆盖</a></li>
+<li><a href="#adr-03hash">ADR-03：Hash 验证升级为授权物化代际</a></li>
+<li><a href="#adr-04">ADR-04：修复预算属于因果方案</a></li>
+<li><a href="#adr-05-completion-verifier">ADR-05：只有 Completion Verifier 可以宣告最终完成</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav>
+    <section class="document">
+      <div class="document-meta"><span class="chip">设计</span><span class="chip">HTML MIRROR</span></div>
+      <article><h1 id="job-v1">Job 跨阶段状态一致性与自主收敛设计 v1<a class="headerlink" href="#job-v1" title="Permanent link">§</a></h1>
+<blockquote>
+<p>文档状态：设计基线（部分机制已实现，端到端一致性尚未验收）
+适用范围：自治 Campaign 下的 Wiki / LCA Job，从创建、研究、内容、表格、发布到系统修复闭环
+案例基线：A019 <code>job_0b69524e5e7d457d87741ec2da2e2e59</code>
+日期：2026-08-26</p>
+</blockquote>
+<p><a href="research-constraint-governance-redesign-v1.html">返回《研究约束与 Agent 自治平衡设计 v1》</a></p>
+<h2 id="1">1. 执行结论<a class="headerlink" href="#1" title="Permanent link">§</a></h2>
+<p>A019 证明当前系统的单阶段 Gate、Agent 生成、证据核验和不可变发布已经能够分别工作，但它们之间缺少一份完整、统一、可事务化的跨阶段协议。问题不是简单的“Gate 太严”或“Agent 太自由”，而是：</p>
+<blockquote>
+<p>机械边界严格、语义边界宽松；单阶段规则丰富、跨阶段事务不足；修复能够产生候选，却不能稳定地收敛为一个已验证、已发布、已恢复原 Job 的结果。</p>
+</blockquote>
+<p>目标不是降低安全门槛，而是把严格性放在正确对象上：</p>
+<ul>
+<li>对事实、身份、引用、权限、产物血缘和正式发布保持严格；</li>
+<li>对查询、来源探索、表达和低风险修复路径保留 Agent 自由；</li>
+<li>对 Job、Run、Task、Campaign Item、Repair 和 Release 的变化使用统一事务与可验证投影；</li>
+<li>对修复是否有效使用因果输入和边际进展判断，而不是依赖错误消息或重试次数。</li>
+</ul>
+<p>本设计的最终目标是：在出现可治理故障时，系统能够自行完成“发现 → 归因 → 修复 → Canary → SCM → 应用 → 回卷 → 结果验证 → 发布 → 清理”，且不会出现状态互相矛盾、重复修复、合法 Hash 被误判或 Preview 提前结束最终目标。</p>
+<h2 id="2-a019">2. A019 提供的生产证据<a class="headerlink" href="#2-a019" title="Permanent link">§</a></h2>
+<p>A019 最终完成 reviewed publication，但过程并不具备可重复的无人值守特征。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th style="text-align: right;">A019 结果</th>
+<th>设计含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Workflow Task</td>
+<td style="text-align: right;">26 / 26 最终成功</td>
+<td>单阶段能力最终可用</td>
+</tr>
+<tr>
+<td>执行记录</td>
+<td style="text-align: right;">406</td>
+<td>大量回卷与重复物化</td>
+</tr>
+<tr>
+<td>带失败码记录</td>
+<td style="text-align: right;">125</td>
+<td>失败不是偶发噪声</td>
+</tr>
+<tr>
+<td>Failure Triage</td>
+<td style="text-align: right;">52</td>
+<td>同一 Job 生成过多诊断支线</td>
+</tr>
+<tr>
+<td>System Repair</td>
+<td style="text-align: right;">39</td>
+<td>缺少唯一活跃 Repair Graph</td>
+</tr>
+<tr>
+<td><code>content_compose</code> 生命周期尝试号</td>
+<td style="text-align: right;">98</td>
+<td>没有用边际进展控制生成循环</td>
+</tr>
+<tr>
+<td><code>editorial_review</code> 生命周期尝试号</td>
+<td style="text-align: right;">64</td>
+<td>内容修复改变样本多于改变因果输入</td>
+</tr>
+<tr>
+<td>表格填充</td>
+<td style="text-align: right;">1 / 28</td>
+<td>“非零填充”不等于生产完整</td>
+</tr>
+<tr>
+<td>最终发布覆盖</td>
+<td style="text-align: right;">79 / 79</td>
+<td>发布证明链最终闭合</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="21">2.1 已暴露的跨阶段断点<a class="headerlink" href="#21" title="Permanent link">§</a></h3>
+<ol>
+<li><strong>研究契约升级后，旧 Nomination Capture、Slot 顺序和 Cache 仍服从旧协议。</strong></li>
+<li><strong>Canary 将候选修复与无关的文档链接基线故障混为一谈。</strong></li>
+<li><strong>Verify 合法更新派生 Manifest，却被 SIDE_EFFECT 保护当作越权修改。</strong></li>
+<li><strong>Task 和 Run 已回卷为 ready，但 Job、Item 和 Campaign 仍保持终止或阻塞状态。</strong></li>
+<li><strong>Content Apply、Table Apply 和 Reviewed Apply 合法连续修改同一文件，却没有共同的物化代际。</strong></li>
+<li><strong>Release Gate 的业务 NO_GO 被包装为基础设施 <code>CAPABILITY_PROCESS_FAILED</code>。</strong></li>
+<li><strong>同一故障产生多个 Triage、Repair、SCM 支线，旧支线没有 supersede。</strong></li>
+<li><strong>Job 发布后仍残留 queued、coding、awaiting SCM 的 Repair。</strong></li>
+<li><strong>不可变 Release Artifact、Release DB、Job 状态和治理决定没有统一提交。</strong></li>
+</ol>
+<h3 id="22">2.2 不是跨阶段错误的诚实结果<a class="headerlink" href="#22" title="Permanent link">§</a></h3>
+<p>以下结果不应通过“提高自动完成率”被掩盖：</p>
+<ul>
+<li>公开来源确实可能不足；</li>
+<li>27 个表格字段仍可能是有检索出处的显式数据缺口；</li>
+<li>分类事实不能被推导成定量 LCI 数值；</li>
+<li>高风险事实冲突不能通过增加来源数量绕过；</li>
+<li>reviewed publication 未必等于完整 LCA 模型可用于计算。</li>
+</ul>
+<p>系统可以自主完成，但必须自主完成到<strong>契约声明的目标</strong>，不能把证据不足重新命名为成功。</p>
+<h2 id="3">3. 根因模型：严格性与自治的错位<a class="headerlink" href="#3" title="Permanent link">§</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>约束位置</th>
+<th>当前表现</th>
+<th>正确设计</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文件保护</td>
+<td>任意字节变化触发隔离</td>
+<td>按文件类型、所有者和事务来源判定</td>
+</tr>
+<tr>
+<td>Hash 验证</td>
+<td>只接受固定 old/new Hash</td>
+<td>接受授权物化代际中的后继 Hash</td>
+</tr>
+<tr>
+<td>Canary</td>
+<td>全量测试任意红灯阻断候选</td>
+<td>只阻断 Candidate 相对同基线新增的失败</td>
+</tr>
+<tr>
+<td>Gate</td>
+<td>退出码同时表示执行与业务决策</td>
+<td>execution、decision、goal effect 三轴分离</td>
+</tr>
+<tr>
+<td>研究</td>
+<td>Agent 可自由解释抽象维度</td>
+<td>系统固定问题契约，Agent 自由探索路径</td>
+</tr>
+<tr>
+<td>内容</td>
+<td>依赖精确句子和 Token 字符串</td>
+<td>依赖语义 ID、声明绑定和结构化操作</td>
+</tr>
+<tr>
+<td>修复</td>
+<td>多个 Agent 独立生成相似 Patch</td>
+<td>一个 Failure 对应一个可版本化 Repair Graph</td>
+</tr>
+<tr>
+<td>回卷</td>
+<td>每个组件分别更新自己的状态</td>
+<td>一个原子 Recovery Transaction 更新全局聚合</td>
+</tr>
+<tr>
+<td>完成</td>
+<td>局部状态和 Preview 容易被误读</td>
+<td>Completion Verifier 只认目标绑定的证明</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="31-fail-closed">3.1 必须继续 fail-closed 的边界<a class="headerlink" href="#31-fail-closed" title="Permanent link">§</a></h3>
+<ul>
+<li>不可验证或冲突的事实；</li>
+<li>引用不存在、范围不匹配或对象身份错误；</li>
+<li>未经授权的业务源文件修改；</li>
+<li>Candidate 引入的新 Canary 回归；</li>
+<li>Release Record 缺失、Hash 不匹配或没有绑定当前 Job；</li>
+<li>Agent 直接写入 Decision、Release、Manifest 等治理证明；</li>
+<li>高风险代码修复未经批准即应用。</li>
+</ul>
+<h3 id="32">3.2 应从阻塞改为自适应或债务的边界<a class="headerlink" href="#32" title="Permanent link">§</a></h3>
+<ul>
+<li>英文查询覆盖是否达到 100%；</li>
+<li>Provider、URL、语言和来源类别是否达到理想数量；</li>
+<li>非关键研究问题是否全部闭合；</li>
+<li>可公开获得的数据字段是否暂时为空；</li>
+<li>Candidate 与 Baseline 共同存在、且与候选无因果关系的测试失败；</li>
+<li>合法后继物化导致的页面、Registry 或 Manifest Hash 变化。</li>
+</ul>
+<h2 id="4">4. 设计原则与不变量<a class="headerlink" href="#4" title="Permanent link">§</a></h2>
+<h3 id="41">4.1 单一事实源<a class="headerlink" href="#41" title="Permanent link">§</a></h3>
+<p>数据库中的多个状态不是多个真相源。权威事实应来自：</p>
+<ol>
+<li>追加式事件；</li>
+<li>当前 Artifact Generation Ledger；</li>
+<li>当前 Task DAG；</li>
+<li>Completion Goal；</li>
+<li>不可变 Release Proof。</li>
+</ol>
+<p>Job、Run、Item、Campaign 和 Dashboard 状态都是上述事实的可重建投影。</p>
+<h3 id="42">4.2 单写者与显式所有权<a class="headerlink" href="#42" title="Permanent link">§</a></h3>
+<p>每种状态和产物必须有唯一写者：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>对象</th>
+<th>唯一写者</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Task / Run 状态</td>
+<td>Orchestrator Transition Service</td>
+</tr>
+<tr>
+<td>Job 状态</td>
+<td>Job Aggregate Reducer</td>
+</tr>
+<tr>
+<td>Item / Campaign 状态</td>
+<td>Campaign Projection Reducer</td>
+</tr>
+<tr>
+<td>Gate Decision</td>
+<td>确定性 Gate Runtime</td>
+</tr>
+<tr>
+<td>业务内容</td>
+<td>获授权的 Apply Transaction</td>
+</tr>
+<tr>
+<td>Workspace Manifest</td>
+<td>Manifest Materializer</td>
+</tr>
+<tr>
+<td>Repair 生命周期</td>
+<td>Repair Coordinator</td>
+</tr>
+<tr>
+<td>Release Record</td>
+<td>Publish Transaction</td>
+</tr>
+</tbody>
+</table></div>
+<p>Agent 只能提交 Proposal、结构化操作和证据，不能直接提交权威状态。</p>
+<h3 id="43">4.3 幂等、带前置条件、可回放<a class="headerlink" href="#43" title="Permanent link">§</a></h3>
+<p>每个跨阶段命令都必须声明：</p>
+<ul>
+<li><code>expected_generation</code>；</li>
+<li><code>expected_statuses</code>；</li>
+<li><code>idempotency_key</code>；</li>
+<li><code>causation_id</code>；</li>
+<li><code>correlation_id</code>；</li>
+<li><code>invalidates</code>；</li>
+<li><code>preserves</code>；</li>
+<li><code>produces</code>。</li>
+</ul>
+<p>重复消费同一命令不能产生第二条修复、第二次回卷或第二份 Release。</p>
+<h3 id="44">4.4 最终目标优先于局部完成<a class="headerlink" href="#44" title="Permanent link">§</a></h3>
+<p><code>completion_goal=reviewed_publication</code> 只在以下条件同时满足时完成：</p>
+<ol>
+<li>Publish Task 成功；</li>
+<li>不可变 Task Output Manifest 有效；</li>
+<li>Release Record 绑定当前 Job；</li>
+<li>Gate、Reviewed Apply 和 Publish Hash 全部有效；</li>
+<li>最终物化代际与 Release Candidate 一致；</li>
+<li>Campaign Item 成功投影已经提交。</li>
+</ol>
+<p>Preview、Maturity PASS、Candidate 或 Applied 都只是里程碑。</p>
+<h2 id="5-job-execution-aggregate">5. Job Execution Aggregate<a class="headerlink" href="#5-job-execution-aggregate" title="Permanent link">§</a></h2>
+<h3 id="51">5.1 聚合边界<a class="headerlink" href="#51" title="Permanent link">§</a></h3>
+<p>一个自治 Job 的一致性聚合包含：</p>
+<pre class="mermaid">flowchart LR
+  Campaign --&gt; Item
+  Item --&gt; Job
+  Job --&gt; Run
+  Run --&gt; TaskDAG[Task DAG]
+  TaskDAG --&gt; Attempt
+  Job --&gt; RepairGraph[Repair Graph]
+  TaskDAG --&gt; Ledger[Artifact Generation Ledger]
+  Ledger --&gt; Release[Immutable Release]
+  RepairGraph --&gt; Wakeup[Supervisor Wakeup]
+  Release --&gt; Completion[Completion Projection]
+</pre>
+<h3 id="52">5.2 三类状态<a class="headerlink" href="#52" title="Permanent link">§</a></h3>
+<h4 id="_1">执行状态<a class="headerlink" href="#_1" title="Permanent link">§</a></h4>
+<p>描述代码是否运行完成：</p>
+<p><code>pending → ready → running → completed | crashed | timed_out | lease_lost</code></p>
+<h4 id="_2">决策状态<a class="headerlink" href="#_2" title="Permanent link">§</a></h4>
+<p>描述当前 Gate 的判断：</p>
+<p><code>NOT_RUN | PASS | PASS_WITH_DEBT | RESEARCH_MORE | EVIDENCE_LIMITED | BLOCKED_INTEGRITY</code></p>
+<h4 id="_3">目标状态<a class="headerlink" href="#_3" title="Permanent link">§</a></h4>
+<p>描述相对于 Completion Goal 的效果：</p>
+<p><code>no_progress | partial_progress | progress | regression | goal_satisfied</code></p>
+<p>三者不能互相推导。例如命令成功执行后完全可能得到 <code>gate=RESEARCH_MORE</code> 和 <code>goal_effect=no_progress</code>。</p>
+<h3 id="53">5.3 统一阶段结果<a class="headerlink" href="#53" title="Permanent link">§</a></h3>
+<pre><code class="language-json">{
+  &quot;protocol&quot;: &quot;stage-outcome-v1&quot;,
+  &quot;execution&quot;: {
+    &quot;status&quot;: &quot;completed&quot;,
+    &quot;exit_code&quot;: 2,
+    &quot;attempt_id&quot;: &quot;...&quot;
+  },
+  &quot;decision&quot;: {
+    &quot;gate_id&quot;: &quot;release_gate&quot;,
+    &quot;gate_version&quot;: &quot;...&quot;,
+    &quot;verdict&quot;: &quot;BLOCKED_INTEGRITY&quot;,
+    &quot;failed_requirement_ids&quot;: [&quot;claim.coverage.current_body&quot;]
+  },
+  &quot;goal_effect&quot;: {
+    &quot;status&quot;: &quot;no_progress&quot;,
+    &quot;quality_vector_before&quot;: {},
+    &quot;quality_vector_after&quot;: {}
+  },
+  &quot;recovery&quot;: {
+    &quot;action&quot;: &quot;repair&quot;,
+    &quot;from_task&quot;: &quot;draft_content_gate&quot;,
+    &quot;causal_input_hash&quot;: &quot;...&quot;,
+    &quot;strategy_hash&quot;: &quot;...&quot;
+  },
+  &quot;artifacts&quot;: []
+}
+</code></pre>
+<p>脚本退出码仅属于 <code>execution</code>，不能直接决定 Failure Taxonomy。</p>
+<h2 id="6">6. 原子状态转移协议<a class="headerlink" href="#6" title="Permanent link">§</a></h2>
+<h3 id="61">6.1 转移命令<a class="headerlink" href="#61" title="Permanent link">§</a></h3>
+<p>所有状态变化通过统一命令执行：</p>
+<pre><code class="language-text">transition_job_aggregate(
+  command_id,
+  job_id,
+  run_id,
+  expected_generation,
+  transition_kind,
+  transition_payload
+)
+</code></pre>
+<p>支持的核心命令：</p>
+<ul>
+<li><code>start_job</code></li>
+<li><code>complete_task</code></li>
+<li><code>record_gate_decision</code></li>
+<li><code>fail_task</code></li>
+<li><code>schedule_retry</code></li>
+<li><code>rewind_from_task</code></li>
+<li><code>start_repair_graph</code></li>
+<li><code>apply_repair</code></li>
+<li><code>validate_repair_outcome</code></li>
+<li><code>publish_release</code></li>
+<li><code>finalize_goal</code></li>
+<li><code>supersede_stale_work</code></li>
+</ul>
+<h3 id="62-recovery-transaction">6.2 Recovery Transaction<a class="headerlink" href="#62-recovery-transaction" title="Permanent link">§</a></h3>
+<p>从某个任务回卷必须在一个事务中完成：</p>
+<ol>
+<li>锁定 Job Aggregate Generation；</li>
+<li>校验目标 Task 存在且没有运行中的后继任务；</li>
+<li>当前 Task 置为 ready；</li>
+<li>所有后继 Task 置为 pending；</li>
+<li>Run 置为 ready；</li>
+<li>Job 置为 ready；</li>
+<li>Item 置为 running；</li>
+<li>Campaign 置为 running；</li>
+<li>创建新的 Repair Epoch；</li>
+<li>创建唯一 Supervisor Wakeup；</li>
+<li>将旧 Generation 的输出标记 stale；</li>
+<li>提交 Outbox Event。</li>
+</ol>
+<p>任何一步失败，整个事务回滚。</p>
+<h3 id="63">6.3 状态不变量<a class="headerlink" href="#63" title="Permanent link">§</a></h3>
+<p>系统每个 Supervisor Cycle 都必须检查：</p>
+<ul>
+<li>存在 ready Task 时，Job 不得处于终止状态；</li>
+<li>Job=published 时，Publish Task 必须 succeeded；</li>
+<li>Item=succeeded 时，Completion Proof 必须有效；</li>
+<li>Campaign=completed 时，所有 Item 必须满足 Campaign Goal；</li>
+<li>Run=ready 时，至少存在一个 ready Task 或可被依赖释放的 pending Task；</li>
+<li>Task=running 时，必须存在有效 Lease 和 Fencing Token；</li>
+<li>Job 有活跃 Repair 时，不得存在同一 Repair Key 的第二个活跃 Repair；</li>
+<li>Job 完成后，不得保留非终态 Repair 和未消费 Wakeup。</li>
+</ul>
+<p>不变量失败时创建 <code>control_plane_repair_job</code>，不能依靠 Dashboard 人工判断。</p>
+<h2 id="7-artifact-generation-ledger">7. Artifact Generation Ledger<a class="headerlink" href="#7-artifact-generation-ledger" title="Permanent link">§</a></h2>
+<h3 id="71">7.1 为什么需要代际账本<a class="headerlink" href="#71" title="Permanent link">§</a></h3>
+<p>同一页面和 Registry 会被多个合法阶段修改：</p>
+<pre><code class="language-text">content_apply → table_apply → reviewed_apply → publish
+</code></pre>
+<p>只记录 old/new Hash 无法表达多阶段合法后继关系。</p>
+<h3 id="72-ledger">7.2 Ledger 记录<a class="headerlink" href="#72-ledger" title="Permanent link">§</a></h3>
+<pre><code class="language-json">{
+  &quot;logical_path&quot;: &quot;wiki/.../A019.md&quot;,
+  &quot;generation&quot;: 7,
+  &quot;producer_task&quot;: &quot;table_apply&quot;,
+  &quot;transaction_id&quot;: &quot;mat_...&quot;,
+  &quot;base_generation&quot;: 6,
+  &quot;base_sha256&quot;: &quot;...&quot;,
+  &quot;output_sha256&quot;: &quot;...&quot;,
+  &quot;semantic_identity&quot;: &quot;wiki-page:A019&quot;,
+  &quot;operation_class&quot;: &quot;table_materialization&quot;,
+  &quot;authorized_successors&quot;: [&quot;reviewed_apply&quot;],
+  &quot;proof_artifacts&quot;: [&quot;table-apply-report.json&quot;]
+}
+</code></pre>
+<h3 id="73">7.3 派生文件策略<a class="headerlink" href="#73" title="Permanent link">§</a></h3>
+<p>文件分为：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>示例</th>
+<th>策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>业务源文件</td>
+<td>Wiki 页面、Registry</td>
+<td>只允许 Apply Transaction 修改</td>
+</tr>
+<tr>
+<td>派生完整性文件</td>
+<td><code>workspace-manifest.json</code></td>
+<td>Agent 禁止直接修改，由系统重建</td>
+</tr>
+<tr>
+<td>Gate 产物</td>
+<td>Gate JSON</td>
+<td>Gate Runtime 独占写入</td>
+</tr>
+<tr>
+<td>审计产物</td>
+<td>Attempt Archive、Event</td>
+<td>追加写入，不允许覆盖</td>
+</tr>
+<tr>
+<td>发布证明</td>
+<td>Release Record</td>
+<td>Publish Transaction 一次性冻结</td>
+</tr>
+</tbody>
+</table></div>
+<p>SIDE_EFFECT 检测必须判断“变化由谁、通过什么事务产生”，而不是简单比较执行前后的所有字节。</p>
+<h2 id="8-repair-graph">8. Repair Graph 与自主收敛<a class="headerlink" href="#8-repair-graph" title="Permanent link">§</a></h2>
+<h3 id="81-repair-key">8.1 Repair Key<a class="headerlink" href="#81-repair-key" title="Permanent link">§</a></h3>
+<p>同一时刻每个 Repair Key 只能有一个活跃 Graph：</p>
+<pre><code class="language-text">(job_id, task_id, failure_fingerprint, causal_generation)
+</code></pre>
+<h3 id="82-repair-graph">8.2 Repair Graph<a class="headerlink" href="#82-repair-graph" title="Permanent link">§</a></h3>
+<pre class="mermaid">stateDiagram-v2
+  [*] --&gt; observed
+  observed --&gt; diagnosed
+  diagnosed --&gt; coding
+  coding --&gt; validating
+  validating --&gt; replan: new canary regression
+  validating --&gt; scm: proofs passed
+  replan --&gt; coding: bounded successor
+  scm --&gt; applying: PR merged / patch authorized
+  applying --&gt; outcome_validation
+  outcome_validation --&gt; effective: original failure removed
+  outcome_validation --&gt; partially_effective
+  outcome_validation --&gt; ineffective
+  effective --&gt; [*]
+  partially_effective --&gt; replan
+  ineffective --&gt; replan
+</pre>
+<p>旧 Candidate 不能与新 Candidate 并行争夺同一 Job。新 Candidate 创建后，旧版本必须标记 <code>superseded</code>。</p>
+<h3 id="83">8.3 因果差异与边际进展<a class="headerlink" href="#83" title="Permanent link">§</a></h3>
+<p>每次修复必须绑定：</p>
+<ul>
+<li>Failure Fingerprint；</li>
+<li>Causal Input Hash；</li>
+<li>Strategy Hash；</li>
+<li>Code Baseline；</li>
+<li>Quality Vector Before；</li>
+<li>Expected Delta；</li>
+<li>Recovery Task。</li>
+</ul>
+<p>允许继续的规则：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>条件</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>指纹、因果输入、策略全部相同</td>
+<td>拒绝重试，进入 replan</td>
+</tr>
+<tr>
+<td>策略改变且预期证明不同</td>
+<td>允许一次验证</td>
+</tr>
+<tr>
+<td>Quality Vector 有改善</td>
+<td>继续当前 Graph</td>
+</tr>
+<tr>
+<td>连续两次零增益</td>
+<td>必须更换因果方案或诚实终止</td>
+</tr>
+<tr>
+<td>Quality Vector 退化</td>
+<td>回滚并标记 regression</td>
+</tr>
+<tr>
+<td>公开证据稀缺</td>
+<td>形成 explicit gap，不无限搜索</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="84-agent">8.4 Agent 自由边界<a class="headerlink" href="#84-agent" title="Permanent link">§</a></h3>
+<p>Agent 可以决定：</p>
+<ul>
+<li>查询措辞、语言、Provider 和探索顺序；</li>
+<li>来源候选与证据组合建议；</li>
+<li>内容表达和段落组织；</li>
+<li>代码修复候选；</li>
+<li>对失败原因的解释和疑问。</li>
+</ul>
+<p>Agent 不能决定：</p>
+<ul>
+<li>核心问题契约和验收谓词；</li>
+<li>Gate 最终判定；</li>
+<li>Job、Run、Item 或 Campaign 状态；</li>
+<li>Artifact Generation；</li>
+<li>Manifest、Decision 或 Release Record；</li>
+<li>最终目标是否已经完成。</li>
+</ul>
+<h2 id="9-canaryscm">9. Canary、SCM 与运行时更新<a class="headerlink" href="#9-canaryscm" title="Permanent link">§</a></h2>
+<h3 id="91-canary">9.1 差分 Canary<a class="headerlink" href="#91-canary" title="Permanent link">§</a></h3>
+<p>Candidate 和 Baseline 必须：</p>
+<ul>
+<li>来自同一 Git Revision；</li>
+<li>使用相同依赖和环境；</li>
+<li>执行相同测试集合；</li>
+<li>输出可解析的测试 Node ID。</li>
+</ul>
+<p>判定规则：</p>
+<ul>
+<li>Candidate 全绿：通过；</li>
+<li>Candidate 红、Baseline 同样红且失败集合无新增：候选通过，记录 Baseline Debt；</li>
+<li>Candidate 新增失败：候选拒绝并创建 bounded successor；</li>
+<li>失败无法解析：fail-closed；</li>
+<li>Baseline 环境本身无法运行：分类为基础设施故障，不归因于 Candidate。</li>
+</ul>
+<h3 id="92-scm">9.2 SCM 自动收敛<a class="headerlink" href="#92-scm" title="Permanent link">§</a></h3>
+<p>低风险修复在验证通过后自动：</p>
+<ol>
+<li>从最新 <code>origin/main</code> 创建分支；</li>
+<li>根据因果方案重新生成 Patch；</li>
+<li>运行 focused、shadow、canary；</li>
+<li>创建或复用 Issue；</li>
+<li>Commit 并创建 PR；</li>
+<li>等待 Required Checks；</li>
+<li>自动合并低风险 PR；</li>
+<li>本地 fast-forward；</li>
+<li>重启受影响服务；</li>
+<li>从 Recovery Task 受控回卷；</li>
+<li>验证原 Failure Fingerprint 消失。</li>
+</ol>
+<p>Main 漂移不应永久停在 <code>awaiting_scm_publication</code>，而应生成绑定新基线的 Repair Revision。网络失败使用退避重试，不重新生成业务修复。</p>
+<h3 id="93">9.3 风险等级<a class="headerlink" href="#93" title="Permanent link">§</a></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>风险</th>
+<th>示例</th>
+<th>发布规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>low</td>
+<td>分类器、可观察性、兼容解析</td>
+<td>测试通过后自动合并</td>
+</tr>
+<tr>
+<td>medium</td>
+<td>Gate 规则、状态转移、物化恢复</td>
+<td>Shadow + Canary + 最小批准</td>
+</tr>
+<tr>
+<td>high</td>
+<td>发布不变量、权限、数据库迁移</td>
+<td>人工批准和双重证明</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="10-completion-transaction">10. Completion Transaction 与收尾<a class="headerlink" href="#10-completion-transaction" title="Permanent link">§</a></h2>
+<h3 id="101-reviewed-publication-verifier">10.1 Reviewed Publication Verifier<a class="headerlink" href="#101-reviewed-publication-verifier" title="Permanent link">§</a></h3>
+<p>Verifier 必须同时检查：</p>
+<ul>
+<li>Publish Task Output Manifest；</li>
+<li>Release Record 协议；</li>
+<li>Job ID 和 Candidate Hash；</li>
+<li>Gate Report Hash；</li>
+<li>Reviewed Apply Hash；</li>
+<li>Publish Report Hash；</li>
+<li>Artifact Ledger 的最终 Generation；</li>
+<li>Release DB Projection；</li>
+<li>Governance Decision 与 Publication Status 一致。</li>
+</ul>
+<h3 id="102-final-reconciliation">10.2 Final Reconciliation<a class="headerlink" href="#102-final-reconciliation" title="Permanent link">§</a></h3>
+<p>发布成功后，同一事务或可靠 Outbox Consumer 必须：</p>
+<ul>
+<li>Job → published；</li>
+<li>Run → succeeded；</li>
+<li>Item → succeeded；</li>
+<li>Campaign 在所有 Item 完成后 → completed；</li>
+<li>当前 Repair → effective；</li>
+<li>其他 Repair → superseded / obsolete；</li>
+<li>Pending Wakeup → consumed_obsolete；</li>
+<li>Open Deviation → resolved_by_release 或 retained_as_debt；</li>
+<li>Release DB 写入与不可变 Artifact 绑定。</li>
+</ul>
+<p>“发布成功但 Dashboard 仍显示修复中”应被视为不变量失败。</p>
+<h2 id="11-supervisor-worker">11. Supervisor 与 Worker 协议<a class="headerlink" href="#11-supervisor-worker" title="Permanent link">§</a></h2>
+<h3 id="111-supervisor-cycle">11.1 Supervisor 每个 Cycle 的顺序<a class="headerlink" href="#111-supervisor-cycle" title="Permanent link">§</a></h3>
+<ol>
+<li>获取 Campaign Lease；</li>
+<li>运行 Aggregate Invariant Reconciler；</li>
+<li>消费唯一 Wakeup；</li>
+<li>处理唯一活跃 Repair；</li>
+<li>处理 SCM Publication；</li>
+<li>运行 Outcome Validation；</li>
+<li>若存在 ready Task，派发 Worker；</li>
+<li>更新 Projection；</li>
+<li>判断 Completion Goal；</li>
+<li>写入 Heartbeat。</li>
+</ol>
+<p>不能先因为 Campaign=<code>needs_attention</code> 直接退出，再忽略已经存在的 ready Task 或可恢复 Repair。</p>
+<h3 id="112-worker">11.2 Worker 规则<a class="headerlink" href="#112-worker" title="Permanent link">§</a></h3>
+<ul>
+<li>只领取当前 Generation 的 ready Task；</li>
+<li>Claim、Lease 和 Attempt 必须在同一所有权边界；</li>
+<li>Worker 丢失后由 Watchdog 标记 Attempt abandoned，并安全重新领取；</li>
+<li>Stage Outcome 写入成功后才能释放后继任务；</li>
+<li>Worker 不直接更新 Item 或 Campaign；</li>
+<li>Worker 不直接决定 Repair 是否有效。</li>
+</ul>
+<h2 id="12-dashboard">12. 可观察性与 Dashboard 投影<a class="headerlink" href="#12-dashboard" title="Permanent link">§</a></h2>
+<p>Dashboard 每个阶段至少展示：</p>
+<ul>
+<li>做了什么；</li>
+<li>输入 Artifact 和 Generation；</li>
+<li>Agent 或脚本是谁；</li>
+<li>查询关键词和 Provider；</li>
+<li>候选、采纳与拒绝原因；</li>
+<li>执行状态；</li>
+<li>Gate 决策；</li>
+<li>对最终目标的效果；</li>
+<li>当前失败 requirement；</li>
+<li>修复改变了哪些因果输入；</li>
+<li>当前 Repair Graph；</li>
+<li>下一自动动作和预计触发条件。</li>
+</ul>
+<p>Dashboard 只做投影，不能通过前端推断或修正状态。</p>
+<h2 id="13">13. 实施差距矩阵<a class="headerlink" href="#13" title="Permanent link">§</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>当前状态</th>
+<th>缺口</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Research Question Contract v2</td>
+<td>已实现</td>
+<td>下游兼容曾不完整</td>
+<td>E2E 固化</td>
+</tr>
+<tr>
+<td>逐问题证据账本</td>
+<td>已实现</td>
+<td>与最终关键字段闭合尚未统一</td>
+<td>接入 Completion Goal</td>
+</tr>
+<tr>
+<td>Stage 三轴事件</td>
+<td>部分实现</td>
+<td>Release 等 Gate 未统一</td>
+<td>所有阶段使用 StageOutcome v1</td>
+</tr>
+<tr>
+<td>Failure Fingerprint v2</td>
+<td>部分实现</td>
+<td>缺少 Causal Generation 与零增益控制</td>
+<td>接入 Retry Permission</td>
+</tr>
+<tr>
+<td>Quality Trajectory</td>
+<td>已观测</td>
+<td>未控制 Worker 重试</td>
+<td>成为收敛判据</td>
+</tr>
+<tr>
+<td>Baseline-aware Canary</td>
+<td>已有实现</td>
+<td>需要稳定基线与 SCM 集成验收</td>
+<td>干净 checkout 回归</td>
+</tr>
+<tr>
+<td>原子 Recovery</td>
+<td>部分实现</td>
+<td>Item/Campaign/Wakeup 非统一事务</td>
+<td>Aggregate Transition Service</td>
+</tr>
+<tr>
+<td>Artifact Generation Ledger</td>
+<td>未实现</td>
+<td>多 Apply 依赖特例识别</td>
+<td>一等账本</td>
+</tr>
+<tr>
+<td>Derived Manifest Ownership</td>
+<td>部分实现</td>
+<td>检测仍可能按字节误判</td>
+<td>类型化副作用策略</td>
+</tr>
+<tr>
+<td>唯一 Repair Graph</td>
+<td>未实现</td>
+<td>Repair Storm</td>
+<td>Repair Key 唯一约束</td>
+</tr>
+<tr>
+<td>SCM 自动重基线</td>
+<td>部分实现</td>
+<td>大量 Base Conflict</td>
+<td>自动重生成和合并</td>
+</tr>
+<tr>
+<td>Final Reconciliation</td>
+<td>未实现</td>
+<td>发布后残留 Repair</td>
+<td>终态清理事务</td>
+</tr>
+<tr>
+<td>Release 多投影一致性</td>
+<td>未实现</td>
+<td>Artifact 与 DB 可能不同步</td>
+<td>Completion Transaction</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="14">14. 实施顺序<a class="headerlink" href="#14" title="Permanent link">§</a></h2>
+<h3 id="p0">P0：保证不会再被状态不一致卡住<a class="headerlink" href="#p0" title="Permanent link">§</a></h3>
+<ol>
+<li>定义 <code>stage-outcome-v1</code>；</li>
+<li>所有 Gate 统一业务失败分类；</li>
+<li>实现 Job Aggregate Transition Service；</li>
+<li>实现原子 Recovery Transaction；</li>
+<li>增加状态不变量 Reconciler；</li>
+<li>实现 Repair Key 唯一约束和 Supersession；</li>
+<li>实现 Final Reconciliation。</li>
+</ol>
+<h3 id="p1">P1：保证修复能够收敛<a class="headerlink" href="#p1" title="Permanent link">§</a></h3>
+<ol>
+<li>将 Quality Trajectory 接入 Retry Permission；</li>
+<li>实现连续零增益检测；</li>
+<li>完成差分 Canary；</li>
+<li>SCM 自动重基线、PR 和低风险自动合并；</li>
+<li>Outcome Validation 自动回卷原 Job；</li>
+<li>结构化 Agent 编辑操作替换整篇自由覆盖。</li>
+</ol>
+<h3 id="p2-hash">P2：消除 Hash 与物化特例<a class="headerlink" href="#p2-hash" title="Permanent link">§</a></h3>
+<ol>
+<li>Artifact Generation Ledger；</li>
+<li>Apply Transaction 统一协议；</li>
+<li>Derived Manifest Materializer；</li>
+<li>Release Transaction 与 DB Projection；</li>
+<li>清理旧的 old/new Hash 特例。</li>
+</ol>
+<h3 id="p3">P3：生产验收与迁移<a class="headerlink" href="#p3" title="Permanent link">§</a></h3>
+<ol>
+<li>迁移存量活跃 Job 的 Projection；</li>
+<li>将历史 Repair 标记为 superseded / obsolete；</li>
+<li>从干净 main 启动连续三个 reviewed Job；</li>
+<li>故障注入；</li>
+<li>对比 Golden Case；</li>
+<li>发布实施状态报告。</li>
+</ol>
+<h2 id="15">15. 验收与故障注入<a class="headerlink" href="#15" title="Permanent link">§</a></h2>
+<h3 id="151">15.1 必须通过的端到端场景<a class="headerlink" href="#151" title="Permanent link">§</a></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Release Gate 返回 exit 2</td>
+<td>显示真实 BLOCKED 原因并自动选择 Recovery Task</td>
+</tr>
+<tr>
+<td>Table Apply 修改页面</td>
+<td>Release Gate 识别为合法后继 Generation</td>
+</tr>
+<tr>
+<td>Verify 触发 Manifest 重建</td>
+<td>Manifest 由系统重建，不误判 Agent 越权</td>
+</tr>
+<tr>
+<td>Agent 修改业务源文件</td>
+<td>SIDE_EFFECT 隔离仍然生效</td>
+</tr>
+<tr>
+<td>Baseline 有文档死链</td>
+<td>无 Candidate 新增失败时不阻断候选</td>
+</tr>
+<tr>
+<td>Candidate 新增测试失败</td>
+<td>Canary 拒绝并生成唯一 successor</td>
+</tr>
+<tr>
+<td>从 evidence_limited 回卷</td>
+<td>Job、Run、Task、Item、Campaign 同时恢复</td>
+</tr>
+<tr>
+<td>Worker 在 Task 中丢失</td>
+<td>Attempt abandoned，Task 可安全重领</td>
+</tr>
+<tr>
+<td>Main 在修复期间更新</td>
+<td>Patch 基于最新 Main 自动重生成</td>
+</tr>
+<tr>
+<td>同一失败重复出现</td>
+<td>只存在一个活跃 Repair Graph</td>
+</tr>
+<tr>
+<td>两轮质量零增益</td>
+<td>自动换策略或诚实停止</td>
+</tr>
+<tr>
+<td>Preview 成功</td>
+<td>reviewed Job 继续运行</td>
+</tr>
+<tr>
+<td>Publish 成功</td>
+<td>所有 Repair 和 Wakeup 被收尾</td>
+</tr>
+<tr>
+<td>Release Artifact 与 DB 不一致</td>
+<td>Completion 被拒绝并触发控制面修复</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="152">15.2 通过标准<a class="headerlink" href="#152" title="Permanent link">§</a></h3>
+<ul>
+<li>连续三个全新 reviewed Job 无人工操作完成；</li>
+<li>任一 Job 不超过一个活跃 Repair Graph；</li>
+<li>相同 Causal Generation 不发生盲重试；</li>
+<li>无状态不变量告警；</li>
+<li>无合法物化 Hash drift 误报；</li>
+<li>无发布后遗留活跃 Repair；</li>
+<li>从干净 main checkout 可复现；</li>
+<li>Dashboard 所有状态均可追溯到事件和 Artifact。</li>
+</ul>
+<h2 id="16">16. 代码落点<a class="headerlink" href="#16" title="Permanent link">§</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模块</th>
+<th>目标职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../src/lca_project/capability_runtime.py"><code>src/lca_project/capability_runtime.py</code></a></td>
+<td>统一 Stage Outcome 与 Gate 失败分类</td>
+</tr>
+<tr>
+<td><a href="../src/lca_project/kernel/orchestrator.py"><code>src/lca_project/kernel/orchestrator.py</code></a></td>
+<td>Task DAG、Recovery Transaction、Generation</td>
+</tr>
+<tr>
+<td><a href="../src/lca_project/kernel/worker.py"><code>src/lca_project/kernel/worker.py</code></a></td>
+<td>Worker 所有权、Retry Permission、Stage Outcome</td>
+</tr>
+<tr>
+<td><a href="../src/lca_project/kernel/executor.py"><code>src/lca_project/kernel/executor.py</code></a></td>
+<td>类型化 Side Effect 和 Derived Manifest 策略</td>
+</tr>
+<tr>
+<td><a href="../src/lca_project/kernel/goal_alignment/autonomous_supervisor.py"><code>src/lca_project/kernel/goal_alignment/autonomous_supervisor.py</code></a></td>
+<td>Aggregate Reconciliation、Campaign Projection、Completion</td>
+</tr>
+<tr>
+<td><a href="../src/lca_project/kernel/goal_alignment/system_repair_agent.py"><code>src/lca_project/kernel/goal_alignment/system_repair_agent.py</code></a></td>
+<td>唯一 Repair Graph、差分 Canary、Outcome Validation</td>
+</tr>
+<tr>
+<td><a href="../src/lca_project/kernel/goal_alignment/system_repair_scm.py"><code>src/lca_project/kernel/goal_alignment/system_repair_scm.py</code></a></td>
+<td>最新 Main 重基线、PR、自动合并</td>
+</tr>
+<tr>
+<td><a href="../src/lca_project/kernel/goal_alignment/quality_trajectory.py"><code>src/lca_project/kernel/goal_alignment/quality_trajectory.py</code></a></td>
+<td>边际进展与零增益判断</td>
+</tr>
+<tr>
+<td><a href="../src/lca_project/domains/wiki_workspace.py"><code>src/lca_project/domains/wiki_workspace.py</code></a></td>
+<td>Manifest Materializer 与 Workspace 代际</td>
+</tr>
+<tr>
+<td><a href="../vendor/lca_cornerstone/scripts/wiki_claim_coverage.py"><code>vendor/lca_cornerstone/scripts/wiki_claim_coverage.py</code></a></td>
+<td>基于 Ledger 的最终声明覆盖</td>
+</tr>
+<tr>
+<td><a href="../vendor/lca_cornerstone/scripts/merge_wiki_ku.py"><code>vendor/lca_cornerstone/scripts/merge_wiki_ku.py</code></a></td>
+<td>基于 Generation 的重放和兼容合并</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="17">17. 与研究约束设计的边界<a class="headerlink" href="#17" title="Permanent link">§</a></h2>
+<p><a href="research-constraint-governance-redesign-v1.html">《研究约束与 Agent 自治平衡设计 v1》</a>回答：</p>
+<ul>
+<li>什么必须被证明；</li>
+<li>研究问题如何稳定；</li>
+<li>Agent 可以如何探索；</li>
+<li>Evidence Gate 应当怎样判定。</li>
+</ul>
+<p>本文回答：</p>
+<ul>
+<li>证明和产物如何跨阶段传递；</li>
+<li>状态如何原子变化；</li>
+<li>修复如何成为唯一、可收敛的 Graph；</li>
+<li>合法物化如何形成 Hash 代际；</li>
+<li>Job 如何从故障恢复到最终不可变发布；</li>
+<li>发布后如何清理所有衍生工作。</li>
+</ul>
+<p>两份设计共同构成完整自主生产闭环：</p>
+<blockquote>
+<p>研究约束设计固定“什么算正确”；跨阶段一致性设计固定“正确结果怎样安全地走完全程”。</p>
+</blockquote>
+<h2 id="18">18. 决策记录<a class="headerlink" href="#18" title="Permanent link">§</a></h2>
+<h3 id="adr-01-gate">ADR-01：不通过放宽 Gate 提高完成率<a class="headerlink" href="#adr-01-gate" title="Permanent link">§</a></h3>
+<p>保持事实、身份、发布和权限不变量；修复错误归因和状态协议。</p>
+<h3 id="adr-02">ADR-02：状态由事件和证明投影，而不是组件互相覆盖<a class="headerlink" href="#adr-02" title="Permanent link">§</a></h3>
+<p>引入 Job Aggregate Transition Service，并禁止 Worker 直接写 Campaign 状态。</p>
+<h3 id="adr-03hash">ADR-03：Hash 验证升级为授权物化代际<a class="headerlink" href="#adr-03hash" title="Permanent link">§</a></h3>
+<p>保留 Hash 严格性，消除多阶段合法写入的误报。</p>
+<h3 id="adr-04">ADR-04：修复预算属于因果方案<a class="headerlink" href="#adr-04" title="Permanent link">§</a></h3>
+<p>引入 Repair Key、Strategy Hash、Quality Delta 和 Supersession。</p>
+<h3 id="adr-05-completion-verifier">ADR-05：只有 Completion Verifier 可以宣告最终完成<a class="headerlink" href="#adr-05-completion-verifier" title="Permanent link">§</a></h3>
+<p>Preview、Candidate、Gate PASS 和 Apply 都不能单独结束 reviewed Job。</p>
+<hr>
+<p>最终标准不是让流水线“更容易成功”，而是让每一次推进、回卷、修复和发布都拥有唯一状态、明确所有者、完整证明和可复现的因果关系。</p></article>
+    </section>
+  </main>
+  <footer class="footer">本页由 <code>scripts/build_docs_site.py</code> 从权威 Markdown 自动生成。</footer>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+</body>
+</html>

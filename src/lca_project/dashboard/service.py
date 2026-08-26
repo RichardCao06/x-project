@@ -1517,42 +1517,58 @@ class DashboardService:
                     or payload.get("source_job_id") == job_id):
                 change_candidates.append(item)
 
+        repair_rows = goal_alignment.get("system_repair_runs") or []
+        active_repair_statuses = {
+            "queued", "coding", "validating", "awaiting_scm_publication",
+            "awaiting_approval", "promoted", "awaiting_outcome_validation",
+        }
         actions: list[dict[str, Any]] = []
         action_specs = (
             ("triage", goal_alignment.get("failure_triage_runs") or []),
             ("repair_plan", repair_plans),
             ("system_change", change_candidates),
-            ("code_repair", goal_alignment.get("system_repair_runs") or []),
+            ("code_repair", repair_rows),
         )
         for kind, rows in action_specs:
             for row in rows:
                 payload = row.get("payload") or {}
                 result = payload.get("result") or {}
+                request = payload.get("request") or {}
+                triage = request.get("triage") or {}
                 title = (
-                    result.get("cause_code") or row.get("action") or row.get("target")
+                    result.get("cause_code") or request.get("cause_code")
+                    or triage.get("cause_code") or row.get("action") or row.get("target")
                     or payload.get("action") or row.get("model") or kind
                 )
                 summary = (
-                    result.get("summary") or payload.get("summary") or row.get("last_error")
-                    or payload.get("explanation") or payload.get("status") or ""
+                    result.get("summary") or request.get("explanation")
+                    or triage.get("summary") or payload.get("summary")
+                    or row.get("last_error") or payload.get("explanation")
+                    or payload.get("status") or ""
                 )
                 actions.append({
                     "kind": kind, "status": row.get("status"), "title": title,
                     "summary": summary, "created_at": row.get("created_at"),
                     "updated_at": row.get("updated_at"),
-                    "id": row.get("triage_run_id") or row.get("repair_plan_id")
-                    or row.get("candidate_id") or row.get("repair_run_id"),
-                    "risk": row.get("risk") or result.get("risk"),
+                    "id": (row.get("repair_run_id") if kind == "code_repair" else None)
+                    or row.get("triage_run_id") or row.get("repair_plan_id")
+                    or row.get("candidate_id"),
+                    "risk": row.get("risk") or result.get("risk") or triage.get("risk"),
                     "details": {
                         key: value for key, value in {
-                            "cause_code": result.get("cause_code"),
-                            "recovery_task": result.get("recovery_task"),
-                            "implementation_targets": result.get("implementation_targets"),
-                            "causal_input_changes": result.get("causal_input_changes"),
-                            "proof_contract": result.get("proof_contract"),
+                            "cause_code": result.get("cause_code") or request.get("cause_code"),
+                            "failed_task": request.get("failed_task"),
+                            "recovery_task": result.get("recovery_task")
+                            or request.get("recovery_task"),
+                            "implementation_targets": result.get("implementation_targets")
+                            or request.get("implementation_targets"),
+                            "causal_input_changes": result.get("causal_input_changes")
+                            or request.get("causal_input_changes"),
+                            "proof_contract": result.get("proof_contract")
+                            or request.get("proof_contract"),
                             "patch_hash": row.get("patch_hash"),
                             "failure_fingerprint": payload.get("failure_fingerprint")
-                            or (payload.get("request") or {}).get("source_failure_fingerprint"),
+                            or request.get("source_failure_fingerprint"),
                             "causal_plan_hash": payload.get("causal_plan_hash"),
                             "outcome_validation": payload.get("outcome_validation"),
                             "scm": payload.get("scm"),
@@ -1561,6 +1577,118 @@ class DashboardService:
                     },
                 })
         actions.sort(key=lambda item: str(item.get("created_at") or ""))
+
+        repair_activity: dict[str, Any] = {
+            "available": bool(repair_rows), "active": False,
+            "history_count": len(repair_rows), "latest": None,
+        }
+        if repair_rows:
+            latest_repair = next(
+                (item for item in repair_rows
+                 if str(item.get("status") or "") in active_repair_statuses),
+                repair_rows[0],
+            )
+            repair_payload = latest_repair.get("payload") or {}
+            repair_request = repair_payload.get("request") or {}
+            repair_triage = repair_request.get("triage") or {}
+            repair_scm = repair_payload.get("scm") or {}
+            repair_status = str(latest_repair.get("status") or "unknown")
+            validations = list(repair_payload.get("validations") or [])
+            validation_passed = bool(validations) and all(
+                item.get("passed") is True for item in validations
+            )
+            coding_done = bool(
+                repair_payload.get("agent_result")
+                or repair_payload.get("changed_files")
+                or latest_repair.get("patch_hash")
+                or repair_status in {
+                    "validating", "awaiting_scm_publication", "awaiting_approval",
+                    "promoted", "awaiting_outcome_validation", "effective",
+                    "partially_effective", "ineffective",
+                }
+            )
+            scm_published = bool(
+                repair_scm.get("pr_url")
+                or repair_scm.get("status") == "published"
+            )
+            promoted = repair_status in {
+                "promoted", "awaiting_outcome_validation", "effective",
+                "partially_effective", "ineffective",
+            }
+            outcome_done = repair_status in {"effective", "partially_effective"}
+
+            def repair_step(
+                step_id: str, label: str, *, done: bool = False,
+                active: bool = False, failed: bool = False,
+            ) -> dict[str, Any]:
+                state = "failed" if failed else "active" if active else "done" if done else "pending"
+                return {"id": step_id, "label": label, "state": state}
+
+            repair_activity = {
+                "available": True,
+                "active": repair_status in active_repair_statuses,
+                "history_count": len(repair_rows),
+                "latest": {
+                    "repair_run_id": latest_repair.get("repair_run_id"),
+                    "candidate_id": latest_repair.get("candidate_id"),
+                    "status": repair_status,
+                    "cause_code": repair_request.get("cause_code")
+                    or repair_triage.get("cause_code"),
+                    "summary": repair_request.get("explanation")
+                    or repair_triage.get("summary") or latest_repair.get("last_error"),
+                    "failed_task": repair_request.get("failed_task"),
+                    "recovery_task": repair_request.get("recovery_task"),
+                    "created_at": latest_repair.get("created_at"),
+                    "updated_at": latest_repair.get("updated_at"),
+                    "last_error": latest_repair.get("last_error"),
+                    "attempt": (repair_payload.get("execution") or {}).get("attempt"),
+                    "owner_id": (repair_payload.get("execution") or {}).get("owner_id"),
+                    "started_at": (repair_payload.get("execution") or {}).get("started_at"),
+                    "patch_hash": latest_repair.get("patch_hash"),
+                    "changed_files": repair_payload.get("changed_files") or [],
+                    "validations": validations,
+                    "scm": {
+                        "status": repair_scm.get("status"),
+                        "issue_number": repair_scm.get("issue_number"),
+                        "issue_url": repair_scm.get("issue_url"),
+                        "pr_number": repair_scm.get("pr_number"),
+                        "pr_url": repair_scm.get("pr_url"),
+                        "head_branch": repair_scm.get("head_branch"),
+                        "commit_sha": repair_scm.get("commit_sha"),
+                        "last_error": repair_scm.get("last_error"),
+                    },
+                    "steps": [
+                        repair_step("diagnosis", "根因诊断", done=True),
+                        repair_step(
+                            "issue", "Issue 建档", done=bool(repair_scm.get("issue_url")),
+                            active=repair_status == "queued" and not repair_scm.get("issue_url"),
+                        ),
+                        repair_step(
+                            "coding", "代码修复", done=coding_done,
+                            active=repair_status == "coding",
+                            failed=repair_status == "failed" and not coding_done,
+                        ),
+                        repair_step(
+                            "validation", "测试与 Canary", done=validation_passed,
+                            active=repair_status == "validating",
+                            failed=repair_status == "failed" and coding_done,
+                        ),
+                        repair_step(
+                            "scm", "PR 与合并", done=scm_published,
+                            active=repair_status == "awaiting_scm_publication",
+                        ),
+                        repair_step(
+                            "promotion", "部署与受控回卷", done=promoted,
+                            active=repair_status in {"awaiting_approval", "promoted"},
+                        ),
+                        repair_step(
+                            "outcome", "正式运行验证", done=outcome_done,
+                            active=repair_status == "awaiting_outcome_validation",
+                            failed=repair_status == "ineffective",
+                        ),
+                    ],
+                },
+            }
 
         quality = (goal_alignment.get("quality_observations") or [{}])[0].get("payload") or {}
         research = ((quality.get("evidence") or {}).get("research_outcome") or {})
@@ -1672,6 +1800,7 @@ class DashboardService:
             "table_fields": table_fields,
             "issues": issues,
             "actions": actions,
+            "repair_activity": repair_activity,
             "research_question_governance": research_question_governance,
             "quality": {"score": quality.get("score"), "dimensions": quality.get("dimensions") or {}},
             "research_outcome": research,
@@ -2041,9 +2170,23 @@ class DashboardService:
                         recovered["triage"].append(triage_run_id)
         if self._has_table("system_repair_runs"):
             for row in self.conn.execute(
-                "SELECT repair_run_id,status,updated_at FROM system_repair_runs "
-                "WHERE status IN ('queued','coding','validating','awaiting_scm_publication') "
-                "ORDER BY created_at"
+                "SELECT r.repair_run_id,r.status,r.updated_at "
+                "FROM system_repair_runs r JOIN jobs j ON j.id=r.source_job_id "
+                "WHERE j.status NOT IN "
+                "('published','failed','superseded','quarantined',"
+                "'diagnostic_preview','evidence_limited') "
+                "AND (r.status IN "
+                "('queued','coding','validating','awaiting_scm_publication') "
+                "OR (r.status='failed' AND r.last_error='canary validation failed' "
+                "AND json_extract(r.payload,'$.validation_replan') IS NULL "
+                "AND json_extract(r.payload,'$.validation_replan_exhausted') IS NULL) "
+                "OR (r.status='failed' AND r.last_error="
+                "'coding Agent may not edit generated integrity manifests directly' "
+                "AND json_extract(r.payload,'$.coding_retry_exhausted') IS NULL)) "
+                "AND NOT EXISTS (SELECT 1 FROM system_repair_runs newer "
+                "WHERE newer.source_job_id=r.source_job_id "
+                "AND newer.created_at>r.created_at) "
+                "ORDER BY r.created_at"
             ):
                 repair_run_id = str(row["repair_run_id"])
                 status = str(row["status"])

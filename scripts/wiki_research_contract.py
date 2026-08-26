@@ -201,6 +201,7 @@ def requirement_question_id(requirement_id: str) -> str | None:
 def build_question_contracts(
     node_id: str, node_name: str, terminology: dict[str, Any],
     requirement_ids: list[str] | None = None,
+    requirement_kinds: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     subject_zh = str(terminology.get("canonical_zh") or node_name or node_id).strip()
     english_terms = [
@@ -214,6 +215,15 @@ def build_question_contracts(
         "node_name": str(node_name),
         "reference_product": subject_zh.split("|", 1)[1].strip() if "|" in subject_zh else subject_zh,
     }
+    # The evidence ledger may only require externally verifiable facts.
+    # Modeling judgments and internal graph facts are reviewed by their own
+    # logic/table/content contracts; binding them to external-source closure
+    # creates an impossible gate that no amount of search can satisfy.
+    evidence_requirement_ids = [
+        str(requirement_id) for requirement_id in requirement_ids or []
+        if requirement_kinds is None
+        or requirement_kinds.get(str(requirement_id)) == "external_fact"
+    ]
     contracts: list[dict[str, Any]] = []
     for template in QUESTION_TEMPLATES:
         subquestions = []
@@ -233,7 +243,7 @@ def build_question_contracts(
             subquestions.append({
                 "question_id": source["question_id"],
                 "requirement_ids": sorted({
-                    str(requirement_id) for requirement_id in requirement_ids or []
+                    str(requirement_id) for requirement_id in evidence_requirement_ids
                     if requirement_question_id(str(requirement_id)) == source["question_id"]
                 }),
                 "closure_rule": "all_bound_requirements_confirmed",
@@ -250,11 +260,18 @@ def build_question_contracts(
                 "requirement_patterns": list(source["requirement_patterns"]),
                 "query_intents": intents,
             })
+        available_required = {
+            str(question["question_id"])
+            for question in subquestions if question.get("requirement_ids")
+        }
         contracts.append({
             "dimension": template["dimension"],
             "criticality": template["criticality"],
             "applicability": "applicable_unless_explicitly_overridden",
-            "required_question_ids": list(template["required_question_ids"]),
+            "required_question_ids": [
+                question_id for question_id in template["required_question_ids"]
+                if requirement_kinds is None or question_id in available_required
+            ],
             "source_role_requirements": list(template["source_roles"]),
             "preferred_source_classes": list(template["preferred_source_classes"]),
             "acceptance": {

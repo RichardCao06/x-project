@@ -25,6 +25,9 @@ assert _NORMALIZER_SPEC and _NORMALIZER_SPEC.loader
 _NORMALIZER = importlib.util.module_from_spec(_NORMALIZER_SPEC)
 _NORMALIZER_SPEC.loader.exec_module(_NORMALIZER)
 normalize_sections = _NORMALIZER.normalize_sections
+enforce_claim_use_cap = _NORMALIZER.enforce_claim_use_cap
+claim_boundary_text = _NORMALIZER.claim_boundary_text
+restore_direct_internal_graph_bindings = _NORMALIZER.restore_direct_internal_graph_bindings
 
 _BLUEPRINT_SPEC = importlib.util.spec_from_file_location(
     "build_wiki_content_blueprint", ROOT / "scripts/build_wiki_content_blueprint.py"
@@ -345,6 +348,46 @@ def test_unused_confirmed_claim_and_legacy_quantity_minima_are_advisory(tmp_path
     assert all(score["checks"].values())
 
 
+def test_normalizer_does_not_force_every_confirmed_claim_into_prose(tmp_path: Path) -> None:
+    blueprint, rows = _editorial_contract()
+    verify = tmp_path / "verify.json"
+    blueprint_path = tmp_path / "blueprint.json"
+    content = tmp_path / "content.json"
+    validator = VENDOR / "scripts/run_wiki_content_capture.py"
+    verify.write_text(json.dumps({"claims": rows}, ensure_ascii=False), encoding="utf-8")
+    blueprint_path.write_text(json.dumps(blueprint, ensure_ascii=False), encoding="utf-8")
+    content.write_text(json.dumps({
+        "protocol": "wiki-content-draft-v2", "node_id": "P003",
+        "sections": [{"heading": "性质与形态", "paragraphs": [{
+            "focus": "刀片服务器产品身份和证据适用边界",
+            "sentences": [
+                {"text": "刀片服务器至少包含处理器和系统内存。",
+                 "claim_kind": "external_fact", "rhetorical_role": "thesis",
+                 "evidence_claim_ids": ["P003-4"]},
+                {"text": "该事实用于确认产品身份，不用于推断具体型号配置。",
+                 "claim_kind": "modeling_judgment", "rhetorical_role": "boundary",
+                 "evidence_claim_ids": []},
+            ],
+        }]}],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    completed = subprocess.run([
+        sys.executable, str(ROOT / "scripts/normalize_wiki_content_claims.py"),
+        str(verify), str(blueprint_path), str(content), str(validator),
+    ], text=True, capture_output=True, check=False)
+
+    assert completed.returncode == 0, completed.stderr
+    repaired = json.loads(content.read_text(encoding="utf-8"))
+    prose = " ".join(
+        sentence["text"]
+        for section in repaired["sections"]
+        for paragraph in section["paragraphs"]
+        for sentence in paragraph["sentences"]
+    )
+    assert "已核验外部事实" not in prose
+    assert "P003-5" not in prose
+
+
 def test_normalizer_persists_repairs_and_hands_residual_issue_to_model(tmp_path: Path) -> None:
     verify = tmp_path / "verify.json"
     blueprint = tmp_path / "blueprint.json"
@@ -393,3 +436,75 @@ def test_normalizer_persists_repairs_and_hands_residual_issue_to_model(tmp_path:
     residual = json.loads(usage.read_text(encoding="utf-8"))
     assert residual["normalization_status"] == "residual_issues"
     assert "identity_tokens" in residual["validation_error"]
+
+
+def test_claim_cap_preserves_direct_graph_fact_and_demotes_interpretive_overflow() -> None:
+    sentences = [
+        {"text": "P001 输入和 P001 输出表示服务器状态转换。",
+         "claim_kind": "internal_graph_fact", "evidence_claim_ids": ["A019-16"]},
+        {"text": "P001 在 A019 中既作为输入又作为输出。",
+         "claim_kind": "internal_graph_fact", "evidence_claim_ids": ["A019-16"]},
+        {"text": "P017 作为图谱输入，不将测试重复计入 A019。",
+         "claim_kind": "internal_graph_fact", "evidence_claim_ids": ["A019-16"]},
+        {"text": "A019 输入为 P001、P066、P017，输出为 P001 和 P034。",
+         "claim_kind": "internal_graph_fact", "evidence_claim_ids": ["A019-16"]},
+        {"text": "P066 和 P034 应按实际发生量进入本节点并用于对账。",
+         "claim_kind": "internal_graph_fact", "evidence_claim_ids": ["A019-16"]},
+    ]
+    claims = {"A019-16": {
+        "claim_id": "A019-16", "claim_kind": "internal_graph_fact",
+        "claim_text": "节点图显示 A019 消耗 P001、P066、P017，并生产 P001、P034。",
+    }}
+
+    counts = enforce_claim_use_cap(sentences, claims)
+
+    assert counts == {"A019-16": 3}
+    assert sentences[3]["evidence_claim_ids"] == ["A019-16"]
+    assert sentences[4]["evidence_claim_ids"] == []
+    assert sentences[4]["claim_kind"] == "modeling_judgment"
+    assert all(
+        sentence["evidence_claim_ids"]
+        for sentence in sentences
+        if sentence["claim_kind"] == "internal_graph_fact"
+    )
+
+
+def test_restore_direct_internal_graph_bindings_after_editorial_split() -> None:
+    document = {"sections": [{
+        "heading": "投入产出与脊边对账",
+        "paragraphs": [{"sentences": [
+            {"text": "有序边台账把 A019 的输入逐条限定为 P001、P066 和 P017。",
+             "claim_kind": "modeling_judgment", "evidence_claim_ids": []},
+            {"text": "A019 的输出登记包含 P001 和 P034。",
+             "claim_kind": "modeling_judgment", "evidence_claim_ids": []},
+            {"text": "P001 的输入和输出应视为同一服务器的状态衔接。",
+             "claim_kind": "modeling_judgment", "evidence_claim_ids": []},
+        ]}]}]}
+    claims = {"A019-16": {
+        "claim_id": "A019-16", "claim_kind": "internal_graph_fact",
+        "node_id": "A019", "section": "投入产出与脊边对账",
+        "claim_text": "节点图显示 A019 消耗 P001、P066、P017，并生产 P001、P034。",
+    }}
+
+    restore_direct_internal_graph_bindings(document, claims)
+
+    sentences = document["sections"][0]["paragraphs"][0]["sentences"]
+    assert [sentence["claim_kind"] for sentence in sentences] == [
+        "internal_graph_fact", "internal_graph_fact", "modeling_judgment",
+    ]
+    assert sentences[0]["evidence_claim_ids"] == ["A019-16"]
+    assert sentences[1]["evidence_claim_ids"] == ["A019-16"]
+    assert sentences[2]["evidence_claim_ids"] == []
+
+
+def test_inserted_fact_boundaries_are_distinct_by_requirement_role() -> None:
+    identity = claim_boundary_text("A019-1", {
+        "requirement_id": "activity.identity.catalyst_route",
+    })
+    operation = claim_boundary_text("A019-8", {
+        "requirement_id": "activity.boundary.included_operations",
+    })
+
+    assert identity != operation
+    assert "活动身份" in identity
+    assert "纳入操作" in operation

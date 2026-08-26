@@ -292,6 +292,14 @@
 
     .section-dark code { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
     .section-dark .muted { color: #aebcb5; }
+    .section-dark .section-intro { color: #b9c8c0; }
+    .section-dark .lede-box,
+    .section-dark .contract-table-wrap {
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.045);
+      box-shadow: none;
+    }
+    .section-dark .lede-box a { color: #f2c96f; }
 
     .section-head {
       display: grid;
@@ -867,8 +875,8 @@
   <a class="skip-link" href="#main">跳到正文</a>
 
   <div class="topline">
-    <span class="status-mark">Proposal / Design only</span>
-    <span>LCA Project · Constraint Governance · 2026-08-24</span>
+    <span class="status-mark">Partial implementation / E2E open</span>
+    <span>LCA Project · Constraint Governance · updated 2026-08-26</span>
   </div>
 
   <header class="hero">
@@ -878,6 +886,7 @@
       <p class="hero-lead">
         重新划分哪些规则必须阻塞、哪些规则应推动探索、哪些结论必须被证据证明，
         让 Gate 回到“能否安全推进”的职责，让 Agent 在清晰的语义边界内自由选择检索与修复路径。
+        本文负责研究语义与约束治理；完整 Job 的跨阶段恢复、Artifact 代际与发布收尾由配套的一致性设计承接。
       </p>
     </div>
     <aside class="hero-thesis" aria-label="核心设计原则">
@@ -900,6 +909,7 @@
       <a href="#maturity"><span>09</span><span>完成度阶梯</span></a>
       <a href="#implementation"><span>10</span><span>实施顺序</span></a>
       <a href="#acceptance"><span>11</span><span>验收标准</span></a>
+      <a href="#delivery-boundary"><span>12</span><span>实现状态与边界</span></a>
       <div class="rail-actions">
         <button id="toggleDetails" type="button">展开全部说明</button>
         <button type="button" onclick="window.print()">打印 / PDF</button>
@@ -1381,7 +1391,7 @@
           <article><h3>Dashboard 投影</h3><p>按阶段展示行动、结论、Gate 依据、失败要求、查询与采纳/拒绝原因，并把原始 JSON 作为可核验底层证据。</p></article>
         </div>
 
-        <h3 style="margin-top:3rem">当前实现的主要落点</h3>
+        <h3 style="margin-top:3rem">第一阶段实现落点（不代表端到端验收）</h3>
         <div class="code-map">
           <article><code><a href="../scripts/build_wiki_research_plan.py">scripts/build_wiki_research_plan.py</a></code><p>从字符串维度升级为 Research Question Contract v2 的编译入口。</p></article>
           <article><code><a href="../contracts/wiki-research-plan-v1.schema.json">contracts/wiki-research-plan-v1.schema.json</a></code><p>新增 v2 schema；v1 只做兼容读取，不能继续作为正式生产契约。</p></article>
@@ -1418,20 +1428,65 @@
           <p>最终标准不是让 Agent 更自由，也不是让规则更严格，而是让自由发生在策略空间，让严格发生在证明边界。</p>
         </div>
       </section>
+
+      <section class="section section-dark" id="delivery-boundary">
+        <div class="section-head">
+          <span class="section-index">12 / Delivery boundary</span>
+          <div>
+            <h2>代码落地不是端到端完成：用五级证据纠正实现状态</h2>
+            <p class="section-intro">
+              A019 在第一阶段代码落地后仍暴露了 Canary 基线归因、派生 Manifest 所有权、原 Job 回卷、Repair 收尾和发布一致性问题。
+              这些问题并非本文已经解决后再次回归，而是早期设计只覆盖研究阶段内部语义，没有覆盖完整 Job 的跨阶段事务。
+            </p>
+          </div>
+        </div>
+
+        <div class="constraint-grid" aria-label="实现状态的五级证据">
+          <article class="constraint-card"><b>01 · Designed</b><h3>已设计</h3><p>协议、边界和验收谓词已经写明，但尚不能据此宣称系统行为已改变。</p></article>
+          <article class="constraint-card"><b>02 · Implemented</b><h3>已编码</h3><p>代码和单元测试存在，仍可能未进入 main、未由运行进程加载或未覆盖迁移路径。</p></article>
+          <article class="constraint-card"><b>03 · Merged</b><h3>已合并</h3><p>主分支具备实现，仍需确认部署版本、配置和 Dashboard 进程使用的是该基线。</p></article>
+          <article class="constraint-card"><b>04 · E2E verified</b><h3>端到端已验证</h3><p>故障注入与完整 Job 验证通过，包括恢复、SCM、回卷、发布和清理。</p></article>
+          <article class="constraint-card"><b>05 · Production observed</b><h3>生产已观测</h3><p>真实 Job 在无人介入下稳定收敛，且状态、产物、Release 与治理记录一致。</p></article>
+        </div>
+
+        <div class="contract-table-wrap" style="margin-top:3rem">
+          <table>
+            <thead><tr><th>能力</th><th>截至 2026-08-26 的状态</th><th>边界说明</th></tr></thead>
+            <tbody>
+              <tr><td>Research Question Contract v2</td><td>已生产观测</td><td>核心问题与显式 intent 已进入真实 Job；兼容路径仍需回归。</td></tr>
+              <tr><td>逐问题证据账本与来源组合评估</td><td>已生产观测</td><td>能表达 confirmed / partial / gap，但不替代跨阶段恢复事务。</td></tr>
+              <tr><td>Execution / Decision / Goal effect 三轴</td><td>部分实现</td><td>研究 Gate 已拆分；通用 capability 和 release 路径仍存在退出码混义。</td></tr>
+              <tr><td>失败指纹与策略差异</td><td>部分实现</td><td>已能减少部分盲重试；尚未形成唯一 Repair Graph 和全局边际进展控制。</td></tr>
+              <tr><td>Preview 与 completion goal 分离</td><td>已生产观测</td><td>Reviewed Job 不再因 Preview 提前完成。</td></tr>
+              <tr><td>Job / Run / Task / Item / Campaign 原子恢复</td><td>本版未覆盖</td><td>属于跨阶段执行一致性，不应被早期“第一阶段已实现”表述包含。</td></tr>
+              <tr><td>Artifact Generation Ledger 与派生文件所有权</td><td>本版未覆盖</td><td>用于解决合法连续写入、Manifest 重算和 SIDE_EFFECT 误判。</td></tr>
+              <tr><td>Repair / SCM / Release 最终收尾</td><td>本版未覆盖</td><td>需要最终一致性校验、旧支线 supersede 与不可变发布事务。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="lede-box" style="margin-top:3rem">
+          <p>
+            配套设计：<a href="job-execution-consistency-autonomous-convergence-v1.html">《Job 跨阶段状态一致性与自主收敛设计 v1》</a>。
+            它把本文的研究约束原则扩展到 Job Aggregate、Recovery Transaction、Artifact Generation、Repair Graph、差分 Canary 和 Completion Transaction。
+          </p>
+        </div>
+      </section>
     </main>
   </div>
 
   <aside class="final-callout">
     <h2>用契约固定含义，用 Agent 探索路径。</h2>
     <p>
-      2026-08-25 已完成第一阶段生产实现：Research Question Contract v2、精确 requirement 绑定、逐问题证据账本、
-      证据充分性与来源组合质量拆分、结构化 Gate 失败包、策略差异重检、三轴事件语义与 Dashboard 中文投影均已落入代码。
-      历史 Job 与数据库未被就地改写；需要从 research_plan 受控回卷或启动新 Job 才会生成 v2 产物。
+      2026-08-25 完成的是研究约束治理的第一阶段代码落点：Research Question Contract v2、精确 requirement 绑定、逐问题证据账本、
+      证据充分性与来源组合质量拆分、结构化 Gate 失败包、部分策略差异重检与 Dashboard 中文投影。
+      这不构成完整 Job 跨阶段一致性的端到端验收；原子恢复、Artifact 代际、Repair 唯一性和最终发布收尾仍须按配套设计实施并通过故障注入。
+      历史 Job 与数据库不会被就地改写；需要受控回卷或启动新 Job 才会生成新版产物。
     </p>
   </aside>
 
   <footer>
-    <span>LCA Project / Implemented Design Baseline</span>
+    <span>LCA Project / Partial Implementation Baseline</span>
     <span>Research constraint governance redesign · v1</span>
   </footer>
 

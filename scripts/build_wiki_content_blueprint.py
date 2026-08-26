@@ -99,13 +99,29 @@ def build(graph: dict, node_id: str) -> dict:
     route = str((node.get("facets") or {}).get("technology_route", ""))
     product_ids = {str(item.get("name")): str(item["id"])
                    for item in graph.get("products", []) if item.get("id") and item.get("name")}
-    flow_labels = [f"{product_ids[name]} {name}" for name in [*inputs, *outputs]
-                   if name in product_ids]
-    flow_directions = {
-        f"{product_ids[name]} {name}": direction
+    unresolved_flows = [name for name in [*inputs, *outputs] if name not in product_ids]
+    if unresolved_flows:
+        raise ValueError(
+            "activity flow labels are not bound to product IDs: "
+            + ", ".join(dict.fromkeys(unresolved_flows))
+        )
+    flow_ledger = [
+        {"field": f"{product_ids[name]} {name}", "direction": direction}
         for names, direction in ((inputs, "in"), (outputs, "out"))
-        for name in names if name in product_ids
+        for name in names
+    ]
+    flow_labels = [row["field"] for row in flow_ledger]
+    directions_by_field = {
+        field: {row["direction"] for row in flow_ledger if row["field"] == field}
+        for field in flow_labels
     }
+    # Compatibility consumers may use the scalar map only when every label has
+    # one direction.  The ordered ledger remains the canonical contract.
+    legacy_flow_directions = (
+        {row["field"]: row["direction"] for row in flow_ledger}
+        if all(len(directions) == 1 for directions in directions_by_field.values())
+        else None
+    )
     output_families = set().union(*(_families(name) for name in outputs)) if outputs else set()
     semantic_conflicts = []
     for input_name in inputs:
@@ -127,7 +143,12 @@ def build(graph: dict, node_id: str) -> dict:
     return {
         "protocol": "wiki-content-blueprint-v1", "node_id": node_id, "node_type": node_type,
         "node_name": node["name"], "technology_route": route,
-        "flow_directions": flow_directions,
+        # Flow identity is edge-scoped: one product may legitimately be both
+        # consumed and produced by the same activity.  A field-keyed mapping
+        # cannot represent that graph without overwriting one direction.
+        "flow_ledger": flow_ledger,
+        **({"flow_directions": legacy_flow_directions}
+           if legacy_flow_directions is not None else {}),
         "semantic_conflicts": semantic_conflicts,
         "golden_target": {"recommended_assertions": 36,
                           "maximum_assertions": 140, "recommended_paragraphs": 18,

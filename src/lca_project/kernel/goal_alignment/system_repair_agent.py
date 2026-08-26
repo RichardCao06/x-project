@@ -17,7 +17,7 @@ from ..orchestrator import PersistentOrchestrator
 from ..state import utcnow
 from .change_controller import ChangeController
 from .execution_ownership import ExecutionOwnership
-from .store import canonical, digest
+from .store import AlignmentStore, canonical, digest
 from .system_repair_scm import SystemRepairScmPublisher
 
 
@@ -33,6 +33,8 @@ class SystemRepairAgent:
     """Run a coding Agent in a disposable snapshot, then govern promotion."""
 
     MODEL = "gpt-5.6-sol"
+    MAX_VALIDATION_REPLANS = 3
+    MAX_CODING_RETRIES = 3
     # These states are non-executable.  ``awaiting_outcome_validation`` is not
     # a successful repair result; it only means the validated patch is live and
     # the official recovery branch must now prove goal improvement.
@@ -52,6 +54,10 @@ class SystemRepairAgent:
         "policies/governance-v1.json",
         "capabilities/release.apply@1.json",
         "config/system-repair-replay-corpus.json",
+    }
+    GENERATED_INTEGRITY_PATHS = {
+        "docs/migration-manifest.json",
+        "docs/wiki-phase2-migration-manifest.json",
     }
     IGNORED_NAMES = {
         ".git", ".idea", ".pytest_cache", ".mypy_cache", ".ruff_cache",
@@ -342,6 +348,51 @@ class SystemRepairAgent:
                 )
         return updated
 
+    @classmethod
+    def _discard_direct_integrity_edits(
+        cls, sandbox: Path, baseline: Path, changed: list[str],
+    ) -> list[str]:
+        """Restore generated manifests before the trusted anchor adapter runs.
+
+        Coding Agents may correctly discover that a vendored asset needs a new
+        hash, but they are not an authority for the generated manifest itself.
+        Preserve the implementation patch while replacing any direct manifest
+        edit with the exact baseline bytes.  ``_refresh_integrity_anchors`` then
+        derives the only permitted manifest delta from changed, pre-existing
+        anchored assets.
+        """
+        discarded = sorted(set(changed) & cls.GENERATED_INTEGRITY_PATHS)
+        for relative in discarded:
+            source = baseline / relative
+            target = sandbox / relative
+            if not source.is_file() or source.is_symlink():
+                raise SystemRepairError(
+                    f"trusted integrity baseline is unavailable: {relative}"
+                )
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_suffix(target.suffix + ".trusted-tmp")
+            temporary.write_bytes(source.read_bytes())
+            os.replace(temporary, target)
+        return discarded
+
+    @classmethod
+    def _normalise_agent_result_integrity_claims(
+        cls, result: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Remove non-authoritative manifest claims from the Agent report."""
+        normalised = json.loads(json.dumps(result))
+        normalised["changed_files"] = [
+            str(path) for path in normalised.get("changed_files") or []
+            if str(path) not in cls.GENERATED_INTEGRITY_PATHS
+        ]
+        for item in normalised.get("causal_input_changes_applied") or []:
+            if isinstance(item, dict):
+                item["changed_files"] = [
+                    str(path) for path in item.get("changed_files") or []
+                    if str(path) not in cls.GENERATED_INTEGRITY_PATHS
+                ]
+        return normalised
+
     def _repair_contract_targets(self, request: dict[str, Any]) -> list[str]:
         targets: list[str] = []
         for value in request.get("implementation_targets") or []:
@@ -386,7 +437,10 @@ class SystemRepairAgent:
             "repository snapshot. Diagnose the structured failure below, implement the smallest "
             "goal-preserving fix, and add regression tests. Do not change Goal Contracts, repair "
             "authority, release permissions, secrets, generated var data, or git state. Do not "
-            "commit. Preserve fail-closed behavior and hash bindings. Run focused tests before "
+            "commit. Do not edit docs/migration-manifest.json or "
+            "docs/wiki-phase2-migration-manifest.json; the trusted runtime regenerates their "
+            "hash anchors after your implementation is accepted. Preserve fail-closed behavior "
+            "and hash bindings. Run focused tests before "
             "finishing. When causal_input_changes and proof_contract are supplied, the result "
             "must declare causal_input_changes_applied with actual changed files and "
             "proof_instrumentation for every requested metric; tests alone are patch evidence, "
@@ -660,7 +714,14 @@ class SystemRepairAgent:
             )
             return self.get(repair_run_id)
         if record["status"] == "failed" and candidate["status"] != "proposed":
-            return record
+            failed_validation = self._failed_validation(record["payload"])
+            if (failed_validation is not None
+                    and not record["payload"].get("validation_replan_exhausted")):
+                self._queue_validation_replan(
+                    record, candidate, dict(record["payload"]),
+                    failed_validation, ownership=ownership,
+                )
+            return self.get(repair_run_id)
         run_dir = self.root / "var/system-repairs" / repair_run_id
         sandbox = run_dir / "sandbox"
         baseline = run_dir / "baseline"
@@ -702,6 +763,7 @@ class SystemRepairAgent:
             ownership=ownership,
         )
         patch_hash: str | None = None
+        coding_complete = False
         try:
             self._validate_repair_request(payload["request"])
             self._validate_repair_contract(payload["request"])
@@ -711,17 +773,16 @@ class SystemRepairAgent:
             }}
             agent_result = self.agent_runner(sandbox, request)
             agent_after = self._snapshot(sandbox)
+            raw_agent_changed = self._changed_files(before, agent_after)
+            discarded_integrity_edits = self._discard_direct_integrity_edits(
+                sandbox, baseline, raw_agent_changed
+            )
+            agent_after = self._snapshot(sandbox)
             agent_changed = self._changed_files(before, agent_after)
+            agent_result = self._normalise_agent_result_integrity_claims(agent_result)
             self._validate_goal_repair_claims(
                 payload["request"], agent_result, agent_changed
             )
-            if set(agent_changed) & {
-                "docs/migration-manifest.json",
-                "docs/wiki-phase2-migration-manifest.json",
-            }:
-                raise SystemRepairError(
-                    "coding Agent may not edit generated integrity manifests directly"
-                )
             declared = sorted(str(path) for path in agent_result.get("changed_files") or [])
             if declared and declared != agent_changed:
                 raise SystemRepairError(
@@ -737,10 +798,12 @@ class SystemRepairAgent:
             validations: list[dict[str, Any]] = []
             payload.update({"agent_result": agent_result, "changed_files": changed,
                             "scm_base_hashes": {path: before.get(path) for path in changed},
+                            "discarded_direct_integrity_edits": discarded_integrity_edits,
                             "generated_integrity_anchors": refreshed_anchors,
                             "patch_hash": patch_hash, "validations": validations})
             self._set(repair_run_id, "validating", payload=payload,
                       sandbox=sandbox, patch_hash=patch_hash, ownership=ownership)
+            coding_complete = True
             for phase, tests in self._validation_commands(
                 sandbox, payload["request"]
             ).items():
@@ -762,6 +825,10 @@ class SystemRepairAgent:
                               "result": result},
                 )
                 if certificate["verdict"] != "pass":
+                    if (phase == "canary" and self._queue_validation_replan(
+                            record, candidate, payload, result,
+                            ownership=ownership)):
+                        return self.get(repair_run_id)
                     raise SystemRepairError(f"{phase} validation failed")
             scm = self.scm.publish_patch(
                 {**record, "payload": payload}, candidate,
@@ -797,12 +864,240 @@ class SystemRepairAgent:
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError,
                 json.JSONDecodeError) as exc:
             payload["execution"] = {**payload.get("execution", {}), "failed_at": utcnow()}
-            self._set(repair_run_id, "failed", payload=payload, sandbox=sandbox,
-                      patch_hash=patch_hash, error=str(exc), ownership=ownership)
+            recoverable = isinstance(exc, SystemRepairError) and not coding_complete
+            retry_revision = int(
+                (payload.get("request") or {}).get("coding_retry_revision") or 0
+            ) + 1
+            if recoverable and retry_revision <= self.MAX_CODING_RETRIES:
+                payload["request"] = {
+                    **(payload.get("request") or {}),
+                    "coding_retry_revision": retry_revision,
+                    "prior_coding_rejection": {
+                        "revision": retry_revision,
+                        "error": str(exc),
+                        "instruction": (
+                            "Regenerate the same causal repair while obeying the runtime "
+                            "mutation contract; do not repeat this rejected operation."
+                        ),
+                    },
+                }
+                payload["coding_retry"] = {
+                    "revision": retry_revision, "reason": str(exc),
+                    "queued_at": utcnow(),
+                }
+                self._set(repair_run_id, "queued", payload=payload, sandbox=sandbox,
+                          patch_hash=None,
+                          error=f"{exc}; bounded coding retry queued",
+                          ownership=ownership)
+                event_type = "system_repair.coding_retry_queued"
+            else:
+                if recoverable:
+                    payload["coding_retry_exhausted"] = {
+                        "revision": retry_revision,
+                        "max_coding_retries": self.MAX_CODING_RETRIES,
+                        "reason": str(exc), "exhausted_at": utcnow(),
+                    }
+                self._set(repair_run_id, "failed", payload=payload, sandbox=sandbox,
+                          patch_hash=patch_hash, error=str(exc), ownership=ownership)
+                event_type = "system_repair.failed"
             self.control.events.append("system_repair", repair_run_id,
-                                       "system_repair.failed", {"error": str(exc)},
+                                       event_type, {"error": str(exc)},
                                        actor="system-repair-agent")
             return self.get(repair_run_id)
+
+    @staticmethod
+    def _failed_validation(payload: dict[str, Any]) -> dict[str, Any] | None:
+        """Return the newest failed Canary result retained by a repair run."""
+        for validation in reversed(list(payload.get("validations") or [])):
+            if (isinstance(validation, dict)
+                    and validation.get("phase") == "canary"
+                    and validation.get("passed") is not True):
+                return validation
+        return None
+
+    def _queue_validation_replan(
+        self, record: dict[str, Any], candidate: dict[str, Any],
+        payload: dict[str, Any], validation: dict[str, Any], *,
+        ownership: ExecutionOwnership | None = None,
+    ) -> bool:
+        """Turn a new Canary regression into a bounded successor repair.
+
+        Canary remains fail-closed: the rejected patch is never published or
+        promoted.  The regression becomes a new, hash-bound causal input for a
+        fresh candidate so the coding Agent must repair both the source fault
+        and the safety regression before SCM publication can occur.
+        """
+        request = dict(payload.get("request") or {})
+        revision = int(request.get("validation_replan_revision") or 0) + 1
+        failed_tests = sorted({
+            str(item) for item in (
+                validation.get("new_failed_tests")
+                or validation.get("failed_tests") or []
+            ) if str(item)
+        })
+        failure = {
+            "phase": "canary",
+            "revision": revision,
+            "parent_repair_run_id": str(record["repair_run_id"]),
+            "parent_candidate_id": str(candidate["candidate_id"]),
+            "parent_patch_hash": str(record.get("patch_hash") or ""),
+            "new_failed_tests": failed_tests,
+            "candidate_exit_code": validation.get("exit_code"),
+            "baseline_exit_code": (validation.get("baseline") or {}).get("exit_code"),
+            "baseline_failed_tests": list(
+                (validation.get("baseline") or {}).get("failed_tests") or []
+            ),
+            "stdout_tail": str(validation.get("stdout_tail") or "")[-8000:],
+            "stderr_tail": str(validation.get("stderr_tail") or "")[-4000:],
+            "changed_files": list(payload.get("changed_files") or []),
+        }
+        sandbox_value = str(record.get("sandbox_path") or "")
+        sandbox = Path(sandbox_value) if sandbox_value else None
+        if revision > self.MAX_VALIDATION_REPLANS:
+            payload["validation_replan_exhausted"] = {
+                **failure,
+                "max_validation_replans": self.MAX_VALIDATION_REPLANS,
+                "exhausted_at": utcnow(),
+            }
+            error = (
+                "canary validation failed and bounded validation replan budget "
+                f"was exhausted ({self.MAX_VALIDATION_REPLANS})"
+            )
+            self._set(
+                str(record["repair_run_id"]), "failed", payload=payload,
+                sandbox=sandbox,
+                patch_hash=str(record.get("patch_hash") or ""), error=error,
+                ownership=ownership,
+            )
+            self.control.events.append(
+                "system_repair", str(record["repair_run_id"]),
+                "system_repair.validation_replan_exhausted",
+                payload["validation_replan_exhausted"],
+                actor="system-repair-agent",
+            )
+            return False
+
+        source_deviation_id = candidate.get("source_deviation_id")
+        successor_deviation_id = source_deviation_id
+        if source_deviation_id:
+            source = self.state._connection().execute(
+                "SELECT goal_id FROM deviation_reports WHERE deviation_id=?",
+                (source_deviation_id,),
+            ).fetchone()
+            if source is not None:
+                store = AlignmentStore(self.state)
+                deviation = store.deviation(
+                    job_id=str(record["source_job_id"]),
+                    run_id=record.get("source_run_id"),
+                    goal_id=str(source["goal_id"]),
+                    value={
+                        "deviation_type": "system_repair_canary_regression",
+                        "severity": "high",
+                        "evidence": failure,
+                        "summary": (
+                            "A proposed System Repair introduced new Canary "
+                            f"regressions: {failed_tests or ['unparsed_canary_failure']}"
+                        ),
+                    },
+                )
+                successor_deviation_id = deviation["deviation_id"]
+                store.diagnosis(successor_deviation_id, {
+                    "cause_code": "SYSTEM_REPAIR_CANARY_REGRESSION",
+                    "confidence": 1.0,
+                    "evidence": failure,
+                    "explanation": (
+                        "The candidate differs from a passing baseline and is "
+                        "therefore unsafe to publish until the new regressions are fixed."
+                    ),
+                })
+                store.repair_plan(successor_deviation_id, {
+                    "repair_level": "L2",
+                    "action": "repair_canary_regression",
+                    "authority": "system-repair-agent",
+                    "invalidates": [],
+                    "preserves": ["canary_fail_closed", "original_goal_constraints"],
+                    "validation": ["sandbox", "shadow", "canary"],
+                    "automatic": True,
+                    "status": "scheduled",
+                })
+
+        successor = self.changes.propose(
+            source_deviation_id=successor_deviation_id,
+            target="repair_canary_regression",
+            risk=str(candidate.get("risk") or "high"),
+            change={
+                "action": "repair_canary_regression",
+                "supersedes_candidate_id": candidate["candidate_id"],
+                "supersedes_repair_run_id": record["repair_run_id"],
+                "validation_replan_revision": revision,
+                "validation_failure": failure,
+            },
+            rollback={
+                "strategy": "discard_successor_repair_branch",
+                "trigger": "validation regression or exhausted replan budget",
+            },
+        )
+        causal_changes = list(request.get("causal_input_changes") or [])
+        causal_changes.append({
+            "causal_input": "system_repair_candidate_regression",
+            "change": (
+                f"validation replan {revision}: eliminate the new Canary failures "
+                f"{failed_tests or ['unparsed_canary_failure']} while preserving the "
+                "original repair and without weakening tests or governance checks"
+            ),
+            "expected_effect": (
+                "the regenerated candidate passes the untouched full regression suite"
+            ),
+        })
+        validation_tests = list(request.get("validation_tests") or [])
+        validation_tests.extend(
+            str(test).split("::", 1)[0] for test in failed_tests
+            if str(test).startswith("tests/")
+        )
+        successor_run = self.queue(
+            candidate_id=str(successor["candidate_id"]),
+            source_job_id=str(record["source_job_id"]),
+            source_run_id=record.get("source_run_id"),
+            request={
+                **request,
+                "parent_cause_code": request.get("cause_code"),
+                "cause_code": "SYSTEM_REPAIR_CANARY_REGRESSION",
+                "explanation": (
+                    "The parent repair introduced failures absent from the untouched "
+                    "Canary baseline; regenerate the original repair and eliminate these "
+                    "regressions without weakening validation."
+                ),
+                "mechanism_family": "repair_validation_regression",
+                "triage_run_id": None,
+                "validation_replan_revision": revision,
+                "supersedes_repair_run_id": record["repair_run_id"],
+                "causal_input_changes": causal_changes,
+                "validation_tests": list(dict.fromkeys(validation_tests)),
+                "validation_replan": failure,
+            },
+        )
+        payload["validation_replan"] = {
+            **failure,
+            "successor_deviation_id": successor_deviation_id,
+            "successor_candidate_id": successor["candidate_id"],
+            "successor_repair_run_id": successor_run["repair_run_id"],
+            "queued_at": utcnow(),
+        }
+        self._set(
+            str(record["repair_run_id"]), "replan_required", payload=payload,
+            sandbox=sandbox,
+            patch_hash=str(record.get("patch_hash") or ""),
+            error="canary validation failed; bounded successor repair queued",
+            ownership=ownership,
+        )
+        from .work_dispatcher import dispatch_system_repair
+        dispatch_system_repair(self.root, str(successor_run["repair_run_id"]))
+        self.control.events.append(
+            "system_repair", str(record["repair_run_id"]),
+            "system_repair.validation_causal_replan_queued",
+            payload["validation_replan"], actor="system-repair-agent",
+        )
+        return True
 
     def publish_scm(self, repair_run_id: str) -> dict[str, Any]:
         """Retry a required Issue/commit/PR publication before promotion."""

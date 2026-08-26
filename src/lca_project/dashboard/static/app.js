@@ -7,6 +7,7 @@ const backdrop = document.querySelector('#drawer-backdrop');
 let autoRefresh = true;
 let refreshTimer;
 let activeJsonDocument = null;
+const jobViewState = new Map();
 
 const pages = {
   overview: ['01', '运行总览'], jobs: ['02', '任务与目标'], workflows: ['03', '工作流运行'],
@@ -30,6 +31,17 @@ const badge = value => `<span class="status ${h(String(value||'').toLowerCase())
 const empty = (name, detail='当前没有可展示的持久化记录。') => `<div class="empty"><b>${h(name)}</b>${h(detail)}</div>`;
 const jsonView = value => `<pre class="json-view">${h(JSON.stringify(value ?? {}, null, 2))}</pre>`;
 const pct = (part,total) => total ? Math.round(part/total*100) : 0;
+const relativeTime = value => {
+  if (!value) return '未记录';
+  const elapsed = Date.now() - new Date(value).valueOf();
+  if (!Number.isFinite(elapsed)) return fmtDate(value);
+  const seconds = Math.max(0, Math.floor(elapsed / 1000));
+  if (seconds < 60) return `${seconds} 秒前`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 48 ? `${hours} 小时前` : fmtDate(value);
+};
 
 async function api(path, options={}) {
   const response = await fetch(path, {headers:{'Content-Type':'application/json'}, ...options});
@@ -215,13 +227,20 @@ async function createJob() {
   form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('.create-submit');button.disabled=true;button.textContent='正在提交…';try{const request={};for(const input of form.querySelectorAll('.schema-input')){const type=input.dataset.type,name=input.dataset.name;let value;if(type==='boolean')value=input.checked;else if(type==='array'){const raw=input.value.trim();if(!raw)continue;value=raw.split(/[\n,，]+/).map(x=>x.trim()).filter(Boolean);if(input.dataset.itemType==='number')value=value.map(Number);else if(input.dataset.itemType==='integer')value=value.map(x=>parseInt(x,10));}else if(type==='object'){if(!input.value.trim())continue;value=JSON.parse(input.value);}else if(type==='integer'){if(!input.value)continue;value=parseInt(input.value,10);}else if(type==='number'){if(!input.value)continue;value=Number(input.value);}else{if(!input.value.trim())continue;value=input.value.trim();}request[name]=value;}if(form.querySelector('#autonomous-supervision').checked){const target=request.nodes?.[0]||request.target||'request';const completionGoal=request.publication_mode==='reviewed'?'reviewed_publication':'lca_modeling_ready';const spec={schema_version:'autonomous-job-campaign-v1',name:`${current.name}:${target}`,skill:current.name,requests:[request],completion_goal:completionGoal,max_concurrency:1,max_auto_repairs_per_job:3,poll_seconds:2,stop_on_failure:false};const result=await api('/api/autonomy',{method:'POST',body:JSON.stringify({spec,start:true})});const item=result.items?.[0];toast('自治 Campaign 已启动');location.hash=item?.job_id?`#/jobs/${encodeURIComponent(item.job_id)}`:'#/jobs';return;}const payload={skill:current.name,request,materialize:form.querySelector('#auto-materialize').checked};const key=form.querySelector('#idempotency-key').value.trim();if(key)payload.idempotency_key=key;const result=await api('/api/jobs',{method:'POST',body:JSON.stringify(payload)});toast(result.deduplicated?'已找到相同任务，未重复创建':'任务创建成功');location.hash=`#/jobs/${encodeURIComponent(result.job_id)}`;}catch(err){toast(err instanceof SyntaxError?'JSON 字段格式不正确':err.message,true);button.disabled=false;button.textContent='提交任务 →';}});
 }
 
-async function jobDetail(jobId) {
-  setPage('jobs','JOB DETAIL'); const data=await api(`/api/jobs/${encodeURIComponent(jobId)}`);
+async function jobDetail(jobId, {background=false}={}) {
+  setPage('jobs','JOB DETAIL');
+  const data=await api(`/api/jobs/${encodeURIComponent(jobId)}`);
+  const prior=jobViewState.get(jobId)||{};
+  const repair=data.execution_trace?.repair_activity?.latest;
+  const renderVersion=[data.job?.updated_at,data.run?.updated_at,repair?.repair_run_id,repair?.status,repair?.updated_at,data.events?.[0]?.sequence].join('|');
+  if(background&&prior.renderVersion===renderVersion){scheduleJobDetailRefresh(jobId,data);return;}
+  const previousScroll=background?window.scrollY:0;
   const job=data.job, payload=job.payload||{}, tasks=data.tasks||[], preview=data.preview, done=tasks.filter(t=>t.status==='succeeded').length;
   const canMaterialize=!data.run;
   const canPause=['planned','ready','leased','running','stalled','retryable','repairable','manual_review','blocked_budget'].includes(job.status);
   app.innerHTML=`<div class="reveal">
     <section class="job-hero"><div><span class="section-kicker">${h(job.workflow_id||'UNMATERIALIZED')}</span><h2>${h(payload.target||job.id)}</h2><p class="mono">${h(job.id)}</p><div class="job-meta"><span>状态 <b>${h(labels[job.status]||job.status)}</b></span><span>策略 <b>${h(payload.policy_version||'—')}</b></span><span>风险 <b>${h(payload.risk||'standard')}</b></span><span>更新 <b>${fmtDate(job.updated_at)}</b></span></div></div>${data.run?`<div><div class="progress-ring" style="--progress:${pct(done,tasks.length)}%"><strong>${done}/${tasks.length}</strong><small>成功阶段</small></div><div class="job-actions">${preview?`<a class="action-button" href="${h(preview.url)}" target="_blank" rel="noopener">打开 Preview ↗</a>`:''}${job.status==='paused'?`<button class="action-button" id="resume-job">恢复任务</button>`:canPause?`<button class="action-button" id="run-worker">执行下一步</button><button class="action-button secondary" id="pause-job">暂停任务</button>`:''}</div></div>`:`<button class="action-button" id="materialize">物化 Workflow</button>`}</section>
+    ${repairActivityBanner(data.execution_trace?.repair_activity)}
     ${preview?`<section class="panel" style="margin-bottom:18px"><header class="panel-head"><div><h2>Wiki Preview 已就绪</h2><p>${h(preview.start_node||'')} · ${h(labels[preview.maturity]||preview.maturity||preview.mode)}</p></div><a class="action-button" href="${h(preview.url)}" target="_blank" rel="noopener">查看预览</a></header></section>`:''}
     <section class="panel execution-panel" style="margin-top:18px"><header class="panel-head audit-panel-head"><div><span class="section-kicker">EXECUTION OBSERVATORY</span><h2>执行过程、Gate 与逻辑审查</h2><p>Gate 判断流程能否推进；只读逻辑审查独立复查行动、前提与结论；目标偏离审计才拥有修复入口。</p></div><div class="audit-action-group"><button class="action-button secondary" id="logic-audit">运行只读逻辑审查</button><button class="action-button secondary danger-action" id="goal-audit">目标偏离审计与修复</button></div></header><div class="panel-body">${executionObservatory(data.execution_trace,data.goal_alignment,data.logic_audit)}</div></section>
     <div class="split raw-audit-grid" style="margin-top:18px"><section class="panel"><header class="panel-head"><div><h2>原始产物账本</h2><p>供工程审计使用的不可变 Hash；阶段结论已在上方中文解释。</p></div></header><div class="panel-body">${artifactMini(data.artifacts)}</div></section><section class="panel"><header class="panel-head"><div><h2>持久化 Gate 与异常表</h2><p>兼容旧记录；阶段产物内的 Gate 事实已归入阶段审计。</p></div></header><div class="panel-body">${gateMini(data.gates,data.exceptions)}</div></section></div>
@@ -233,7 +252,19 @@ async function jobDetail(jobId) {
   app.querySelector('#resume-job')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{await api(`/api/jobs/${encodeURIComponent(jobId)}/resume`,{method:'POST',body:JSON.stringify({confirm:true})});toast('任务已恢复');await jobDetail(jobId);}catch(err){toast(err.message,true);e.currentTarget.disabled=false;}});
   app.querySelector('#logic-audit')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{const result=await api(`/api/jobs/${encodeURIComponent(jobId)}/logic-audit`,{method:'POST',body:'{}'});toast(result.dispatched?.length?`已异步启动 ${result.dispatched.length} 个只读逻辑审查`:'当前阶段快照已审查或正在审查');await jobDetail(jobId);}catch(err){toast(err.message,true);e.currentTarget.disabled=false;}});
   app.querySelector('#goal-audit')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{const result=await api(`/api/jobs/${encodeURIComponent(jobId)}/goal-audit`,{method:'POST',body:JSON.stringify({auto_repair:true})});toast(`目标审计完成：${result.deviations.length} 个偏离，${result.actions.length} 个动作`);await jobDetail(jobId);}catch(err){toast(err.message,true);e.currentTarget.disabled=false;}});
-  bindExecutionTrace(jobId); bindArtifactLinks(); bindJsonLinks(); bindRecover();
+  bindExecutionTrace(jobId,prior.tracePane||'stages'); bindArtifactLinks(); bindJsonLinks(); bindRecover();
+  app.querySelector('[data-open-repairs]')?.addEventListener('click',()=>app.querySelector('[data-trace-tab="repairs"]')?.click());
+  jobViewState.set(jobId,{...(jobViewState.get(jobId)||prior),renderVersion});
+  scheduleJobDetailRefresh(jobId,data);
+  if(background)requestAnimationFrame(()=>window.scrollTo({top:previousScroll,behavior:'auto'}));
+}
+
+function scheduleJobDetailRefresh(jobId,data){
+  clearTimeout(refreshTimer);
+  if(!autoRefresh)return;
+  const repairActive=data.execution_trace?.repair_activity?.active===true;
+  const jobActive=['planned','ready','leased','running','stalled','retryable','repairable','manual_review','blocked_budget','candidate','gated','applied'].includes(data.job?.status);
+  if(repairActive||jobActive)refreshTimer=setTimeout(()=>jobDetail(jobId,{background:true}).catch(failure),7000);
 }
 
 function taskCards(tasks,run) {
@@ -248,6 +279,20 @@ function gateMini(gates,exceptions) {
 const dimensionNames={claim_provenance_coverage:'引用溯源',data_readiness:'数据就绪',editorial_coherence:'编辑一致性',gap_provenance:'缺口溯源',identity_fidelity:'节点身份',reader_utility:'阅读价值',semantic_closure:'语义闭合',source_role_coverage:'来源角色',table_contract_validity:'表格契约'};
 const stageNames={plan:'任务规划',prepare:'工作区准备',research_plan:'研究计划',research_plan_gate:'研究计划门禁',research_ready:'检索候选生成',search_execution_gate:'检索执行门禁',verify:'证据核验',terminology_verify:'术语核验',source_diversity_gate:'来源多样性门禁',freeze:'证据冻结',content_blueprint:'内容蓝图',content_compose:'内容生成',content_closure_gate:'内容闭合门禁',editorial_review:'编辑审校',draft_content_gate:'草稿内容门禁',draft_apply:'草稿应用',table_collect:'表格数据检索',table_search_execution_gate:'表格检索门禁',table_verify:'表格证据核验',table_population_gate:'表格填充门禁',table_apply:'表格应用',maturity_gate:'成熟度门禁',preview:'生成预览',release_gate:'发布门禁',reviewed_apply:'审核应用',publish:'正式发布'};
 const actionNames={triage:'故障诊断',repair_plan:'修复计划',system_change:'系统变更候选',code_repair:'受控代码修复'};
+const repairStatusNames={queued:'等待修复执行',coding:'正在修改代码',validating:'正在执行测试与 Canary',awaiting_scm_publication:'等待提交 PR',awaiting_approval:'等待授权应用',promoted:'修复已应用',awaiting_outcome_validation:'正在正式运行验证',effective:'修复有效',partially_effective:'部分有效',ineffective:'修复无效',failed:'修复失败',rejected:'修复已拒绝',rolled_back:'修复已回滚'};
+const repairCauseNames={
+  DIVERSITY_REPAIR_REUSES_FAILED_BINDINGS:'新候选没有进入实际证据绑定',
+  DIVERSITY_REPAIR_SCOUT_NOT_PROPAGATED_TO_EVIDENCE_PIPELINE:'修复检索发现的新候选没有传入证据流水线',
+  PROTECTED_BINDING_REFRESH_TOCTOU_FALSE_ATTRIBUTION:'并发刷新被错误归因成 Agent 越权修改',
+  CRITICAL_QUESTION_CLOSURE_BINDS_NON_EXTERNAL_CLAIMS:'内部建模判断被错误要求使用外部文献证明',
+  REPAIR_PLAN_PROJECTION_LOSS:'修复计划在投影过程中丢失',
+};
+const repairCauseDescriptions={
+  DIVERSITY_REPAIR_REUSES_FAILED_BINDINGS:'系统已经发现新的候选来源，但后续提名与证据队列仍复用了此前失败的来源绑定，因此重新执行也无法产生新的确认性证据。',
+  DIVERSITY_REPAIR_SCOUT_NOT_PROPAGATED_TO_EVIDENCE_PIPELINE:'修复检索已经发现新的候选来源，但后续搜索执行、候选绑定和证据队列没有消费这批结果，导致正式核验仍然重复使用旧输入。',
+  PROTECTED_BINDING_REFRESH_TOCTOU_FALSE_ATTRIBUTION:'受保护文件在 Agent 执行期间被其他进程刷新，旧的前后快照检查无法识别真实写入者，因而把并发变化错误归因给当前 Agent。',
+  CRITICAL_QUESTION_CLOSURE_BINDS_NON_EXTERNAL_CLAIMS:'研究契约把只能由内部建模过程产生的判断绑定到了外部来源 Gate，形成无法满足的前置条件。',
+};
 const verdictNames={CONFIRMED:'已采纳',INSUFFICIENT:'证据不足',NOT_FOUND:'未找到',NOT_REVIEWED:'未审核',accepted:'已采纳',rejected:'已拒绝',candidate:'候选',confirmed_citation:'已选引用',sent_to_verification:'送交核验'};
 const outcomeNames={accepted:'已采用',rejected:'内容未通过',technical_failure:'技术失败 · 未评估',pending:'待评估'};
 const reasonNames={field_specific_observation:'抽取到该字段的专属证据并通过选择规则',payload_not_fetched:'没有成功抓取文档正文',payload_or_hash_missing:'缺少正文或内容哈希，无法进入证据评估',no_field_specific_observation:'未抽取到能够支持该字段的专属观察',no_observation:'未抽取到可用观察',document_type_not_supported:'文档类型不受当前抽取器支持',source_class_not_allowed:'来源类型不满足该字段的证据策略',node_identity_mismatch:'来源对象与当前节点身份不一致',duplicate_candidate:'与已有候选重复',lower_ranked_candidate:'相关性或证据强度低于已采用候选',excluded_by_diversity_repair:'为打破来源重复而被多样性修复明确排除',not_selected_for_fetch:'搜索已返回该结果，但候选绑定阶段未选择抓取'};
@@ -263,6 +308,26 @@ const decisionPill=value=>`<span class="decision-pill ${decisionClass(value)}">$
 const outcomePill=value=>`<span class="decision-pill ${decisionClass(value)}">${h(outcomeNames[value]||value||'待评估')}</span>`;
 const reasonLabel=value=>{const raw=typeof value==='string'?value:(value?.message||value?.code||JSON.stringify(value));return {raw,label:reasonNames[raw]||raw};};
 const sourceLink=(url,label)=>url?`<a class="source-link" href="${h(url)}" target="_blank" rel="noopener noreferrer">${h(label||url)} ↗</a>`:'<span class="muted">无可打开地址</span>';
+
+function repairActivityBanner(activity){
+  const item=activity?.latest;
+  if(!item)return '';
+  const cause=item.cause_code||'UNCLASSIFIED_REPAIR';
+  const statusLabel=repairStatusNames[item.status]||labels[item.status]||item.status||'状态未知';
+  const summaryZh=repairCauseDescriptions[cause]||item.summary||item.last_error||'系统已建立修复任务，等待进一步诊断信息。';
+  const scm=item.scm||{};
+  const links=[
+    scm.issue_url?`<a class="repair-scm-link" href="${h(scm.issue_url)}" target="_blank" rel="noopener noreferrer">Issue #${h(scm.issue_number||'—')} ↗</a>`:'',
+    scm.pr_url?`<a class="repair-scm-link primary" href="${h(scm.pr_url)}" target="_blank" rel="noopener noreferrer">PR #${h(scm.pr_number||'—')} ↗</a>`:'',
+  ].filter(Boolean).join('');
+  const steps=(item.steps||[]).map((step,index)=>`<li class="${h(step.state||'pending')}"><i>${step.state==='done'?'✓':step.state==='failed'?'×':String(index+1).padStart(2,'0')}</i><span>${h(step.label)}</span><small>${step.state==='done'?'已完成':step.state==='active'?'进行中':step.state==='failed'?'失败':'等待'}</small></li>`).join('');
+  return `<section class="repair-activity ${activity.active?'active':'terminal'}" aria-label="当前阻断与自治修复">
+    <header><div><span class="section-kicker">LIVE BLOCKER · AUTONOMOUS REPAIR</span><h2>当前阻断与自治修复</h2></div><div class="repair-live-state"><i></i><span>${h(statusLabel)}</span>${badge(item.status)}</div></header>
+    <div class="repair-activity-main"><div class="repair-cause"><span>系统发现的问题</span><h3>${h(repairCauseNames[cause]||readableCode(cause))}</h3><code>${h(cause)}</code><p>${h(summaryZh)}</p><div class="repair-context"><span>失败阶段 <b>${h(stageNames[item.failed_task]||item.failed_task||'未记录')}</b></span><span>计划回卷 <b>${h(stageNames[item.recovery_task]||item.recovery_task||'待确定')}</b></span><span>修复尝试 <b>${h(item.attempt||1)}</b></span></div></div><aside><span>修复记录</span><code>${h(item.repair_run_id||'—')}</code><small>最后进展 ${relativeTime(item.updated_at)}</small><small>${fmtDate(item.updated_at)}</small><div class="repair-links">${links||'<span>尚未形成 Issue / PR</span>'}</div><button class="quiet-button" type="button" data-open-repairs>查看完整诊断与修复记录 →</button></aside></div>
+    <ol class="repair-progress">${steps}</ol>
+    ${item.last_error?`<div class="repair-error"><span>当前失败原因</span><strong>${h(item.last_error)}</strong></div>`:''}
+  </section>`;
+}
 
 function executionObservatory(trace,value,logicAudit) {
   const hasTrace=trace&&trace.schema_version, quality=trace?.quality||value?.quality_observations?.[0]?.payload||{}, summary=trace?.summary||{};
@@ -479,12 +544,17 @@ function issueCard(item) {
 
 function actionCard(item,index) {
   const details=Object.entries(item.details||{});
-  return `<article class="action-item"><span class="action-step">${String(index+1).padStart(2,'0')}</span><div><div class="action-head"><span class="section-kicker">${h(actionNames[item.kind]||item.kind)}</span>${badge(item.status||'unknown')}</div><h4>${h(item.title||'未命名动作')}</h4><p>${h(item.summary||'该动作没有提供摘要。')}</p><small>${fmtDate(item.created_at)}${item.risk?` · 风险 ${h(item.risk)}`:''} · ${h(item.id||'—')}</small>${details.length?`<details class="action-proof"><summary>查看修改内容与证明约束</summary><dl>${details.map(([key,val])=>`<dt>${h(key)}</dt><dd>${typeof val==='string'?h(val):jsonView(val)}</dd>`).join('')}</dl></details>`:''}</div></article>`;
+  const scm=item.details?.scm||{};
+  const scmLinks=[scm.issue_url?sourceLink(scm.issue_url,`Issue #${scm.issue_number||'—'}`):'',scm.pr_url?sourceLink(scm.pr_url,`PR #${scm.pr_number||'—'}`):''].filter(Boolean).join(' ');
+  const title=item.kind==='code_repair'?(repairCauseNames[item.title]||item.title):item.title;
+  return `<article class="action-item ${item.kind==='code_repair'?'code-repair-action':''}"><span class="action-step">${String(index+1).padStart(2,'0')}</span><div><div class="action-head"><span class="section-kicker">${h(actionNames[item.kind]||item.kind)}</span>${badge(item.status||'unknown')}</div><h4>${h(title||'未命名动作')}</h4>${item.kind==='code_repair'&&repairCauseNames[item.title]?`<code class="action-cause-code">${h(item.title)}</code>`:''}<p>${h(item.summary||'该动作没有提供摘要。')}</p><small>${fmtDate(item.created_at)}${item.updated_at?` → 更新 ${fmtDate(item.updated_at)}`:''}${item.risk?` · 风险 ${h(item.risk)}`:''} · ${h(item.id||'—')}</small>${scmLinks?`<div class="action-scm-links">${scmLinks}</div>`:''}${details.length?`<details class="action-proof"><summary>查看修改内容与证明约束</summary><dl>${details.map(([key,val])=>`<dt>${h(key)}</dt><dd>${typeof val==='string'?h(val):jsonView(val)}</dd>`).join('')}</dl></details>`:''}</div></article>`;
 }
 
-function bindExecutionTrace(jobId) {
+function bindExecutionTrace(jobId,selectedPane='stages') {
   const tabs=[...document.querySelectorAll('[data-trace-tab]')];
-  tabs.forEach(tab=>tab.addEventListener('click',()=>{tabs.forEach(node=>{const active=node===tab;node.classList.toggle('active',active);node.setAttribute('aria-selected',String(active));});document.querySelectorAll('[data-trace-pane]').forEach(pane=>pane.classList.toggle('active',pane.dataset.tracePane===tab.dataset.traceTab));}));
+  const activate=tab=>{tabs.forEach(node=>{const active=node===tab;node.classList.toggle('active',active);node.setAttribute('aria-selected',String(active));});document.querySelectorAll('[data-trace-pane]').forEach(pane=>pane.classList.toggle('active',pane.dataset.tracePane===tab.dataset.traceTab));const prior=jobViewState.get(jobId)||{};jobViewState.set(jobId,{...prior,tracePane:tab.dataset.traceTab});};
+  tabs.forEach(tab=>tab.addEventListener('click',()=>activate(tab)));
+  activate(tabs.find(tab=>tab.dataset.traceTab===selectedPane)||tabs[0]);
   document.querySelectorAll('[data-promote-logic]').forEach(button=>button.addEventListener('click',async()=>{const findingId=button.dataset.promoteLogic;if(!confirm('确认把这条只读逻辑观察提升为正式偏离调查？\n\n该操作只建立调查记录，不会自动修改 Job、Gate、代码或触发修复。'))return;button.disabled=true;try{const result=await api(`/api/logic-audit/findings/${encodeURIComponent(findingId)}/promote`,{method:'POST',body:JSON.stringify({confirm:true})});toast(`已建立正式调查 ${result.deviation_id}`);await jobDetail(jobId);}catch(err){toast(err.message,true);button.disabled=false;}}));
   const stageStatus=document.querySelector('#stage-status-filter'), stageKind=document.querySelector('#stage-kind-filter'), stageCount=document.querySelector('#stage-visible-count');
   if(stageStatus&&stageKind&&stageCount){const applyStages=()=>{let visible=0;document.querySelectorAll('[data-stage-audit]').forEach(card=>{const show=(!stageStatus.value||card.dataset.stageStatus===stageStatus.value)&&(!stageKind.value||card.dataset.stageKind===stageKind.value);card.hidden=!show;if(show)visible+=1;});stageCount.textContent=visible;};stageStatus.addEventListener('change',applyStages);stageKind.addEventListener('change',applyStages);}

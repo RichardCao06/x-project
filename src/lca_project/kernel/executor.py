@@ -1,7 +1,9 @@
 """Allow-listed capability execution in a per-run scratch directory."""
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -45,11 +47,29 @@ def _validate(schema: dict[str, Any], value: Any, label: str) -> None:
 
 class SandboxedExecutor:
     def __init__(self, scratch_root: str | Path, *, protected_roots: tuple[str | Path, ...] = (),
-                 project_root: str | Path | None = None) -> None:
+                 project_root: str | Path | None = None,
+                 coordination_locks: tuple[str | Path, ...] = ()) -> None:
         self.scratch_root = Path(scratch_root)
         self.scratch_root.mkdir(parents=True, exist_ok=True)
         self.protected_roots = tuple(Path(item).resolve() for item in protected_roots)
         self.project_root = Path(project_root).resolve() if project_root else self.scratch_root.resolve().parent
+        self.coordination_locks = tuple(Path(item).resolve() for item in coordination_locks)
+
+    @contextmanager
+    def _binding_boundary(self):
+        """Hold shared binding locks for the complete snapshot/execute/check cycle."""
+        handles = []
+        try:
+            for lock in sorted(self.coordination_locks):
+                lock.parent.mkdir(parents=True, exist_ok=True)
+                handle = lock.open("a+b")
+                fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
+                handles.append(handle)
+            yield
+        finally:
+            for handle in reversed(handles):
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                handle.close()
 
     @staticmethod
     def _snapshot(roots: tuple[Path, ...], exclude: Path | None = None) -> dict[Path, bytes]:
@@ -76,6 +96,13 @@ class SandboxedExecutor:
                 path.write_bytes(content)
 
     def execute(self, capability: Capability, inputs: dict[str, Any], *, run_id: str, task_id: str) -> ExecutionResult:
+        with self._binding_boundary():
+            return self._execute_bound(
+                capability, inputs, run_id=run_id, task_id=task_id
+            )
+
+    def _execute_bound(self, capability: Capability, inputs: dict[str, Any], *,
+                       run_id: str, task_id: str) -> ExecutionResult:
         _validate(capability.input_schema, inputs, "input")
         if capability.side_effects == "none" and not self.protected_roots:
             raise ExecutionError("POLICY", "side_effects=none requires an explicit protected_roots boundary")

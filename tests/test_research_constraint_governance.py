@@ -40,7 +40,16 @@ def build_plan(tmp_path: Path, output_name: str = "research-plan.json") -> dict:
     workflow.write_text(
         'const NODES = [{"node_id":"A040","name":"系统集成, 整机总装 | 笔记本电脑"}] '
         '/* DATA-BINDING:END */\n' + "\n".join(
-            json.dumps({"requirement_id": item}) for item in requirements
+            json.dumps({
+                "requirement_id": item,
+                "claim_kind": (
+                    "modeling_judgment" if item in {
+                        "activity.boundary.modeling_cutoff",
+                        "activity.route.modeling_resolution",
+                        "activity.collection.fields",
+                    } else "external_fact"
+                ),
+            }) for item in requirements
         ),
         encoding="utf-8",
     )
@@ -83,9 +92,12 @@ def test_question_contract_is_stable_and_binds_frozen_requirements(tmp_path: Pat
     assert questions["identity.activity_definition"]["requirement_ids"] == [
         "activity.identity.definition"
     ]
-    assert questions["quantity.reference_flow"]["requirement_ids"] == [
-        "activity.collection.fields"
-    ]
+    assert questions["quantity.reference_flow"]["requirement_ids"] == []
+    composition = next(
+        contract for contract in first["research_question_contracts"]
+        if contract["dimension"] == "composition_and_quantity"
+    )
+    assert composition["required_question_ids"] == []
     assert load_script("gate_wiki_research_plan.py").evaluate(first)["decision"] == "PASS"
 
 
@@ -104,11 +116,8 @@ def test_v2_gate_blocks_on_question_closure_but_not_portfolio_counts(tmp_path: P
     required = [
         "activity.identity.definition",
         "activity.boundary.included_operations",
-        "activity.boundary.modeling_cutoff",
-        "activity.route.modeling_resolution",
         "activity.reference.unit_handoff",
         "activity.boundary.product_handoff",
-        "activity.collection.fields",
     ]
     gate_module = load_script("wiki_search_gates.py")
     complete = gate_module.diversity_gate(
@@ -134,7 +143,7 @@ def test_v2_gate_blocks_on_question_closure_but_not_portfolio_counts(tmp_path: P
     )
 
     assert partial["decision"] == "RESEARCH_MORE"
-    assert partial["failed_requirement_ids"] == ["quantity.reference_flow"]
+    assert partial["failed_requirement_ids"] == ["handoff.entry_exit_state"]
     assert exhausted_preview["decision"] == "EVIDENCE_LIMITED"
     assert exhausted_preview["pipeline_continue"] is True
     assert exhausted_reviewed["pipeline_continue"] is True
@@ -144,8 +153,6 @@ def test_v2_gate_blocks_on_question_closure_but_not_portfolio_counts(tmp_path: P
     )
     assert exhausted_reviewed["materialization_branch"]["release_prohibited"] is True
     assert len(exhausted_reviewed["materialization_branch"]["gap_provenance_sha256"]) == 64
-
-
 def test_research_more_scout_binds_failed_questions_and_prior_strategy(
     tmp_path: Path,
 ) -> None:

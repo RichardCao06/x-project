@@ -1,0 +1,109 @@
+{
+  "protocol": "wiki-source-hints-v1",
+  "node_id": "A019",
+  "generated_from": "A019 reviewed-run evidence audit and exact requirement routing",
+  "terminology": {
+    "canonical_zh": "配置出厂, BIOS配置 | 服务器, 通用计算, 2U",
+    "synonyms_zh": [
+      "服务器 BIOS 配置",
+      "服务器固件参数配置",
+      "2U 服务器出厂配置"
+    ],
+    "canonical_en": "factory BIOS configuration for a general-purpose 2U server",
+    "synonyms_en": [
+      "server BIOS configuration",
+      "2U rack server firmware configuration",
+      "server manufacturing BIOS setup"
+    ],
+    "related_terms": [
+      "server system configuration utility",
+      "save and restore BIOS settings",
+      "rack integration BIOS firmware"
+    ],
+    "excluded_terms": [
+      "desktop BIOS setup",
+      "operating system installation",
+      "motherboard manufacturing",
+      "field maintenance firmware upgrade"
+    ]
+  },
+  "claim_constraints": {
+    "activity.identity.definition": "只陈述 Intel Server Configuration Utility 面向集成 Intel 服务器主板的服务器系统 BIOS/管理固件配置人员，支持 M50CYP 系列并配置选定 BIOS 设置；不得把整机制造的所有步骤并入 A019",
+    "activity.reference.product_identity": "只陈述 Intel M50CYP2UR 是由服务器主板与机箱集成的 2U 机架式服务器系统；不得据此推断 A019 的能耗、BOM 或具体配置参数",
+    "activity.boundary.included_operations": "只陈述 Intel Server Configuration Utility 可通过命令行配置服务器固件和 BIOS 设置；不得扩展为操作系统安装、板卡制造或全部出厂流程",
+    "activity.boundary.product_handoff": "只陈述配置保存、退出 BIOS 并重启后设置生效这一完成状态；不得推断包装、运输或质量放行",
+    "activity.reference.unit_handoff": "只陈述服务器配置实用程序能够保存和恢复固件与 BIOS 设置文件；不得把设置文件本身当作产品参考流"
+  },
+  "requirement_routes": {
+    "activity.identity.definition": {
+      "source": "Intel Support — Server Configuration Utility",
+      "locator": "Intel System Configuration Utility User Guide; For Intel Server System M50CYP and D50TNP Families Only; Purpose of the Document; Configure selected BIOS settings"
+    },
+    "activity.reference.product_identity": {
+      "source": "Intel Server M50CYP Family Configuration Guide",
+      "locator": "Configuration Overview; Intel Server System M50CYP2UR; 2U rack mount server systems integrated at level L6 with server board and chassis"
+    },
+    "activity.boundary.included_operations": {
+      "source": "Intel Support — Server Configuration Utility",
+      "locator": "Intel System Configuration Utility User Guide; For Intel Server System M50CYP and D50TNP Families Only; Purpose of the Document; Configure selected firmware settings; Configure selected BIOS settings"
+    },
+    "activity.boundary.product_handoff": {
+      "source": "Intel Server System BIOS Setup Utility Guide",
+      "locator": "Save Changes & Exit; persistent changes applied and saved to NVRAM; system will reboot if necessary; most changes require a reboot to become active"
+    },
+    "activity.reference.unit_handoff": {
+      "source": "Intel Support — Server Configuration Utility",
+      "locator": "Intel System Configuration Utility User Guide; For Intel Server System M50CYP and D50TNP Families Only; Save selective BIOS and/or firmware settings to a file; Write BIOS and Firmware settings from a file to a server"
+    }
+  },
+  "sources": [
+    {
+      "name": "AMAX Engineering — Server Manufacturing Levels Defined",
+      "authority_domain": "amax.com",
+      "canonical_url": "https://www.amax.com/server-manufacturing-levels-defined/",
+      "locator_topics": [
+        "Server Manufacturing Levels Defined",
+        "Rack Integration Services",
+        "Assembling nodes",
+        "Setting BIOS and firmware"
+      ]
+    },
+    {
+      "name": "Intel Server M50CYP Family Configuration Guide",
+      "authority_domain": "intel.com",
+      "canonical_url": "https://cdrdv2-public.intel.com/638427/Intel_Server_M50CYP_Family_Configuration_Guide_Rev1_11.pdf",
+      "locator_topics": [
+        "Configuration Overview",
+        "Intel Server System M50CYP2UR",
+        "2U rack mount server systems",
+        "server board and chassis"
+      ]
+    },
+    {
+      "name": "Intel Support — Server Configuration Utility",
+      "authority_domain": "intel.com",
+      "canonical_url": "https://cdrdv2-public.intel.com/840396/intel-syscfg-userguide.pdf",
+      "locator_topics": [
+        "For Intel Server System M50CYP and D50TNP Families Only",
+        "Purpose of the Document",
+        "command-line tool",
+        "Save selective BIOS and/or firmware settings to a file",
+        "Write BIOS and Firmware settings from a file to a server",
+        "Configure selected BIOS settings",
+        "Save a Configuration",
+        "Restore a Configuration"
+      ]
+    },
+    {
+      "name": "Intel Server System BIOS Setup Utility Guide",
+      "authority_domain": "intel.com",
+      "canonical_url": "https://cdrdv2-public.intel.com/841746/intelserversystembiossetuputilityguide10_final.pdf",
+      "locator_topics": [
+        "Save Changes & Exit",
+        "persistent changes applied and saved to NVRAM",
+        "system will reboot if necessary",
+        "most changes require a reboot to become active"
+      ]
+    }
+  ]
+}

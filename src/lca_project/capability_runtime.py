@@ -171,14 +171,19 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
     return output
 
 
-def _pipeline(commands: list[list[str]], *, cwd: Path, timeout: int) -> dict[str, Any]:
+def _pipeline(commands: list[list[str]], *, cwd: Path, timeout: int,
+              blocked_codes: dict[int, str] | None = None) -> dict[str, Any]:
     records: list[dict[str, Any]] = []
-    for command in commands:
-        result = _run(command, cwd=cwd, timeout=timeout)
+    for index, command in enumerate(commands):
+        result = _run(
+            command, cwd=cwd, timeout=timeout,
+            blocked_code=(blocked_codes or {}).get(index),
+        )
         records.append({"argv": command, **result})
         if result["status"] != "ok":
             failure = result.get("failure") or {}
-            return {"status": "failed", "failure": {**failure, "step": command[1:3]},
+            return {"status": result["status"],
+                    "failure": {**failure, "step": command[1:3]},
                     "steps": records}
     return {"status": "ok", "steps": records}
 
@@ -237,7 +242,7 @@ def _reusable_executed_table_matrix(plan_path: Path, executed_path: Path) -> boo
     rows = executed.get("queries")
     manifest = Path(str(executed.get("execution_manifest") or ""))
     completed_statuses = {"fetched", "found", "not_found", "not_selected"}
-    return (
+    exact_match = (
         executed.get("protocol") == "wiki-table-search-executed-v2"
         and executed.get("coverage_status") == "executed"
         and executed.get("plan_sha256") == _sha256(plan_path)
@@ -246,6 +251,38 @@ def _reusable_executed_table_matrix(plan_path: Path, executed_path: Path) -> boo
         and all(isinstance(row, dict) and row.get("status") in completed_statuses for row in rows)
         and manifest.is_file()
     )
+    if exact_match:
+        return True
+    try:
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return False
+    plan_rows = plan.get("queries")
+    reused_sha = str(plan.get("reused_executed_matrix_sha256") or "")
+    reused_manifest = Path(str(plan.get("reused_execution_manifest") or ""))
+    if not (
+        plan.get("coverage_status") == "executed"
+        and isinstance(plan_rows, list) and bool(plan_rows)
+        and all(isinstance(row, dict) and row.get("status") in completed_statuses
+                for row in plan_rows)
+        and reused_sha == _sha256(executed_path)
+        and reused_manifest.is_file()
+        and all(row.get("reused_execution_sha256") == reused_sha for row in plan_rows)
+    ):
+        return False
+    rehydrated = {
+        **plan, "protocol": "wiki-table-search-executed-v2",
+        "coverage_status": "executed", "plan_sha256": _sha256(plan_path),
+        "execution_manifest": str(reused_manifest),
+        "usage": {"search_requests": 0, "logical_queries": len(plan_rows),
+                  "unique_queries": 0, "deduplicated_queries": 0,
+                  "reused_queries": len(plan_rows)},
+    }
+    executed_path.write_text(
+        json.dumps(rehydrated, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return True
 
 
 def graph_batch(value: dict[str, Any]) -> dict[str, Any]:
@@ -488,7 +525,12 @@ def wiki_batch(value: dict[str, Any]) -> dict[str, Any]:
              str(batch / "source-diversity-gate.json"), "--closure-gate",
              str(batch / "content-closure-gate.json")],
         ]
-        return _pipeline(commands, cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)))
+        output = batch / "draft-content-gate.json"
+        result = _pipeline(
+            commands, cwd=workspace, timeout=int(value.get("timeout_seconds", 1800)),
+            blocked_codes={2: "CONTENT_LOCAL_ISSUES"},
+        )
+        return _attach_gate_evidence(result, output)
     if operation == "maturity-gate":
         batch = _path(value.get("batch"), "batch")
         return _run([
@@ -604,8 +646,9 @@ AGENT_LAUNCHERS = {
 
 def _nomination_cache_is_current(
     nomination: Path, active_research_scout: Path, launcher: Path,
+    research_plan: Path | None = None, source_hints: Path | None = None,
 ) -> bool:
-    """Bind cached nomination output to both research input and launcher code."""
+    """Bind cached nomination output to every causal nomination input."""
     if not all((nomination / name).is_file() for name in (
         "nomination-result.json", "wiki-usage-v1.json", "nomination-invocation.json",
         "nomination-usage.json",
@@ -619,9 +662,20 @@ def _nomination_cache_is_current(
             (nomination / "nomination-usage.json").read_text(encoding="utf-8")
         )
         scout_record = invocation.get("research_scout") or {}
+        plan_record = invocation.get("research_plan") or {}
+        hints_record = invocation.get("source_hints") or {}
         if (not active_research_scout.is_file()
                 or scout_record.get("sha256") != _sha256(active_research_scout)
                 or invocation.get("launcher_sha256") != _sha256(launcher)
+                or (research_plan is not None and (
+                    not research_plan.is_file()
+                    or plan_record.get("sha256") != _sha256(research_plan)
+                ))
+                or (source_hints is not None and (
+                    not source_hints.is_file()
+                    or hints_record.get("sha256") != _sha256(source_hints)
+                ))
+                or (source_hints is None and bool(hints_record))
                 or invocation.get("nomination_policy_version")
                 != "research-scout-source-specific-v9"
                 or usage.get("exit_code") != 0
@@ -760,6 +814,8 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
         nomination_ready = _nomination_cache_is_current(
             nomination, active_research_scout,
             scripts / "run_wiki_nomination_capture.py",
+            research_plan=research_plan,
+            source_hints=hints,
         ) if research_plan else all((nomination / name).is_file() for name in (
             "nomination-result.json", "wiki-usage-v1.json", "nomination-invocation.json",
         ))

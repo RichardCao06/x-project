@@ -286,10 +286,15 @@ class AutonomousJobSupervisor:
         completion_goal = self._completion_goal_for_item(item)
         if job is None:
             status = "failed"
+        elif pending_supervision:
+            # A terminal workflow state does not cancel newly durable
+            # supervision work.  Keep the Item runnable long enough to consume
+            # the wakeup and queue Triage; WorkerLoop will still refuse to
+            # execute a quarantined DAG task.
+            status = "running"
+            last_error = None
         elif job["status"] in FAILURE_JOB_STATES:
             status = "superseded" if job["status"] == "superseded" else "failed"
-        elif pending_supervision:
-            status = "running"
         # An active Job state is authoritative over a previously succeeded run:
         # preview generation can finish while the declared modelling goal still
         # has bounded repair work to perform.
@@ -385,13 +390,23 @@ class AutonomousJobSupervisor:
         # A queued repair is durable work in its own right.  Consume one before
         # starting a fresh audit so a later poison deviation cannot orphan a
         # repair that a previous cycle already committed.
-        queued_repair = self.state._connection().execute(
-            "SELECT repair_run_id FROM system_repair_runs WHERE source_job_id=? "
-            "AND status='queued' ORDER BY created_at LIMIT 1", (job_id,),
+        runnable_repair = self.state._connection().execute(
+            "SELECT r.repair_run_id FROM system_repair_runs r WHERE r.source_job_id=? "
+            "AND (r.status='queued' OR (r.status='failed' "
+            "AND last_error='canary validation failed' "
+            "AND json_extract(r.payload,'$.validation_replan') IS NULL "
+            "AND json_extract(r.payload,'$.validation_replan_exhausted') IS NULL) "
+            "OR (r.status='failed' AND r.last_error="
+            "'coding Agent may not edit generated integrity manifests directly' "
+            "AND json_extract(r.payload,'$.coding_retry_exhausted') IS NULL)) "
+            "AND NOT EXISTS (SELECT 1 FROM system_repair_runs newer "
+            "WHERE newer.source_job_id=r.source_job_id "
+            "AND newer.created_at>r.created_at) "
+            "ORDER BY r.created_at DESC LIMIT 1", (job_id,),
         ).fetchone()
         system_repairs = []
-        if queued_repair:
-            repair_run_id = str(queued_repair["repair_run_id"])
+        if runnable_repair:
+            repair_run_id = str(runnable_repair["repair_run_id"])
             system_repairs.append(_dispatch_repair(self.root, repair_run_id))
         pending_scm = self.state._connection().execute(
             "SELECT repair_run_id,updated_at FROM system_repair_runs "
@@ -505,6 +520,24 @@ class AutonomousJobSupervisor:
             pending = store.pending_wakeups(job_id=job_id)
             if pending:
                 affected.append((item, "pending_supervision_wakeup"))
+                continue
+            recoverable_repair = self.state._connection().execute(
+                "SELECT r.repair_run_id FROM system_repair_runs r WHERE r.source_job_id=? "
+                "AND (r.status IN ('queued','coding','validating','awaiting_scm_publication') "
+                "OR (r.status='failed' AND r.last_error='canary validation failed' "
+                "AND json_extract(r.payload,'$.validation_replan') IS NULL "
+                "AND json_extract(r.payload,'$.validation_replan_exhausted') IS NULL) "
+                "OR (r.status='failed' AND r.last_error="
+                "'coding Agent may not edit generated integrity manifests directly' "
+                "AND json_extract(r.payload,'$.coding_retry_exhausted') IS NULL)) "
+                "AND NOT EXISTS (SELECT 1 FROM system_repair_runs newer "
+                "WHERE newer.source_job_id=r.source_job_id "
+                "AND newer.created_at>r.created_at) "
+                "LIMIT 1",
+                (job_id,),
+            ).fetchone()
+            if recoverable_repair:
+                affected.append((item, "recoverable_system_repair"))
                 continue
             # Backfill the protocol for campaigns that ended before migration
             # v10 existed.  Only a deviation newer than a completed campaign is

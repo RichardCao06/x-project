@@ -70,8 +70,14 @@ def evaluate(blueprint: dict, content: dict, verified: dict, source_gate: dict) 
                     "closed": kind in KINDS and (kind != "external_fact" or confirmed),
                 })
     core_sections = expected[:5]
+    # Frozen graph facts are first-class evidence for graph-defined sections
+    # such as input/output reconciliation.  Excluding them here made a valid
+    # section impossible to close unless the writer invented an external fact
+    # or mislabeled the section as an evidence gap.
     core_closed = {
-        heading: bool(section_states.get(heading, set()) & {"external_fact", "evidence_gap"})
+        heading: bool(section_states.get(heading, set()) & {
+            "external_fact", "internal_graph_fact", "evidence_gap",
+        })
         for heading in core_sections
     }
     checks = {

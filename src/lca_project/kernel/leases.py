@@ -54,9 +54,19 @@ class LeaseManager:
             raise LeaseLost(f"lease lost: {lease.resource}")
 
     def release(self, lease: Lease) -> bool:
-        """Release only the holder/token pair that acquired this lease."""
+        """Release only the holder/token pair while preserving its fence.
+
+        A fencing token is a monotonic generation number, not disposable lease
+        metadata.  Deleting the row made a later acquisition restart at token
+        ``1`` while durable owner projections still remembered a larger token.
+        That caused a legitimate successor to be rejected as stale.  Expiring
+        the row keeps the generation tombstone so the next holder receives a
+        strictly larger token.
+        """
+        now = utcnow()
         with self.state.transaction() as conn:
             return conn.execute(
-                "DELETE FROM leases WHERE resource=? AND holder=? AND fencing_token=?",
-                (lease.resource, lease.holder, lease.fencing_token),
+                "UPDATE leases SET expires_at=?,updated_at=? "
+                "WHERE resource=? AND holder=? AND fencing_token=?",
+                (now, now, lease.resource, lease.holder, lease.fencing_token),
             ).rowcount == 1

@@ -39,7 +39,7 @@ from typing import Any, Callable, Iterable
 ROOT = Path(__file__).resolve().parents[1]
 QUEUE_PROTOCOL = "wiki-source-query-v1"
 EVIDENCE_PROTOCOL = "wiki-source-evidence-v1"
-CACHE_PROTOCOL = "wiki-source-cache-v1"
+CACHE_PROTOCOL = "wiki-source-cache-v2"
 FROZEN_SEARCH_PROTOCOL = "wiki-frozen-search-v1"
 SEARCH_ENDPOINT = "https://html.duckduckgo.com/html/"
 
@@ -541,7 +541,25 @@ def _locator_anchors(locator: str) -> list[str]:
             number = re.search(r"\d+(?:\.\d+)*", anchor)
             if number and number.group(0) not in anchors:
                 anchors.append(number.group(0))
-    topic = _locator_topic(locator)
+    # Nomination locators may carry a semantic route followed by an explicit
+    # list of source vocabulary, for example
+    # ``handoff.entry_exit_state；正文定位词：保存、恢复、二进制文件``.
+    # The route is provenance rather than source text, and the listed terms
+    # are intentionally non-contiguous. Compile them as independent anchors
+    # so a valid Chinese source is not rejected as a localization miss.
+    marker = re.search(r"(?:正文)?定位词\s*[:：]", locator, re.I)
+    topic_source = locator
+    if marker:
+        topic_source = locator[marker.end():]
+        explicit_terms = [
+            normalize_source(value)
+            for value in re.split(r"[、，,；;|]+", topic_source)
+            if normalize_source(value)
+        ]
+        for value in explicit_terms:
+            if len(value) >= 2 and value not in anchors:
+                anchors.append(value)
+    topic = _locator_topic(topic_source)
     if topic:
         # Function words otherwise create thousands of false high-scoring
         # windows in long PDFs (for example the locator phrase ``product title
@@ -619,6 +637,68 @@ def extract_excerpt(
         # and forces source discovery/retry before Verify.
         excerpt = ""
     return media_type, excerpt[:max_chars]
+
+
+def resolve_evidence_locator(candidate: dict[str, Any], claim_locator: str) -> str:
+    """Prefer the nomination's source-specific locator over a search route.
+
+    Research-scout candidates carry a semantic question locator so their
+    discovery provenance remains auditable.  A nominated claim may additionally
+    provide exact source vocabulary or a page/section locator.  The latter is
+    the only locator precise enough for claim-level excerpt extraction and must
+    not be shadowed by the broader discovery route.
+    """
+    return claim_locator.strip() or str(candidate.get("locator") or "").strip()
+
+
+def provider_snippet_evidence(
+    candidate: dict[str, Any],
+    *,
+    claim_locator: str,
+    fetch_cache: Path,
+    max_excerpt_chars: int,
+    rank: int,
+) -> dict[str, Any] | None:
+    """Materialize a replayable provider excerpt when the origin blocks fetch.
+
+    Search providers can return a verbatim source excerpt even when the origin
+    uses a JS shell or a locally unverifiable TLS chain.  Preserve that weaker
+    transport explicitly instead of silently treating it as a direct fetch.
+    Verify still decides alignment and sufficiency; this function only prevents
+    auditable provider text from disappearing before independent review.
+    """
+    title = str(candidate.get("title") or "").strip()
+    snippet = str(candidate.get("snippet") or "").strip()
+    provider = str(candidate.get("provider") or "").strip()
+    url = str(candidate.get("url") or "").strip()
+    if not provider or not url or len(snippet) < 40:
+        return None
+    locator = resolve_evidence_locator(candidate, claim_locator)
+    payload = f"{title}\n{snippet}".encode("utf-8")
+    media_type, excerpt = extract_excerpt(
+        url, payload, "text/plain", max_excerpt_chars, locator
+    )
+    if not excerpt:
+        return None
+    identity = stable_hash("provider-snippet-v1", provider, url, snippet)
+    payload_path = fetch_cache / f"snippet-{identity}.payload"
+    if not payload_path.exists() or payload_path.read_bytes() != payload:
+        write_bytes(payload_path, payload)
+    return {
+        "evidence_id": f"ev-snippet-{identity[:16]}",
+        "payload_path": str(payload_path.resolve()),
+        "rank": rank,
+        "title": title,
+        "status": "provider_excerpt",
+        "url": url,
+        "content_type": media_type,
+        "content_sha256": sha256_bytes(payload),
+        "bytes": len(payload),
+        "excerpt": excerpt,
+        "excerpt_locator": locator,
+        "search_provider": provider,
+        "evidence_transport": "search_provider_snippet",
+    }
 
 
 def research_binding_for_claim(research_plan: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any] | None:
@@ -744,6 +824,45 @@ def research_tracks_for_claim(
     return tracks
 
 
+def routed_candidates_for_claim(
+    research_plan: dict[str, Any] | None, claim: dict[str, Any]
+) -> list[dict[str, str]]:
+    """Resolve exact requirement routes to advisory canonical URLs.
+
+    A route only schedules a candidate for ordinary Fetch + Verify.  It never
+    confirms the source or bypasses URL safety, excerpt localization, or the
+    verifier.  Requirement IDs provide the stable join; title similarity is
+    deliberately not used because punctuation and trademark variants drift
+    between nomination sessions.
+    """
+    if not isinstance(research_plan, dict):
+        return []
+    requirement_id = str(claim.get("requirement_id") or "").strip()
+    route = (research_plan.get("requirement_routes") or {}).get(requirement_id)
+    if not isinstance(route, dict):
+        return []
+    source_name = normalize_source(str(route.get("source") or ""))
+    if not source_name:
+        return []
+    for candidate in research_plan.get("advisory_candidates") or []:
+        if not isinstance(candidate, dict):
+            continue
+        title = normalize_source(str(candidate.get("title") or ""))
+        if title != source_name:
+            continue
+        url = str(candidate.get("url") or "").strip()
+        if not url:
+            continue
+        return [{
+            "url": url,
+            "title": str(candidate.get("title") or source_name),
+            "locator": str(route.get("locator") or ""),
+            "provider": "research_plan_requirement_route",
+            "snippet": "",
+        }]
+    return []
+
+
 def command_plan(args: argparse.Namespace) -> int:
     input_path = args.claims.resolve()
     claims, mode = frozen_claims(read_json(input_path))
@@ -812,6 +931,7 @@ def command_plan(args: argparse.Namespace) -> int:
             "query": query,
             "search_hash": search_key,
             "research_tracks": research_tracks,
+            "routed_candidates": routed_candidates_for_claim(research_plan, claim),
         })
 
     output = (args.output or input_path.parent / "source-query-queue.json").resolve()
@@ -867,19 +987,25 @@ def _cached_fetch_is_safe(
     if not isinstance(record, dict):
         return False
     if record.get("status") != "fetched":
-        return record.get("status") in {"error", "empty"}
+        # Network/TLS failures and empty responses are observations from one
+        # attempt, not durable evidence.  Replaying them forever can turn a
+        # transient transport fault into a permanent zero-candidate result.
+        return False
     try:
         validate_external_url(str(record.get("url", "")), allowlist)
         payload = payload_path.read_bytes()
-        if len(payload) > max_fetch_bytes or sha256_bytes(payload) != record.get("content_sha256"):
+        if (
+            not payload
+            or len(payload) > max_fetch_bytes
+            or len(payload) != int(record.get("bytes") or 0)
+            or sha256_bytes(payload) != record.get("content_sha256")
+        ):
             return False
-        _, excerpt = extract_excerpt(
-            str(record["url"]), payload, str(record.get("content_type", "")), max_excerpt_chars,
-            str(record.get("excerpt_locator", "")),
-        )
     except (OSError, ValueError):
         return False
-    return bool(excerpt) and excerpt == record.get("excerpt")
+    # Fetch cache identity is URL-level.  Claim locators are intentionally not
+    # part of this record; every claim re-extracts its own excerpt below.
+    return True
 
 
 def write_bytes(path: Path, payload: bytes) -> None:
@@ -1026,6 +1152,9 @@ def execute_queue(
                    for track in tracks)
         ):
             raise ValueError(f"queue.queries[{index}] research_tracks 非法")
+        expected_routed = routed_candidates_for_claim(plan if research_plan_record is not None else None, claim)
+        if item.get("routed_candidates", []) != expected_routed:
+            raise ValueError(f"queue.queries[{index}] requirement source route 漂移")
         if (
             item.get("query") != expected_query
             or item.get("search_hash") != expected_hash
@@ -1124,7 +1253,8 @@ def execute_queue(
         identity = str(item["search_hash"])
         candidates: list[dict[str, str]] = []
         seen: set[str] = set()
-        raw_results = searches.get(identity, {}).get("results", [])
+        raw_results = [*(item.get("routed_candidates") or []),
+                       *(searches.get(identity, {}).get("results", []) or [])]
         if not isinstance(raw_results, list):
             raw_results = []
         for result in raw_results:
@@ -1141,18 +1271,11 @@ def execute_queue(
             seen.add(safe_url)
             candidates.append({"url": safe_url, "title": str(result.get("title", "")),
                                "locator": str(result.get("locator", "")),
-                               "provider": str(result.get("provider", ""))})
+                               "provider": str(result.get("provider", "")),
+                               "snippet": str(result.get("snippet", ""))})
             if len(candidates) == max_candidates_per_claim:
                 break
         candidate_urls[str(item["query_id"])] = candidates
-
-    locator_by_url: dict[str, list[str]] = defaultdict(list)
-    for item in items:
-        claim_locator = str((item.get("claim") or {}).get("believed_locator", ""))
-        for candidate in candidate_urls[str(item["query_id"])]:
-            locator = str(candidate.get("locator") or claim_locator)
-            if locator and locator not in locator_by_url[candidate["url"]]:
-                locator_by_url[candidate["url"]].append(locator)
 
     fetch_records: dict[str, dict[str, Any]] = {}
     for item in items:
@@ -1184,18 +1307,12 @@ def execute_queue(
                     allowlist=allowlist,
                     max_redirects=max_redirects,
                 )
-                excerpt_locator = " | ".join(locator_by_url.get(url, []))
-                media_type, excerpt = extract_excerpt(
-                    final_url, payload, content_type, max_excerpt_chars, excerpt_locator
-                )
                 record = {
-                    "status": "fetched" if excerpt else "empty",
+                    "status": "fetched" if payload else "empty",
                     "url": final_url,
-                    "content_type": media_type,
+                    "content_type": content_type,
                     "content_sha256": sha256_bytes(payload),
                     "bytes": len(payload),
-                    "excerpt": excerpt,
-                    "excerpt_locator": excerpt_locator,
                     "redirects": redirects,
                     "elapsed_ms": round((time.monotonic() - started) * 1000),
                 }
@@ -1219,34 +1336,45 @@ def execute_queue(
                 locator_miss = locator_miss or (
                     bool(claim_locator) and fetched.get("status") == "empty"
                 )
-                continue
-            # The payload is URL-level, but an excerpt is claim-level.  One
-            # URL often supports several claims with different locators; using
-            # the URL-level excerpt would silently bind them all to one window.
-            payload_path = fetch_cache / f"{identity}.payload"
-            payload = payload_path.read_bytes()
-            evidence_locator = str(candidate.get("locator") or claim_locator)
-            media_type, excerpt = extract_excerpt(
-                str(fetched.get("url", candidate["url"])),
-                payload,
-                str(fetched.get("content_type", "")),
-                max_excerpt_chars,
-                evidence_locator,
-            )
-            if not excerpt:
+            else:
+                # The payload is URL-level, but an excerpt is claim-level.  One
+                # URL often supports several claims with different locators;
+                # using the URL-level excerpt would silently bind them all to
+                # one window.
+                payload_path = fetch_cache / f"{identity}.payload"
+                payload = payload_path.read_bytes()
+                evidence_locator = resolve_evidence_locator(candidate, claim_locator)
+                media_type, excerpt = extract_excerpt(
+                    str(fetched.get("url", candidate["url"])),
+                    payload,
+                    str(fetched.get("content_type", "")),
+                    max_excerpt_chars,
+                    evidence_locator,
+                )
+                if excerpt:
+                    candidates.append({
+                        "evidence_id": f"ev-{identity[:20]}",
+                        "payload_path": str(payload_path.resolve()),
+                        "rank": rank,
+                        "title": candidate["title"],
+                        **fetched,
+                        "content_type": media_type,
+                        "excerpt": excerpt,
+                        "excerpt_locator": evidence_locator,
+                        "search_provider": candidate.get("provider", ""),
+                        "evidence_transport": "direct_fetch",
+                    })
+                    continue
                 locator_miss = locator_miss or bool(claim_locator)
-                continue
-            candidates.append({
-                "evidence_id": f"ev-{identity[:20]}",
-                "payload_path": str(payload_path.resolve()),
-                "rank": rank,
-                "title": candidate["title"],
-                **fetched,
-                "content_type": media_type,
-                "excerpt": excerpt,
-                "excerpt_locator": evidence_locator,
-                "search_provider": candidate.get("provider", ""),
-            })
+            fallback = provider_snippet_evidence(
+                candidate,
+                claim_locator=claim_locator,
+                fetch_cache=fetch_cache,
+                max_excerpt_chars=max_excerpt_chars,
+                rank=rank,
+            )
+            if fallback is not None:
+                candidates.append(fallback)
         search_record = searches[str(item["search_hash"])]
         evidence_item = {
             "claim": item["claim"],

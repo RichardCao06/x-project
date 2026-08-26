@@ -78,8 +78,11 @@ def main() -> int:
         f"补充来源或修改文件。只裁决 candidates 非空的 {external_count} 条断言；每条必须选择唯一冻结 "
         "evidence_id。CONFIRMED/CONTRADICTED 的 supporting_quote 必须从对应 excerpt 原样复制为逐字连续子串，"
         "不得改写、合并、删除或规范化空格；只引用足以支持裁决的最短原文片段，避免跨句长引文；"
-        "先把候选原文对象与 claim.node_identity 对齐为 EXACT/ADJACENT/UNRELATED；只有 EXACT 才能 CONFIRMED。"
-        "机箱与刀片服务器模块、裸板与PCBA、上游组件与整机、相邻工艺均只能判 ADJACENT；"
+        "先把候选原文对象与断言实际主语对齐为 EXACT/ADJACENT/UNRELATED；只有 EXACT 才能 CONFIRMED。"
+        "通常断言主语就是 claim.node_identity；但 requirement_id 明确声明 reference.product_identity、"
+        "reference.unit_handoff 等从属对象时，断言主语是 claim_text 中明确命名的参考产品或交接对象。"
+        "此时来源精确支持该从属对象即为 EXACT，不得仅因它相对整个活动节点属于参考产品而降为 ADJACENT。"
+        "除此例外，机箱与刀片服务器模块、裸板与PCBA、上游组件与整机、相邻工艺均只能判 ADJACENT；"
         "若原文仅支持部分或断言含原文未支持的推论，裁决 INSUFFICIENT 且 supporting_quote 可为空。"
         f"输出必须严格匹配给定 JSON schema，items 精确覆盖 {external_count} 条外部断言。"
     )

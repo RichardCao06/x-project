@@ -6,11 +6,15 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import threading
+import time
 
 import pytest
 
 from lca_project.domains.wiki import WikiAdapter
 from lca_project.domains.wiki_workspace import WikiWorkspaceBuilder
+from lca_project.kernel.executor import SandboxedExecutor
+from lca_project.kernel.registry import Capability
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -117,6 +121,90 @@ def test_workspace_selective_refresh_only_projects_changed_vendor_inputs(tmp_pat
 
     assert (workspace / "scripts/wiki_batch.py").read_bytes() == selected.read_bytes()
     assert (workspace / "scripts/wiki_table_population.py").read_bytes() != untouched.read_bytes()
+    assert json.loads((workspace / "workspace-manifest.json").read_text(
+        encoding="utf-8"
+    ))["generation"] == 2
+
+
+def test_workspace_rehydrates_direction_aware_flow_validator(tmp_path: Path) -> None:
+    workspace = tmp_path / "direction-aware-validator"
+    WikiWorkspaceBuilder().build(workspace)
+
+    canonical = ROOT / "vendor/lca_cornerstone/scripts/wiki_table_population.py"
+    hydrated = workspace / "scripts/wiki_table_population.py"
+    assert hydrated.read_bytes() == canonical.read_bytes()
+    assert 'identity: str | tuple[str, str]' in hydrated.read_text(encoding="utf-8")
+
+
+def test_workspace_noop_refresh_does_not_change_binding_generation(tmp_path: Path) -> None:
+    workspace = tmp_path / "noop-refresh"
+    builder = WikiWorkspaceBuilder()
+    builder.build(workspace)
+    manifest = workspace / "workspace-manifest.json"
+    before = manifest.read_bytes()
+
+    builder.refresh(
+        workspace,
+        vendor_paths=["vendor/lca_cornerstone/scripts/wiki_batch.py"],
+    )
+
+    assert manifest.read_bytes() == before
+
+
+def test_workspace_refresh_waits_for_active_read_only_capability(tmp_path: Path) -> None:
+    vendor = tmp_path / "vendor"
+    shutil.copytree(ROOT / "vendor/lca_cornerstone", vendor)
+    workspace = tmp_path / "coordinated-refresh"
+    builder = WikiWorkspaceBuilder(vendor)
+    builder.build(workspace)
+    selected = vendor / "scripts/wiki_batch.py"
+    selected.write_text(selected.read_text(encoding="utf-8") + "\n# repaired\n",
+                        encoding="utf-8")
+    marker = tmp_path / "capability-started"
+    code = (
+        "import json,pathlib,sys,time; "
+        "pathlib.Path(sys.argv[1]).write_text('started'); time.sleep(0.5); "
+        "pathlib.Path(sys.argv[2]).write_text(json.dumps({'status':'ok'}))"
+    )
+    capability = Capability.from_mapping({
+        "id": "agent.review", "version": "1",
+        "command": [sys.executable, "-c", code, str(marker), "{output}"],
+        "side_effects": "none",
+    })
+    executor = SandboxedExecutor(
+        tmp_path / "scratch",
+        protected_roots=(workspace / "workspace-manifest.json",),
+        coordination_locks=(builder.lock_path(workspace),),
+    )
+    outcome: dict[str, object] = {}
+
+    def execute() -> None:
+        try:
+            outcome["result"] = executor.execute(
+                capability, {}, run_id="run-lock", task_id="verify"
+            )
+        except Exception as exc:  # pragma: no cover - asserted below
+            outcome["error"] = exc
+
+    thread = threading.Thread(target=execute)
+    thread.start()
+    deadline = time.monotonic() + 2
+    while not marker.exists() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert marker.exists()
+
+    started = time.monotonic()
+    builder.refresh(
+        workspace,
+        vendor_paths=["vendor/lca_cornerstone/scripts/wiki_batch.py"],
+    )
+    elapsed = time.monotonic() - started
+    thread.join(timeout=2)
+
+    assert "error" not in outcome
+    assert outcome["result"].status == "ok"
+    assert elapsed >= 0.2
+    assert (workspace / "scripts/wiki_batch.py").read_bytes() == selected.read_bytes()
 
 
 def test_production_viewer_is_built_with_the_bundle_in_an_isolated_workspace(tmp_path: Path) -> None:

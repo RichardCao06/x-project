@@ -65,6 +65,12 @@ DOCUMENTS = [
         "research-constraint-governance-redesign-v1.html", kind="design",
     ),
     Document(
+        "architecture", "Job 跨阶段状态一致性与自主收敛设计 v1",
+        "定义 Job/Run/Task/Item/Campaign 原子恢复、Artifact 代际、唯一 Repair Graph、差分 Canary 与最终发布收尾。",
+        "job-execution-consistency-autonomous-convergence-v1.md",
+        "job-execution-consistency-autonomous-convergence-v1.html", generated=True, kind="design",
+    ),
+    Document(
         "architecture", "自治修复的受控 SCM 发布",
         "偏差 Issue、隔离分支、可追踪 commit、Draft PR、失败降级与基线一致性保护。",
         "system-repair-scm.md",
