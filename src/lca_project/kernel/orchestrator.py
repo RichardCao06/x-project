@@ -264,9 +264,11 @@ class PersistentOrchestrator:
             attempt = int(row["attempt"]) + 1
             # Preserve deterministic dependency order rather than SQL row order.
             input_hashes = self._input_hashes(conn, run_id, row)
-            # A repaired attempt is cryptographically bound to the prior
-            # failure envelope, so a worker cannot silently rerun unchanged
-            # context and call it a repair.
+            # Input lineage is an ordered dependency-hash prefix followed by
+            # the immediately prior task output/failure hash on repair.  The
+            # quality observer validates that suffix against typed durable
+            # attempt history, so arbitrary hashes cannot masquerade as repair
+            # lineage and stale dependency prefixes remain inadmissible.
             if int(row["attempt"]) > 0 and row["output_hash"]:
                 if not input_hashes or input_hashes[-1] != str(row["output_hash"]):
                     input_hashes = (*input_hashes, str(row["output_hash"]))

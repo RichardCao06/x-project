@@ -202,6 +202,101 @@ def test_research_more_scout_binds_failed_questions_and_prior_strategy(
     } == set(failed_question_ids)
 
 
+def test_failed_question_repair_excludes_insufficient_urls_and_changes_bilingual_strategy(
+    tmp_path: Path,
+) -> None:
+    plan = build_plan(tmp_path)
+    config = tmp_path / "search-providers.json"
+    config.write_text(json.dumps({"providers": {}, "routing": {}}), encoding="utf-8")
+    failed_question_ids = [
+        "identity.activity_definition", "process.origin_boundary",
+    ]
+    prior_strategy_hash = "a" * 64
+    gate = tmp_path / "source-diversity-gate.json"
+    gate.write_text(json.dumps({
+        "decision": "RESEARCH_MORE", "attempt": 0,
+        "failed_requirement_ids": failed_question_ids,
+        "strategy_hash": prior_strategy_hash,
+    }), encoding="utf-8")
+    old_urls = {
+        "identity.activity_definition": "https://old.example/generic-server-description",
+        "process.origin_boundary": "https://old.example/incomplete-production-steps",
+    }
+    previous = tmp_path / "research-scout.json"
+    previous.write_text(json.dumps({
+        "protocol": "wiki-research-scout-v1",
+        "query_policy_version": "question-contract-adaptive-v3",
+        "node_id": plan["node_id"],
+        "candidates": [
+            {"url": url, "question_id": question_id}
+            for question_id, url in old_urls.items()
+        ],
+    }), encoding="utf-8")
+    output = tmp_path / "research-scout-diversity-repair.json"
+
+    completed = subprocess.run([
+        sys.executable, str(ROOT / "scripts/scout_wiki_research_plan.py"),
+        str(tmp_path / "research-plan.json"), str(config), str(output),
+        "--repair-gate", str(gate), "--previous-scout", str(previous),
+    ], capture_output=True, text=True, check=False)
+
+    # With providers disabled there are deliberately no novel candidates, but
+    # the governed repair artifact is still written for causal-delta proof.
+    assert completed.returncode == 2
+    repaired = json.loads(output.read_text(encoding="utf-8"))
+    repair = repaired["diversity_repair"]
+    assert repaired["query_policy_version"] == "question-contract-adaptive-v4"
+    assert set(repair["excluded_urls"]) == set(old_urls.values())
+    assert set(repair["excluded_url_hashes"]) == {
+        hashlib.sha256(url.encode()).hexdigest() for url in old_urls.values()
+    }
+    assert repair["strategy_hash"] != prior_strategy_hash
+    assert {row["question_id"] for row in repaired["query_audit"]} == set(
+        failed_question_ids
+    )
+    assert {row["language"] for row in repaired["query_audit"]} == {"zh", "en"}
+    query_by_question = {
+        question_id: " ".join(
+            row["query"] for row in repaired["query_audit"]
+            if row["question_id"] == question_id
+        )
+        for question_id in failed_question_ids
+    }
+    assert "manufacturer technical documentation" in query_by_question[
+        "identity.activity_definition"
+    ]
+    assert "assembly configuration firmware burn-in functional test" in query_by_question[
+        "process.origin_boundary"
+    ]
+
+
+def test_repair_scout_cache_requires_new_policy_and_hash_bound_exclusions(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "research-scout-diversity-repair.json"
+    gate_hash = "b" * 64
+    excluded_url = "https://old.example/insufficient"
+    value = {
+        "query_policy_version": "question-contract-adaptive-v3",
+        "diversity_repair": {
+            "trigger_gate_sha256": gate_hash,
+            "excluded_urls": [excluded_url],
+            "excluded_url_hashes": [hashlib.sha256(excluded_url.encode()).hexdigest()],
+        },
+    }
+    path.write_text(json.dumps(value), encoding="utf-8")
+
+    assert capability_runtime._repair_scout_is_current(path, gate_hash) is False
+
+    value["query_policy_version"] = "question-contract-adaptive-v4"
+    path.write_text(json.dumps(value), encoding="utf-8")
+    assert capability_runtime._repair_scout_is_current(path, gate_hash) is True
+
+    value["diversity_repair"]["excluded_url_hashes"] = ["0" * 64]
+    path.write_text(json.dumps(value), encoding="utf-8")
+    assert capability_runtime._repair_scout_is_current(path, gate_hash) is False
+
+
 def test_gate_evidence_survives_blocked_command_and_changes_failure_fingerprint(
     tmp_path: Path,
 ) -> None:

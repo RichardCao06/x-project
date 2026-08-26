@@ -978,6 +978,112 @@ def test_pending_or_lineage_stale_maturity_cannot_finish_workflow(tmp_path: Path
         assert observed.evidence["rejected_protocols"]["maturity"] == reason
 
 
+@pytest.mark.parametrize("lineage_type", ["failure", "prior_output"])
+def test_repaired_task_accepts_current_dependency_prefix_and_typed_repair_lineage(
+    lineage_type: str,
+) -> None:
+    prior_hash = f"prior-verify-{lineage_type}"
+    tasks = [
+        {"task_id": "verify", "status": "succeeded", "dependencies": ["fetch"],
+         "recorded_input_hashes": ["current-fetch", prior_hash],
+         "repair_lineage": [
+             {"type": lineage_type, "hash": prior_hash, "attempt": 1},
+         ],
+         "output_hash": "current-verify"},
+        {"task_id": "fetch", "status": "succeeded", "dependencies": [],
+         "recorded_input_hashes": [], "output_hash": "current-fetch"},
+    ]
+
+    accepted, rejected = QualityTrajectory._current_succeeded_tasks(tasks)
+
+    assert accepted == {"fetch", "verify"}
+    assert rejected == {}
+
+
+def test_repaired_task_rejects_stale_dependency_prefix_even_with_typed_lineage() -> None:
+    tasks = [
+        {"task_id": "verify", "status": "succeeded", "dependencies": ["fetch"],
+         "recorded_input_hashes": ["stale-fetch", "prior-verify-failure"],
+         "repair_lineage": [
+             {"type": "failure", "hash": "prior-verify-failure", "attempt": 1},
+         ],
+         "output_hash": "current-verify"},
+        {"task_id": "fetch", "status": "succeeded", "dependencies": [],
+         "recorded_input_hashes": [], "output_hash": "current-fetch"},
+    ]
+
+    accepted, rejected = QualityTrajectory._current_succeeded_tasks(tasks)
+
+    assert accepted == {"fetch"}
+    assert rejected["verify"] == "current_upstream_hash_mismatch"
+
+
+def test_repaired_task_rejects_untyped_or_unknown_lineage_suffix() -> None:
+    task = {
+        "task_id": "verify", "status": "succeeded", "dependencies": ["fetch"],
+        "recorded_input_hashes": ["current-fetch", "arbitrary-hash"],
+        "repair_lineage": [
+            {"type": "failure", "hash": "different-failure", "attempt": 1},
+        ],
+        "output_hash": "current-verify",
+    }
+    tasks = [task, {
+        "task_id": "fetch", "status": "succeeded", "dependencies": [],
+        "recorded_input_hashes": [], "output_hash": "current-fetch",
+    }]
+
+    accepted, rejected = QualityTrajectory._current_succeeded_tasks(tasks)
+
+    assert accepted == {"fetch"}
+    assert rejected["verify"] == "repair_lineage_hash_mismatch"
+
+
+def test_controller_projects_prior_attempts_as_typed_repair_lineage(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    accepted_job = SkillInvoker(root).invoke(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A039"]}
+    )
+    orchestrator = PersistentOrchestrator(root)
+    run_id = orchestrator.materialize(accepted_job["job_id"])
+    now = utcnow()
+    with orchestrator.control.state.transaction() as conn:
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',output_hash=?,updated_at=? "
+            "WHERE run_id=? AND task_id='search_execution_gate'",
+            ("current-search", now, run_id),
+        )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',attempt=2,output_hash=?,updated_at=? "
+            "WHERE run_id=? AND task_id='verify'",
+            ("current-verify", now, run_id),
+        )
+        conn.execute(
+            "INSERT INTO orchestrator_attempts("
+            "attempt_id,run_id,task_id,attempt,status,input_hashes,output_hash,started_at,finished_at"
+            ") VALUES(?,?,?,?,?,?,?,?,?)",
+            ("attempt_failed_verify", run_id, "verify", 1, "repairable",
+             json.dumps(["current-search"]), "prior-verify-failure", now, now),
+        )
+        conn.execute(
+            "INSERT INTO orchestrator_attempts("
+            "attempt_id,run_id,task_id,attempt,status,input_hashes,output_hash,started_at,finished_at"
+            ") VALUES(?,?,?,?,?,?,?,?,?)",
+            ("attempt_repaired_verify", run_id, "verify", 2, "succeeded",
+             json.dumps(["current-search", "prior-verify-failure"]),
+             "current-verify", now, now),
+        )
+
+    tasks = GoalAlignmentController(root, orchestrator.control)._tasks(run_id)
+    verify = next(item for item in tasks if item["task_id"] == "verify")
+    admitted, rejected = QualityTrajectory._current_succeeded_tasks(tasks)
+
+    assert verify["repair_lineage"] == [{
+        "type": "failure", "hash": "prior-verify-failure", "attempt": 1,
+    }]
+    assert "verify" in admitted
+    assert "verify" not in rejected
+
+
 def test_system_repair_claims_must_bind_causal_change_and_proof_to_patch() -> None:
     request = {
         "causal_input_changes": [{"target": "query strategy"}],

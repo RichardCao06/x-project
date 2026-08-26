@@ -127,9 +127,16 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
             failed_urls.add(url)
             saw_failed_pdf = saw_failed_pdf or urlsplit(url).path.lower().endswith(".pdf")
     scout = json.loads(scout_path.read_text(encoding="utf-8"))
+    insufficient_urls = {
+        str(row.get("url") or "").strip()
+        for row in scout.get("candidates", []) if isinstance(row, dict)
+        and str(row.get("question_id") or "") in failed_question_ids
+        and str(row.get("url") or "").strip()
+    }
+    excluded_urls = failed_urls | insufficient_urls
     candidates = [
         row for row in scout.get("candidates", [])
-        if isinstance(row, dict) and str(row.get("url") or "") not in failed_urls
+        if isinstance(row, dict) and str(row.get("url") or "") not in excluded_urls
         and not (saw_failed_pdf and urlsplit(str(row.get("url") or "")).path.lower().endswith(".pdf"))
     ]
     candidates.sort(key=lambda row: (
@@ -143,7 +150,7 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
         return scout_path
     output = batch / "research-scout-diversity-repair.json"
     strategy_delta = {
-        "excluded_urls": sorted(failed_urls),
+        "excluded_urls": sorted(excluded_urls),
         "excluded_pdf_candidates": saw_failed_pdf,
         "prioritized_question_ids": sorted(failed_question_ids),
         "previous_candidate_count": len(previous_urls),
@@ -155,9 +162,9 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
     ).encode()).hexdigest()
     repaired = {**scout, "candidates": candidates, "diversity_repair": {
         "protocol": "wiki-source-diversity-repair-v2",
-        "excluded_urls": sorted(failed_urls),
+        "excluded_urls": sorted(excluded_urls),
         "excluded_url_hashes": sorted(
-            hashlib.sha256(url.encode("utf-8")).hexdigest() for url in failed_urls
+            hashlib.sha256(url.encode("utf-8")).hexdigest() for url in excluded_urls
         ),
         "excluded_pdf_candidates": saw_failed_pdf,
         "failed_question_ids": sorted(failed_question_ids),
@@ -169,6 +176,37 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
     output.write_text(json.dumps(repaired, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                       encoding="utf-8")
     return output
+
+
+def _repair_scout_is_current(path: Path, trigger_gate_sha256: str) -> bool:
+    """Require the active repair policy and hash-bound trigger/exclusions."""
+    if not path.is_file():
+        return False
+    try:
+        scout = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(scout, dict):
+            return False
+        repair = scout.get("diversity_repair") or {}
+        if (not isinstance(repair, dict)
+                or not isinstance(repair.get("excluded_urls"), list)
+                or not isinstance(repair.get("excluded_url_hashes"), list)):
+            return False
+        excluded_urls = {
+            str(url) for url in repair.get("excluded_urls") or []
+        }
+        excluded_hashes = {
+            str(value) for value in repair.get("excluded_url_hashes") or []
+        }
+        return bool(
+            scout.get("query_policy_version") == "question-contract-adaptive-v4"
+            and repair.get("trigger_gate_sha256") == trigger_gate_sha256
+            and all(
+                hashlib.sha256(url.encode("utf-8")).hexdigest() in excluded_hashes
+                for url in excluded_urls
+            )
+        )
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
 
 
 def _pipeline(commands: list[list[str]], *, cwd: Path, timeout: int,
@@ -745,7 +783,9 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
             try:
                 scout_current = (
                     json.loads(research_scout.read_text(encoding="utf-8"))
-                    .get("query_policy_version") == "question-contract-adaptive-v3"
+                    .get("query_policy_version") in {
+                        "question-contract-adaptive-v3", "question-contract-adaptive-v4",
+                    }
                 )
             except (OSError, ValueError, json.JSONDecodeError):
                 scout_current = False
@@ -759,28 +799,10 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
             except (OSError, ValueError, json.JSONDecodeError):
                 repair_requested = False
         repair_scout_current = False
-        if repair_requested and diversity_repair_scout.is_file():
-            try:
-                repair_record = (
-                    json.loads(diversity_repair_scout.read_text(encoding="utf-8"))
-                    .get("diversity_repair") or {}
-                )
-                excluded_urls = {
-                    str(url) for url in repair_record.get("excluded_urls") or []
-                }
-                excluded_hashes = {
-                    str(value) for value in repair_record.get("excluded_url_hashes") or []
-                }
-                repair_scout_current = (
-                    repair_record.get("trigger_gate_sha256") == repair_gate_sha256
-                    and "excluded_url_hashes" in repair_record
-                    and all(
-                        hashlib.sha256(url.encode("utf-8")).hexdigest()
-                        in excluded_hashes for url in excluded_urls
-                    )
-                )
-            except (OSError, ValueError, json.JSONDecodeError):
-                repair_scout_current = False
+        if repair_requested:
+            repair_scout_current = _repair_scout_is_current(
+                diversity_repair_scout, repair_gate_sha256
+            )
         active_research_scout = (
             diversity_repair_scout if repair_requested
             else _diversity_repair_scout(batch, research_scout)
@@ -833,6 +855,11 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
         scout_needed = bool(
             scout_command and (not scout_current or repair_requested and not repair_scout_current)
         )
+        # Nomination cache validity was evaluated against the pre-regeneration
+        # scout bytes.  A causal scout change must regenerate nomination before
+        # rebuilding the queue and evidence chain.
+        if scout_needed:
+            nomination_ready = False
         initial_commands = ([scout_command] if scout_needed else [])
         initial_commands += [plan_command] if nomination_ready else [nomination_command, plan_command]
         initial = _pipeline(initial_commands, cwd=workspace,
