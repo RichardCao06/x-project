@@ -28,8 +28,10 @@ def frozen_node(node_id: str = "P003") -> dict:
         "node_id": node_id, "industry": "ict_equipment", "name": "服务器, 通用计算, 刀片式",
         "node_type": "product", "facets": {"equipment_class": "server", "form_factor": "blade"},
         "boundary": "foreground", "dossier": {"claim_requirements": [
-            {"requirement_id": "identity", "claim_kind": "external_fact"},
-            {"requirement_id": "scope", "claim_kind": "modeling_judgment"},
+            {"requirement_id": "identity", "section": "identity",
+             "claim_kind": "external_fact"},
+            {"requirement_id": "scope", "section": "scope",
+             "claim_kind": "modeling_judgment"},
         ]},
     }
 
@@ -56,15 +58,96 @@ def test_nomination_schema_is_bound_to_the_workflow_node_not_historical_example(
     workflow, template = write_inputs(tmp_path, [frozen_node()])
     node, output = launcher_module().dynamic_schema(workflow, template, tmp_path / "effective.json")
     schema = json.loads(output.read_text(encoding="utf-8"))
-    properties = schema["properties"]["claims"]["items"]["properties"]
+    claims_schema = schema["properties"]["claims"]
+    properties = claims_schema["properties"]["claim_000"]["properties"]
     assert node["node_id"] == "P003"
     assert properties["node_id"]["const"] == "P003"
     assert properties["industry"]["const"] == "ict_equipment"
-    assert properties["claim_id"]["pattern"] == "^P003-[0-9]+$"
+    assert properties["claim_id"]["const"] == "P003-0"
     assert properties["node_identity"]["properties"]["facets"]["properties"]["form_factor"]["const"] == "blade"
     assert properties["node_identity"]["additionalProperties"] is False
-    assert schema["properties"]["claims"]["minItems"] == 3
-    assert schema["properties"]["claims"]["maxItems"] == 3
+    assert claims_schema["type"] == "object"
+    assert claims_schema["required"] == ["claim_000", "claim_001", "claim_002"]
+    assert claims_schema["additionalProperties"] is False
+
+
+def test_dynamic_schema_binds_each_requirement_slot_and_modeling_cardinality(
+    tmp_path: Path,
+) -> None:
+    node = frozen_node("A019")
+    node["node_type"] = "activity"
+    node["dossier"]["claim_requirements"] = nomination_requirements("activity")
+    workflow, template = write_inputs(tmp_path, [node])
+    _, output = launcher_module().dynamic_schema(workflow, template, tmp_path / "effective.json")
+    claims_schema = json.loads(output.read_text(encoding="utf-8"))["properties"]["claims"]
+    slots = [claims_schema["properties"][name]["properties"]
+             for name in claims_schema["required"]]
+
+    requirements = node["dossier"]["claim_requirements"]
+    quotas = {"external_fact": 1, "modeling_judgment": 2,
+              "internal_graph_fact": 1, "evidence_gap": 1}
+    expected = [
+        requirement
+        for requirement in requirements
+        for _ in range(quotas[requirement["claim_kind"]])
+    ]
+    assert len(requirements) == 21
+    assert len(slots) == 30
+    assert [slot["requirement_id"]["const"] for slot in slots] == [
+        requirement["requirement_id"] for requirement in expected
+    ]
+    assert [slot["section"]["const"] for slot in slots] == [
+        requirement["section"] for requirement in expected
+    ]
+    assert [slot["claim_kind"]["const"] for slot in slots] == [
+        requirement["claim_kind"] for requirement in expected
+    ]
+    assert [slot["claim_id"]["const"] for slot in slots] == [
+        f"A019-{index}" for index in range(30)
+    ]
+    assert all(slot["node_id"]["const"] == "A019" for slot in slots)
+    assert all(slot["industry"]["const"] == "ict_equipment" for slot in slots)
+    assert all(slot["node_identity"]["properties"]["display_name"]["const"]
+               == node["name"] for slot in slots)
+
+
+def test_wrong_requirement_distribution_cannot_pass_generated_schema(tmp_path: Path) -> None:
+    node = frozen_node("A019")
+    node["node_type"] = "activity"
+    node["dossier"]["claim_requirements"] = nomination_requirements("activity")
+    workflow, template = write_inputs(tmp_path, [node])
+    _, output = launcher_module().dynamic_schema(workflow, template, tmp_path / "effective.json")
+    claims_schema = json.loads(output.read_text(encoding="utf-8"))["properties"]["claims"]
+    required_distribution = [
+        claims_schema["properties"][name]["properties"]["requirement_id"]["const"]
+        for name in claims_schema["required"]
+    ]
+    observed_distribution = list(required_distribution)
+    definition_id = required_distribution[0]
+    modeling_ids = [
+        requirement["requirement_id"]
+        for requirement in node["dossier"]["claim_requirements"]
+        if requirement["claim_kind"] == "modeling_judgment"
+    ]
+    # Reproduce the diagnosed 9/1 shape: one external slot receives eight
+    # excess rows while eight modeling requirements lose their second row.
+    for requirement_id in modeling_ids[:8]:
+        second_index = max(
+            index for index, value in enumerate(observed_distribution)
+            if value == requirement_id
+        )
+        observed_distribution[second_index] = definition_id
+
+    assert observed_distribution != required_distribution
+    assert Counter(observed_distribution)[definition_id] == 9
+    assert all(Counter(observed_distribution)[requirement_id] == 1
+               for requirement_id in modeling_ids[:8])
+    assert any(
+        observed != claims_schema["properties"][slot_name]["properties"][
+            "requirement_id"
+        ]["const"]
+        for slot_name, observed in zip(claims_schema["required"], observed_distribution)
+    )
 
 
 def test_nomination_launcher_rejects_cross_node_capture(tmp_path: Path) -> None:
@@ -177,6 +260,29 @@ def test_canonicalization_moves_protocol_owned_provenance_out_of_agent_control(t
     assert claims[2]["believed_source"] == "Official source"
 
 
+def test_canonicalization_flattens_bound_structured_slots(tmp_path: Path) -> None:
+    node = frozen_node()
+    raw, output = tmp_path / "raw.json", tmp_path / "canonical.json"
+    claims = valid_claims(node)
+    raw.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": {
+            f"claim_{index:03d}": claim for index, claim in enumerate(claims)
+        },
+    }), encoding="utf-8")
+
+    launcher_module().canonicalize_result(raw, output, node)
+    canonical = json.loads(output.read_text(encoding="utf-8"))["claims"]
+
+    assert isinstance(canonical, list)
+    assert [claim["requirement_id"] for claim in canonical] == [
+        "identity", "scope", "scope",
+    ]
+    assert [claim["claim_id"] for claim in canonical] == [
+        "P003-0", "P003-1", "P003-2",
+    ]
+
+
 def test_canonicalization_trims_requirement_overflow_to_frozen_quota(tmp_path: Path) -> None:
     raw, output = tmp_path / "raw.json", tmp_path / "canonical.json"
     node = {"node_id": "P030", "dossier": {"claim_requirements": [{
@@ -192,6 +298,35 @@ def test_canonicalization_trims_requirement_overflow_to_frozen_quota(tmp_path: P
     assert len(claims) == 2
     assert [claim["claim_id"] for claim in claims] == ["P030-0", "P030-1"]
     assert all(claim["believed_source"] == "INTERNAL_MODELING_JUDGMENT" for claim in claims)
+
+
+def test_canonicalization_never_invents_missing_claim_semantics(tmp_path: Path) -> None:
+    node = frozen_node()
+    node["dossier"]["claim_requirements"] = [{
+        "requirement_id": "scope", "section": "scope",
+        "claim_kind": "modeling_judgment",
+    }]
+    raw, output = tmp_path / "raw.json", tmp_path / "canonical.json"
+    claim = valid_claims(node)[0]
+    claim.update({
+        "claim_text": "one actual modeling judgment",
+        "believed_source": "agent-controlled source",
+        "believed_locator": "agent-controlled locator",
+        "attribution_confidence": "medium",
+    })
+    raw.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": [claim],
+    }), encoding="utf-8")
+
+    module = launcher_module()
+    module.canonicalize_result(raw, output, node)
+    canonical = json.loads(output.read_text(encoding="utf-8"))["claims"]
+
+    assert len(canonical) == 1
+    assert canonical[0]["claim_text"] == "one actual modeling judgment"
+    with pytest.raises(ValueError, match="数量契约失败: 1"):
+        module.validate_result(output, node)
 
 
 def test_canonicalization_groups_a019_layout_without_semantic_drift(

@@ -79,6 +79,66 @@ def test_content_validation_is_a_business_block_not_process_failure(
     assert result["failure"]["code"] == "CONTENT_LOCAL_ISSUES"
 
 
+def test_nomination_validation_error_is_not_infrastructure(
+    tmp_path: Path, monkeypatch
+) -> None:
+    workspace = tmp_path / "workspace"
+    batch = workspace / "batch"
+    scripts = workspace / "scripts"
+    nomination = batch / "nomination-runtime"
+    scripts.mkdir(parents=True)
+    nomination.mkdir(parents=True)
+    (batch / "prepared.json").write_text("{}\n", encoding="utf-8")
+    (batch / "nomination.workflow.run.js").write_text("// frozen\n", encoding="utf-8")
+    launcher = scripts / "run_wiki_nomination_capture.py"
+    launcher.write_text("# frozen launcher\n", encoding="utf-8")
+    validation_error = "activity.identity.mechanism_interpretation 数量契约失败: 1"
+    usage_path = nomination / "nomination-usage.json"
+    usage_path.write_text(json.dumps({
+        "protocol": "wiki-nomination-runtime-usage-v1",
+        "exit_code": 2,
+        "validation_error": validation_error,
+    }), encoding="utf-8")
+    usage_sha256 = capability_runtime._sha256(usage_path)
+    (nomination / "wiki-usage-v1.json").write_text(json.dumps({
+        "protocol": {"version": "wiki-usage-v1", "kind": "usage"},
+        "runtime_usage_sha256": usage_sha256,
+    }), encoding="utf-8")
+
+    monkeypatch.setattr(capability_runtime, "_pipeline", lambda commands, **kwargs: {
+        "status": "failed",
+        "failure": {"code": "CAPABILITY_PROCESS_FAILED", "category": "infrastructure",
+                    "scope": "task", "message": "child command exited 2"},
+        "steps": [{
+            "argv": commands[0], "status": "failed", "returncode": 2,
+            "failure": {"code": "CAPABILITY_PROCESS_FAILED"},
+        }],
+    })
+
+    result = capability_runtime.agent({
+        "phase": "research_ready", "workspace": str(workspace), "batch": str(batch),
+        "allowed_domains": ["example.com"],
+    })
+
+    assert result["status"] == "blocked"
+    assert result["failure"]["code"] == "NOMINATION_CONTRACT_INVALID"
+    assert result["failure"]["category"] == "business_validation"
+    assert result["failure"]["message"] == validation_error
+    assert result["failure"]["evidence_artifacts"] == [str(usage_path)]
+    assert result["nomination_usage_sha256"] == usage_sha256
+    FailureEnvelope.from_capability(result["failure"])
+
+    (nomination / "wiki-usage-v1.json").write_text(json.dumps({
+        "runtime_usage_sha256": "0" * 64,
+    }), encoding="utf-8")
+    unbound = capability_runtime.agent({
+        "phase": "research_ready", "workspace": str(workspace), "batch": str(batch),
+        "allowed_domains": ["example.com"],
+    })
+    assert unbound["failure"]["code"] == "CAPABILITY_PROCESS_FAILED"
+    assert unbound["failure"]["category"] == "infrastructure"
+
+
 def test_nomination_cache_is_bound_to_launcher_code(tmp_path: Path) -> None:
     nomination = tmp_path / "nomination-runtime"
     nomination.mkdir()

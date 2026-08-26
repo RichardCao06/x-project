@@ -8,6 +8,7 @@ from lca_project.kernel.orchestrator import PersistentOrchestrator, TaskRecord
 from lca_project.kernel.skills import SkillInvoker
 from lca_project.kernel.worker import WorkerLoop
 from lca_project.kernel.worker import WikiTaskBinding
+from lca_project import capability_runtime
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -213,6 +214,78 @@ def test_worker_failure_is_persisted_and_does_not_unlock_downstream(tmp_path: Pa
     assert all(item.status == "pending" for item in tasks[5:])
     job = worker.control.state.get("jobs", job_id)
     assert job is not None and job["status"] == "failed"
+
+
+def test_research_ready_rewind_preserves_plan_and_reexecutes_changed_launcher(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    _, run_id = create_p030(root)
+    orchestrator = PersistentOrchestrator(root)
+    binding = WikiTaskBinding(root)
+    job_row = orchestrator.control.state._connection().execute(
+        "SELECT job_id FROM orchestrator_runs WHERE run_id=?", (run_id,)
+    ).fetchone()
+    assert job_row is not None
+    job = orchestrator.control.state.get("jobs", str(job_row["job_id"]))
+    assert job is not None
+    ctx = binding.context(run_id, job)
+    workspace, batch = ctx["workspace"], ctx["batch"]
+    scripts = workspace / "scripts"
+    nomination = batch / "nomination-runtime"
+    scripts.mkdir(parents=True)
+    nomination.mkdir(parents=True)
+    plan = batch / "research-plan.json"
+    gate = batch / "research-plan-gate.json"
+    scout = batch / "research-scout-diversity-repair.json"
+    plan.write_text('{"protocol":"wiki-research-plan-v1"}\n', encoding="utf-8")
+    gate.write_text('{"decision":"PASS"}\n', encoding="utf-8")
+    scout.write_text('{"protocol":"wiki-research-scout-v1"}\n', encoding="utf-8")
+    preserved = {path: path.read_bytes() for path in (plan, gate, scout)}
+
+    launcher = scripts / "run_wiki_nomination_capture.py"
+    launcher.write_text("# slot schema v1\n", encoding="utf-8")
+    (nomination / "nomination-result.json").write_text(json.dumps({
+        "claims": [{"claim_kind": "external_fact", "believed_source": f"Source {index}"}
+                   for index in range(3)],
+    }), encoding="utf-8")
+    (nomination / "wiki-usage-v1.json").write_text("{}\n", encoding="utf-8")
+    (nomination / "nomination-usage.json").write_text(json.dumps({
+        "exit_code": 0, "validation_error": None,
+    }), encoding="utf-8")
+    (nomination / "nomination-invocation.json").write_text(json.dumps({
+        "research_scout": {"sha256": capability_runtime._sha256(scout)},
+        "research_plan": {"sha256": capability_runtime._sha256(plan)},
+        "launcher_sha256": capability_runtime._sha256(launcher),
+        "nomination_policy_version": "research-scout-source-specific-v9",
+    }), encoding="utf-8")
+    launcher.write_text("# slot schema v2\n", encoding="utf-8")
+
+    output = orchestrator.control.artifacts.put_json(
+        {"protocol": "test-output-v1"}, metadata={"schema": "test"},
+    )
+    with orchestrator.control.state.transaction() as conn:
+        for task_id in ("plan", "prepare", "research_plan", "research_plan_gate",
+                        "research_ready", "search_execution_gate", "verify"):
+            conn.execute(
+                "UPDATE orchestrator_tasks SET status='succeeded',output_hash=? "
+                "WHERE run_id=? AND task_id=?", (output.digest, run_id, task_id),
+            )
+
+    invalidated = orchestrator.rewind_from(
+        run_id, "research_ready", reason="nomination launcher slot schema changed",
+        actor="system_repair",
+    )
+    tasks = {item.task_id: item for item in orchestrator.tasks(run_id)}
+
+    assert tasks["research_plan"].status == "succeeded"
+    assert tasks["research_plan_gate"].status == "succeeded"
+    assert tasks["research_ready"].status == "ready"
+    assert {"research_ready", "search_execution_gate", "verify"} <= set(invalidated)
+    assert all(path.read_bytes() == content for path, content in preserved.items())
+    assert capability_runtime._nomination_cache_is_current(
+        nomination, scout, launcher, research_plan=plan,
+    ) is False
 
 
 def test_preview_keeps_table_pipeline_executable(tmp_path: Path) -> None:
