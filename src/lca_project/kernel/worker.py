@@ -585,6 +585,17 @@ class WorkerLoop:
             self.root / "policies/wiki-repair-policy-v1.json"
         )
 
+    def _execution_envelope(
+        self, binding: GraphTaskBinding | WikiTaskBinding,
+        task: TaskRecord, job: dict[str, Any],
+    ) -> dict[str, Any]:
+        envelope = binding.envelope(task.run_id, task, job)
+        if binding is self.wiki and task.task_id == "source_diversity_gate":
+            envelope["attempt"] = self.orchestrator.repair_epoch_attempt(
+                task.run_id, task.task_id, task.attempt
+            )
+        return envelope
+
     def _audit_goal_alignment(self, job_id: str, *, trigger: str) -> None:
         """Keep supervision observable without making it a task failure source."""
         try:
@@ -871,7 +882,7 @@ class WorkerLoop:
                 archive_workspace = Path(binding_context["workspace"])
                 archive_root = Path(binding_context.get("batch") or archive_workspace)
                 archive_before = self._attempt_snapshot(archive_root)
-                envelope = binding.envelope(task.run_id, task, job)
+                envelope = self._execution_envelope(binding, task, job)
                 self.orchestrator.refresh_attempt_binding(attempt_id)
                 self.control.events.append("workflow_run", task.run_id, "task.claimed", {
                     "task_id": task.task_id, "attempt_id": attempt_id, "worker_id": self.worker_id,
