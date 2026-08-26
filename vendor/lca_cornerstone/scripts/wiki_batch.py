@@ -43,6 +43,7 @@ from merge_wiki_ku import (
     plan_extract_merge,
     plan_merge,
     rehydrate_committed_plan,
+    transaction_matches_plan,
 )
 from prep_node_wiki import atomize, splice
 from validate_wiki_workflow import (
@@ -1048,7 +1049,10 @@ def committed_transaction(
         raise ValueError(f"事务协议非法: {path}")
     if expected_plan is not None:
         actual_plan = Path(str(transaction.get("plan", ""))).resolve()
-        if actual_plan != expected_plan.resolve():
+        expected_plan = expected_plan.resolve()
+        expected_digest = sha256(expected_plan.read_text(encoding="utf-8"))
+        if (actual_plan != expected_plan
+                or transaction.get("plan_sha256") != expected_digest):
             raise ValueError(f"已提交事务不属于当前 merge plan: {path}")
     targets = transaction.get("targets")
     if not isinstance(targets, list) or not targets:
@@ -1829,9 +1833,28 @@ def command_apply(args: argparse.Namespace) -> int:
             raise ValueError(f"批次处于 {effective_state}；Apply 恢复须显式传 --resume")
         effective_state = str(journal.get("resume_from") or "")
     if effective_state == "frozen":
+        plan_path = args.plan.resolve() if args.plan else (
+            ROOT / frozen["batch_merge_plan"] if frozen.get("batch_merge_plan") else None
+        )
+        if plan_path is None:
+            raise ValueError("批次没有可应用的 batch merge plan")
         prior_content = journal.get("artifacts", {}).get("content_apply")
-        rehydrate = bool(prior_content and args.resume and args.rehydrate)
-        remediation = bool(prior_content and args.resume and args.plan and not rehydrate)
+        requested_rehydrate = bool(prior_content and args.resume and args.rehydrate)
+        transaction_path = batch_dir / "apply-transaction.json"
+        matching_plan_commit = False
+        if requested_rehydrate and transaction_path.is_file():
+            matching_plan_commit = transaction_matches_plan(
+                read_json(transaction_path), plan_path
+            )
+        rehydrate = requested_rehydrate and matching_plan_commit
+        # A recovery request for a regenerated plan is a fresh, hash-locked
+        # apply.  It must never replay the old path-bound transaction.
+        remediation = bool(
+            prior_content and args.resume and (
+                (args.plan and not requested_rehydrate)
+                or (requested_rehydrate and not matching_plan_commit)
+            )
+        )
         if prior_content:
             prior_path = _assert_frozen_record(prior_content, "content apply")
             if not remediation and not rehydrate:
@@ -1857,11 +1880,6 @@ def command_apply(args: argparse.Namespace) -> int:
                     return 0
                 print("❌ content 已应用；请生成 post-apply coverage 后运行 go-no-go（或用 --resume 查看 no-op）", file=sys.stderr)
                 return 2
-        plan_path = args.plan.resolve() if args.plan else (
-            ROOT / frozen["batch_merge_plan"] if frozen.get("batch_merge_plan") else None
-        )
-        if plan_path is None:
-            raise ValueError("批次没有可应用的 batch merge plan")
         draft_gate_path = (args.draft_gate.resolve() if args.draft_gate
                            else batch_dir / "draft-content-gate.json")
         if args.draft_gate:
@@ -1923,6 +1941,10 @@ def command_apply(args: argparse.Namespace) -> int:
             "next": "重新生成 post-apply claim coverage，再运行 go-no-go",
             "remediation": remediation,
             "rehydration": rehydrate,
+            "recovery_mode": (
+                "matching_plan_rehydration" if rehydrate else
+                "fresh_plan_apply" if requested_rehydrate else "normal_apply"
+            ),
         }
         if not args.dry_run:
             write_json(output, artifact)

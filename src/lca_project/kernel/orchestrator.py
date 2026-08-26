@@ -409,6 +409,68 @@ class PersistentOrchestrator:
                 run_id, task_id, generation, "active", None, current["output_hash"], reason, utcnow()))
         return generation
 
+    def materialized_output_lineage(
+        self, run_id: str, task_ids: set[str] | None = None
+    ) -> dict[str, Any]:
+        """Verify and return the latest task-owned mutable-output lineage."""
+        run = self.state._connection().execute(
+            "SELECT job_id FROM orchestrator_runs WHERE run_id=?", (run_id,)
+        ).fetchone()
+        if run is None:
+            raise OrchestratorError(f"run not found: {run_id}")
+        workspace = (self.root / "var/workspaces/jobs" / str(run["job_id"])).resolve()
+        rows = list(self.state._connection().execute(
+            "SELECT rowid,task_id,output_hash FROM orchestrator_tasks "
+            "WHERE run_id=? AND task_id IN ('draft_apply','table_apply') ORDER BY rowid",
+            (run_id,),
+        ))
+        manifests: list[dict[str, str]] = []
+        targets: dict[str, dict[str, str]] = {}
+        for row in rows:
+            task_id = str(row["task_id"])
+            if task_ids is not None and task_id not in task_ids:
+                continue
+            candidates = [str(item["prior_output_hash"]) for item in
+                          self.state._connection().execute(
+                "SELECT prior_output_hash FROM task_binding_generations "
+                "WHERE run_id=? AND task_id=? AND prior_output_hash IS NOT NULL "
+                "ORDER BY generation",
+                (run_id, task_id),
+            )]
+            if row["output_hash"]:
+                candidates.append(str(row["output_hash"]))
+            for digest in dict.fromkeys(candidates):
+                try:
+                    manifest = self.control.artifacts.verify_task_output_manifest(digest)
+                except (KeyError, RuntimeError, TypeError, ValueError) as exc:
+                    raise OrchestratorError(
+                        f"materialized output manifest is not verifiable: {digest}"
+                    ) from exc
+                owned = [item for item in manifest.get("files") or []
+                         if item.get("role") == "materialized_output"]
+                if not owned:
+                    continue
+                manifests.append({"task_id": task_id, "sha256": digest})
+                for item in owned:
+                    logical = str(item.get("path") or "")
+                    expected = str(item.get("sha256") or "")
+                    physical = (workspace / logical).resolve()
+                    actual = (hashlib.sha256(physical.read_bytes()).hexdigest()
+                              if physical.is_relative_to(workspace)
+                              and physical.is_file() and not physical.is_symlink() else "")
+                    targets[logical] = {
+                        "sha256": expected,
+                        "actual_sha256": actual,
+                        "source_task": task_id,
+                        "classification": (
+                            "matching_plan_output" if actual == expected
+                            and task_id == "draft_apply" else
+                            "legitimate_descendant_output" if actual == expected else
+                            "unknown_drift"
+                        ),
+                    }
+        return {"manifests": manifests, "targets": targets}
+
     @staticmethod
     def _assert_attempt_ownership(conn: Any, attempt: Any, *, worker_id: str | None,
                                   lease_resource: str | None, fencing_token: int | None) -> None:
@@ -580,6 +642,7 @@ class PersistentOrchestrator:
                   if row["task_id"] in invalidated and row["status"] == "running"]
         if active:
             raise OrchestratorError(f"cannot rewind running tasks: {active}")
+        materialization_lineage = self.materialized_output_lineage(run_id, invalidated)
         for row in rows:
             if row["task_id"] in invalidated and (int(row["attempt"]) or row["output_hash"]):
                 self.create_binding_generation(run_id, str(row["task_id"]), reason=reason)
@@ -625,6 +688,7 @@ class PersistentOrchestrator:
         self.control.events.append("workflow_run", run_id, "workflow.rewound", {
             "from_task": task_id, "invalidated_tasks": list(ordered), "reason": reason,
             "repair_epoch_reset": reset_attempts,
+            "materialization_lineage": materialization_lineage,
         }, actor=actor)
         return ordered
 

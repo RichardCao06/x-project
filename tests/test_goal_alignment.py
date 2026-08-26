@@ -575,6 +575,30 @@ def test_compound_triage_is_compiled_to_independently_authorized_action_graph() 
     ]
 
 
+def test_materialization_recovery_orders_validation_before_operator_actions() -> None:
+    result = workspace_overwrite_triage_result()
+    result["actions"] = [
+        {"kind": "propose_code_change", "target": "digest-bound recovery",
+         "authority": "automatic_analysis_and_validation"},
+        {"kind": "rehydrate_materialized_output", "target": "current plan",
+         "authority": "operator"},
+        {"kind": "rewind_task", "target": "draft_apply", "authority": "operator"},
+        {"kind": "resume_campaign", "target": "publish", "authority": "operator"},
+    ]
+
+    graph = compile_action_graph("tri_materialization", result)
+
+    code_change, rehydrate, rewind, resume = graph["actions"]
+    assert runnable_automatic_actions(graph) == [code_change]
+    assert rehydrate["dependencies"] == [code_change["action_id"]]
+    assert rewind["dependencies"] == [
+        code_change["action_id"], rehydrate["action_id"],
+    ]
+    assert resume["dependencies"] == [
+        code_change["action_id"], rehydrate["action_id"], rewind["action_id"],
+    ]
+
+
 def test_triage_pseudo_recovery_name_falls_back_to_failed_dag_task() -> None:
     result = workspace_overwrite_triage_result()
     result["recovery_task"] = "repair_claim_binding_priority"

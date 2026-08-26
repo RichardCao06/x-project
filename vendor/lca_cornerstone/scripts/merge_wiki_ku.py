@@ -627,6 +627,48 @@ def _recover_transaction(transaction_path: Path) -> None:
     _write_transaction(transaction_path, transaction)
 
 
+def transaction_matches_plan(transaction: dict[str, Any], plan_path: Path) -> bool:
+    """Return whether a committed journal is bound to these exact plan bytes."""
+    resolved = plan_path.resolve()
+    if transaction.get("state") != "committed":
+        return False
+    try:
+        recorded_path = Path(str(transaction.get("plan", ""))).resolve()
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return (
+        recorded_path == resolved
+        and transaction.get("plan_sha256") == sha256(
+            resolved.read_text(encoding="utf-8")
+        )
+    )
+
+
+def _rotate_stale_plan_transaction(transaction_path: Path, plan_path: Path) -> None:
+    """Archive a committed journal before replacing its plan generation."""
+    if not transaction_path.is_file():
+        return
+    original_text = transaction_path.read_text(encoding="utf-8")
+    original = json.loads(original_text)
+    if original.get("state") != "committed" or transaction_matches_plan(
+        original, plan_path
+    ):
+        return
+    recorded_digest = str(original.get("plan_sha256") or "")
+    suffix = (recorded_digest[:12] if re.fullmatch(r"[0-9a-f]{64}", recorded_digest)
+              else f"legacy-{sha256(original_text)[:12]}")
+    preserved = transaction_path.with_name(f"apply-transaction-{suffix}.json")
+    if preserved.exists() and preserved.read_text(encoding="utf-8") != original_text:
+        preserved = transaction_path.with_name(
+            f"apply-transaction-{suffix}-{sha256(original_text)[:12]}.json"
+        )
+    if preserved.exists() and preserved.read_text(encoding="utf-8") != original_text:
+        raise MergeError(f"不同的历史 Apply 事务占用了 digest journal: {preserved}")
+    if not preserved.exists():
+        shutil.copy2(transaction_path, preserved)
+    transaction_path.unlink()
+
+
 def _stage_text(target: Path, text: str, token: str) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     staged = target.parent / f".{target.name}.{token}.stage"
@@ -707,7 +749,10 @@ def apply_plan(
     dry_run: bool = False,
     lease_seconds: int = 300,
 ) -> dict[str, int | bool | str]:
-    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    plan_path = plan_path.resolve()
+    plan_text = plan_path.read_text(encoding="utf-8")
+    plan_sha256 = sha256(plan_text)
+    plan = json.loads(plan_text)
     protocol = plan.get("protocol") or {}
     if protocol.get("version") != PROTOCOL_VERSION or protocol.get("kind") != "wiki-ku-merge-plan":
         raise MergeError("不是受支持的 wiki-ku 合并计划")
@@ -723,14 +768,7 @@ def apply_plan(
     registry_path = resolve_plan_path(plan["registry_path"])
     repo_root = repository_root_for_registry(registry_path)
     lock_path = repo_root / ".wiki-ku-apply.lock"
-    transaction_path = plan_path.resolve().parent / "apply-transaction.json"
-    if transaction_path.is_file():
-        try:
-            previous = json.loads(transaction_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError, json.JSONDecodeError):
-            previous = {}
-        if previous.get("state") == "committed" and previous.get("plan") != str(plan_path.resolve()):
-            transaction_path = plan_path.resolve().parent / f"apply-transaction-{sha256(plan_path.read_text(encoding='utf-8'))[:12]}.json"
+    transaction_path = plan_path.parent / "apply-transaction.json"
     report: dict[str, int | bool | str] = {
         "files": sum(bool(item["operations"]) for item in plan["files"]),
         "operations": sum(len(item["operations"]) for item in plan["files"]),
@@ -808,12 +846,16 @@ def apply_plan(
             return report
 
         # Phase 2: stage every new file, then journal exact rollback locations.
+        # Preflight has proven the current generation's hash-locked seed.  Only
+        # now retire a committed journal for a different plan generation.
+        _rotate_stale_plan_transaction(transaction_path, plan_path)
         token = uuid.uuid4().hex
         transaction: dict[str, Any] = {
             "protocol": {"version": "wiki-ku-transaction-v1"},
             "token": token,
             "state": "staging",
-            "plan": str(plan_path.resolve()),
+            "plan": str(plan_path),
+            "plan_sha256": plan_sha256,
             "targets": [],
         }
         try:
@@ -826,6 +868,7 @@ def apply_plan(
                     "backup": str(backup),
                     "old_sha256": sha256(target.read_text(encoding="utf-8")),
                     "new_sha256": sha256(new_text),
+                    "pre_apply_state": "current_plan_seed",
                 })
             transaction["state"] = "staged"
             _write_transaction(transaction_path, transaction)
@@ -871,8 +914,7 @@ def rehydrate_committed_plan(
         raise MergeError("rehydrate requires the original committed transaction")
     original_text = transaction_path.read_text(encoding="utf-8")
     original = json.loads(original_text)
-    if (original.get("state") != "committed"
-            or Path(str(original.get("plan", ""))).resolve() != plan_path):
+    if not transaction_matches_plan(original, plan_path):
         raise MergeError("rehydrate transaction is not committed for the frozen plan")
     targets = original.get("targets")
     if not isinstance(targets, list) or not targets:
@@ -886,19 +928,23 @@ def rehydrate_committed_plan(
         current = sha256(target.read_text(encoding="utf-8"))
         old, new = str(item.get("old_sha256", "")), str(item.get("new_sha256", ""))
         if current == new:
-            states.append("materialized")
+            states.append("matching_plan_output")
         elif current == old:
-            states.append("seed")
+            states.append("current_plan_seed")
         else:
             raise MergeError(f"rehydrate target has an unrecognized hash: {target}")
         expected_new[target] = new
-    if set(states) == {"materialized"}:
+    if set(states) == {"matching_plan_output"}:
         return {"files": len(targets), "transaction": "committed",
-                "rehydrated": False, "already_materialized": True}
-    if set(states) != {"seed"}:
+                "rehydrated": False, "already_materialized": True,
+                "target_classification": "matching_plan_output"}
+    if set(states) != {"current_plan_seed"}:
         raise MergeError("rehydrate targets are in a mixed state")
 
-    preserved = plan_path.parent / "apply-transaction-pre-rehydrate.json"
+    plan_digest = str(original["plan_sha256"])
+    preserved = plan_path.parent / (
+        f"apply-transaction-{plan_digest[:12]}-pre-rehydrate.json"
+    )
     if preserved.exists() and preserved.read_text(encoding="utf-8") != original_text:
         raise MergeError("a different pre-rehydrate transaction is already preserved")
     if not preserved.exists():
@@ -911,7 +957,8 @@ def rehydrate_committed_plan(
         if sha256(target.read_text(encoding="utf-8")) != expected:
             raise MergeError(f"rehydrate result does not match original commit: {target}")
     return {**report, "rehydrated": True, "already_materialized": False,
-            "original_transaction_sha256": sha256(original_text)}
+            "original_transaction_sha256": sha256(original_text),
+            "target_classification": "current_plan_seed"}
 
 
 def main() -> int:
