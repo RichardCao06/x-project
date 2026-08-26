@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 import hashlib
 import json
@@ -52,6 +53,38 @@ def constant_schema(value):
     return {"type": "string", "const": str(value)}
 
 
+CLAIM_QUOTAS = {
+    "external_fact": 1,
+    "modeling_judgment": 2,
+    "internal_graph_fact": 1,
+    "evidence_gap": 1,
+}
+
+
+def ordered_claim_slots(node: dict) -> list[tuple[str, dict]]:
+    """Expand frozen requirements into distinct, ordered producer slots."""
+    dossier = node.get("dossier")
+    requirements = dossier.get("claim_requirements") if isinstance(dossier, dict) else None
+    if not isinstance(requirements, list) or not requirements:
+        raise ValueError("workflow 缺少 claim_requirements")
+    seen: set[str] = set()
+    slots: list[tuple[str, dict]] = []
+    for requirement in requirements:
+        if not isinstance(requirement, dict):
+            raise ValueError("workflow claim_requirement 非法")
+        requirement_id = str(requirement.get("requirement_id") or "").strip()
+        section = str(requirement.get("section") or "").strip()
+        kind = str(requirement.get("claim_kind") or "").strip()
+        if not requirement_id or not section or kind not in CLAIM_QUOTAS:
+            raise ValueError("workflow claim_requirement 身份字段非法")
+        if requirement_id in seen:
+            raise ValueError("workflow requirement_id 重复")
+        seen.add(requirement_id)
+        for _ in range(CLAIM_QUOTAS[kind]):
+            slots.append((f"claim_{len(slots):03d}", requirement))
+    return slots
+
+
 def dynamic_schema(workflow: Path, template: Path, output: Path) -> tuple[dict, Path]:
     """Bind the generic capture schema to the workflow's one frozen node.
 
@@ -75,34 +108,42 @@ def dynamic_schema(workflow: Path, template: Path, output: Path) -> tuple[dict, 
     required = {"node_id", "industry", "name", "node_type", "facets", "boundary", "dossier"}
     if required - node.keys():
         raise ValueError("workflow 冻结节点身份字段不完整")
-    dossier = node["dossier"]
-    requirements = dossier.get("claim_requirements") if isinstance(dossier, dict) else None
-    if not isinstance(requirements, list) or not requirements:
-        raise ValueError("workflow 缺少 claim_requirements")
+    slots = ordered_claim_slots(node)
     identity = {
         "display_name": node["name"], "node_type": node["node_type"],
         "facets": node["facets"], "boundary": node["boundary"],
     }
     schema = json.loads(template.read_text(encoding="utf-8"))
-    item = schema["properties"]["claims"]["items"]
-    properties = item["properties"]
-    properties["node_id"] = {"type": "string", "const": node["node_id"]}
-    properties["industry"] = {"type": "string", "const": node["industry"]}
-    properties["node_identity"] = constant_schema(identity)
-    properties["claim_id"] = {
-        "type": "string", "pattern": rf"^{re.escape(str(node['node_id']))}-[0-9]+$",
+    item_template = schema["properties"]["claims"]["items"]
+    slot_properties: dict[str, dict] = {}
+    for index, (slot_name, requirement) in enumerate(slots):
+        slot_schema = copy.deepcopy(item_template)
+        properties = slot_schema["properties"]
+        properties["requirement_id"] = {
+            "type": "string", "const": requirement["requirement_id"],
+        }
+        properties["section"] = {
+            "type": "string", "const": requirement["section"],
+        }
+        properties["claim_kind"] = {
+            "type": "string", "const": requirement["claim_kind"],
+        }
+        properties["node_id"] = {"type": "string", "const": node["node_id"]}
+        properties["industry"] = {"type": "string", "const": node["industry"]}
+        properties["node_identity"] = constant_schema(identity)
+        properties["claim_id"] = {
+            "type": "string", "const": f"{node['node_id']}-{index}",
+        }
+        slot_properties[slot_name] = slot_schema
+    # Codex structured output supports fixed object properties.  A named
+    # property per ordered slot lets the producer schema express tuple
+    # cardinality without relying on unsupported array tuple keywords.
+    schema["properties"]["claims"] = {
+        "type": "object",
+        "properties": slot_properties,
+        "required": list(slot_properties),
+        "additionalProperties": False,
     }
-    minima = {"external_fact": 1, "modeling_judgment": 2,
-              "internal_graph_fact": 1, "evidence_gap": 1}
-    # Coverage is bidirectional and freezes one expected cardinality.  Keep
-    # Nomination on that same exact contract so a semantically valid extra row
-    # cannot deadlock reviewed publication later.
-    maxima = dict(minima)
-    kinds = [str(row.get("claim_kind", "")) for row in requirements if isinstance(row, dict)]
-    if any(kind not in minima for kind in kinds):
-        raise ValueError("workflow claim_kind 非法")
-    schema["properties"]["claims"]["minItems"] = sum(minima[kind] for kind in kinds)
-    schema["properties"]["claims"]["maxItems"] = sum(maxima[kind] for kind in kinds)
     output.write_text(json.dumps(schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return node, output
 
@@ -266,6 +307,14 @@ def canonicalize_result(raw_path: Path, output_path: Path, node: dict | None = N
     """Freeze slot order and provenance without rewriting claim semantics."""
     document = json.loads(raw_path.read_text(encoding="utf-8"))
     claims = document.get("claims")
+    if isinstance(claims, dict):
+        if node is None:
+            raise ValueError("Nomination structured slots 缺少冻结节点")
+        slot_names = [name for name, _ in ordered_claim_slots(node)]
+        if set(claims) != set(slot_names):
+            raise ValueError("Nomination structured slots 漂移")
+        claims = [claims[name] for name in slot_names]
+        document["claims"] = claims
     if not isinstance(claims, list):
         raise ValueError("Nomination raw claims 缺失")
     requirement_rows = ((node or {}).get("dossier") or {}).get("claim_requirements", [])

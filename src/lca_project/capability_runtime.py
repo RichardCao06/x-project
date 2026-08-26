@@ -188,6 +188,51 @@ def _pipeline(commands: list[list[str]], *, cwd: Path, timeout: int,
     return {"status": "ok", "steps": records}
 
 
+def _attach_nomination_validation_failure(
+    result: dict[str, Any], nomination: Path,
+) -> dict[str, Any]:
+    """Promote a hash-bound launcher validation error out of process failure."""
+    if result.get("status") == "ok":
+        return result
+    nomination_step = next((
+        step for step in reversed(result.get("steps") or [])
+        if isinstance(step, dict)
+        and isinstance(step.get("argv"), list)
+        and len(step["argv"]) > 1
+        and Path(str(step["argv"][1])).name == "run_wiki_nomination_capture.py"
+    ), None)
+    if not nomination_step or nomination_step.get("returncode") != 2:
+        return result
+    usage_path = nomination / "nomination-usage.json"
+    batch_usage_path = nomination / "wiki-usage-v1.json"
+    if not usage_path.is_file() or not batch_usage_path.is_file():
+        return result
+    try:
+        usage = json.loads(usage_path.read_text(encoding="utf-8"))
+        batch_usage = json.loads(batch_usage_path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return result
+    validation_error = str(usage.get("validation_error") or "").strip()
+    usage_sha256 = _sha256(usage_path)
+    if (usage.get("exit_code") != 2 or not validation_error
+            or batch_usage.get("runtime_usage_sha256") != usage_sha256):
+        return result
+    failure = {
+        "code": "NOMINATION_CONTRACT_INVALID",
+        "category": "business_validation",
+        "scope": "task",
+        "message": validation_error,
+        "evidence_artifacts": [str(usage_path)],
+    }
+    return {
+        **result,
+        "status": "blocked",
+        "failure": failure,
+        "nomination_usage_artifact": str(usage_path),
+        "nomination_usage_sha256": usage_sha256,
+    }
+
+
 def _path(value: Any, label: str) -> Path:
     if not isinstance(value, str) or not value:
         raise CapabilityAdapterError(f"{label} must be a path string")
@@ -838,7 +883,7 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
         initial = _pipeline(initial_commands, cwd=workspace,
                             timeout=int(value.get("timeout_seconds", 1800)))
         if initial["status"] != "ok":
-            return initial
+            return _attach_nomination_validation_failure(initial, nomination)
         search_args: list[str] = []
         if hints and not open_discovery:
             frozen_search = batch / "frozen-search-results.json"
