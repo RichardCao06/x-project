@@ -7,6 +7,7 @@ from typing import Any
 
 from .models import QualityObservation
 from .research_outcome import ResearchOutcomeEvaluator
+from .store import digest
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -103,6 +104,9 @@ class QualityTrajectory:
             if str(task.get("status") or "") != "succeeded":
                 rejected[task_id] = "task_not_succeeded"
                 continue
+            if not str(task.get("output_hash") or ""):
+                rejected[task_id] = "producer_output_hash_missing"
+                continue
             dependencies = cls._values(task.get("dependencies")) or []
             recorded = cls._values(task.get("recorded_input_hashes"))
             expected = [str((by_id.get(parent) or {}).get("output_hash") or "")
@@ -120,6 +124,7 @@ class QualityTrajectory:
                 for key, relative in self.FILES.items()}
         rejected_protocols: dict[str, str] = {}
         task_statuses: dict[str, str] = {}
+        accepted_tasks: set[str] = set()
         if tasks is not None:
             accepted_tasks, rejected_tasks = self._current_succeeded_tasks(tasks)
             task_statuses = {str(item.get("task_id") or ""): str(item.get("status") or "")
@@ -170,6 +175,38 @@ class QualityTrajectory:
         weights = goal["quality_dimensions"]
         score = round(sum(dimensions[name] * float(weights[name]["weight"])
                           for name in dimensions), 6)
+        by_task = {
+            str(item.get("task_id") or ""): item
+            for item in (tasks or [])
+        }
+        protocol_frontier = [
+            {
+                "protocol": protocol,
+                "producer_task_id": task_id,
+                "output_hash": str((by_task.get(task_id) or {}).get("output_hash") or ""),
+            }
+            for protocol, task_id in sorted(self.ARTIFACT_TASKS.items())
+            if docs[protocol] and task_id in accepted_tasks
+        ]
+        producer_output_hashes = {
+            str(item["producer_task_id"]): str(item["output_hash"])
+            for item in protocol_frontier
+        }
+        recovery_epochs = {
+            task_id: {
+                "binding_generation": int((task or {}).get("binding_generation") or 0),
+                "recovery_epoch": int((task or {}).get("recovery_epoch") or 0),
+            }
+            for task_id, task in sorted(by_task.items())
+            if task_id in accepted_tasks
+        }
+        lineage = {
+            "run_epoch": run_id,
+            "accepted_protocol_frontier": protocol_frontier,
+            "producer_output_hashes": producer_output_hashes,
+            "recovery_epochs": recovery_epochs,
+        }
+        lineage["lineage_digest"] = digest(lineage)
         evidence = {
             "batch": str(batch) if batch else None,
             "available_protocols": sorted(key for key, value in docs.items() if value),
@@ -192,5 +229,6 @@ class QualityTrajectory:
             },
             "task_completion": {"run_status": run_status, "tasks": task_statuses},
             "rejected_protocols": rejected_protocols,
+            "lineage": lineage,
         }
         return QualityObservation(job_id, run_id, goal["goal_id"], dimensions, score, evidence)

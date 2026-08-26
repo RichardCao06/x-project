@@ -19,7 +19,7 @@ from .quality_trajectory import QualityTrajectory
 from .research_translation_repair import build_repair_artifact, write_repair_artifact
 from .repair_planner import RepairPlanner
 from .system_repair_agent import SystemRepairAgent
-from .store import AlignmentStore, canonical
+from .store import AlignmentStore, canonical, digest
 from .models import Deviation, Diagnosis, RepairProposal
 
 
@@ -125,6 +125,18 @@ class GoalAlignmentController:
             item["recorded_input_hashes"] = (
                 json.loads(attempt["input_hashes"]) if attempt else None
             )
+            binding = self.state._connection().execute(
+                "SELECT COALESCE(MAX(generation),0) AS generation "
+                "FROM task_binding_generations WHERE run_id=? AND task_id=?",
+                (run_id, item["task_id"]),
+            ).fetchone()
+            recovery = self.state._connection().execute(
+                "SELECT COALESCE(MAX(epoch),0) AS epoch "
+                "FROM task_repair_epochs WHERE run_id=? AND task_id=?",
+                (run_id, item["task_id"]),
+            ).fetchone()
+            item["binding_generation"] = int(binding["generation"] if binding else 0)
+            item["recovery_epoch"] = int(recovery["epoch"] if recovery else 0)
             result.append(item)
         return result
 
@@ -486,8 +498,8 @@ class GoalAlignmentController:
         run_id = str(run["run_id"]) if run else None
         tasks = self._tasks(run_id)
         prior = self.state._connection().execute(
-            "SELECT score,payload FROM quality_observations WHERE job_id=? "
-            "ORDER BY created_at DESC LIMIT 1",
+            "SELECT observation_id,score,payload FROM quality_observations WHERE job_id=? "
+            "ORDER BY created_at DESC,rowid DESC LIMIT 1",
             (job_id,),
         ).fetchone()
         batch = self._batch(job, run_id)
@@ -502,8 +514,8 @@ class GoalAlignmentController:
         )
         deviations = self.detector.detect(job=job, run=run, tasks=tasks,
                                           observation=observation,
-                                          previous_score=self._comparable_previous_score(
-                                              prior, observation
+                                          previous_comparison=self._comparable_previous_score(
+                                              prior, observed
                                           ))
         if auto_repair:
             # A bounded retry is a fast path, not permission to forget an
@@ -545,6 +557,10 @@ class GoalAlignmentController:
                             "task_id": item.get("task_id"), "status": item.get("status"),
                             "capability_id": item.get("capability_id"),
                             "dependencies": item.get("dependencies"),
+                            "recorded_input_hashes": item.get("recorded_input_hashes"),
+                            "output_hash": item.get("output_hash"),
+                            "binding_generation": item.get("binding_generation", 0),
+                            "recovery_epoch": item.get("recovery_epoch", 0),
                         } for item in tasks],
                         "goal_contract": self.goal,
                         "quality_observation": observation.asdict(),
@@ -858,7 +874,7 @@ class GoalAlignmentController:
     @staticmethod
     def _comparable_previous_score(
         prior: Any, observation: Any,
-    ) -> float | None:
+    ) -> dict[str, Any] | None:
         """Compare only observations from the same artifact-lineage semantics.
 
         A rewind or a newly introduced stale-artifact filter can lower the
@@ -869,19 +885,93 @@ class GoalAlignmentController:
         if prior is None:
             return None
         prior_payload = _payload(prior["payload"])
-        prior_completion = _payload(
-            _payload(prior_payload.get("evidence")).get("task_completion")
-        )
-        current_completion = _payload(
-            _payload(observation.evidence).get("task_completion")
-        )
-        prior_tasks = _payload(prior_completion.get("tasks"))
-        current_tasks = _payload(current_completion.get("tasks"))
-        if not prior_tasks or not current_tasks:
+        current_payload = observation if isinstance(observation, dict) else observation.asdict()
+        prior_lineage = _payload(_payload(prior_payload.get("evidence")).get("lineage"))
+        current_lineage = _payload(_payload(current_payload.get("evidence")).get("lineage"))
+
+        def valid_lineage(value: dict[str, Any]) -> bool:
+            claimed = str(value.get("lineage_digest") or "")
+            body = {key: item for key, item in value.items() if key != "lineage_digest"}
+            frontier = value.get("accepted_protocol_frontier")
+            producer_hashes = _payload(value.get("producer_output_hashes"))
+            recovery_epochs = _payload(value.get("recovery_epochs"))
+            if (not claimed or claimed != digest(body)
+                    or not isinstance(frontier, list) or not frontier):
+                return False
+            return all(
+                isinstance(item, dict)
+                and str(item.get("protocol") or "")
+                and str(item.get("producer_task_id") or "")
+                and str(item.get("output_hash") or "")
+                and producer_hashes.get(str(item["producer_task_id"])) == item["output_hash"]
+                and str(item["producer_task_id"]) in recovery_epochs
+                for item in frontier
+            )
+
+        if not valid_lineage(prior_lineage) or not valid_lineage(current_lineage):
             return None
-        if any(
-            status == "succeeded" and current_tasks.get(task_id) != "succeeded"
-            for task_id, status in prior_tasks.items()
-        ):
+        prior_frontier = {
+            str(item["protocol"]): str(item["producer_task_id"])
+            for item in prior_lineage["accepted_protocol_frontier"]
+        }
+        current_frontier = {
+            str(item["protocol"]): str(item["producer_task_id"])
+            for item in current_lineage["accepted_protocol_frontier"]
+        }
+        run_epoch_match = (
+            bool(prior_lineage.get("run_epoch"))
+            and prior_lineage.get("run_epoch") == current_lineage.get("run_epoch")
+        )
+        frontier_compatible = all(
+            current_frontier.get(protocol) == producer
+            for protocol, producer in prior_frontier.items()
+        )
+        prior_epochs = _payload(prior_lineage.get("recovery_epochs"))
+        current_epochs = _payload(current_lineage.get("recovery_epochs"))
+        epochs_monotonic = all(
+            int(_payload(current_epochs.get(task_id)).get(key) or 0)
+            >= int(_payload(epoch).get(key) or 0)
+            for task_id, epoch in prior_epochs.items()
+            for key in ("binding_generation", "recovery_epoch")
+        )
+        if not (run_epoch_match and frontier_compatible and epochs_monotonic):
             return None
-        return float(prior["score"])
+        if not (prior_payload.get("observation_id") or prior["observation_id"]):
+            return None
+        if not current_payload.get("observation_id"):
+            return None
+        prior_dimensions = _payload(prior_payload.get("dimensions"))
+        current_dimensions = _payload(current_payload.get("dimensions"))
+        dimension_deltas = {
+            name: round(float(current_dimensions.get(name) or 0.0)
+                        - float(prior_dimensions.get(name) or 0.0), 6)
+            for name in sorted(set(prior_dimensions) | set(current_dimensions))
+        }
+        prior_hashes = _payload(prior_lineage.get("producer_output_hashes"))
+        current_hashes = _payload(current_lineage.get("producer_output_hashes"))
+        producer_hash_deltas = {
+            task_id: {
+                "previous": prior_hashes.get(task_id),
+                "current": current_hashes.get(task_id),
+            }
+            for task_id in sorted(set(prior_hashes) | set(current_hashes))
+            if prior_hashes.get(task_id) != current_hashes.get(task_id)
+        }
+        return {
+            "previous_observation_id": str(
+                prior_payload.get("observation_id") or prior["observation_id"]
+            ),
+            "current_observation_id": str(current_payload.get("observation_id") or ""),
+            "previous_score": float(prior["score"]),
+            "current_score": float(current_payload.get("score") or 0.0),
+            "lineage_compatible": True,
+            "frontier_compatibility": {
+                "run_epoch_match": run_epoch_match,
+                "prior_frontier_is_current_subset": frontier_compatible,
+                "recovery_epochs_monotonic": epochs_monotonic,
+            },
+            "dimension_deltas": dimension_deltas,
+            "producer_hash_deltas": producer_hash_deltas,
+            "previous_lineage": prior_lineage,
+            "current_lineage": current_lineage,
+        }
