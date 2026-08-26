@@ -92,11 +92,34 @@ class QualityTrajectory:
             return None
         return [str(item) for item in value]
 
+    @staticmethod
+    def _typed_repair_lineage(value: Any) -> set[str] | None:
+        """Return hashes explicitly typed as earlier output/failure lineage."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                return None
+        if not isinstance(value, list):
+            return None
+        hashes: set[str] = set()
+        for item in value:
+            if not isinstance(item, dict):
+                return None
+            lineage_type = str(item.get("type") or "")
+            lineage_hash = str(item.get("hash") or "")
+            if lineage_type not in {"failure", "prior_output"} or not lineage_hash:
+                return None
+            hashes.add(lineage_hash)
+        return hashes
+
     @classmethod
     def _current_succeeded_tasks(
         cls, tasks: list[dict[str, Any]],
     ) -> tuple[set[str], dict[str, str]]:
-        """Accept only succeeded tasks bound to current dependency outputs."""
+        """Accept succeeded tasks bound to current dependencies and typed repair lineage."""
         by_id = {str(item.get("task_id") or ""): item for item in tasks}
         accepted: set[str] = set()
         rejected: dict[str, str] = {}
@@ -111,9 +134,20 @@ class QualityTrajectory:
             recorded = cls._values(task.get("recorded_input_hashes"))
             expected = [str((by_id.get(parent) or {}).get("output_hash") or "")
                         for parent in dependencies]
-            if dependencies and (recorded is None or not all(expected) or recorded != expected):
+            if dependencies and (
+                recorded is None or not all(expected)
+                or recorded[:len(expected)] != expected
+            ):
                 rejected[task_id] = "current_upstream_hash_mismatch"
                 continue
+            repair_suffix = (recorded or [])[len(expected):] if dependencies else []
+            if repair_suffix:
+                typed_lineage = cls._typed_repair_lineage(task.get("repair_lineage"))
+                if typed_lineage is None or any(
+                    lineage_hash not in typed_lineage for lineage_hash in repair_suffix
+                ):
+                    rejected[task_id] = "repair_lineage_hash_mismatch"
+                    continue
             accepted.add(task_id)
         return accepted, rejected
 

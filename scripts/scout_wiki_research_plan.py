@@ -300,6 +300,14 @@ def main() -> int:
         item for item in previous_scout.get("candidates") or [] if isinstance(item, dict)
     ]
     previous_candidate_count = len(previous_candidates)
+    # A semantically insufficient source is just as non-novel as a transport
+    # failure.  Failed-question URLs must not be nominated again on repair,
+    # even when the prior fetch itself succeeded.
+    insufficient_urls = {
+        str(item.get("url") or "").strip() for item in previous_candidates
+        if str(item.get("question_id") or "") in failed_question_ids
+        and str(item.get("url") or "").strip()
+    }
     failed_urls: set[str] = set()
     if args.failed_fetch_dir and args.failed_fetch_dir.is_dir():
         for record_path in sorted(args.failed_fetch_dir.glob("*.json")):
@@ -312,12 +320,13 @@ def main() -> int:
             url = str(record.get("url") or "").strip()
             if url:
                 failed_urls.add(url)
+    excluded_urls = failed_urls | insufficient_urls
     excluded_url_hashes = {
-        hashlib.sha256(url.encode("utf-8")).hexdigest() for url in failed_urls
+        hashlib.sha256(url.encode("utf-8")).hexdigest() for url in excluded_urls
     }
     previous_candidates = [
         item for item in previous_candidates
-        if str(item.get("url") or "").strip() not in failed_urls
+        if str(item.get("url") or "").strip() not in excluded_urls
         and (not failed_question_ids
              or str(item.get("question_id") or "") not in failed_question_ids)
     ]
@@ -394,7 +403,7 @@ def main() -> int:
                     provider_added = 0
                     for hit in hits:
                         url = hit.get("url")
-                        if url in seen:
+                        if url in seen or str(url or "").strip() in excluded_urls:
                             continue
                         seen.add(url)
                         candidates.append({
@@ -441,7 +450,7 @@ def main() -> int:
     }
     result = {
         "protocol": "wiki-research-scout-v1",
-        "query_policy_version": "question-contract-adaptive-v3",
+        "query_policy_version": "question-contract-adaptive-v4",
         "question_contract_sha256": plan.get("question_contract_sha256"),
         "node_id": plan["node_id"],
         "research_plan": {
@@ -458,7 +467,7 @@ def main() -> int:
             "selected_intent_priority": selected_priority,
             "previous_candidate_count": previous_candidate_count,
             "novel_candidate_count": max(0, len(candidates) - len(previous_candidates)),
-            "excluded_urls": sorted(failed_urls),
+            "excluded_urls": sorted(excluded_urls),
             "excluded_url_hashes": sorted(excluded_url_hashes),
             "previous_strategy_hash": str(repair_gate.get("strategy_hash") or ""),
             "strategy_hash": hashlib.sha256(json.dumps(

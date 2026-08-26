@@ -148,13 +148,22 @@ QUESTION_TEMPLATES: tuple[dict[str, Any], ...] = (
 
 INTENT_SEEDS: dict[str, dict[str, list[str]]] = {
     "definition": {"zh": ["定义", "制造活动"], "en": ["definition", "manufacturing activity"]},
-    "factory_process": {"zh": ["工厂", "工艺"], "en": ["factory", "process"]},
+    "factory_process": {
+        "zh": ["制造商技术文档", "服务器整机总装", "独立制造活动"],
+        "en": ["manufacturer technical documentation", "server final system assembly",
+               "distinct manufacturing activity"],
+    },
     "terminology": {"zh": ["术语", "名称"], "en": ["terminology", "name"]},
     "manufacturer_naming": {"zh": ["制造商", "技术文档"], "en": ["manufacturer", "technical documentation"]},
     "adjacent_distinction": {"zh": ["区别", "边界"], "en": ["distinction", "boundary"]},
     "process_comparison": {"zh": ["工艺对比"], "en": ["process comparison"]},
     "process_boundary": {"zh": ["起点", "终点", "系统边界"], "en": ["start state", "end state", "system boundary"]},
-    "manufacturing_route": {"zh": ["制造路线"], "en": ["manufacturing route"]},
+    "manufacturing_route": {
+        "zh": ["服务器总装起始状态", "装配配置烧录老化测试", "成品结束状态"],
+        "en": ["server final assembly start state",
+               "assembly configuration firmware burn-in functional test",
+               "finished system end state"],
+    },
     "collection_state": {"zh": ["输入状态", "收集"], "en": ["input state", "collection"]},
     "handoff_criteria": {"zh": ["完成判据", "交接"], "en": ["completion criteria", "handoff"]},
     "reference_flow": {"zh": ["参考流", "计量口径"], "en": ["reference flow", "measurement basis"]},

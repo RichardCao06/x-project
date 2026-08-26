@@ -117,7 +117,7 @@ class GoalAlignmentController:
             item = dict(row)
             item["failure_payload"] = _payload(item.get("failure_payload"))
             attempt = self.state._connection().execute(
-                "SELECT input_hashes FROM orchestrator_attempts "
+                "SELECT attempt,input_hashes FROM orchestrator_attempts "
                 "WHERE run_id=? AND task_id=? AND status IN ('succeeded','reused') "
                 "ORDER BY attempt DESC, finished_at DESC LIMIT 1",
                 (run_id, item["task_id"]),
@@ -125,6 +125,21 @@ class GoalAlignmentController:
             item["recorded_input_hashes"] = (
                 json.loads(attempt["input_hashes"]) if attempt else None
             )
+            item["repair_lineage"] = ([
+                {
+                    "type": ("prior_output" if prior["status"] in {"succeeded", "reused"}
+                             else "failure"),
+                    "hash": str(prior["output_hash"]),
+                    "attempt": int(prior["attempt"]),
+                }
+                for prior in self.state._connection().execute(
+                    "SELECT attempt,status,output_hash FROM orchestrator_attempts "
+                    "WHERE run_id=? AND task_id=? AND attempt<? AND output_hash IS NOT NULL "
+                    "AND status IN ('succeeded','reused','repairable','quarantined','manual_review') "
+                    "ORDER BY attempt",
+                    (run_id, item["task_id"], int(attempt["attempt"]) if attempt else 0),
+                )
+            ] if attempt else [])
             binding = self.state._connection().execute(
                 "SELECT COALESCE(MAX(generation),0) AS generation "
                 "FROM task_binding_generations WHERE run_id=? AND task_id=?",
@@ -575,6 +590,7 @@ class GoalAlignmentController:
                             "capability_id": item.get("capability_id"),
                             "dependencies": item.get("dependencies"),
                             "recorded_input_hashes": item.get("recorded_input_hashes"),
+                            "repair_lineage": item.get("repair_lineage"),
                             "output_hash": item.get("output_hash"),
                             "binding_generation": item.get("binding_generation", 0),
                             "recovery_epoch": item.get("recovery_epoch", 0),
