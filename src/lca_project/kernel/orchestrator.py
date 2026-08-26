@@ -15,6 +15,7 @@ from typing import Any
 
 from lca_project.contracts import JobState, load_json
 from lca_project.control import ControlPlane
+from .consistency import ConsistencyLedger, canonical as canonical_json, digest as consistency_digest
 from .registry import CapabilityRegistry
 from .state import utcnow
 from .workflow import WorkflowSpec, compile_workflow
@@ -40,6 +41,7 @@ class PersistentOrchestrator:
         self.root = Path(root).resolve()
         self.control = ControlPlane(self.root)
         self.state = self.control.state
+        self.consistency = ConsistencyLedger(self.state)
         self.registry = CapabilityRegistry.load_directory(self.root / "capabilities")
         self._initialize()
 
@@ -324,7 +326,9 @@ class PersistentOrchestrator:
             (run_id, task_id, binding["effective_input_hash"])).fetchone()
         if source is None:
             return None
-        self.control.artifacts.verify_task_output_manifest(source["output_manifest_hash"])
+        source_manifest = self.control.artifacts.verify_task_output_manifest(
+            source["output_manifest_hash"]
+        )
         reused_attempt = f"attempt_{uuid.uuid4().hex}"
         receipt_value = {"protocol": "task-reuse-receipt-v1", "run_id": run_id,
                          "task_id": task_id, "source_attempt_id": source["attempt_id"],
@@ -354,6 +358,16 @@ class PersistentOrchestrator:
             tx.execute("INSERT INTO task_reuse_receipts VALUES(?,?,?,?,?,?,?,?)", (
                 receipt.digest, run_id, task_id, reused_attempt, source["attempt_id"],
                 binding["effective_input_hash"], source["output_manifest_hash"], now))
+            self.consistency.record_artifact_manifest(
+                tx, run_id=run_id, task_id=task_id, attempt_id=reused_attempt,
+                manifest_digest=str(source["output_manifest_hash"]),
+                manifest=source_manifest,
+            )
+            self.consistency.record_stage_outcome(
+                tx, run_id=run_id, task_id=task_id, attempt_id=reused_attempt,
+                execution_status="reused", gate_decision="NOT_APPLICABLE",
+                goal_effect="progress", payload={"reuse_receipt": receipt.digest},
+            )
         self.control.artifacts.link(source["output_manifest_hash"], receipt.digest, "reused_output")
         self._refresh_ready(run_id); self._finish_if_terminal(run_id)
         return reused_attempt, str(source["output_manifest_hash"]), receipt.digest
@@ -497,6 +511,10 @@ class PersistentOrchestrator:
         # Verify the referenced CAS object before the state transaction. The
         # fencing check is repeated inside the commit transaction below.
         self.control.artifacts.get_bytes(digest)
+        output_manifest = (
+            self.control.artifacts.verify_task_output_manifest(digest)
+            if output_manifest_hash else None
+        )
         input_hashes: tuple[str, ...] = ()
         with self.state.transaction() as conn:
             attempt = conn.execute("SELECT * FROM orchestrator_attempts WHERE attempt_id=?", (attempt_id,)).fetchone()
@@ -512,6 +530,30 @@ class PersistentOrchestrator:
                          WHERE attempt_id=?""", (digest, output_manifest_hash, now, attempt_id))
             conn.execute("UPDATE orchestrator_tasks SET status='succeeded',output_hash=?,failure_code=NULL,failure_payload=NULL,updated_at=? WHERE run_id=? AND task_id=?",
                          (digest, now, attempt["run_id"], attempt["task_id"]))
+            if output_manifest is not None:
+                self.consistency.record_artifact_manifest(
+                    conn, run_id=str(attempt["run_id"]), task_id=str(attempt["task_id"]),
+                    attempt_id=attempt_id, manifest_digest=digest,
+                    manifest=output_manifest,
+                )
+            gate = payload.get("gate_result") if isinstance(payload, dict) else None
+            gate = gate if isinstance(gate, dict) else {}
+            raw_decision = str(gate.get("decision") or gate.get("verdict") or "NOT_APPLICABLE")
+            goal_effect = (
+                "progress_with_debt" if raw_decision.upper() == "PASS_WITH_DEBT"
+                else "blocked" if raw_decision.upper() in {
+                    "RESEARCH_MORE", "BLOCKED_INTEGRITY", "BLOCKED",
+                } else "progress"
+            )
+            self.consistency.record_stage_outcome(
+                conn, run_id=str(attempt["run_id"]), task_id=str(attempt["task_id"]),
+                attempt_id=attempt_id, execution_status="completed",
+                gate_decision=raw_decision, goal_effect=goal_effect,
+                payload={
+                    "output_manifest_hash": output_manifest_hash,
+                    "failed_requirement_ids": gate.get("failed_requirement_ids") or [],
+                },
+            )
             input_hashes = tuple(json.loads(attempt["input_hashes"]))
         self._refresh_ready(attempt["run_id"])
         self._finish_if_terminal(attempt["run_id"])
@@ -533,6 +575,11 @@ class PersistentOrchestrator:
             conn.execute("UPDATE orchestrator_tasks SET status='skipped',output_hash=?,failure_code=NULL,"
                          "updated_at=? WHERE run_id=? AND task_id=?",
                          (artifact.digest, utcnow(), run_id, task_id))
+            self.consistency.record_stage_outcome(
+                conn, run_id=run_id, task_id=task_id, attempt_id=None,
+                execution_status="skipped", gate_decision="NOT_APPLICABLE",
+                goal_effect="no_effect", payload={"reason": reason},
+            )
         self._refresh_ready(run_id)
         self._finish_if_terminal(run_id)
         return artifact.digest
@@ -565,6 +612,17 @@ class PersistentOrchestrator:
                           attempt["run_id"], attempt["task_id"]))
             conn.execute("UPDATE orchestrator_runs SET status=?,updated_at=? WHERE run_id=?",
                          (status, now, attempt["run_id"]))
+            failure_fingerprint = str(
+                detail.get("failure_fingerprint")
+                or consistency_digest({"code": code, "detail": detail})
+            )
+            self.consistency.record_stage_outcome(
+                conn, run_id=str(attempt["run_id"]), task_id=str(attempt["task_id"]),
+                attempt_id=attempt_id, execution_status="completed_with_block",
+                gate_decision=str(detail.get("gate_decision") or "BLOCKED"),
+                goal_effect="blocked", failure_fingerprint=failure_fingerprint,
+                payload={"failure_code": code, "failure": detail},
+            )
 
     def recover(self, run_id: str, task_id: str) -> None:
         """Schedule a bounded retry from a persisted repairable failure."""
@@ -619,7 +677,13 @@ class PersistentOrchestrator:
 
     def rewind_from(self, run_id: str, task_id: str, *, reason: str,
                     actor: str = "operator", reset_attempts: bool = False) -> tuple[str, ...]:
-        """Invalidate one completed task and all descendants for a bounded repair."""
+        """Atomically reopen a causal branch and every aggregate projection.
+
+        Binding generations, artifact generations, task/run/job state, campaign
+        state, repair epoch, obsolete wakeups, and the recovery event commit as
+        one SQLite transaction.  A process crash therefore cannot leave a
+        ready task behind a terminal Job or a blocked campaign.
+        """
         run = self.state._connection().execute(
             "SELECT job_id FROM orchestrator_runs WHERE run_id=?", (run_id,)
         ).fetchone()
@@ -643,11 +707,42 @@ class PersistentOrchestrator:
         if active:
             raise OrchestratorError(f"cannot rewind running tasks: {active}")
         materialization_lineage = self.materialized_output_lineage(run_id, invalidated)
-        for row in rows:
-            if row["task_id"] in invalidated and (int(row["attempt"]) or row["output_hash"]):
-                self.create_binding_generation(run_id, str(row["task_id"]), reason=reason)
+        ordered = tuple(str(row["task_id"]) for row in rows if row["task_id"] in invalidated)
+        job_id = str(run["job_id"])
         now = utcnow()
         with self.state.transaction() as conn:
+            job = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+            if job is None:
+                raise OrchestratorError(f"job not found: {job_id}")
+            prior_job_status = str(job["status"])
+            if prior_job_status in {"published", "superseded", "quarantined"}:
+                raise OrchestratorError(
+                    f"terminal Job requires an explicit new Job revision: {prior_job_status}"
+                )
+            generations: dict[str, int] = {}
+            for source in rows:
+                invalidated_task = str(source["task_id"])
+                if invalidated_task not in invalidated:
+                    continue
+                current_generation = int(conn.execute(
+                    "SELECT COALESCE(MAX(generation),0) FROM task_binding_generations "
+                    "WHERE run_id=? AND task_id=?", (run_id, invalidated_task),
+                ).fetchone()[0])
+                if int(source["attempt"]) or source["output_hash"]:
+                    generation = current_generation + 1
+                    conn.execute(
+                        "UPDATE task_binding_generations SET status='superseded' "
+                        "WHERE run_id=? AND task_id=? AND status='active'",
+                        (run_id, invalidated_task),
+                    )
+                    conn.execute(
+                        "INSERT INTO task_binding_generations VALUES(?,?,?,?,?,?,?,?)",
+                        (run_id, invalidated_task, generation, "active", None,
+                         source["output_hash"], reason, now),
+                    )
+                else:
+                    generation = max(current_generation, 1)
+                generations[invalidated_task] = generation
             for invalidated_task in sorted(invalidated):
                 status = "ready" if invalidated_task == task_id else "pending"
                 conn.execute(
@@ -668,28 +763,70 @@ class PersistentOrchestrator:
                         (run_id, invalidated_task, epoch, int(source["attempt"]),
                          reason, now),
                     )
+            stale_artifacts = self.consistency.stale_task_artifacts(
+                conn, run_id, invalidated
+            )
             conn.execute("UPDATE orchestrator_runs SET status='ready',updated_at=? WHERE run_id=?",
                          (now, run_id))
-        job_id = str(run["job_id"])
-        job = self.control.state.get("jobs", job_id)
-        if job:
-            state = JobState(job["status"])
-            if state in {JobState.CANDIDATE, JobState.DIAGNOSTIC_PREVIEW,
-                         JobState.EVIDENCE_LIMITED}:
-                self.control.transition_job(job_id, JobState.REPAIRABLE, reason=reason)
-                state = JobState.REPAIRABLE
-            if state == JobState.FAILED:
-                self.control.transition_job(job_id, JobState.REPAIRABLE, reason=reason)
-                state = JobState.REPAIRABLE
-            if state in {JobState.REPAIRABLE, JobState.RETRYABLE, JobState.MANUAL_REVIEW,
-                         JobState.BLOCKED_BUDGET, JobState.STALLED}:
-                self.control.transition_job(job_id, JobState.READY, reason=reason)
-        ordered = tuple(str(row["task_id"]) for row in rows if row["task_id"] in invalidated)
-        self.control.events.append("workflow_run", run_id, "workflow.rewound", {
-            "from_task": task_id, "invalidated_tasks": list(ordered), "reason": reason,
-            "repair_epoch_reset": reset_attempts,
-            "materialization_lineage": materialization_lineage,
-        }, actor=actor)
+            job_payload = json.loads(job["payload"])
+            job_payload.update({"state": "ready", "transition_reason": reason})
+            conn.execute(
+                "UPDATE jobs SET status='ready',payload=?,updated_at=? WHERE id=?",
+                (canonical_json(job_payload), now, job_id),
+            )
+            item_rows = list(conn.execute(
+                "SELECT item_id,campaign_id FROM autonomous_job_items WHERE job_id=?",
+                (job_id,),
+            ))
+            for item in item_rows:
+                conn.execute(
+                    "UPDATE autonomous_job_items SET status='running',last_error=NULL,"
+                    "updated_at=? WHERE item_id=?",
+                    (now, item["item_id"]),
+                )
+                conn.execute(
+                    "UPDATE autonomous_campaigns SET status='running',updated_at=? "
+                    "WHERE campaign_id=? AND status!='paused'",
+                    (now, item["campaign_id"]),
+                )
+            # The recovery transaction supersedes the wakeup that requested
+            # it.  A later deviation receives a different observation hash and
+            # therefore a fresh durable wakeup.
+            conn.execute(
+                "UPDATE goal_supervisor_wakeups SET status='obsolete',updated_at=? "
+                "WHERE job_id=? AND status='pending'",
+                (now, job_id),
+            )
+            causal_generation = generations[task_id]
+            recovery_value = {
+                "schema_version": "atomic-recovery-transaction-v1",
+                "job_id": job_id,
+                "run_id": run_id,
+                "from_task": task_id,
+                "causal_generation": causal_generation,
+                "invalidated_tasks": list(ordered),
+                "binding_generations": generations,
+                "stale_artifact_generations": stale_artifacts,
+                "repair_epoch_reset": reset_attempts,
+                "materialization_lineage": materialization_lineage,
+                "reason": reason,
+            }
+            recovery_id = "rcv_" + consistency_digest(recovery_value)[:32]
+            conn.execute(
+                "INSERT INTO recovery_transactions VALUES(?,?,?,?,?,?,?,?,?)",
+                (recovery_id, job_id, run_id, task_id, causal_generation,
+                 "committed", reason, canonical_json(recovery_value), now),
+            )
+            self.consistency.append_event(
+                conn, "workflow_run", run_id, "workflow.rewound",
+                {**recovery_value, "recovery_id": recovery_id}, actor=actor,
+            )
+            if prior_job_status != "ready":
+                self.consistency.append_event(
+                    conn, "job", job_id, "job.transitioned",
+                    {"from": prior_job_status, "to": "ready", "reason": reason,
+                     "recovery_id": recovery_id}, actor="control-plane",
+                )
         return ordered
 
     def reopen_skipped_table_branch(self, run_id: str) -> None:

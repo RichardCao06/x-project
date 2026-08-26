@@ -333,7 +333,7 @@ function executionObservatory(trace,value,logicAudit) {
   const hasTrace=trace&&trace.schema_version, quality=trace?.quality||value?.quality_observations?.[0]?.payload||{}, summary=trace?.summary||{};
   const logicSummary=logicAudit?.summary||{}, logicFindings=logicAudit?.findings||[];
   if(!hasTrace&&!quality?.score&&!logicSummary.runs)return empty('等待首次执行审计','任务开始运行后，这里会展示阶段、检索、证据选择、逻辑观察和修复动作。');
-  const dims=quality.dimensions||{}, stages=trace?.stages||[], searches=trace?.searches||[], citations=trace?.citations||[], fields=trace?.table_fields||[], issues=trace?.issues||[], actions=trace?.actions||[], researchGovernance=trace?.research_question_governance||{};
+  const dims=quality.dimensions||{}, stages=trace?.stages||[], searches=trace?.searches||[], citations=trace?.citations||[], fields=trace?.table_fields||[], issues=trace?.issues||[], actions=trace?.actions||[], researchGovernance=trace?.research_question_governance||{}, consistency=trace?.consistency||{};
   const providers=[...new Set((trace?.providers||[]).filter(Boolean))], defaultPane='stages';
   const bottleneck=summary.table_fields&&summary.populated_fields===0
     ?`表格字段 0/${summary.table_fields} 已填充：候选来源存在，但没有证据通过选择规则。`
@@ -348,6 +348,7 @@ function executionObservatory(trace,value,logicAudit) {
       <button class="trace-tab" type="button" data-trace-tab="evidence" aria-selected="false">引用与表格 <b>${citations.length+fields.length}</b></button>
       <button class="trace-tab" type="button" data-trace-tab="logic" aria-selected="false">只读逻辑审查 <b>${logicFindings.length}</b></button>
       <button class="trace-tab" type="button" data-trace-tab="repairs" aria-selected="false">问题与修复 <b>${issues.length+actions.length}</b></button>
+      <button class="trace-tab" type="button" data-trace-tab="consistency" aria-selected="false">一致性闭环 <b>${(consistency.stage_outcomes||[]).length}</b></button>
       <button class="trace-tab" type="button" data-trace-tab="summary" aria-selected="false">目标与质量总览</button>
     </nav>
     <section class="trace-pane active" data-trace-pane="stages">${stageAuditLedger(stages,trace?.job_id)}</section>
@@ -356,8 +357,20 @@ function executionObservatory(trace,value,logicAudit) {
     <section class="trace-pane" data-trace-pane="evidence">${evidenceLedger(citations,fields)}</section>
     <section class="trace-pane" data-trace-pane="logic">${logicAuditLedger(logicAudit)}</section>
     <section class="trace-pane" data-trace-pane="repairs">${repairLedger(issues,actions)}</section>
+    <section class="trace-pane" data-trace-pane="consistency">${consistencyLedger(consistency)}</section>
     <section class="trace-pane" data-trace-pane="summary">${traceSummary(summary,bottleneck,dims,stages,trace)}</section>
   </div>`;
+}
+
+function consistencyLedger(value){
+  const outcomes=value?.stage_outcomes||[], artifacts=value?.artifact_generations||[], recoveries=value?.recovery_transactions||[], graphs=value?.repair_graphs||[], finals=value?.final_reconciliations||[];
+  const effectNames={progress:'目标前进',progress_with_debt:'前进并保留质量债',no_effect:'不改变目标',blocked:'阻断推进',regression:'目标回退'};
+  const outcomeRows=outcomes.length?outcomes.map(item=>`<article class="${h(item.goal_effect||'no_effect')}"><header><strong>${h(stageNames[item.task_id]||item.task_id)}</strong>${badge(item.execution_status)}</header><div><span>Gate 决策</span><b>${h(gateDecisionNames[item.gate_decision]||item.gate_decision)}</b></div><div><span>目标效果</span><b>${h(effectNames[item.goal_effect]||item.goal_effect)}</b></div><small>绑定世代 ${Number(item.binding_generation||0)} · 因果世代 ${Number(item.causal_generation||0)} · ${fmtDate(item.created_at)}</small>${item.failure_fingerprint?`<code>${h(short(item.failure_fingerprint,24))}</code>`:''}</article>`).join(''):empty('尚无统一阶段结果','新执行阶段会把执行结果、Gate 决策和目标效果分别记录。');
+  const currentArtifacts=artifacts.filter(item=>item.status==='current');
+  return `<div class="stage-audit-intro"><div><span class="section-kicker">CROSS-STAGE CONSISTENCY</span><strong>执行、Gate、目标效果、产物世代和修复因果键分别记账。</strong><small>这里显示的是持久化一致性事实，不依赖页面根据日志猜测。</small></div><div><span><b>${outcomes.length}</b> 阶段结果</span><span><b>${currentArtifacts.length}</b> 当前产物</span><span><b>${recoveries.length}</b> 原子回卷</span><span><b>${graphs.length}</b> 修复图</span></div></div>
+    <section class="consistency-section"><header><span class="section-kicker">STAGE OUTCOME V1</span><h4>阶段三轴结果</h4></header><div class="consistency-outcomes">${outcomeRows}</div></section>
+    <section class="consistency-section"><header><span class="section-kicker">ARTIFACT GENERATION LEDGER</span><h4>逻辑路径的当前世代与继承关系</h4></header>${currentArtifacts.length?`<div class="attempt-ledger">${currentArtifacts.map(item=>`<article class="attempt-card succeeded"><header><strong>${h(item.logical_path)}</strong><code>generation ${Number(item.generation||0)}</code></header><small>${h(stageNames[item.task_id]||item.task_id)} · ${h(short(item.output_sha256,20))}</small><p>允许后继：${h((item.authorized_successors||[]).map(id=>stageNames[id]||id).join(' · ')||'无')}</p></article>`).join('')}</div>`:empty('尚无当前产物世代','带文件清单的任务成功后会自动登记。')}</section>
+    <section class="consistency-section"><header><span class="section-kicker">RECOVERY · REPAIR · FINAL</span><h4>恢复与最终收敛证明</h4></header>${jsonView({recovery_transactions:recoveries,repair_graphs:graphs,final_reconciliations:finals})}</section>`;
 }
 
 const questionStatusNames={confirmed:'已闭合',partially_supported:'部分支撑',unresolved:'未解决',contradicted:'存在矛盾',explicit_gap:'明确证据缺口',planned:'已计划 · 待核验'};

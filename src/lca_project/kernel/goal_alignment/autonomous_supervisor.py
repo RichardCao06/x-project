@@ -13,6 +13,7 @@ from ..leases import LeaseLost
 from ..orchestrator import PersistentOrchestrator
 from ..skills import SkillInvoker
 from ..state import utcnow
+from ..consistency import ConsistencyLedger
 from ..worker import WorkerLoop
 from .controller import GoalAlignmentController
 from .execution_ownership import ExecutionOwnership
@@ -308,8 +309,12 @@ class AutonomousJobSupervisor:
                 proof_valid, proof_error = self._valid_release_proof(
                     str(job_id), str(run["run_id"]) if run else item.get("run_id")
                 )
-                status = "succeeded" if proof_valid else "blocked"
-                last_error = None if proof_valid else proof_error
+                if proof_valid:
+                    return self._finalize_reviewed_publication(
+                        item, str(job_id), str(run["run_id"] if run else item.get("run_id"))
+                    )
+                status = "blocked"
+                last_error = proof_error
             elif job["status"] in GOAL_READY_JOB_STATES:
                 unfinished = bool(run and self.state._connection().execute(
                     "SELECT 1 FROM orchestrator_tasks WHERE run_id=? "
@@ -346,6 +351,108 @@ class AutonomousJobSupervisor:
         return {**item, "status": status,
                 "run_id": str(run["run_id"]) if run else item.get("run_id"),
                 "last_error": last_error}
+
+    def _finalize_reviewed_publication(
+        self, item: dict[str, Any], job_id: str, run_id: str,
+    ) -> dict[str, Any]:
+        """Converge every projection after immutable release proof succeeds."""
+        now = utcnow()
+        with self.state.transaction() as conn:
+            publish = conn.execute(
+                "SELECT output_hash FROM orchestrator_tasks "
+                "WHERE run_id=? AND task_id='publish' AND status='succeeded'",
+                (run_id,),
+            ).fetchone()
+            if publish is None or not publish["output_hash"]:
+                raise RuntimeError("final reconciliation lost immutable publish proof")
+            proof_digest = str(publish["output_hash"])
+            campaign_id = str(item["campaign_id"])
+            conn.execute(
+                "UPDATE autonomous_job_items SET status='succeeded',run_id=?,"
+                "last_error=NULL,updated_at=? WHERE item_id=?",
+                (run_id, now, item["item_id"]),
+            )
+            # A published release closes work against its causal generation.
+            # Keep the newest outcome-validation graph as effective and make
+            # every other executable graph explicitly obsolete.
+            current = conn.execute(
+                "SELECT repair_run_id FROM repair_graphs WHERE job_id=? "
+                "AND status IN ('promoted','awaiting_outcome_validation') "
+                "ORDER BY created_at DESC LIMIT 1", (job_id,),
+            ).fetchone()
+            current_id = str(current["repair_run_id"]) if current else None
+            if current_id:
+                conn.execute(
+                    "UPDATE repair_graphs SET status='effective',updated_at=? "
+                    "WHERE repair_run_id=?", (now, current_id),
+                )
+                conn.execute(
+                    "UPDATE system_repair_runs SET status='effective',updated_at=? "
+                    "WHERE repair_run_id=?", (now, current_id),
+                )
+            active_statuses = (
+                "'queued','coding','validating','awaiting_scm_publication',"
+                "'awaiting_approval','promoted','awaiting_outcome_validation'"
+            )
+            params: tuple[Any, ...] = (now, job_id)
+            exclude = ""
+            if current_id:
+                exclude = " AND repair_run_id!=?"
+                params = (now, job_id, current_id)
+            conn.execute(
+                "UPDATE repair_graphs SET status='superseded',updated_at=? "
+                f"WHERE job_id=? AND status IN ({active_statuses}){exclude}", params,
+            )
+            conn.execute(
+                "UPDATE system_repair_runs SET status='rejected',"
+                "last_error='obsolete after reviewed publication',updated_at=? "
+                f"WHERE source_job_id=? AND status IN ({active_statuses}){exclude}", params,
+            )
+            conn.execute(
+                "UPDATE goal_supervisor_wakeups SET status='obsolete',updated_at=? "
+                "WHERE job_id=? AND status='pending'", (now, job_id),
+            )
+            conn.execute(
+                "UPDATE deviation_reports SET status='resolved',updated_at=? "
+                "WHERE job_id=? AND status='open'", (now, job_id),
+            )
+            conn.execute(
+                "UPDATE repair_plans SET status='validated',updated_at=? "
+                "WHERE deviation_id IN (SELECT deviation_id FROM deviation_reports "
+                "WHERE job_id=?) AND status IN ('proposed','scheduled')",
+                (now, job_id),
+            )
+            remaining = int(conn.execute(
+                "SELECT COUNT(*) FROM autonomous_job_items "
+                "WHERE campaign_id=? AND status!='succeeded'", (campaign_id,),
+            ).fetchone()[0])
+            if remaining == 0:
+                conn.execute(
+                    "UPDATE autonomous_campaigns SET status='completed',updated_at=? "
+                    "WHERE campaign_id=?", (now, campaign_id),
+                )
+            value = {
+                "schema_version": "final-reconciliation-v1",
+                "job_id": job_id,
+                "run_id": run_id,
+                "item_id": str(item["item_id"]),
+                "campaign_id": campaign_id,
+                "completion_goal": "reviewed_publication",
+                "proof_digest": proof_digest,
+                "effective_repair_run_id": current_id,
+                "campaign_completed": remaining == 0,
+            }
+            reconciliation_id = "frc_" + digest(value)[:32]
+            conn.execute(
+                "INSERT OR IGNORE INTO final_reconciliations VALUES(?,?,?,?,?,?,?,?)",
+                (reconciliation_id, job_id, run_id, "reviewed_publication",
+                 proof_digest, "committed", canonical(value), now),
+            )
+            ConsistencyLedger.append_event(
+                conn, "job", job_id, "job.final_reconciled", value,
+                actor="autonomous-supervisor",
+            )
+        return {**item, "status": "succeeded", "run_id": run_id, "last_error": None}
 
     def _completion_goal_for_item(self, item: dict[str, Any]) -> str:
         row = self.state._connection().execute(

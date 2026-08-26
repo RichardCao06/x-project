@@ -160,7 +160,10 @@
 </ul>
 </li>
 <li><a href="#12-dashboard">12. 可观察性与 Dashboard 投影</a></li>
-<li><a href="#13">13. 实施差距矩阵</a></li>
+<li><a href="#13">13. 实施差距矩阵</a><ul>
+<li><a href="#131">13.1 当前工作分支的实现证据</a></li>
+</ul>
+</li>
 <li><a href="#14">14. 实施顺序</a><ul>
 <li><a href="#p0">P0：保证不会再被状态不一致卡住</a></li>
 <li><a href="#p1">P1：保证修复能够收敛</a></li>
@@ -190,7 +193,7 @@
       <div class="document-meta"><span class="chip">设计</span><span class="chip">HTML MIRROR</span></div>
       <article><h1 id="job-v1">Job 跨阶段状态一致性与自主收敛设计 v1<a class="headerlink" href="#job-v1" title="Permanent link">§</a></h1>
 <blockquote>
-<p>文档状态：设计基线（部分机制已实现，端到端一致性尚未验收）
+<p>文档状态：设计基线 + P0/P2 核心实现（当前工作分支已通过 519 项回归；尚未合并 main，尚未完成 reviewed Job 端到端生产验收）
 适用范围：自治 Campaign 下的 Wiki / LCA Job，从创建、研究、内容、表格、发布到系统修复闭环
 案例基线：A019 <code>job_0b69524e5e7d457d87741ec2da2e2e59</code>
 日期：2026-08-26</p>
@@ -859,14 +862,14 @@
 </tr>
 <tr>
 <td>Stage 三轴事件</td>
-<td>部分实现</td>
-<td>Release 等 Gate 未统一</td>
+<td>工作分支已实现 Orchestrator 投影</td>
+<td>Capability / Release 的业务判定仍需统一接入</td>
 <td>所有阶段使用 StageOutcome v1</td>
 </tr>
 <tr>
 <td>Failure Fingerprint v2</td>
-<td>部分实现</td>
-<td>缺少 Causal Generation 与零增益控制</td>
+<td>工作分支已加入 Causal Generation</td>
+<td>Quality Trajectory 尚未完全接入 Retry Permission</td>
 <td>接入 Retry Permission</td>
 </tr>
 <tr>
@@ -883,14 +886,14 @@
 </tr>
 <tr>
 <td>原子 Recovery</td>
-<td>部分实现</td>
-<td>Item/Campaign/Wakeup 非统一事务</td>
+<td>工作分支已实现</td>
+<td>需要故障注入和存量迁移验证</td>
 <td>Aggregate Transition Service</td>
 </tr>
 <tr>
 <td>Artifact Generation Ledger</td>
-<td>未实现</td>
-<td>多 Apply 依赖特例识别</td>
+<td>工作分支已实现 Task Artifact 代际</td>
+<td>Apply / Release 物化仍需统一协议</td>
 <td>一等账本</td>
 </tr>
 <tr>
@@ -901,8 +904,8 @@
 </tr>
 <tr>
 <td>唯一 Repair Graph</td>
-<td>未实现</td>
-<td>Repair Storm</td>
+<td>工作分支已实现</td>
+<td>需要真实并发 Repair 与 SCM 验证</td>
 <td>Repair Key 唯一约束</td>
 </tr>
 <tr>
@@ -913,8 +916,8 @@
 </tr>
 <tr>
 <td>Final Reconciliation</td>
-<td>未实现</td>
-<td>发布后残留 Repair</td>
+<td>工作分支已实现 reviewed 发布收尾</td>
+<td>需要真实 Release 故障注入</td>
 <td>终态清理事务</td>
 </tr>
 <tr>
@@ -925,6 +928,17 @@
 </tr>
 </tbody>
 </table></div>
+<h3 id="131">13.1 当前工作分支的实现证据<a class="headerlink" href="#131" title="Permanent link">§</a></h3>
+<p>截至 2026-08-26，本轮从 <code>main</code> 创建的实现分支已经增加以下可执行协议：</p>
+<ul>
+<li><code>stage_outcomes</code>：把执行结果、Gate 决策和目标效果作为三条独立轴记录；</li>
+<li><code>artifact_generations</code>：为 Task Manifest 中的逻辑产物登记 generation、producer、Hash 与 supersession；</li>
+<li><code>recovery_transactions</code>：在一个 SQLite 事务内恢复 Run、Task、Job、Item、Campaign 与 Wakeup 投影；</li>
+<li><code>repair_graphs</code>：Repair Key 绑定 Job、Task、失败指纹和 Causal Generation，禁止同因同策略盲重试；</li>
+<li><code>final_reconciliations</code>：Reviewed Publish Proof 成立后统一收尾 Item、Campaign、Repair、Wakeup、Deviation 和 Repair Plan；</li>
+<li>Dashboard “一致性闭环”投影：只读取上述账本，不在前端自行推断状态。</li>
+</ul>
+<p>验证证据为 <code>PYTHONPATH=src pytest -q</code> 全量 <strong>519 passed</strong>，以及 Dashboard JavaScript 语法检查通过。该证据等级仍是 <strong>Implemented</strong>，在合并 <code>main</code>、重启运行进程并完成新的 reviewed Job 前，不得标记为 E2E verified 或 Production observed。</p>
 <h2 id="14">14. 实施顺序<a class="headerlink" href="#14" title="Permanent link">§</a></h2>
 <h3 id="p0">P0：保证不会再被状态不一致卡住<a class="headerlink" href="#p0" title="Permanent link">§</a></h3>
 <ol>

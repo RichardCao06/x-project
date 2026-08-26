@@ -1179,12 +1179,22 @@ class WorkerLoop:
                         rewound = True
                     elif (code == "RESEARCH_PLAN_INVALID"
                           and decision.action == RepairAction.REPAIR):
-                        self.orchestrator.rewind_from(
-                            task.run_id, "research_plan",
-                            reason="research plan gate requested audited bilingual terminology repair",
-                            actor="worker",
+                        # A Gate failure is evidence, not a causal intervention.
+                        # The Goal Supervisor must first materialise a bounded
+                        # repair artifact (or a strategy-different System Repair)
+                        # before ``rewind_from`` is authorised.  Replaying the
+                        # same research plan here produced the historical
+                        # cross-session blind-retry loop.
+                        self.control.events.append(
+                            "workflow_run", task.run_id,
+                            "task.repair_waiting_for_causal_delta", {
+                                "task_id": task.task_id,
+                                "failure_code": code,
+                                "failure_fingerprint": fingerprint,
+                                "required_recovery_task": "research_plan",
+                                "reason": "gate failure alone does not change causal input",
+                            }, actor="worker",
                         )
-                        rewound = True
                 self.workers.heartbeat(
                     self.worker_id, status="degraded", job_id=job_id_value,
                     run_id=task.run_id, task_id=task.task_id, last_error=str(exc),

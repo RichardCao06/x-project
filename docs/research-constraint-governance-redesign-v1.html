@@ -1455,12 +1455,12 @@
             <tbody>
               <tr><td>Research Question Contract v2</td><td>已生产观测</td><td>核心问题与显式 intent 已进入真实 Job；兼容路径仍需回归。</td></tr>
               <tr><td>逐问题证据账本与来源组合评估</td><td>已生产观测</td><td>能表达 confirmed / partial / gap，但不替代跨阶段恢复事务。</td></tr>
-              <tr><td>Execution / Decision / Goal effect 三轴</td><td>部分实现</td><td>研究 Gate 已拆分；通用 capability 和 release 路径仍存在退出码混义。</td></tr>
-              <tr><td>失败指纹与策略差异</td><td>部分实现</td><td>已能减少部分盲重试；尚未形成唯一 Repair Graph 和全局边际进展控制。</td></tr>
+              <tr><td>Execution / Decision / Goal effect 三轴</td><td>工作分支已扩展</td><td>Orchestrator 阶段已写入统一 Stage Outcome；Capability / Release 的业务判定仍需继续统一。</td></tr>
+              <tr><td>失败指纹与策略差异</td><td>工作分支已扩展</td><td>Repair Key 已绑定失败指纹和 Causal Generation；全局质量轨迹仍需接入 Retry Permission。</td></tr>
               <tr><td>Preview 与 completion goal 分离</td><td>已生产观测</td><td>Reviewed Job 不再因 Preview 提前完成。</td></tr>
-              <tr><td>Job / Run / Task / Item / Campaign 原子恢复</td><td>本版未覆盖</td><td>属于跨阶段执行一致性，不应被早期“第一阶段已实现”表述包含。</td></tr>
-              <tr><td>Artifact Generation Ledger 与派生文件所有权</td><td>本版未覆盖</td><td>用于解决合法连续写入、Manifest 重算和 SIDE_EFFECT 误判。</td></tr>
-              <tr><td>Repair / SCM / Release 最终收尾</td><td>本版未覆盖</td><td>需要最终一致性校验、旧支线 supersede 与不可变发布事务。</td></tr>
+              <tr><td>Job / Run / Task / Item / Campaign 原子恢复</td><td>工作分支已实现</td><td>Recovery Transaction 已统一恢复聚合投影和 Wakeup；尚待 reviewed Job 故障注入。</td></tr>
+              <tr><td>Artifact Generation Ledger 与派生文件所有权</td><td>工作分支已实现核心账本</td><td>Task Artifact 已有代际和 DAG 接管规则；Apply / Release 物化仍需继续协议化。</td></tr>
+              <tr><td>Repair / SCM / Release 最终收尾</td><td>工作分支已实现核心收尾</td><td>Reviewed Publish Proof 可触发 Repair、Wakeup 与 Campaign 对账；尚未完成生产验收。</td></tr>
             </tbody>
           </table>
         </div>
@@ -1478,15 +1478,15 @@
   <aside class="final-callout">
     <h2>用契约固定含义，用 Agent 探索路径。</h2>
     <p>
-      2026-08-25 完成的是研究约束治理的第一阶段代码落点：Research Question Contract v2、精确 requirement 绑定、逐问题证据账本、
-      证据充分性与来源组合质量拆分、结构化 Gate 失败包、部分策略差异重检与 Dashboard 中文投影。
-      这不构成完整 Job 跨阶段一致性的端到端验收；原子恢复、Artifact 代际、Repair 唯一性和最终发布收尾仍须按配套设计实施并通过故障注入。
+      2026-08-25 完成研究约束治理第一阶段；2026-08-26 的当前工作分支进一步落地 Stage Outcome、原子 Recovery Transaction、
+      Artifact Generation Ledger、唯一 Repair Graph、Reviewed Publish Final Reconciliation 与 Dashboard 一致性投影，并通过 519 项全量回归。
+      这仍不构成完整 Job 跨阶段一致性的端到端验收；代码合并、进程加载、故障注入与全新 reviewed Job 的无人介入完成仍是下一证据等级。
       历史 Job 与数据库不会被就地改写；需要受控回卷或启动新 Job 才会生成新版产物。
     </p>
   </aside>
 
   <footer>
-    <span>LCA Project / Partial Implementation Baseline</span>
+    <span>LCA Project / Implemented on branch · E2E pending</span>
     <span>Research constraint governance redesign · v1</span>
   </footer>
 

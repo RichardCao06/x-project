@@ -437,6 +437,115 @@ def _independent_logic_audits(conn: sqlite3.Connection) -> None:
             conn.execute(statement)
 
 
+def _cross_stage_consistency_v1(conn: sqlite3.Connection) -> None:
+    """Install the durable ledgers required for causal, cross-stage recovery.
+
+    These records deliberately separate what a task *did*, what a Gate
+    *decided*, and what effect the result had on the declared Job goal.  They
+    also make mutable logical paths generation-addressed and give one causal
+    failure generation at most one active System Repair graph.
+    """
+    statements = """
+    CREATE TABLE IF NOT EXISTS stage_outcomes(
+      outcome_id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      task_id TEXT NOT NULL,
+      attempt_id TEXT,
+      binding_generation INTEGER NOT NULL,
+      execution_status TEXT NOT NULL,
+      gate_decision TEXT NOT NULL,
+      goal_effect TEXT NOT NULL,
+      failure_fingerprint TEXT,
+      causal_generation INTEGER NOT NULL,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(run_id,task_id,attempt_id)
+    );
+    CREATE INDEX IF NOT EXISTS stage_outcomes_job_created_idx
+      ON stage_outcomes(job_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS artifact_generations(
+      generation_id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      task_id TEXT NOT NULL,
+      attempt_id TEXT NOT NULL,
+      logical_path TEXT NOT NULL,
+      generation INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      base_generation INTEGER,
+      base_sha256 TEXT,
+      output_sha256 TEXT NOT NULL,
+      semantic_identity TEXT NOT NULL,
+      authorized_successors TEXT NOT NULL,
+      proof_digest TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(job_id,logical_path,generation)
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS artifact_generations_current_idx
+      ON artifact_generations(job_id,logical_path) WHERE status='current';
+    CREATE INDEX IF NOT EXISTS artifact_generations_run_task_idx
+      ON artifact_generations(run_id,task_id,generation DESC);
+    CREATE TABLE IF NOT EXISTS recovery_transactions(
+      recovery_id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      from_task_id TEXT NOT NULL,
+      causal_generation INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(run_id,from_task_id,causal_generation)
+    );
+    CREATE TABLE IF NOT EXISTS repair_graphs(
+      repair_key TEXT NOT NULL,
+      repair_run_id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      run_id TEXT,
+      task_id TEXT NOT NULL,
+      failure_fingerprint TEXT NOT NULL,
+      causal_generation INTEGER NOT NULL,
+      strategy_hash TEXT NOT NULL,
+      status TEXT NOT NULL,
+      zero_gain_attempts INTEGER NOT NULL DEFAULT 0,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS repair_graphs_one_active_idx
+      ON repair_graphs(repair_key) WHERE status IN (
+        'queued','coding','validating','awaiting_scm_publication',
+        'awaiting_approval','promoted','awaiting_outcome_validation'
+      );
+    CREATE INDEX IF NOT EXISTS repair_graphs_job_created_idx
+      ON repair_graphs(job_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS final_reconciliations(
+      reconciliation_id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      completion_goal TEXT NOT NULL,
+      proof_digest TEXT NOT NULL,
+      status TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(job_id,run_id,completion_goal,proof_digest)
+    );
+    """
+    for statement in statements.split(";"):
+        if statement.strip():
+            conn.execute(statement)
+    if "system_repair_runs" in {
+        str(row["name"]) for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
+    }:
+        _add_column(conn, "system_repair_runs", "repair_key TEXT")
+        _add_column(conn, "system_repair_runs", "causal_generation INTEGER")
+        _add_column(conn, "system_repair_runs", "strategy_hash TEXT")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "worker-and-attempt-ownership", _worker_and_attempt_ownership),
     (2, "structured-failure-payloads", _structured_failures),
@@ -460,6 +569,7 @@ MIGRATIONS: tuple[Migration, ...] = (
      _dashboard_goal_alignment_query_indexes),
     (18, "dashboard-event-query-indexes", _dashboard_event_query_indexes),
     (19, "independent-logic-audits", _independent_logic_audits),
+    (20, "cross-stage-consistency-v1", _cross_stage_consistency_v1),
 )
 
 

@@ -270,6 +270,11 @@ class GoalAlignmentController:
                         "updated_at=? WHERE repair_run_id=? AND status='promoted'",
                         (utcnow(), repair["repair_run_id"]),
                     )
+                    conn.execute(
+                        "UPDATE repair_graphs SET status='awaiting_outcome_validation',"
+                        "updated_at=? WHERE repair_run_id=?",
+                        (utcnow(), repair["repair_run_id"]),
+                    )
                 repair["status"] = "awaiting_outcome_validation"
             promoted_at = str(payload.get("promoted_at") or "")
             cause = str(request.get("cause_code") or "")
@@ -459,6 +464,14 @@ class GoalAlignmentController:
                     "UPDATE system_repair_runs SET status=?,payload=?,updated_at=? "
                     "WHERE repair_run_id=? AND status='awaiting_outcome_validation'",
                     (verdict, canonical(payload), utcnow(), repair["repair_run_id"]),
+                )
+                conn.execute(
+                    "UPDATE repair_graphs SET status=?,"
+                    "zero_gain_attempts=zero_gain_attempts+?,payload=?,updated_at=? "
+                    "WHERE repair_run_id=?",
+                    (verdict, 1 if verdict == "ineffective" else 0,
+                     canonical({"outcome_validation": receipt}), utcnow(),
+                     repair["repair_run_id"]),
                 )
             action = {"status": f"repair_{verdict}",
                       "repair_run_id": repair["repair_run_id"], "proof": proof}
@@ -856,6 +869,27 @@ class GoalAlignmentController:
         return {"deviation": report, "diagnosis": diagnosis_record, "repair_plan": plan}
 
     def status(self, *, job_id: str | None = None) -> dict[str, Any]:
+        def consistency_rows(table: str) -> list[dict[str, Any]]:
+            query, params = f"SELECT * FROM {table}", []
+            if job_id:
+                query += " WHERE job_id=?"
+                params.append(job_id)
+            query += " ORDER BY created_at DESC LIMIT 200"
+            result: list[dict[str, Any]] = []
+            for row in self.state._connection().execute(query, tuple(params)):
+                item = dict(row)
+                if "payload" in item:
+                    item["payload"] = _payload(item["payload"])
+                if "authorized_successors" in item:
+                    try:
+                        item["authorized_successors"] = json.loads(
+                            item["authorized_successors"]
+                        )
+                    except (TypeError, json.JSONDecodeError):
+                        item["authorized_successors"] = []
+                result.append(item)
+            return result
+
         return {
             "goal_contracts": self.store.rows("goal_contracts", limit=20),
             "quality_observations": self.store.rows("quality_observations", job_id=job_id),
@@ -874,6 +908,11 @@ class GoalAlignmentController:
             "promotion_receipts": self.store.rows(
                 "policy_promotion_receipts", job_id=job_id,
             ),
+            "stage_outcomes": consistency_rows("stage_outcomes"),
+            "artifact_generations": consistency_rows("artifact_generations"),
+            "recovery_transactions": consistency_rows("recovery_transactions"),
+            "repair_graphs": consistency_rows("repair_graphs"),
+            "final_reconciliations": consistency_rows("final_reconciliations"),
         }
     @staticmethod
     def _comparable_previous_score(

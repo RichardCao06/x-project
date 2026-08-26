@@ -112,14 +112,108 @@ class SystemRepairAgent:
         ]
         return digest({"causal_input_changes": changes}) if changes else ""
 
+    @staticmethod
+    def _repair_task_id(request: dict[str, Any]) -> str:
+        evidence = request.get("evidence") or {}
+        return str(
+            request.get("failed_task")
+            or request.get("recovery_task")
+            or (evidence.get("task_id") if isinstance(evidence, dict) else "")
+            or "job"
+        )
+
+    def _causal_generation(
+        self, source_run_id: str | None, task_id: str, request: dict[str, Any]
+    ) -> int:
+        declared = request.get("causal_generation")
+        if declared is not None:
+            return max(0, int(declared))
+        if not source_run_id or task_id == "job":
+            return 0
+        row = self.state._connection().execute(
+            "SELECT COALESCE(MAX(generation),0) AS generation "
+            "FROM task_binding_generations WHERE run_id=? AND task_id=?",
+            (source_run_id, task_id),
+        ).fetchone()
+        return int(row["generation"] if row else 0)
+
     def queue(self, *, candidate_id: str, source_job_id: str,
               source_run_id: str | None, request: dict[str, Any]) -> dict[str, Any]:
         triage_run_id = str(request.get("triage_run_id") or "")
         repair_fingerprint = self._repair_fingerprint(request)
         causal_plan_hash = self._causal_plan_hash(request)
+        task_id = self._repair_task_id(request)
+        causal_generation = self._causal_generation(source_run_id, task_id, request)
+        strategy_hash = str(
+            request.get("strategy_hash") or causal_plan_hash
+            or digest({"triage_run_id": triage_run_id, "request": request})
+        )
+        repair_key = digest({
+            "job_id": source_job_id,
+            "task_id": task_id,
+            "failure_fingerprint": repair_fingerprint or "unclassified",
+            "causal_generation": causal_generation,
+        })
+        # Keep the graph projection compatible with pre-v20 callers that
+        # updated only system_repair_runs.  New runtime transitions update both
+        # rows in one transaction through ``_set``.
+        with self.state.transaction() as conn:
+            conn.execute(
+                "UPDATE repair_graphs SET status=(SELECT r.status FROM system_repair_runs r "
+                "WHERE r.repair_run_id=repair_graphs.repair_run_id),updated_at=? "
+                "WHERE job_id=? AND EXISTS(SELECT 1 FROM system_repair_runs r "
+                "WHERE r.repair_run_id=repair_graphs.repair_run_id "
+                "AND r.status!=repair_graphs.status)",
+                (utcnow(), source_job_id),
+            )
+        supersedes_repair_run_id = str(
+            request.get("supersedes_repair_run_id") or ""
+        )
+        canonical_graph = self.state._connection().execute(
+            "SELECT g.repair_run_id FROM repair_graphs g "
+            "JOIN system_repair_runs r ON r.repair_run_id=g.repair_run_id "
+            "WHERE g.repair_key=? "
+            "AND g.repair_run_id!=? "
+            "AND r.status IN ('queued','coding','validating','awaiting_scm_publication',"
+            "'awaiting_approval','promoted','awaiting_outcome_validation') "
+            "ORDER BY g.created_at DESC LIMIT 1",
+            (repair_key, supersedes_repair_run_id),
+        ).fetchone()
+        if canonical_graph is not None:
+            canonical_id = str(canonical_graph["repair_run_id"])
+            self.control.events.append(
+                "system_repair", canonical_id,
+                "system_repair.repair_graph_deduplicated", {
+                    "repair_key": repair_key,
+                    "causal_generation": causal_generation,
+                    "suppressed_candidate_id": candidate_id,
+                }, actor="goal-alignment-controller",
+            )
+            return self.get(canonical_id)
+        unchanged = self.state._connection().execute(
+            "SELECT g.repair_run_id,r.status FROM repair_graphs g "
+            "JOIN system_repair_runs r ON r.repair_run_id=g.repair_run_id "
+            "WHERE g.repair_key=? AND g.strategy_hash=? "
+            "AND r.status IN ('ineffective','failed','rejected','rolled_back') "
+            "ORDER BY g.created_at DESC LIMIT 1",
+            (repair_key, strategy_hash),
+        ).fetchone()
+        if unchanged is not None:
+            prior_id = str(unchanged["repair_run_id"])
+            self.control.events.append(
+                "system_repair", prior_id,
+                "system_repair.causal_replan_required", {
+                    "repair_key": repair_key,
+                    "causal_generation": causal_generation,
+                    "strategy_hash": strategy_hash,
+                    "suppressed_candidate_id": candidate_id,
+                    "prior_status": str(unchanged["status"]),
+                }, actor="goal-alignment-controller",
+            )
+            return self.get(prior_id)
         if triage_run_id or repair_fingerprint:
             rows = self.state._connection().execute(
-                "SELECT repair_run_id,status,payload FROM system_repair_runs "
+                "SELECT repair_run_id,status,payload,repair_key FROM system_repair_runs "
                 "WHERE source_job_id=? AND COALESCE(source_run_id,'')=COALESCE(?, '') "
                 "ORDER BY created_at DESC", (source_job_id, source_run_id),
             )
@@ -129,6 +223,10 @@ class SystemRepairAgent:
                 "awaiting_outcome_validation", "effective", "partially_effective",
             }
             for row in rows:
+                # New rows are governed by the exact Repair Key above.  The
+                # legacy comparison below exists only for pre-migration rows.
+                if row["repair_key"]:
+                    continue
                 if str(request.get("supersedes_repair_run_id") or "") == str(
                         row["repair_run_id"]):
                     continue
@@ -181,12 +279,26 @@ class SystemRepairAgent:
             "request": request,
             "failure_fingerprint": repair_fingerprint or None,
             "causal_plan_hash": causal_plan_hash or None,
+            "repair_key": repair_key,
+            "task_id": task_id,
+            "causal_generation": causal_generation,
+            "strategy_hash": strategy_hash,
         }
         with self.state.transaction() as conn:
             conn.execute(
-                "INSERT OR IGNORE INTO system_repair_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO system_repair_runs("
+                "repair_run_id,candidate_id,source_job_id,source_run_id,status,model,"
+                "sandbox_path,request_hash,patch_hash,payload,last_error,created_at,updated_at,"
+                "repair_key,causal_generation,strategy_hash) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (repair_run_id, candidate_id, source_job_id, source_run_id, "queued",
-                 self.MODEL, None, request_hash, None, canonical(payload), None, now, now),
+                 self.MODEL, None, request_hash, None, canonical(payload), None, now, now,
+                 repair_key, causal_generation, strategy_hash),
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO repair_graphs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (repair_key, repair_run_id, source_job_id, source_run_id, task_id,
+                 repair_fingerprint or "unclassified", causal_generation, strategy_hash,
+                 "queued", 0, canonical({"request_hash": request_hash}), now, now),
             )
         self.control.events.append("system_repair", repair_run_id,
                                    "system_repair.queued", {
@@ -653,6 +765,16 @@ class SystemRepairAgent:
                     ownership.owner_id, lease.fencing_token, utcnow(),
                 ])
             changed = conn.execute(sql, tuple(params)).rowcount
+            if changed == 1:
+                conn.execute(
+                    "UPDATE repair_graphs SET status=?,payload=?,updated_at=? "
+                    "WHERE repair_run_id=?",
+                    (status, canonical({
+                        "system_repair_status": status,
+                        "last_error": error,
+                        "patch_hash": patch_hash,
+                    }), utcnow(), repair_run_id),
+                )
         if changed != 1:
             raise LeaseLost(f"repair row disappeared during fenced update: {repair_run_id}")
 

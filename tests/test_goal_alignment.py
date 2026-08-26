@@ -1827,7 +1827,10 @@ def test_editorial_system_repair_honors_downstream_go_proof_before_effective(
     now = utcnow()
     with orchestrator.control.state.transaction() as conn:
         conn.execute(
-            "INSERT INTO system_repair_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO system_repair_runs("
+            "repair_run_id,candidate_id,source_job_id,source_run_id,status,model,"
+            "sandbox_path,request_hash,patch_hash,payload,last_error,created_at,updated_at"
+            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (repair_run_id, candidate["candidate_id"], accepted["job_id"], run_id,
              "awaiting_outcome_validation", "test-model", None, "request-hash", "patch-hash",
              json.dumps(payload), None, now, now),
@@ -1925,7 +1928,10 @@ def test_official_replay_marks_more_observations_but_zero_usable_data_as_partial
     }
     with orchestrator.control.state.transaction() as conn:
         conn.execute(
-            "INSERT INTO system_repair_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO system_repair_runs("
+            "repair_run_id,candidate_id,source_job_id,source_run_id,status,model,"
+            "sandbox_path,request_hash,patch_hash,payload,last_error,created_at,updated_at"
+            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (repair_run_id, candidate["candidate_id"], accepted["job_id"], run_id,
              "awaiting_outcome_validation", "test-model", None, "request-hash", None,
              json.dumps(payload), None, utcnow(), utcnow()),

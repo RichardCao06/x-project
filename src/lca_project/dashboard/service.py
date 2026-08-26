@@ -1763,6 +1763,13 @@ class DashboardService:
         research_question_governance = self._research_question_projection(
             stages, searches, citations,
         )
+        consistency = {
+            "stage_outcomes": goal_alignment.get("stage_outcomes") or [],
+            "artifact_generations": goal_alignment.get("artifact_generations") or [],
+            "recovery_transactions": goal_alignment.get("recovery_transactions") or [],
+            "repair_graphs": goal_alignment.get("repair_graphs") or [],
+            "final_reconciliations": goal_alignment.get("final_reconciliations") or [],
+        }
         return {
             "schema_version": "dashboard-execution-trace-v2",
             "job_id": job_id,
@@ -1801,6 +1808,7 @@ class DashboardService:
             "issues": issues,
             "actions": actions,
             "repair_activity": repair_activity,
+            "consistency": consistency,
             "research_question_governance": research_question_governance,
             "quality": {"score": quality.get("score"), "dimensions": quality.get("dimensions") or {}},
             "research_outcome": research,

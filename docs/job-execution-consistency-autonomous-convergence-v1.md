@@ -1,6 +1,6 @@
 # Job 跨阶段状态一致性与自主收敛设计 v1
 
-> 文档状态：设计基线（部分机制已实现，端到端一致性尚未验收）
+> 文档状态：设计基线 + P0/P2 核心实现（当前工作分支已通过 519 项回归；尚未合并 main，尚未完成 reviewed Job 端到端生产验收）
 > 适用范围：自治 Campaign 下的 Wiki / LCA Job，从创建、研究、内容、表格、发布到系统修复闭环
 > 案例基线：A019 `job_0b69524e5e7d457d87741ec2da2e2e59`
 > 日期：2026-08-26
@@ -542,17 +542,30 @@ Dashboard 只做投影，不能通过前端推断或修正状态。
 |---|---|---|---|
 | Research Question Contract v2 | 已实现 | 下游兼容曾不完整 | E2E 固化 |
 | 逐问题证据账本 | 已实现 | 与最终关键字段闭合尚未统一 | 接入 Completion Goal |
-| Stage 三轴事件 | 部分实现 | Release 等 Gate 未统一 | 所有阶段使用 StageOutcome v1 |
-| Failure Fingerprint v2 | 部分实现 | 缺少 Causal Generation 与零增益控制 | 接入 Retry Permission |
+| Stage 三轴事件 | 工作分支已实现 Orchestrator 投影 | Capability / Release 的业务判定仍需统一接入 | 所有阶段使用 StageOutcome v1 |
+| Failure Fingerprint v2 | 工作分支已加入 Causal Generation | Quality Trajectory 尚未完全接入 Retry Permission | 接入 Retry Permission |
 | Quality Trajectory | 已观测 | 未控制 Worker 重试 | 成为收敛判据 |
 | Baseline-aware Canary | 已有实现 | 需要稳定基线与 SCM 集成验收 | 干净 checkout 回归 |
-| 原子 Recovery | 部分实现 | Item/Campaign/Wakeup 非统一事务 | Aggregate Transition Service |
-| Artifact Generation Ledger | 未实现 | 多 Apply 依赖特例识别 | 一等账本 |
+| 原子 Recovery | 工作分支已实现 | 需要故障注入和存量迁移验证 | Aggregate Transition Service |
+| Artifact Generation Ledger | 工作分支已实现 Task Artifact 代际 | Apply / Release 物化仍需统一协议 | 一等账本 |
 | Derived Manifest Ownership | 部分实现 | 检测仍可能按字节误判 | 类型化副作用策略 |
-| 唯一 Repair Graph | 未实现 | Repair Storm | Repair Key 唯一约束 |
+| 唯一 Repair Graph | 工作分支已实现 | 需要真实并发 Repair 与 SCM 验证 | Repair Key 唯一约束 |
 | SCM 自动重基线 | 部分实现 | 大量 Base Conflict | 自动重生成和合并 |
-| Final Reconciliation | 未实现 | 发布后残留 Repair | 终态清理事务 |
+| Final Reconciliation | 工作分支已实现 reviewed 发布收尾 | 需要真实 Release 故障注入 | 终态清理事务 |
 | Release 多投影一致性 | 未实现 | Artifact 与 DB 可能不同步 | Completion Transaction |
+
+### 13.1 当前工作分支的实现证据
+
+截至 2026-08-26，本轮从 `main` 创建的实现分支已经增加以下可执行协议：
+
+- `stage_outcomes`：把执行结果、Gate 决策和目标效果作为三条独立轴记录；
+- `artifact_generations`：为 Task Manifest 中的逻辑产物登记 generation、producer、Hash 与 supersession；
+- `recovery_transactions`：在一个 SQLite 事务内恢复 Run、Task、Job、Item、Campaign 与 Wakeup 投影；
+- `repair_graphs`：Repair Key 绑定 Job、Task、失败指纹和 Causal Generation，禁止同因同策略盲重试；
+- `final_reconciliations`：Reviewed Publish Proof 成立后统一收尾 Item、Campaign、Repair、Wakeup、Deviation 和 Repair Plan；
+- Dashboard “一致性闭环”投影：只读取上述账本，不在前端自行推断状态。
+
+验证证据为 `PYTHONPATH=src pytest -q` 全量 **519 passed**，以及 Dashboard JavaScript 语法检查通过。该证据等级仍是 **Implemented**，在合并 `main`、重启运行进程并完成新的 reviewed Job 前，不得标记为 E2E verified 或 Production observed。
 
 ## 14. 实施顺序
 

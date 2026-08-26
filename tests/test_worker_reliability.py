@@ -63,6 +63,7 @@ def test_schema_migration_records_worker_registry(tmp_path: Path) -> None:
         (17, "dashboard-goal-alignment-query-indexes"),
         (18, "dashboard-event-query-indexes"),
         (19, "independent-logic-audits"),
+        (20, "cross-stage-consistency-v1"),
     ]
     assert state._connection().execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='worker_instances'"
@@ -79,6 +80,9 @@ def test_schema_migration_records_worker_registry(tmp_path: Path) -> None:
         "logic_audit_runs_status_idx",
         "logic_audit_findings_run_idx",
         "logic_audit_findings_status_idx",
+        "stage_outcomes_job_created_idx",
+        "artifact_generations_current_idx",
+        "repair_graphs_one_active_idx",
     }
     actual_indexes = {
         str(row["name"]) for row in state._connection().execute(
