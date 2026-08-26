@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 import hashlib
 import json
 import subprocess
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -267,3 +269,147 @@ def test_repair_scout_regeneration_does_not_append_failed_candidates(
     assert repaired["diversity_repair"]["excluded_url_hashes"] == [
         hashlib.sha256(b"https://failed.example/page").hexdigest()
     ]
+
+
+def test_repair_provider_results_cannot_reintroduce_failed_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    failed_url = "https://failed.example/page"
+    novel_url = "https://novel.example/page"
+    plan = tmp_path / "research-plan.json"
+    plan.write_text(json.dumps({
+        "node_id": "A020",
+        "question_contract_sha256": "a" * 64,
+        "research_questions": ["identity.activity_definition"],
+        "terminology": {"canonical_zh": "服务器", "canonical_en": "server"},
+    }), encoding="utf-8")
+    config = tmp_path / "search-providers.json"
+    config.write_text(json.dumps({
+        "providers": {"fixture": {"enabled": True}},
+        "routing": {"zh": ["fixture"]},
+    }), encoding="utf-8")
+    gate = tmp_path / "source-diversity-gate.json"
+    gate.write_text(json.dumps({
+        "failed_requirement_ids": ["identity.activity_definition"],
+        "attempt": 0,
+        "strategy_hash": "b" * 64,
+    }), encoding="utf-8")
+    previous = tmp_path / "research-scout.json"
+    previous.write_text(json.dumps({
+        "protocol": "wiki-research-scout-v1",
+        "node_id": "A020",
+        "candidates": [{
+            "url": failed_url,
+            "question_id": "identity.activity_definition",
+        }],
+    }), encoding="utf-8")
+    fetch_dir = tmp_path / "search-cache/fetch"
+    fetch_dir.mkdir(parents=True)
+    (fetch_dir / "failed.json").write_text(json.dumps({"record": {
+        "status": "error", "url": failed_url,
+    }}), encoding="utf-8")
+    output = tmp_path / "research-scout-diversity-repair.json"
+
+    spec = importlib.util.spec_from_file_location(
+        "scout_wiki_research_plan_regression",
+        ROOT / "scripts/scout_wiki_research_plan.py",
+    )
+    assert spec and spec.loader
+    scout_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scout_module)
+    fake_provider = SimpleNamespace(
+        load_secrets=lambda path: {},
+        provider_search=lambda *args, **kwargs: ([
+            {"url": failed_url, "title": "Failed result"},
+            {"url": novel_url, "title": "Novel result"},
+        ], "ok"),
+    )
+    fake_spec = SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module: None))
+    monkeypatch.setattr(
+        scout_module.importlib.util, "spec_from_file_location",
+        lambda *args, **kwargs: fake_spec,
+    )
+    monkeypatch.setattr(
+        scout_module.importlib.util, "module_from_spec", lambda unused: fake_provider,
+    )
+    monkeypatch.setattr(sys, "argv", [
+        "scout_wiki_research_plan.py", str(plan), str(config), str(output),
+        "--repair-gate", str(gate), "--previous-scout", str(previous),
+        "--failed-fetch-dir", str(fetch_dir),
+    ])
+
+    assert scout_module.main() == 0
+    repaired = json.loads(output.read_text(encoding="utf-8"))
+    candidates = repaired["candidates"]
+    excluded_urls = set(repaired["diversity_repair"]["excluded_urls"])
+    excluded_hashes = set(repaired["diversity_repair"]["excluded_url_hashes"])
+    assert [candidate["url"] for candidate in candidates] == [novel_url]
+    assert candidates[0]["repair_novel"] is True
+    assert sum(
+        candidate["url"] in excluded_urls
+        or hashlib.sha256(candidate["url"].encode()).hexdigest() in excluded_hashes
+        for candidate in candidates
+    ) == 0
+
+
+@pytest.mark.parametrize("exclusion_kind", ["url", "hash"])
+def test_contradictory_cached_repair_scout_requests_regeneration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, exclusion_kind: str,
+) -> None:
+    workspace = tmp_path / "workspace"
+    batch = workspace / "batch"
+    batch.mkdir(parents=True)
+    (batch / "prepared.json").write_text("{}\n", encoding="utf-8")
+    (batch / "nomination.workflow.run.js").write_text("// frozen\n", encoding="utf-8")
+    research_plan = workspace / "research-plan.json"
+    research_plan.write_text('{"node_id":"A021"}\n', encoding="utf-8")
+    (batch / "research-scout.json").write_text(json.dumps({
+        "protocol": "wiki-research-scout-v1",
+        "query_policy_version": "question-contract-adaptive-v3",
+        "node_id": "A021",
+        "candidates": [],
+    }), encoding="utf-8")
+    gate = batch / "source-diversity-gate.json"
+    gate.write_text(json.dumps({
+        "decision": "RESEARCH_MORE",
+        "failed_requirement_ids": ["process.origin_boundary"],
+    }), encoding="utf-8")
+    excluded_url = "https://failed.example/page"
+    repair_scout = batch / "research-scout-diversity-repair.json"
+    repair_scout.write_text(json.dumps({
+        "protocol": "wiki-research-scout-v1",
+        "node_id": "A021",
+        "candidates": [{"url": excluded_url, "repair_novel": True}],
+        "diversity_repair": {
+            "trigger_gate_sha256": capability_runtime._sha256(gate),
+            "excluded_urls": [excluded_url] if exclusion_kind == "url" else [],
+            "excluded_url_hashes": [hashlib.sha256(excluded_url.encode()).hexdigest()],
+        },
+    }), encoding="utf-8")
+    pipeline_calls: list[list[list[str]]] = []
+
+    def stop_after_initial(commands: list[list[str]], **kwargs: object) -> dict[str, object]:
+        pipeline_calls.append(commands)
+        return {
+            "status": "failed",
+            "failure": {"code": "CAPABILITY_PROCESS_FAILED"},
+            "steps": [],
+        }
+
+    monkeypatch.setattr(capability_runtime, "_pipeline", stop_after_initial)
+
+    capability_runtime.agent({
+        "phase": "research_ready",
+        "workspace": str(workspace),
+        "batch": str(batch),
+        "research_plan": str(research_plan),
+        "allowed_domains": ["example.com"],
+    })
+
+    assert pipeline_calls
+    regeneration_commands = [
+        command for command in pipeline_calls[0]
+        if len(command) > 1 and Path(command[1]).name == "scout_wiki_research_plan.py"
+    ]
+    assert len(regeneration_commands) == 1
+    assert regeneration_commands[0][4] == str(repair_scout)

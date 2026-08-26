@@ -761,15 +761,26 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
         repair_scout_current = False
         if repair_requested and diversity_repair_scout.is_file():
             try:
-                repair_record = (
-                    json.loads(diversity_repair_scout.read_text(encoding="utf-8"))
-                    .get("diversity_repair") or {}
+                repair_scout = json.loads(
+                    diversity_repair_scout.read_text(encoding="utf-8")
                 )
+                repair_record = repair_scout.get("diversity_repair") or {}
                 excluded_urls = {
-                    str(url) for url in repair_record.get("excluded_urls") or []
+                    str(url).strip() for url in repair_record.get("excluded_urls") or []
+                    if str(url).strip()
                 }
                 excluded_hashes = {
                     str(value) for value in repair_record.get("excluded_url_hashes") or []
+                }
+                candidate_urls = {
+                    str(candidate.get("url") or "").strip()
+                    for candidate in repair_scout.get("candidates") or []
+                    if isinstance(candidate, dict)
+                    and str(candidate.get("url") or "").strip()
+                }
+                candidate_hashes = {
+                    hashlib.sha256(url.encode("utf-8")).hexdigest()
+                    for url in candidate_urls
                 }
                 repair_scout_current = (
                     repair_record.get("trigger_gate_sha256") == repair_gate_sha256
@@ -778,6 +789,8 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
                         hashlib.sha256(url.encode("utf-8")).hexdigest()
                         in excluded_hashes for url in excluded_urls
                     )
+                    and candidate_urls.isdisjoint(excluded_urls)
+                    and candidate_hashes.isdisjoint(excluded_hashes)
                 )
             except (OSError, ValueError, json.JSONDecodeError):
                 repair_scout_current = False

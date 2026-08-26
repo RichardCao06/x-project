@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from collections import Counter
@@ -352,6 +353,51 @@ def test_failed_diversity_questions_invalidate_deterministic_nomination_reuse(
 
     with pytest.raises(ValueError, match="require a new nomination result"):
         launcher_module().repair_prior_result(result, node, scout)
+
+
+def test_nomination_rejects_excluded_repair_candidate(tmp_path: Path) -> None:
+    node = frozen_node()
+    node["dossier"]["claim_requirements"] = [
+        {"requirement_id": f"external-{index}", "claim_kind": "external_fact",
+         "section": f"section-{index}"}
+        for index in range(3)
+    ]
+    claims = valid_claims(node)
+    questions = ["identity.activity_definition", "collection.handoff", "process.boundary"]
+    candidates = []
+    for index, (claim, question_id) in enumerate(zip(claims, questions)):
+        title = f"Scout source {index}"
+        claim.update({
+            "claim_text": f"node-specific claim {index}",
+            "believed_source": title,
+            "believed_locator": f"{question_id}；locator",
+            "attribution_confidence": "medium",
+        })
+        candidates.append({
+            "title": title,
+            "url": f"https://source{index}.example/evidence",
+            "question_id": question_id,
+            "language": "zh",
+            "repair_novel": True,
+        })
+    excluded_url = candidates[0]["url"]
+    result = tmp_path / "nomination-result.json"
+    result.write_text(json.dumps({
+        "protocol": {"version": "wiki-ku-nomination-v2", "mode": "extract"},
+        "claims": claims,
+    }), encoding="utf-8")
+    scout = {
+        "candidates": candidates,
+        "diversity_repair": {
+            "protocol": "wiki-source-diversity-repair-v2",
+            "failed_question_ids": [questions[0]],
+            "excluded_urls": [excluded_url],
+            "excluded_url_hashes": [hashlib.sha256(excluded_url.encode()).hexdigest()],
+        },
+    }
+
+    with pytest.raises(ValueError, match="diversity repair 重新选择了失败 URL"):
+        launcher_module().validate_result(result, node, scout)
 
 
 def test_diversity_repair_fills_missing_second_modeling_judgment(tmp_path: Path) -> None:
