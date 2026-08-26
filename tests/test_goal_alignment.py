@@ -23,7 +23,7 @@ from lca_project.kernel.goal_alignment.deviation_detector import DeviationDetect
 from lca_project.kernel.goal_alignment.models import Deviation, QualityObservation
 from lca_project.kernel.goal_alignment.quality_trajectory import QualityTrajectory
 from lca_project.kernel.goal_alignment.repair_planner import RepairPlanner
-from lca_project.kernel.goal_alignment.store import AlignmentStore
+from lca_project.kernel.goal_alignment.store import AlignmentStore, digest
 from lca_project.kernel.orchestrator import PersistentOrchestrator
 from lca_project.kernel.skills import SkillInvoker
 from lca_project.kernel.state import utcnow
@@ -48,6 +48,32 @@ def observation(*, candidate: bool = False, score: float = 0.0) -> QualityObserv
                                   "editorial_coherence", "table_contract_validity",
                                   "data_readiness", "gap_provenance", "reader_utility")},
                               score, {"maturity": {"candidate_eligible": candidate}})
+
+
+def lineaged_observation(*, score: float, output_hash: str,
+                         recovery_epoch: int = 0,
+                         run_id: str = "run_test") -> dict[str, object]:
+    value = observation(score=score).asdict()
+    value["run_id"] = run_id
+    value["dimensions"]["source_role_coverage"] = score
+    lineage = {
+        "run_epoch": run_id,
+        "accepted_protocol_frontier": [{
+            "protocol": "source_diversity",
+            "producer_task_id": "source_diversity_gate",
+            "output_hash": output_hash,
+        }],
+        "producer_output_hashes": {"source_diversity_gate": output_hash},
+        "recovery_epochs": {
+            "source_diversity_gate": {
+                "binding_generation": recovery_epoch,
+                "recovery_epoch": recovery_epoch,
+            },
+        },
+    }
+    lineage["lineage_digest"] = digest(lineage)
+    value["evidence"]["lineage"] = lineage
+    return value
 
 
 def test_goal_contract_is_versioned_weighted_and_immutable(tmp_path: Path) -> None:
@@ -95,17 +121,121 @@ def test_rewind_or_measurement_correction_is_not_quality_regression() -> None:
 
 
 def test_comparable_regression_carries_lineage_proof() -> None:
-    current = observation(score=0.15)
+    prior_payload = lineaged_observation(score=0.33, output_hash="prior-hash")
+    current_payload = lineaged_observation(
+        score=0.15, output_hash="current-hash", recovery_epoch=1,
+    )
+    prior_payload.update({"observation_id": "qob_prior", "vector_hash": "vector-prior"})
+    current_payload.update({"observation_id": "qob_current", "vector_hash": "vector-current"})
+    prior = {
+        "observation_id": "qob_prior", "score": 0.33,
+        "payload": json.dumps(prior_payload),
+    }
+    comparison = GoalAlignmentController._comparable_previous_score(
+        prior, current_payload
+    )
+    assert comparison is not None
+    current = QualityObservation(**{
+        key: current_payload[key]
+        for key in ("job_id", "run_id", "goal_id", "dimensions", "score", "evidence")
+    })
     deviations = DeviationDetector().detect(
         job={"status": "ready"}, run={"status": "ready"},
         tasks=[{"task_id": "content_compose", "status": "succeeded"}],
-        observation=current, previous_score=0.33,
+        observation=current, previous_comparison=comparison,
     )
 
     regression = next(item for item in deviations
                       if item.deviation_type == "quality_regression")
     assert regression.evidence["lineage_compatible"] is True
-    assert regression.evidence["task_statuses"]["content_compose"] == "succeeded"
+    assert regression.evidence["previous_observation_id"] == "qob_prior"
+    assert regression.evidence["current_observation_id"] == "qob_current"
+    assert regression.evidence["dimension_deltas"]["source_role_coverage"] == -0.18
+    assert regression.evidence["producer_hash_deltas"]["source_diversity_gate"] == {
+        "previous": "prior-hash", "current": "current-hash",
+    }
+    assert "task_statuses" not in regression.evidence
+
+
+def test_same_vector_refreshes_quality_checkpoint_to_current_lineage(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    store = AlignmentStore(ControlPlane(root).state)
+    first = store.observation(
+        lineaged_observation(score=0.15, output_hash="stale-source-hash")
+    )
+    current = store.observation(lineaged_observation(
+        score=0.15, output_hash="current-source-hash", recovery_epoch=1,
+    ))
+
+    rows = store.rows("quality_observations", job_id="job_test")
+
+    assert len(rows) == 1
+    assert first["observation_id"] != current["observation_id"]
+    assert rows[0]["observation_id"] == current["observation_id"]
+    assert rows[0]["payload"]["lineage_digest"] == current["lineage_digest"]
+    lineage = rows[0]["payload"]["evidence"]["lineage"]
+    assert lineage["accepted_protocol_frontier"][0]["protocol"] == "source_diversity"
+    assert lineage["producer_output_hashes"] == {
+        "source_diversity_gate": "current-source-hash",
+    }
+    assert lineage["recovery_epochs"]["source_diversity_gate"]["recovery_epoch"] == 1
+
+
+def test_regression_reports_deduplicate_by_comparison_endpoints(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    store = AlignmentStore(ControlPlane(root).state)
+    base = {
+        "deviation_type": "quality_regression",
+        "severity": "high",
+        "summary": "quality score regressed",
+        "evidence": {
+            "previous_observation_id": "qob_prior",
+            "current_observation_id": "qob_current",
+            "previous_score": 0.19,
+            "current_score": 0.15,
+            "lineage_compatible": True,
+        },
+    }
+    first = store.deviation(
+        job_id="job_test", run_id="run_test", goal_id="wiki-node-goal-v1",
+        value={**base, "evidence": {**base["evidence"],
+                                     "task_statuses": {"freeze": "ready"}}},
+    )
+    repeated = store.deviation(
+        job_id="job_test", run_id="run_test", goal_id="wiki-node-goal-v1",
+        value={**base, "evidence": {**base["evidence"],
+                                     "task_statuses": {"freeze": "succeeded"}}},
+    )
+
+    assert repeated["deviation_id"] == first["deviation_id"]
+    assert len(store.rows("deviation_reports", job_id="job_test")) == 1
+
+
+def test_lineage_comparison_fails_closed_when_frontier_is_incompatible() -> None:
+    prior_payload = lineaged_observation(score=0.33, output_hash="prior-hash")
+    current_payload = lineaged_observation(score=0.15, output_hash="current-hash")
+    prior_payload.update({"observation_id": "qob_prior", "vector_hash": "prior-vector"})
+    current_payload.update({"observation_id": "qob_current", "vector_hash": "current-vector"})
+    current_lineage = current_payload["evidence"]["lineage"]
+    current_lineage["accepted_protocol_frontier"] = []
+    current_lineage["lineage_digest"] = digest({
+        key: value for key, value in current_lineage.items()
+        if key != "lineage_digest"
+    })
+    prior = {
+        "observation_id": "qob_prior", "score": 0.33,
+        "payload": json.dumps(prior_payload),
+    }
+
+    comparison = GoalAlignmentController._comparable_previous_score(
+        prior, current_payload
+    )
+
+    assert comparison is None
 
 
 def test_quality_regression_requires_evidence_backed_agent_triage() -> None:
@@ -713,6 +843,7 @@ def test_completed_zero_yield_research_is_not_counted_as_data_ready(tmp_path: Pa
     outcome = observed.evidence["research_outcome"]
 
     assert observed.dimensions["data_readiness"] == 0.0
+    assert observed.dimensions["gap_provenance"] == 1.0
     assert outcome["workflow_finished"] is True
     assert outcome["closer_to_modelling_goal"] is False
     assert outcome["needs_investigation"] is True
@@ -976,6 +1107,57 @@ def test_failure_triage_agent_persists_problem_based_route(tmp_path: Path) -> No
     assert result["payload"]["result"]["cause_code"] == "TABLE_COLLECTION_BOOTSTRAP_DEADLOCK"
     proposal = RepairPlanner.from_triage(result["payload"]["result"])
     assert proposal.level == "L2" and proposal.action == "propose_code_change"
+
+
+def test_failure_triage_dossier_admits_only_current_producer_artifacts(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    batch = root / "var/workspaces/jobs/job_test/batch"
+    (batch / "table-data").mkdir(parents=True)
+    (batch / "source-diversity-gate.json").write_text(
+        json.dumps({"decision": "EVIDENCE_LIMITED"}), encoding="utf-8",
+    )
+    (batch / "table-data/evidence-selection.json").write_text(
+        json.dumps({"accepted_evidence": ["stale"]}), encoding="utf-8",
+    )
+    prior_lineage = lineaged_observation(
+        score=0.19, output_hash="prior-source-hash"
+    )["evidence"]["lineage"]
+    current_lineage = lineaged_observation(
+        score=0.15, output_hash="current-source-hash", recovery_epoch=1,
+    )["evidence"]["lineage"]
+    dossier = FailureTriageAgent(root).build_dossier({
+        "batch_path": str(batch),
+        "report": {"evidence": {
+            "previous_lineage": prior_lineage,
+            "current_lineage": current_lineage,
+        }},
+        "task_graph": [
+            {"task_id": "source_diversity_gate", "status": "succeeded",
+             "dependencies": [], "recorded_input_hashes": [],
+             "output_hash": "current-source-hash"},
+            {"task_id": "table_collect", "status": "ready",
+             "dependencies": ["source_diversity_gate"],
+             "recorded_input_hashes": ["prior-source-hash"],
+             "output_hash": "stale-table-hash"},
+        ],
+    })
+
+    assert dossier["artifact_evidence"]["source-diversity-gate.json"] == {
+        "decision": "EVIDENCE_LIMITED",
+    }
+    assert "table-data/evidence-selection.json" not in dossier["artifact_evidence"]
+    rejected = dossier["rejected_artifact_evidence"][
+        "table-data/evidence-selection.json"
+    ]
+    assert rejected["producer_status"] == "ready"
+    assert rejected["producer_output_hash"] == "stale-table-hash"
+    assert rejected["recorded_input_hashes"] == ["prior-source-hash"]
+    assert rejected["current_dependency_output_hashes"] == ["current-source-hash"]
+    assert rejected["reason"] == "task_not_succeeded"
+    assert dossier["report"]["evidence"]["previous_lineage"] == prior_lineage
+    assert dossier["report"]["evidence"]["current_lineage"] == current_lineage
 
 
 def test_failure_triage_queue_resolves_changed_dossier_to_canonical_deviation(

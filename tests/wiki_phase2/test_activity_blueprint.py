@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
+
+import pytest
 
 
 def module():
@@ -42,3 +46,47 @@ def test_activity_blueprint_is_node_specific_and_complete() -> None:
         "参考产品交接状态", "参考产品规格或质量口径", "参考产品包装前边界",
     ]
     assert result["evidence_tables"]["params"][0] == "工艺路线与设备配置"
+
+
+def test_a019_coproduct_is_advisory_flow_not_hard_identity(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    graph = json.loads((
+        root / "vendor/lca_cornerstone/fixtures/wiki-phase2/docs/ict_equipment-name-graph.json"
+    ).read_text(encoding="utf-8"))
+
+    result = module().build(graph, "A019")
+    materialized = tmp_path / "a019-57076012f975" / "content-blueprint.json"
+    materialized.parent.mkdir()
+    materialized.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    regenerated = json.loads(materialized.read_text(encoding="utf-8"))
+    legacy = dict(regenerated)
+    legacy["identity_tokens"] = [
+        "A019", "服务器, 通用计算, 2U", "共生包装废料",
+    ]
+
+    assert regenerated["identity_tokens"] == ["A019", "服务器, 通用计算, 2U"]
+    assert "共生包装废料" in regenerated["advisory_tokens"]
+    assert regenerated["flow_directions"]["P034 共生包装废料"] == "out"
+    assert "P034 共生包装废料" in regenerated["evidence_tables"]["flows"]
+    assert regenerated["evidence_tables"]["props"][0] == "参考产品身份（服务器, 通用计算, 2U）"
+    assert hashlib.sha256(materialized.read_bytes()).digest() != hashlib.sha256(
+        (json.dumps(legacy, ensure_ascii=False, indent=2) + "\n").encode()
+    ).digest()
+
+
+def test_activity_blueprint_requires_reference_output() -> None:
+    graph = {
+        "activities": [{
+            "id": "A019", "name": "configuration", "inputs": ["server"],
+            "outputs": [{"product": "packaging waste", "role": "coproduct"}],
+        }],
+        "products": [
+            {"id": "P001", "name": "server"},
+            {"id": "P034", "name": "packaging waste"},
+        ],
+    }
+
+    with pytest.raises(ValueError, match="at least one reference output"):
+        module().build(graph, "A019")

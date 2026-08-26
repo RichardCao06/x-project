@@ -338,6 +338,55 @@ def test_rewind_preserves_latest_materialized_output_lineage(tmp_path: Path) -> 
     assert event.payload["materialization_lineage"] == preserved
 
 
+def test_source_diversity_envelope_resets_attempt_for_repair_epoch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    job_id, run_id = create_run(root)
+    orchestrator = PersistentOrchestrator(root)
+    with orchestrator.control.state.transaction() as conn:
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='succeeded',attempt=11 "
+            "WHERE run_id=? AND task_id='source_diversity_gate'",
+            (run_id,),
+        )
+        conn.execute(
+            "UPDATE orchestrator_tasks SET status='ready' "
+            "WHERE run_id=? AND task_id='freeze'",
+            (run_id,),
+        )
+
+    invalidated = orchestrator.rewind_from(
+        run_id, "source_diversity_gate", reason="validated source gate repair",
+        actor="system-repair-agent", reset_attempts=True,
+    )
+    source_gate = next(
+        task for task in orchestrator.tasks(run_id)
+        if task.task_id == "source_diversity_gate"
+    )
+    worker = WorkerLoop(root, worker_id="source-gate-epoch-worker")
+    monkeypatch.setattr(
+        worker.wiki, "envelope",
+        lambda _run_id, task, _job: {
+            "operation": "source-diversity-gate", "attempt": task.attempt,
+        },
+    )
+
+    envelope = worker._execution_envelope(
+        worker.wiki, source_gate,
+        worker.control.state.get("jobs", job_id),
+    )
+    statuses = {task.task_id: task.status for task in orchestrator.tasks(run_id)}
+
+    assert source_gate.attempt == 11
+    assert envelope["attempt"] == 0
+    assert orchestrator.repair_epoch_attempt(run_id, source_gate.task_id, 11) == 0
+    assert invalidated[0] == "source_diversity_gate"
+    assert statuses["source_diversity_gate"] == "ready"
+    assert statuses["freeze"] == "pending"
+    assert orchestrator.control.state.get("jobs", job_id)["status"] == "ready"
+
+
 def test_baseline_and_verification_are_immutable_artifacts(tmp_path: Path) -> None:
     root = project_copy(tmp_path)
     job_id, run_id = create_run(root)

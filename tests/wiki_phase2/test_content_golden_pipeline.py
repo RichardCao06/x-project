@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import json
 import importlib.util
+from copy import deepcopy
 from pathlib import Path
 import subprocess
 import sys
+
+import pytest
 
 from wiki_claim_coverage import body_of
 from wiki_content_enrich import render_product_tables
@@ -22,6 +25,124 @@ assert _NORMALIZER_SPEC and _NORMALIZER_SPEC.loader
 _NORMALIZER = importlib.util.module_from_spec(_NORMALIZER_SPEC)
 _NORMALIZER_SPEC.loader.exec_module(_NORMALIZER)
 normalize_sections = _NORMALIZER.normalize_sections
+
+_BLUEPRINT_SPEC = importlib.util.spec_from_file_location(
+    "build_wiki_content_blueprint", ROOT / "scripts/build_wiki_content_blueprint.py"
+)
+assert _BLUEPRINT_SPEC and _BLUEPRINT_SPEC.loader
+_BLUEPRINT = importlib.util.module_from_spec(_BLUEPRINT_SPEC)
+_BLUEPRINT_SPEC.loader.exec_module(_BLUEPRINT)
+
+
+def _a019_contract_and_draft() -> tuple[dict, dict]:
+    graph = json.loads((
+        VENDOR / "fixtures/wiki-phase2/docs/ict_equipment-name-graph.json"
+    ).read_text(encoding="utf-8"))
+    blueprint = _BLUEPRINT.build(graph, "A019")
+    paragraphs = {
+        "定义与参考活动": (
+            "A019以服务器配置交接为活动边界",
+            "A019对服务器, 通用计算, 2U执行配置与出厂交接。",
+            "该定义不把上游整机制造数量推定为本节点实测值。",
+        ),
+        "参考产品与参考单位": (
+            "参考产品及按台计量口径需要冻结",
+            "参考产品按台记录配置版本和合格交接状态。",
+            "计量口径必须注明批次范围及包装前后的边界差异。",
+        ),
+        "单元过程边界": (
+            "配置测试及交接步骤限定单元过程",
+            "单元过程纳入配置、测试以及合格产品交接步骤。",
+            "部件制造和使用阶段不因流程相邻而自动纳入。",
+        ),
+        "技术路线与相邻活动区分": (
+            "固件配置路线需要区别相邻制造活动",
+            "技术路线记录固件设置和终检，不替代机箱制造清单。",
+            "返工若回到本过程，应单列循环次数和资源消耗。",
+        ),
+        "投入产出与脊边对账": (
+            "全部输入输出沿冻结图谱逐项对账",
+            "P034 包装废料作为输出流单列，不作为节点硬身份。",
+            "质量闭合仍需批次投入、合格产出与损耗的实测数据。",
+        ),
+        "直接排放、废物与监测指标边界": (
+            "环境排放和废物流采用不同记录边界",
+            "废物流按产品脊边记录，环境排放则按受纳介质分类。",
+            "企业汇总指标不能替代配置节点的直接监测结果。",
+        ),
+        "节点特定采集字段": (
+            "型号批次字段支撑节点清单的可追溯性",
+            "采集字段包括配置版本、批次产量、工时和返工率。",
+            "缺失字段应保持证据缺口状态，不能用默认数值补齐。",
+        ),
+        "区域化补充要求": (
+            "地点电力和运输路径共同限定区域适用性",
+            "区域化记录应连接装配地点、电力区域与部件来源地。",
+            "代表期之外的路线变化需要重新判断代理适用条件。",
+        ),
+        "数据适用状态与缺口": (
+            "已核实身份与前景清单缺口必须分层表达",
+            "产品身份可由图谱固定，但前景清单仍缺节点实测支持。",
+            "在补齐质量和能耗前，结果只能作为证据受限预览。",
+        ),
+    }
+    document = {
+        "protocol": "wiki-content-draft-v2", "node_id": "A019",
+        "sections": [
+            {"heading": heading, "paragraphs": [{
+                "focus": paragraphs[heading][0],
+                "sentences": [
+                    {"text": paragraphs[heading][1], "claim_kind": "modeling_judgment",
+                     "rhetorical_role": "thesis", "evidence_claim_ids": []},
+                    {"text": paragraphs[heading][2], "claim_kind": "evidence_gap",
+                     "rhetorical_role": "boundary", "evidence_claim_ids": []},
+                ],
+            }]}
+            for heading in blueprint["sections"]
+        ],
+    }
+    return blueprint, document
+
+
+def test_a019_role_correct_blueprint_passes_all_golden_checks_without_coproduct_label(
+    tmp_path: Path,
+) -> None:
+    blueprint, document = _a019_contract_and_draft()
+    body = "\n".join(
+        sentence["text"]
+        for section in document["sections"]
+        for paragraph in section["paragraphs"]
+        for sentence in paragraph["sentences"]
+    )
+    assert "共生包装废料" not in body
+    assert "P034" in body
+
+    path = tmp_path / "content-result.json"
+    path.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+    scorecard = validate_result(path, blueprint, [])
+
+    assert scorecard["checks"] == {
+        "assertions_not_stuffed": True,
+        "modeling_not_stuffed": True,
+        "single_sentence_ratio": True,
+        "paragraph_focuses_unique": True,
+        "near_duplicate_free": True,
+        "identity_tokens": True,
+        "forbidden_phrases": True,
+    }
+
+
+def test_a019_golden_validation_still_requires_reference_identity(tmp_path: Path) -> None:
+    blueprint, document = _a019_contract_and_draft()
+    mutated = deepcopy(document)
+    mutated["sections"][0]["paragraphs"][0]["sentences"][0]["text"] = (
+        "该活动执行配置与出厂交接，但此句省略参考产品名称。"
+    )
+    path = tmp_path / "content-result.json"
+    path.write_text(json.dumps(mutated, ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="'identity_tokens': False"):
+        validate_result(path, blueprint, [])
 
 
 def test_old_p003_fixture_is_a_negative_golden_case() -> None:

@@ -95,7 +95,7 @@
     "fixtures/wiki-phase2/docs/steel-wiki.html": "e1fb906fb10fbe597f4aad35be750a98562a95632f45d524d6c03878bf3abf27",
     "scripts/wiki_claim_coverage.py": "b5111baf42732fe7c275fa69fe15ac3063819f232aa246ca4abac1f1a3c40858",
     "scripts/wiki_draft_content_gate.py": "9726dda718e40b9432c6eba3e87a074cc684ecc2b60762e25df5ea8a5cd4f8f4",
-    "scripts/merge_wiki_ku.py": "c9cac06ff8831a540eed79733881fb0344720c85f19a5d571f7203e7086cef66",
+    "scripts/merge_wiki_ku.py": "a52b1f277e4de7111dc83f13314adabb6916e859bf2e6e1d5d61001e37768115",
     "scripts/ku_distill.py": "7e411675d1effd1717185713b218cfb3caced20fe4d47af6122be869333b8ea5",
     "scripts/run_wiki_content_capture.py": "d089b27ea1587d71ce568a0b772b2bc31fdf01a0203e335aa1e693108da5ba27",
     "scripts/run_wiki_content_sectioned_capture.py": "1ec0c6afe93055a2bf9250ded906fd6e8b7e4543699a6d48fcf25d661381204a",

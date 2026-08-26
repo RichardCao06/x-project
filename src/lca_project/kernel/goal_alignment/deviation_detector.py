@@ -10,7 +10,7 @@ from .failure_taxonomy import taxonomy_record
 class DeviationDetector:
     def detect(self, *, job: dict[str, Any], run: dict[str, Any] | None,
                tasks: list[dict[str, Any]], observation: QualityObservation,
-               previous_score: float | None = None) -> list[Deviation]:
+               previous_comparison: dict[str, Any] | None = None) -> list[Deviation]:
         result: list[Deviation] = []
         by_id = {str(item["task_id"]): item for item in tasks}
         failed = [item for item in tasks if item.get("status") in {
@@ -95,15 +95,13 @@ class DeviationDetector:
                  "research_outcome": research_outcome},
                 "流程已经结束，但没有产生让 LCA 建模目标前进的字段级证据",
             ))
-        if previous_score is not None and observation.score + 1e-9 < previous_score:
+        if (previous_comparison is not None
+                and previous_comparison.get("lineage_compatible") is True
+                and observation.score + 1e-9
+                < float(previous_comparison["previous_score"])):
             result.append(Deviation(
                 "quality_regression", "high",
-                {"previous_score": previous_score, "current_score": observation.score,
-                 "lineage_compatible": True,
-                 "task_statuses": {
-                     task_id: str(item.get("status") or "")
-                     for task_id, item in by_id.items()
-                 }},
+                dict(previous_comparison),
                 "本次执行的目标质量向量相对上一观测发生回退",
             ))
         return result

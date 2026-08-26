@@ -248,7 +248,7 @@ def diversity_gate(verified: dict, plan: dict, *, reviewed: bool,
             candidate_eligible = False
         else:
             decision = "EVIDENCE_LIMITED"
-            pipeline_continue = not reviewed
+            pipeline_continue = True
             candidate_eligible = False
         strategy_signal = [{
             "requirement_id": str((row.get("claim") or {}).get("requirement_id") or ""),
@@ -304,6 +304,15 @@ def diversity_gate(verified: dict, plan: dict, *, reviewed: bool,
             "question_contract_sha256": plan.get("question_contract_sha256"),
             "strategy_hash": strategy_hash,
             "reviewed": reviewed,
+            "materialization_branch": ({
+                "kind": "explicit_gap_evidence_limited",
+                "release_prohibited": True,
+                "failed_question_ids": failed_ids,
+                "gap_provenance_sha256": hashlib.sha256(json.dumps(
+                    ledger, ensure_ascii=False, sort_keys=True,
+                    separators=(",", ":"),
+                ).encode()).hexdigest(),
+            } if decision == "EVIDENCE_LIMITED" else None),
         }
     hard_checks = {"candidate_source_roles_and_diversity": candidate_ready}
     if reviewed:

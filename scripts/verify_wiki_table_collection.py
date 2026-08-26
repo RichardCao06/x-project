@@ -9,6 +9,33 @@ import json
 from pathlib import Path
 
 
+def logical_result_identity(row: dict, result: dict | None = None) -> tuple[str, ...]:
+    """Return the field-scoped identity of a matrix result or candidate audit."""
+    candidate = result if result is not None else row
+    return (
+        str(row.get("table") or ""),
+        str(row.get("field") or ""),
+        str(row.get("language") or ""),
+        str(row.get("query_hash") or ""),
+        str(candidate.get("url") or ""),
+    )
+
+
+def every_search_result_has_one_candidate_audit(
+    query_rows: list[dict], candidate_audits: list[dict],
+) -> bool:
+    result_keys = [
+        logical_result_identity(query, result)
+        for query in query_rows for result in query.get("results", [])
+    ]
+    audit_keys = [logical_result_identity(row) for row in candidate_audits]
+    return (
+        len(result_keys) == len(audit_keys)
+        and sorted(result_keys) == sorted(audit_keys)
+        and len(audit_keys) == len(set(audit_keys))
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("blueprint", type=Path)
@@ -41,15 +68,7 @@ def main() -> int:
                      for row in accepted}
     field_decisions = {(str(row.get("table")), str(row.get("field"))): row.get("decision")
                        for row in selection.get("fields") or []}
-    result_keys = [
-        (str(query.get("query_hash") or ""), str(result.get("url") or ""))
-        for query in query_rows for result in query.get("results", [])
-    ]
     candidate_audits = selection.get("candidate_audits") or []
-    audit_keys = [
-        (str(row.get("query_hash") or ""), str(row.get("url") or ""))
-        for row in candidate_audits
-    ]
     populated_rows = [(kind, row) for kind, rows in collection.get("tables", {}).items()
                       for row in rows if row.get("status") == "populated"]
     matrix_terms = matrix.get("terminology", {})
@@ -65,11 +84,8 @@ def main() -> int:
               "all_fields_have_selection_decisions": all(
                   (kind, str(row.get("field"))) in field_decisions
                   for kind, rows in collection.get("tables", {}).items() for row in rows),
-              "every_search_result_has_one_candidate_audit": (
-                  len(result_keys) == len(audit_keys)
-                  and sorted(result_keys) == sorted(audit_keys)
-                  and len(audit_keys) == len(set(audit_keys))
-              ),
+              "every_search_result_has_one_candidate_audit":
+                  every_search_result_has_one_candidate_audit(query_rows, candidate_audits),
               "candidate_decisions_are_terminal_and_explained": all(
                   row.get("decision") in {"accepted", "rejected"}
                   and bool(row.get("reasons"))

@@ -12,6 +12,7 @@ from ...control import ControlPlane
 from ..leases import LeaseLost
 from ..state import utcnow
 from .execution_ownership import ExecutionOwnership
+from .quality_trajectory import QualityTrajectory
 from .store import canonical, digest
 
 
@@ -40,6 +41,24 @@ class FailureTriageAgent:
         "maturity-gate.json", "table-data/source-verdict.json",
         "table-data/table-population-gate.json",
     )
+    ARTIFACT_PRODUCERS = {
+        "research-plan.json": "research_plan",
+        "research-plan-gate.json": "research_plan_gate",
+        "search-execution-gate.json": "search_execution_gate",
+        "source-diversity-gate.json": "source_diversity_gate",
+        "source-evidence.json": "research_ready",
+        "source-queue.json": "research_ready",
+        "research-ready.json": "research_ready",
+        "content-blueprint.json": "content_blueprint",
+        "verify-output.json": "verify",
+        "table-data/search-matrix.json": "table_collect",
+        "table-data/search-matrix.executed.json": "table_collect",
+        "table-data/evidence-selection.json": "table_collect",
+        "table-data/collection.json": "table_collect",
+        "maturity-gate.json": "maturity_gate",
+        "table-data/source-verdict.json": "table_verify",
+        "table-data/table-population-gate.json": "table_population_gate",
+    }
     ROUTES = {
         "retry_task", "rewind_task", "expand_research", "propose_code_change",
         "propose_gate_change", "propose_policy_change", "record_evidence_limited",
@@ -59,7 +78,10 @@ class FailureTriageAgent:
 
     @classmethod
     def _compact(cls, value: Any, *, depth: int = 0) -> Any:
-        if depth >= 5:
+        # Regression evidence nests endpoint lineage below report.evidence;
+        # retain enough depth for producer hashes and recovery epochs to stay
+        # actionable while preserving the existing item and string bounds.
+        if depth >= 8:
             return "<depth-limited>"
         if isinstance(value, dict):
             return {str(key): cls._compact(item, depth=depth + 1)
@@ -74,6 +96,16 @@ class FailureTriageAgent:
         dossier = {key: value for key, value in request.items() if key != "batch_path"}
         batch_value = request.get("batch_path")
         artifacts: dict[str, Any] = {}
+        artifact_admission: dict[str, Any] = {}
+        rejected_artifacts: dict[str, Any] = {}
+        task_graph = [
+            item for item in request.get("task_graph") or []
+            if isinstance(item, dict)
+        ]
+        by_task = {str(item.get("task_id") or ""): item for item in task_graph}
+        accepted_tasks, rejected_tasks = QualityTrajectory._current_succeeded_tasks(
+            task_graph
+        )
         if batch_value:
             batch = Path(str(batch_value)).resolve()
             try:
@@ -82,15 +114,52 @@ class FailureTriageAgent:
                 batch = Path("/__invalid_batch__")
             for relative in self.EVIDENCE_FILES:
                 path = batch / relative
-                if not path.is_file() or path.stat().st_size > 2_000_000:
+                if not path.is_file():
+                    continue
+                producer_task_id = self.ARTIFACT_PRODUCERS.get(relative)
+                producer = by_task.get(str(producer_task_id or ""), {})
+                dependencies = QualityTrajectory._values(producer.get("dependencies")) or []
+                recorded = QualityTrajectory._values(
+                    producer.get("recorded_input_hashes")
+                )
+                expected = [
+                    str((by_task.get(parent) or {}).get("output_hash") or "")
+                    for parent in dependencies
+                ]
+                admission = {
+                    "producer_task_id": producer_task_id,
+                    "producer_status": str(producer.get("status") or "missing"),
+                    "producer_output_hash": producer.get("output_hash"),
+                    "recorded_input_hashes": recorded,
+                    "current_dependency_output_hashes": expected,
+                }
+                if producer_task_id not in accepted_tasks:
+                    rejected_artifacts[relative] = {
+                        **admission,
+                        "admitted": False,
+                        "reason": rejected_tasks.get(
+                            str(producer_task_id or ""), "unmapped_artifact_producer"
+                        ),
+                    }
+                    continue
+                if path.stat().st_size > 2_000_000:
+                    rejected_artifacts[relative] = {
+                        **admission, "admitted": False, "reason": "artifact_too_large",
+                    }
                     continue
                 try:
                     artifacts[relative] = self._compact(
                         json.loads(path.read_text(encoding="utf-8"))
                     )
+                    artifact_admission[relative] = {**admission, "admitted": True}
                 except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                    rejected_artifacts[relative] = {
+                        **admission, "admitted": False, "reason": "artifact_unreadable",
+                    }
                     continue
         dossier["artifact_evidence"] = artifacts
+        dossier["artifact_admission"] = artifact_admission
+        dossier["rejected_artifact_evidence"] = rejected_artifacts
         dossier["investigation_policy"] = {
             "fingerprints_are_deduplication_hints_not_diagnosis",
             "must_distinguish_absent_evidence_from_broken_evidence_flow",

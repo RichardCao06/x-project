@@ -39,19 +39,58 @@ class AlignmentStore:
 
     def observation(self, payload: dict[str, Any]) -> dict[str, Any]:
         vector_hash = digest(payload.get("dimensions", {}))
-        observation_id = "qob_" + digest({"job": payload["job_id"], "run": payload.get("run_id"),
-                                           "vector": vector_hash})[:32]
+        lineage = (payload.get("evidence") or {}).get("lineage") or {}
+        lineage_digest = str(lineage.get("lineage_digest") or digest(lineage))
+        observation_id = "qob_" + digest({
+            "job": payload["job_id"],
+            "run": payload.get("run_id"),
+            "vector": vector_hash,
+            "run_epoch": lineage.get("run_epoch"),
+            "recovery_epochs": lineage.get("recovery_epochs") or {},
+            "accepted_protocol_frontier": lineage.get("accepted_protocol_frontier") or [],
+            "producer_output_hashes": lineage.get("producer_output_hashes") or {},
+            "lineage_digest": lineage_digest,
+        })[:32]
+        record = {
+            **payload,
+            "observation_id": observation_id,
+            "vector_hash": vector_hash,
+            "lineage_digest": lineage_digest,
+        }
         with self.state.transaction() as conn:
-            conn.execute(
-                "INSERT OR IGNORE INTO quality_observations VALUES(?,?,?,?,?,?,?,?)",
-                (observation_id, payload["job_id"], payload.get("run_id"), payload["goal_id"],
-                 vector_hash, float(payload["score"]), canonical(payload), utcnow()),
-            )
-        return {**payload, "observation_id": observation_id, "vector_hash": vector_hash}
+            now = utcnow()
+            refreshed = conn.execute(
+                "UPDATE quality_observations SET observation_id=?,goal_id=?,score=?,"
+                "payload=?,created_at=? WHERE job_id=? AND run_id IS ? AND vector_hash=?",
+                (observation_id, payload["goal_id"], float(payload["score"]),
+                 canonical(record), now, payload["job_id"], payload.get("run_id"),
+                 vector_hash),
+            ).rowcount
+            if not refreshed:
+                conn.execute(
+                    "INSERT INTO quality_observations VALUES(?,?,?,?,?,?,?,?) "
+                    "ON CONFLICT(observation_id) DO UPDATE SET score=excluded.score,"
+                    "payload=excluded.payload,created_at=excluded.created_at",
+                    (observation_id, payload["job_id"], payload.get("run_id"),
+                     payload["goal_id"], vector_hash, float(payload["score"]),
+                     canonical(record), now),
+                )
+        return record
 
     def deviation(self, *, job_id: str, run_id: str | None, goal_id: str,
                   value: dict[str, Any]) -> dict[str, Any]:
-        fingerprint = digest({"type": value["deviation_type"], "evidence": value["evidence"]})
+        if value["deviation_type"] == "quality_regression":
+            evidence = value.get("evidence") or {}
+            fingerprint_source = {
+                "type": value["deviation_type"],
+                "previous_observation_id": evidence.get("previous_observation_id"),
+                "current_observation_id": evidence.get("current_observation_id"),
+            }
+        else:
+            fingerprint_source = {
+                "type": value["deviation_type"], "evidence": value["evidence"],
+            }
+        fingerprint = digest(fingerprint_source)
         deviation_id = "dev_" + digest({"job": job_id, "fingerprint": fingerprint})[:32]
         payload = {"schema_version": "deviation-report-v1", "deviation_id": deviation_id,
                    "job_id": job_id, "run_id": run_id, "goal_id": goal_id,
