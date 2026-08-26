@@ -156,7 +156,11 @@ def _diversity_repair_scout(batch: Path, scout_path: Path) -> Path:
     repaired = {**scout, "candidates": candidates, "diversity_repair": {
         "protocol": "wiki-source-diversity-repair-v2",
         "excluded_urls": sorted(failed_urls),
+        "excluded_url_hashes": sorted(
+            hashlib.sha256(url.encode("utf-8")).hexdigest() for url in failed_urls
+        ),
         "excluded_pdf_candidates": saw_failed_pdf,
+        "failed_question_ids": sorted(failed_question_ids),
         "strategy_delta": strategy_delta,
         "strategy_hash": strategy_hash,
         "previous_strategy_hash": str(gate.get("strategy_hash") or ""),
@@ -670,10 +674,23 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
         repair_scout_current = False
         if repair_requested and diversity_repair_scout.is_file():
             try:
+                repair_record = (
+                    json.loads(diversity_repair_scout.read_text(encoding="utf-8"))
+                    .get("diversity_repair") or {}
+                )
+                excluded_urls = {
+                    str(url) for url in repair_record.get("excluded_urls") or []
+                }
+                excluded_hashes = {
+                    str(value) for value in repair_record.get("excluded_url_hashes") or []
+                }
                 repair_scout_current = (
-                    (json.loads(diversity_repair_scout.read_text(encoding="utf-8"))
-                     .get("diversity_repair") or {}).get("trigger_gate_sha256")
-                    == repair_gate_sha256
+                    repair_record.get("trigger_gate_sha256") == repair_gate_sha256
+                    and "excluded_url_hashes" in repair_record
+                    and all(
+                        hashlib.sha256(url.encode("utf-8")).hexdigest()
+                        in excluded_hashes for url in excluded_urls
+                    )
                 )
             except (OSError, ValueError, json.JSONDecodeError):
                 repair_scout_current = False
@@ -706,6 +723,7 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
                         "--output", str(queue), "--max-candidates-per-claim", "5"]
         if research_plan:
             plan_command.extend(["--research-plan", str(research_plan)])
+            plan_command.extend(["--research-scout", str(active_research_scout)])
         nomination_ready = _nomination_cache_is_current(
             nomination, active_research_scout,
             scripts / "run_wiki_nomination_capture.py",
@@ -721,6 +739,7 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
             scout_command.extend([
                 "--repair-gate", str(diversity_gate_path),
                 "--previous-scout", str(research_scout),
+                "--failed-fetch-dir", str(batch / "search-cache/fetch"),
             ])
         scout_needed = bool(
             scout_command and (not scout_current or repair_requested and not repair_scout_current)
@@ -741,6 +760,8 @@ def agent(value: dict[str, Any]) -> dict[str, Any]:
             sys.executable, str(Path(__file__).resolve().parents[2] / "scripts/search_provider_runtime.py"),
             str(queue), str(Path(__file__).resolve().parents[2] / "config/search-providers.json"),
             str(search_results),
+            "--research-scout", str(active_research_scout),
+            "--research-scout-sha256", _sha256(active_research_scout),
         ]
         commands = [
             provider_command,

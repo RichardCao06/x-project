@@ -766,6 +766,14 @@ def command_plan(args: argparse.Namespace) -> int:
         source_classes = research_plan.get("source_classes") or []
         if not ({"zh", "en"} <= set(languages)) or not questions or not source_classes:
             raise ValueError("research plan 缺少中英双语、research_questions 或 source_classes")
+    research_scout = read_json(args.research_scout.resolve()) if args.research_scout else None
+    if research_scout is not None:
+        if research_plan is None:
+            raise ValueError("--research-scout requires --research-plan")
+        if (research_scout.get("protocol") != "wiki-research-scout-v1"
+                or research_scout.get("node_id") != research_plan.get("node_id")
+                or not isinstance(research_scout.get("candidates"), list)):
+            raise ValueError("--research-scout 必须是当前节点的 wiki-research-scout-v1")
     # Internal graph facts, modeling judgments and explicit evidence gaps are
     # not external research failures and consume no query/fetch budget.
     # Preserve them separately so run/materialize can
@@ -815,6 +823,7 @@ def command_plan(args: argparse.Namespace) -> int:
         "claim_order": [str(item["claim_id"]) for item in claims],
         "claims_scope_sha256": claims_scope_hash(claims),
         "research_plan": file_record(args.research_plan.resolve()) if args.research_plan else None,
+        "research_scout": file_record(args.research_scout.resolve()) if args.research_scout else None,
         "hard_limits": {
             "max_claims": max_claims,
             "max_searches": max_searches,
@@ -909,6 +918,8 @@ def frozen_search_records(
         or protocol.get("kind") != "query-search-results"
     ):
         raise ValueError("frozen search protocol 非法")
+    if document.get("research_scout") != queue.get("research_scout"):
+        raise ValueError("frozen search research scout binding 漂移")
     backend = str(document.get("backend", "")).strip()
     if not backend:
         raise ValueError("frozen search 缺 backend")
@@ -1593,6 +1604,8 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--output", type=Path)
     plan.add_argument("--research-plan", type=Path,
                       help="冻结的 wiki-research-plan-v1，用于生成中英双语发现轨道")
+    plan.add_argument("--research-scout", type=Path,
+                      help="与 provider execution 共用的冻结 research scout")
     plan.set_defaults(handler=command_plan)
 
     run = sub.add_parser("run", help="执行确定性 Search/Fetch 并冻结 evidence")

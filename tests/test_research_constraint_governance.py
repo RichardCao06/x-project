@@ -136,7 +136,13 @@ def test_v2_gate_blocks_on_question_closure_but_not_portfolio_counts(tmp_path: P
     assert partial["failed_requirement_ids"] == ["quantity.reference_flow"]
     assert exhausted_preview["decision"] == "EVIDENCE_LIMITED"
     assert exhausted_preview["pipeline_continue"] is True
-    assert exhausted_reviewed["pipeline_continue"] is False
+    assert exhausted_reviewed["pipeline_continue"] is True
+    assert exhausted_reviewed["candidate_eligible"] is False
+    assert exhausted_reviewed["materialization_branch"]["kind"] == (
+        "explicit_gap_evidence_limited"
+    )
+    assert exhausted_reviewed["materialization_branch"]["release_prohibited"] is True
+    assert len(exhausted_reviewed["materialization_branch"]["gap_provenance_sha256"]) == 64
 
 
 def test_gate_evidence_survives_blocked_command_and_changes_failure_fingerprint(
