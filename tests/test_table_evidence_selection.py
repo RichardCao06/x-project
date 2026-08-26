@@ -139,9 +139,9 @@ def test_shared_result_across_logical_targets_has_complete_audit_closure(tmp_pat
         "complete": True,
     }
     expected_identities = {
-        ("indicators", "一次装配良率", "en", "f" * 64,
+        ("indicators", "一次装配良率", "", "en", "f" * 64,
          "https://example.com/shared-evidence.pdf"),
-        ("props", "参考产品单件净质量", "en", "f" * 64,
+        ("props", "参考产品单件净质量", "", "en", "f" * 64,
          "https://example.com/shared-evidence.pdf"),
     }
     assert {
@@ -194,6 +194,62 @@ def test_missing_audit_for_full_logical_identity_fails_closure(tmp_path: Path) -
     ) is False
 
 
+def test_flow_evidence_and_gap_decisions_are_direction_scoped(tmp_path: Path) -> None:
+    selector = module()
+    candidate = {
+        "url": "https://example.com/shared-flow-report.pdf", "title": "Shared report",
+        "fetch_status": "error", "provider": "fixture",
+    }
+    shared = {
+        "table": "flows", "field": "P001 reference server", "language": "en",
+        "query_hash": "d" * 64, "results": [candidate],
+    }
+    search_matrix = {"coverage_status": "executed", "queries": [
+        {**shared, "direction": "in"}, {**shared, "direction": "out"},
+    ]}
+    gap = {
+        "unit": "待来源定义", "basis": "reference",
+        "int_value": "缺口：无国际值", "int_source": "verified-fallback",
+        "cn_value": "缺口：无中国值", "cn_source": "verified-fallback",
+        "pedigree": "explicit_gap", "status": "explicit_gap",
+    }
+    data = {
+        "protocol": {"version": "wiki-table-evidence-v1", "kind": "node-table-collection"},
+        "node_id": "A019", "node_type": "activity", "sources": [{"id": "verified-fallback"}],
+        "tables": {"flows": [
+            {"field": "P001 reference server", "direction": "in", **gap},
+            {"field": "P001 reference server", "direction": "out", **gap},
+        ]},
+    }
+
+    updated, report = selector.select_evidence(data, search_matrix, tmp_path)
+
+    assert [(row["field"], row["direction"], row["decision"])
+            for row in report["fields"]] == [
+        ("P001 reference server", "in", "explicit_gap"),
+        ("P001 reference server", "out", "explicit_gap"),
+    ]
+    assert {row["direction"] for row in report["candidate_audits"]} == {"in", "out"}
+    assert all(row["gap_evidence"]["query_hashes"] == ["d" * 64]
+               for row in updated["tables"]["flows"])
+    assert report["proof_metrics"]["gap_provenance_preserved"] is True
+    assert report["proof_metrics"]["candidate_audit_closure_complete"] is True
+    expected = {
+        ("flows", "P001 reference server", "in", "en", "d" * 64,
+         "https://example.com/shared-flow-report.pdf"),
+        ("flows", "P001 reference server", "out", "en", "d" * 64,
+         "https://example.com/shared-flow-report.pdf"),
+    }
+    assert {selector.logical_result_identity(row)
+            for row in report["candidate_audits"]} == expected
+    verifier = verifier_module()
+    assert {verifier.logical_result_identity(row)
+            for row in report["candidate_audits"]} == expected
+    assert verifier.every_search_result_has_one_candidate_audit(
+        search_matrix["queries"], report["candidate_audits"],
+    )
+
+
 def test_two_independent_matching_sources_are_promoted(tmp_path: Path) -> None:
     mod = module()
     candidates = [
@@ -207,6 +263,51 @@ def test_two_independent_matching_sources_are_promoted(tmp_path: Path) -> None:
     evidence = report["accepted_evidence"][0]
     assert evidence["verification_mode"] == "independent_two_source_corroboration"
     assert len(evidence["supporting_source_ids"]) == 2
+
+
+def test_two_independent_handoff_descriptions_are_promoted_as_categorical_proxy(
+    tmp_path: Path,
+) -> None:
+    mod = module()
+    fallback = "verified-fallback"
+    data = {
+        "protocol": {"version": "wiki-table-evidence-v1", "kind": "node-table-collection"},
+        "node_id": "A019", "node_type": "activity", "sources": [{"id": fallback}],
+        "tables": {"props": [{
+            "field": "参考产品交接状态", "condition": "A019 reference-product handoff",
+            "unit": "待来源定义", "value": "缺口：无交接状态", "source": fallback,
+            "pedigree": "explicit_gap", "status": "explicit_gap",
+        }]},
+    }
+    candidates = [
+        result(
+            tmp_path, url="https://vendor-a.example/bios",
+            source_class="manufacturer_or_other_technical",
+            excerpt="完成设置后按 F10 保存更改并退出，系统随后重新启动。",
+        ),
+        result(
+            tmp_path, url="https://vendor-b.example/uefi",
+            source_class="manufacturer_or_other_technical",
+            excerpt="选择保存并退出，所做的 UEFI 设置在服务器重启时应用。",
+        ),
+    ]
+    search_matrix = {"coverage_status": "executed", "queries": [{
+        "table": "props", "field": "参考产品交接状态", "language": "zh",
+        "query_hash": "b" * 64, "results": candidates,
+    }]}
+
+    updated, report = mod.select_evidence(data, search_matrix, tmp_path)
+
+    row = updated["tables"]["props"][0]
+    assert row["status"] == "populated"
+    assert row["value"].startswith("〔代理状态〕BIOS 配置已持久保存")
+    assert row["unit"] == "状态"
+    evidence = report["accepted_evidence"][0]
+    assert evidence["verification_mode"] == "independent_two_source_corroboration"
+    assert evidence["proxy_role"] == "handoff_state_reference"
+    assert len(evidence["supporting_source_ids"]) == 2
+    assert report["proof_metrics"]["accepted_observations"] == 1
+    assert report["proof_metrics"]["populated_fields"] == 1
 
 
 def test_table_collect_runtime_runs_selection_after_search() -> None:

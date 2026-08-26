@@ -23,6 +23,15 @@ def load_runtime():
     return module
 
 
+def load_review_runtime():
+    path = ROOT / "vendor/lca_cornerstone/scripts/run_wiki_editorial_review_capture.py"
+    spec = importlib.util.spec_from_file_location("run_wiki_editorial_review_capture", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def patch_review() -> dict:
     return {"issues": [
         {"issue_id": "E001", "section_id": "定义", "paragraph_id": "p1",
@@ -118,6 +127,8 @@ def test_cache_reuse_requires_success_and_all_causal_revision_hashes() -> None:
     ]}
     invocation = {
         "content_sha256": "content", "review_sha256": "review",
+        "verify_sha256": "verify", "blueprint_sha256": "blueprint",
+        "flow_direction_consistency_sha256": "flow-report",
         "patch_review_sha256": "patch-review", "output_schema_sha256": "schema",
         "prompt_sha256": "prompt",
         "patch_runtime_revision_sha256": runtime.PATCH_RUNTIME_REVISION_SHA256,
@@ -126,6 +137,8 @@ def test_cache_reuse_requires_success_and_all_causal_revision_hashes() -> None:
     }
     inputs = {
         "content_sha256": "content", "review_sha256": "review",
+        "verify_sha256": "verify", "blueprint_sha256": "blueprint",
+        "flow_direction_consistency_sha256": "flow-report",
         "patch_review_sha256": "patch-review", "output_schema_sha256": "schema",
         "prompt_sha256": "prompt", "normalizer_sha256": "normalizer-source",
     }
@@ -155,7 +168,10 @@ def test_cache_reuse_requires_success_and_all_causal_revision_hashes() -> None:
         stale_invocation, valid, review, previous_usage=successful_usage,
         previous_receipt=None, **inputs,
     ) is False
-    for changed_input in ("prompt_sha256", "normalizer_revision_sha256", "normalizer_sha256"):
+    for changed_input in (
+        "verify_sha256", "blueprint_sha256", "flow_direction_consistency_sha256",
+        "prompt_sha256", "normalizer_revision_sha256", "normalizer_sha256",
+    ):
         stale_invocation = {**invocation, changed_input: "stale"}
         assert runtime.can_reuse_repairs(
             stale_invocation, valid, review, previous_usage=successful_usage,
@@ -169,6 +185,8 @@ def test_cache_reuse_accepts_hash_bound_successful_receipt() -> None:
     valid = {"repairs": [repair_for(review["issues"][0], 1)]}
     invocation = {
         "content_sha256": "content", "review_sha256": "review",
+        "verify_sha256": "verify", "blueprint_sha256": "blueprint",
+        "flow_direction_consistency_sha256": "flow-report",
         "patch_review_sha256": "patch-review", "output_schema_sha256": "schema",
         "prompt_sha256": "prompt",
         "patch_runtime_revision_sha256": runtime.PATCH_RUNTIME_REVISION_SHA256,
@@ -186,6 +204,8 @@ def test_cache_reuse_accepts_hash_bound_successful_receipt() -> None:
     assert runtime.can_reuse_repairs(
         invocation, valid, review, previous_usage=None, previous_receipt=receipt,
         content_sha256="content", review_sha256="review",
+        verify_sha256="verify", blueprint_sha256="blueprint",
+        flow_direction_consistency_sha256="flow-report",
         patch_review_sha256="patch-review", output_schema_sha256="schema",
         prompt_sha256="prompt", normalizer_sha256="normalizer-source",
     ) is True
@@ -193,6 +213,8 @@ def test_cache_reuse_accepts_hash_bound_successful_receipt() -> None:
     assert runtime.can_reuse_repairs(
         invocation, valid, review, previous_usage=None, previous_receipt=receipt,
         content_sha256="content", review_sha256="review",
+        verify_sha256="verify", blueprint_sha256="blueprint",
+        flow_direction_consistency_sha256="flow-report",
         patch_review_sha256="patch-review", output_schema_sha256="schema",
         prompt_sha256="prompt", normalizer_sha256="normalizer-source",
     ) is False
@@ -236,7 +258,9 @@ def test_a013_prompt_exposes_remaining_capacity_and_graph_fact_scope() -> None:
     ]
 
     prompt = runtime.build_prompt(document, targets, claims)
-    prompt_claims = json.loads(prompt.split("CLAIMS=", 1)[1])
+    prompt_claims = json.loads(
+        prompt.split("CLAIMS=", 1)[1].split("\nFLOW_DIRECTION_CONSISTENCY=", 1)[0]
+    )
 
     assert prompt_claims == [
         {**claims[0], "maximum_total_uses": 3, "uses_outside_targets": 1,
@@ -300,6 +324,115 @@ def _replacement(label: str) -> dict:
 
 def _write(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+
+
+def test_patch_runtime_blocks_contradictory_flow_contract_before_agent_attempt(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    runtime = load_runtime()
+    verify = tmp_path / "verify.json"
+    content = tmp_path / "content.json"
+    blueprint = tmp_path / "blueprint.json"
+    review = tmp_path / "review.json"
+    capture = tmp_path / "capture.py"
+    output = tmp_path / "output"
+    output.mkdir()
+    _write(verify, {"claims": []})
+    _write(content, {"protocol": "wiki-content-draft-v2", "node_id": "A019"})
+    _write(blueprint, {
+        "node_id": "A019", "node_type": "activity",
+        "flow_ledger": [
+            {"field": "P001 reference server", "direction": "in"},
+            {"field": "P001 reference server", "direction": "out"},
+        ],
+        "flow_directions": {"P001 reference server": "out"},
+        "evidence_tables": {"flows": [
+            "P001 reference server", "P001 reference server",
+        ]},
+    })
+    _write(review, {})
+    capture.write_text("", encoding="utf-8")
+    calls: list[object] = []
+    monkeypatch.setattr(runtime.subprocess, "run", lambda *args, **kwargs: calls.append(args))
+    monkeypatch.setattr(sys, "argv", [
+        "run_wiki_editorial_patch.py", str(verify), str(content), str(blueprint),
+        str(review), str(capture), str(output),
+    ])
+
+    with pytest.raises(runtime.EditorialPatchError, match="ambiguous_legacy_flow_directions_present"):
+        runtime.main()
+
+    assert calls == []
+    report = json.loads((output / "flow-direction-consistency.json").read_text())
+    assert report["contradiction_count"] == 1
+    assert not (output / "editorial-patch-invocation.json").exists()
+
+
+def test_review_runtime_binds_ledger_and_blocks_contradiction_before_agent_attempt(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    runtime = load_review_runtime()
+    verify = tmp_path / "verify.json"
+    content = tmp_path / "content.json"
+    blueprint = tmp_path / "blueprint.json"
+    schema = tmp_path / "schema.json"
+    output = tmp_path / "output"
+    _write(verify, {"claims": []})
+    _write(content, {})
+    _write(blueprint, {
+        "node_id": "A019", "node_type": "activity", "sections": {},
+        "flow_ledger": [
+            {"field": "P001 reference server", "direction": "in"},
+            {"field": "P001 reference server", "direction": "out"},
+        ],
+        "flow_directions": {"P001 reference server": "out"},
+        "evidence_tables": {"flows": [
+            "P001 reference server", "P001 reference server",
+        ]},
+    })
+    _write(schema, {})
+    monkeypatch.setattr(runtime, "_claims", lambda *_args: [])
+    monkeypatch.setattr(runtime, "validate_result", lambda *_args: {})
+    calls: list[object] = []
+    monkeypatch.setattr(runtime.subprocess, "run", lambda *args, **kwargs: calls.append(args))
+    monkeypatch.setattr(sys, "argv", [
+        "run_wiki_editorial_review_capture.py", str(verify), str(content),
+        str(blueprint), str(schema), str(output), "--cost-usd", "0",
+    ])
+
+    with pytest.raises(runtime.EditorialPatchError, match="ambiguous_legacy_flow_directions_present"):
+        runtime.main()
+
+    assert calls == []
+    report = json.loads((output / "flow-direction-consistency.json").read_text())
+    assert report["contradiction_count"] == 1
+    prompt = runtime.build_prompt({"node_id": "A019"}, "{}", [{
+        "claim": {
+            "claim_id": "A019-16",
+            "claim_kind": "internal_graph_fact",
+            "claim_text": "P001 reference server is an ordered input and output.",
+        },
+        "verdict": "NOT_FOUND",
+    }], {
+        "flow_ledger": [
+            {"field": "P001 reference server", "direction": "in"},
+            {"field": "P001 reference server", "direction": "out"},
+        ],
+        "contradiction_count": 0, "consistent": True,
+    })
+    assert "同一 field 可分别以 in 和 out 出现" in prompt
+    assert "FLOW_DIRECTION_CONSISTENCY=" in prompt
+    assert "VERIFIED_BY_FLOW_DIRECTION_CONSISTENCY" in prompt
+    graph_claims = json.loads(
+        prompt.split("VERIFIED_GRAPH_CLAIMS=", 1)[1].split("\nCONTENT=", 1)[0]
+    )
+    assert graph_claims == [{
+        "claim_id": "A019-16",
+        "claim_kind": "internal_graph_fact",
+        "claim_text": "P001 reference server is an ordered input and output.",
+        "internal_validation": "VERIFIED_BY_FLOW_DIRECTION_CONSISTENCY",
+    }]
+    assert "verdict" not in graph_claims[0]
 
 
 def test_a013_runtime_rematerializes_and_applies_four_hash_bound_targets(
@@ -393,12 +526,17 @@ def test_a013_runtime_rematerializes_and_applies_four_hash_bound_targets(
     assert (content_path.parent / "frozen-editorial-repair.json").is_file()
     assert invocation["reused_existing_repairs"] is False
     assert runtime.PATCH_RUNTIME_REVISION_SHA256 == (
-        "07a1d500a82becb1421d7069c2c73e61772c11bea2dd8afd475425c211896a8b"
+        "ebc15fb6bd719a06823b53ac194feafb2663f7a87a0468f9c2491ed2f1ac1e99"
     )
     assert invocation["patch_runtime_revision_sha256"] == runtime.PATCH_RUNTIME_REVISION_SHA256
     assert invocation["prompt_sha256"] == receipt["reuse_key"]["prompt_sha256"]
     assert invocation["normalizer_revision_sha256"] == runtime.NORMALIZER_REVISION_SHA256
     assert invocation["output_schema_sha256"]
+    assert invocation["verify_sha256"] == receipt["reuse_key"]["verify_sha256"]
+    assert invocation["blueprint_sha256"] == receipt["reuse_key"]["blueprint_sha256"]
+    assert invocation["flow_direction_consistency_sha256"] == (
+        receipt["reuse_key"]["flow_direction_consistency_sha256"]
+    )
     assert receipt["raw_repairs_sha256"] == runtime.payload_sha256(repairs)
     assert receipt["scorecard"]["internal_graph_fact_sentences_without_evidence"] == 0
     assert receipt["scorecard"]["maximum_claim_use_count"] <= 3

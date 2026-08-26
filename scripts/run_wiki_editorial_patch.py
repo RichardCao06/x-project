@@ -18,8 +18,10 @@ from lca_project.domains.editorial_patch import (
     claim_binding_metrics,
     claim_remaining_uses,
     claim_uses_outside_targets,
+    flow_direction_consistency_report,
     normalize_legacy_repair_claim_bindings,
     prepare_legacy_patch_review,
+    require_flow_direction_consistency,
 )
 
 
@@ -27,7 +29,7 @@ DISABLED = [
     "browser_use", "in_app_browser", "computer_use", "standalone_web_search",
     "remote_plugin", "plugins", "apps", "multi_agent",
 ]
-PATCH_RUNTIME_REVISION = "wiki-editorial-patch-cross-target-merge-v15"
+PATCH_RUNTIME_REVISION = "wiki-editorial-patch-flow-ledger-bound-v16"
 PATCH_RUNTIME_REVISION_SHA256 = hashlib.sha256(PATCH_RUNTIME_REVISION.encode()).hexdigest()
 NORMALIZER_REVISION_SHA256 = hashlib.sha256(
     LEGACY_CLAIM_NORMALIZER_REVISION.encode()
@@ -142,12 +144,17 @@ def cached_repairs_match_review(payload: object, patch_review: dict) -> bool:
 def can_reuse_repairs(previous_invocation: object, payload: object, patch_review: dict, *,
                       previous_usage: object, previous_receipt: object,
                       content_sha256: str, review_sha256: str,
+                      verify_sha256: str, blueprint_sha256: str,
+                      flow_direction_consistency_sha256: str,
                       patch_review_sha256: str, output_schema_sha256: str,
                       prompt_sha256: str, normalizer_sha256: str) -> bool:
     """Reuse only successful output bound to every causal input revision."""
     reuse_key = {
         "content_sha256": content_sha256,
         "review_sha256": review_sha256,
+        "verify_sha256": verify_sha256,
+        "blueprint_sha256": blueprint_sha256,
+        "flow_direction_consistency_sha256": flow_direction_consistency_sha256,
         "patch_review_sha256": patch_review_sha256,
         "output_schema_sha256": output_schema_sha256,
         "prompt_sha256": prompt_sha256,
@@ -184,6 +191,7 @@ def can_reuse_repairs(previous_invocation: object, payload: object, patch_review
 
 
 def build_prompt(document: dict, targets: list[dict], claims: list[dict], *,
+                 flow_contract: dict | None = None,
                  previous_failure: dict | None = None) -> str:
     """Build a node-local prompt without policy copied from a previous repair."""
     node_id = str(document.get("node_id") or "").strip()
@@ -228,6 +236,10 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict], *,
         "internal_graph_fact 的正文必须由所绑定 claim 的 claim_text 直接支持，不得把 claim_text 未陈述的功能角色"
         "（例如供电、热管理、结构或导风）写成 internal_graph_fact；这类解释只能标为 modeling_judgment，"
         "证据不足时必须标为 evidence_gap。"
+        "五个核心章节若修补前已有 external_fact、internal_graph_fact 或 evidence_gap 锚点，修补后必须至少保留一个；"
+        "不得为了删除重复或移动证据而把核心章节全部降为 modeling_judgment。"
+        "FLOW_DIRECTION_CONSISTENCY 是确定性核验通过的有序边台账；同一 field 的 in/out 双重出现是合法状态转换，"
+        "不得压缩为单一方向，也不得将它修成 output-only 或 input-only。"
         "tokens_must_preserve 中的每个字面量必须原样出现在 replacements 正文中。"
         "逐项执行当前 issue 的 instruction；不得引入当前文档、TARGETS 或 CLAIMS 未提供的节点、产品或工厂规则。"
         "修复指令要求替换、删除或更正错误标识时，不得恢复被取代标识。"
@@ -245,7 +257,8 @@ def build_prompt(document: dict, targets: list[dict], claims: list[dict], *,
         "不要修改、总结或返回未被点名的段落。输出只匹配 schema。\n"
         f"NODE_ID={node_id}\n"
         f"TARGETS={json.dumps(targets, ensure_ascii=False, separators=(',', ':'))}\n"
-        f"CLAIMS={json.dumps(capacity_bound_claims, ensure_ascii=False, separators=(',', ':'))}"
+        f"CLAIMS={json.dumps(capacity_bound_claims, ensure_ascii=False, separators=(',', ':'))}\n"
+        f"FLOW_DIRECTION_CONSISTENCY={json.dumps(flow_contract or {}, ensure_ascii=False, separators=(',', ':'))}"
     )
     if previous_failure:
         prompt += (
@@ -275,6 +288,16 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     document = load(content_path)
     blueprint = load(blueprint_path)
+    verified = load(verify_path)
+    rows = verified.get("claims") or verified.get("result", {}).get("claims") or []
+    flow_report = flow_direction_consistency_report(blueprint, rows)
+    flow_report_path = output_dir / "flow-direction-consistency.json"
+    flow_report_path.write_text(
+        json.dumps(flow_report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    # Reject producer contradictions before any Agent repair attempt or cache
+    # reuse.  The persisted report makes the zero-attempt failure auditable.
+    require_flow_direction_consistency(flow_report)
     patch_review = prepare_legacy_patch_review(document, load(review_path))
     patch_review_path = output_dir / "editorial-patch-review.json"
     patch_review_path.write_text(json.dumps(patch_review, ensure_ascii=False, indent=2) + "\n",
@@ -286,8 +309,6 @@ def main() -> int:
                        if row["heading"] == issue["section_id"])
         index = int(issue["paragraph_id"].removeprefix("p")) - 1
         targets.append({"issue": issue, "paragraph": section["paragraphs"][index]})
-    verified = load(verify_path)
-    rows = verified.get("claims") or verified.get("result", {}).get("claims") or []
     claims = [{
         "claim_id": (row.get("claim") or {}).get("claim_id"),
         "claim_kind": (row.get("claim") or {}).get("claim_kind"),
@@ -306,6 +327,9 @@ def main() -> int:
     receipt_path = output_dir / "editorial-patch-receipt.json"
     current_content_hash = sha256(content_path)
     current_review_hash = sha256(review_path)
+    current_verify_hash = sha256(verify_path)
+    current_blueprint_hash = sha256(blueprint_path)
+    current_flow_report_hash = sha256(flow_report_path)
     current_patch_review_hash = sha256(patch_review_path)
     normalizer_path = Path(normalize_legacy_repair_claim_bindings.__code__.co_filename).resolve()
     normalizer_sha256 = sha256(normalizer_path)
@@ -318,6 +342,10 @@ def main() -> int:
             if (
                 previous_invocation.get("content_sha256") == current_content_hash
                 and previous_invocation.get("review_sha256") == current_review_hash
+                and previous_invocation.get("verify_sha256") == current_verify_hash
+                and previous_invocation.get("blueprint_sha256") == current_blueprint_hash
+                and previous_invocation.get("flow_direction_consistency_sha256")
+                    == current_flow_report_hash
                 and previous_usage.get("exit_code") not in {None, 0}
                 and previous_usage.get("raw_repairs_sha256")
                     == payload_sha256(previous_repairs)
@@ -329,7 +357,10 @@ def main() -> int:
                 }
         except (OSError, TypeError, ValueError, json.JSONDecodeError):
             previous_failure = None
-    prompt = build_prompt(document, targets, claims, previous_failure=previous_failure)
+    prompt = build_prompt(
+        document, targets, claims, flow_contract=flow_report,
+        previous_failure=previous_failure,
+    )
     prompt_sha256 = hashlib.sha256(prompt.encode()).hexdigest()
     reuse_existing_repairs = False
     if repairs_raw.is_file() and invocation.is_file():
@@ -341,6 +372,9 @@ def main() -> int:
                 previous_receipt=load(receipt_path) if receipt_path.is_file() else None,
                 content_sha256=current_content_hash,
                 review_sha256=current_review_hash,
+                verify_sha256=current_verify_hash,
+                blueprint_sha256=current_blueprint_hash,
+                flow_direction_consistency_sha256=current_flow_report_hash,
                 patch_review_sha256=current_patch_review_hash,
                 output_schema_sha256=current_schema_hash,
                 prompt_sha256=prompt_sha256,
@@ -365,6 +399,9 @@ def main() -> int:
         "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "argv": command, "content_sha256": current_content_hash,
         "review_sha256": current_review_hash,
+        "verify_sha256": current_verify_hash,
+        "blueprint_sha256": current_blueprint_hash,
+        "flow_direction_consistency_sha256": current_flow_report_hash,
         "patch_review_sha256": current_patch_review_hash,
         "output_schema_sha256": current_schema_hash,
         "prompt_sha256": prompt_sha256,
@@ -382,6 +419,9 @@ def main() -> int:
             event_stream.write(json.dumps({
                 "type": "editorial.patch_reused", "content_sha256": current_content_hash,
                 "review_sha256": current_review_hash,
+                "verify_sha256": current_verify_hash,
+                "blueprint_sha256": current_blueprint_hash,
+                "flow_direction_consistency_sha256": current_flow_report_hash,
                 "output_schema_sha256": current_schema_hash,
                 "prompt_sha256": prompt_sha256,
                 "patch_runtime_revision_sha256": PATCH_RUNTIME_REVISION_SHA256,
@@ -402,6 +442,9 @@ def main() -> int:
     reuse_key = {
         "content_sha256": current_content_hash,
         "review_sha256": current_review_hash,
+        "verify_sha256": current_verify_hash,
+        "blueprint_sha256": current_blueprint_hash,
+        "flow_direction_consistency_sha256": current_flow_report_hash,
         "patch_review_sha256": current_patch_review_hash,
         "output_schema_sha256": current_schema_hash,
         "prompt_sha256": prompt_sha256,

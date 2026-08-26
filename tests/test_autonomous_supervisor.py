@@ -323,6 +323,97 @@ def test_reviewed_needs_attention_campaign_is_reactivated_by_new_wakeup(
     assert view["items"][0]["status"] == "running"
 
 
+def test_failed_job_consumes_terminal_failure_wakeup_before_stopping(
+    tmp_path: Path,
+) -> None:
+    root = project_copy(tmp_path)
+    supervisor = AutonomousJobSupervisor(root, supervisor_id="failed-wakeup-supervisor")
+    value = spec("A019")
+    value["completion_goal"] = "reviewed_publication"
+    value["requests"][0]["publication_mode"] = "reviewed"
+    campaign_id = supervisor.create_campaign(value)["campaign"]["campaign_id"]
+    supervisor.tick(campaign_id, execute_task=False)
+    item = supervisor.campaign(campaign_id)["items"][0]
+    job = supervisor.state.get("jobs", item["job_id"])
+    supervisor.state.upsert_entity(
+        "jobs", item["job_id"], "failed", job["payload"],
+        program_id=job.get("program_id"), industry_id=job.get("industry_id"),
+        workflow_id=job.get("workflow_id"),
+    )
+    with supervisor.state.transaction() as conn:
+        conn.execute("UPDATE autonomous_campaigns SET status='needs_attention' "
+                     "WHERE campaign_id=?", (campaign_id,))
+        conn.execute("UPDATE autonomous_job_items SET status='failed' WHERE item_id=?",
+                     (item["item_id"],))
+    wakeup = AlignmentStore(supervisor.state).request_supervision(
+        job_id=item["job_id"], run_id=item["run_id"],
+        reason="terminal_side_effect_failure",
+        deviation_ids=["dev_side_effect"], observation_hash="side-effect-observation",
+    )
+
+    result = supervisor.tick(campaign_id, execute_task=False)
+
+    assert result["action"] is not None
+    assert wakeup["wakeup_id"] in result["action"]["consumed_wakeups"]
+    assert not AlignmentStore(supervisor.state).pending_wakeups(job_id=item["job_id"])
+    assert result["status"] == "needs_attention"
+
+
+def test_needs_attention_campaign_reactivates_recoverable_canary_repair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    supervisor = AutonomousJobSupervisor(root, supervisor_id="canary-replan-supervisor")
+    campaign_id = supervisor.create_campaign(spec("A019"))["campaign"]["campaign_id"]
+    supervisor.tick(campaign_id, execute_task=False)
+    item = supervisor.campaign(campaign_id)["items"][0]
+    candidate = ChangeController(root).propose(
+        source_deviation_id="dev_canary_recovery", target="propose_code_change",
+        risk="low", change={"diagnosis": "canary"}, rollback={"strategy": "restore"},
+    )
+    repair = SystemRepairAgent(root).queue(
+        candidate_id=candidate["candidate_id"], source_job_id=item["job_id"],
+        source_run_id=item["run_id"], request={"recovery_task": "verify"},
+    )
+    payload = dict(repair["payload"])
+    payload["validations"] = [{
+        "phase": "canary", "passed": False,
+        "new_failed_tests": ["tests/test_worker_loop.py::test_side_effect"],
+    }]
+    with supervisor.state.transaction() as conn:
+        conn.execute(
+            "UPDATE system_repair_runs SET status='failed',payload=?,last_error=? "
+            "WHERE repair_run_id=?",
+            (json.dumps(payload), "canary validation failed", repair["repair_run_id"]),
+        )
+        conn.execute("UPDATE autonomous_campaigns SET status='needs_attention' "
+                     "WHERE campaign_id=?", (campaign_id,))
+        conn.execute("UPDATE autonomous_job_items SET status='blocked' WHERE item_id=?",
+                     (item["item_id"],))
+    calls: list[str] = []
+
+    class FakeRepairAgent:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        def execute(self, repair_run_id: str) -> dict:
+            calls.append(repair_run_id)
+            return {"repair_run_id": repair_run_id, "status": "replan_required"}
+
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.autonomous_supervisor.SystemRepairAgent",
+        FakeRepairAgent,
+    )
+
+    result = supervisor.tick(campaign_id, execute_task=False)
+
+    assert calls == [repair["repair_run_id"]]
+    assert result["status"] == "running"
+    view = supervisor.campaign(campaign_id)
+    assert view["campaign"]["status"] == "running"
+    assert view["items"][0]["status"] == "running"
+
+
 def test_dashboard_reconciler_restarts_campaign_with_pending_wakeup(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -211,11 +211,17 @@ def main():
                 if match: candidates.append({"source_id":source_id,"title":item.get("title"),"url":match.group(0),"topics":[],"provenance":"historical_registry","historical_status":item.get("status"),"current_job_status":"candidate_unverified"})
     unique={str(row.get("url")):row for row in candidates if row.get("url")}; candidates=list(unique.values())
     field_translations,translation_contract=field_translation_contract(str(node["node_id"]))
-    requirement_ids = sorted(set(re.findall(
-        r'''["']requirement_id["']\s*:\s*["']([^"']+)["']''', source
-    )))
+    requirement_records = re.findall(
+        r'''["']requirement_id["']\s*:\s*["']([^"']+)["']'''
+        r'''[\s\S]{0,240}?["']claim_kind["']\s*:\s*["']([^"']+)["']''',
+        source,
+    )
+    requirement_kinds = {requirement_id: claim_kind
+                         for requirement_id, claim_kind in requirement_records}
+    requirement_ids = sorted(requirement_kinds)
     question_contracts = build_question_contracts(
-        str(node["node_id"]), str(node["name"]), terms, requirement_ids
+        str(node["node_id"]), str(node["name"]), terms, requirement_ids,
+        requirement_kinds=requirement_kinds,
     )
     plan={
         "protocol":"wiki-research-plan-v1",
@@ -258,6 +264,21 @@ def main():
             "node_specific_source_overrides_quantitative_minimum":False,
         },
         "advisory_candidates":candidates,
+        # Preserve the semantic route from an external-evidence requirement to
+        # its advisory source.  The route is not a trust verdict: downstream
+        # discovery must still Fetch + Verify the URL.  Without this binding,
+        # nomination retained only a display title and silently discarded the
+        # canonical URL/locator before source discovery.
+        "requirement_routes":{
+            str(requirement_id):dict(route)
+            for requirement_id,route in (hints.get("requirement_routes") or {}).items()
+            if str(requirement_id).strip() and isinstance(route,dict)
+        },
+        "claim_constraints":{
+            str(requirement_id):str(constraint)
+            for requirement_id,constraint in (hints.get("claim_constraints") or {}).items()
+            if str(requirement_id).strip() and str(constraint).strip()
+        },
         "historical_registry_policy":"candidate_only_refetch_and_reverify",
         "hint_policy":"advisory_nonexclusive",
         "field_translations":field_translations,

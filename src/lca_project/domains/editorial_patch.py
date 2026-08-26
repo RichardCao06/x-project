@@ -16,12 +16,168 @@ class EditorialPatchError(ValueError):
 
 LEGACY_CLAIM_NORMALIZER_REVISION = "fact-first-v1"
 MAXIMUM_CLAIM_USE_COUNT = 3
+_FLOW_ID = re.compile(r"(?<![A-Za-z0-9])(P\d{3})(?!\d)", re.IGNORECASE)
+_FLOW_INPUT = re.compile(
+    r"(?:\bCONSUMES?\b|\binputs?\b|\bconsum(?:es|ed|ption)\s+(?:edge|connection|flow)\b|输入|消耗(?:边|连接)?)",
+    re.IGNORECASE,
+)
+_FLOW_OUTPUT = re.compile(
+    r"(?:\bPRODUCES?\b|\boutputs?\b|\bproduc(?:es|ed|tion)\s+(?:edge|connection|flow)\b|输出|产出(?:边|连接)?|生产连接)",
+    re.IGNORECASE,
+)
 
 
 def canonical_hash(value: Any) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True,
                      separators=(",", ":")).encode()
     return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def _claim_flow_assertions(text: str, known_ids: set[str]) -> set[tuple[str, str]]:
+    """Extract only explicit graph-edge assertions from a frozen claim.
+
+    Comma-separated product lists are accumulated until their direction phrase,
+    which covers both ``P001、P066为输入`` and the dual-role form where one ID
+    is explicitly described as both consumed and produced.  Text with no edge
+    vocabulary makes no assertion and therefore cannot create a false conflict.
+    """
+    assertions: set[tuple[str, str]] = set()
+    for sentence in re.split(r"[；;。.!?\n]+", text):
+        pending: list[str] = []
+        for clause in re.split(r"[，,]+", sentence):
+            identifiers = [value.upper() for value in _FLOW_ID.findall(clause)]
+            identifiers = [value for value in identifiers if value in known_ids]
+            pending.extend(value for value in identifiers if value not in pending)
+            directions = []
+            if _FLOW_INPUT.search(clause):
+                directions.append("in")
+            if _FLOW_OUTPUT.search(clause):
+                directions.append("out")
+            if directions:
+                for identifier in pending:
+                    assertions.update((identifier, direction) for direction in directions)
+                pending = []
+    return assertions
+
+
+def flow_direction_consistency_report(
+    blueprint: dict[str, Any], rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Compare the canonical edge ledger with legacy fields and graph claims.
+
+    The report is deterministic and safe to persist before an Agent call.  It
+    treats the ordered ledger as authoritative, while any scalar compatibility
+    map or explicit frozen-claim assertion is checked against that ledger.
+    """
+    node_id = str(blueprint.get("node_id") or "")
+    if blueprint.get("node_type") != "activity":
+        return {
+            "protocol": "wiki-flow-direction-consistency-v1",
+            "node_id": node_id,
+            "applicable": False,
+            "flow_ledger": [],
+            "claim_assertions": [],
+            "contradictions": [],
+            "contradiction_count": 0,
+            "consistent": True,
+        }
+
+    contradictions: list[dict[str, Any]] = []
+    ledger: list[dict[str, str]] = []
+    raw_ledger = blueprint.get("flow_ledger")
+    if not isinstance(raw_ledger, list) or not raw_ledger:
+        contradictions.append({"kind": "missing_lossless_flow_ledger"})
+    else:
+        for index, raw in enumerate(raw_ledger):
+            field = str(raw.get("field") or "").strip() if isinstance(raw, dict) else ""
+            direction = str(raw.get("direction") or "") if isinstance(raw, dict) else ""
+            if not field or direction not in {"in", "out"}:
+                contradictions.append({
+                    "kind": "invalid_flow_ledger_entry", "index": index,
+                })
+                continue
+            ledger.append({"field": field, "direction": direction})
+
+    declared_flows = (blueprint.get("evidence_tables") or {}).get("flows")
+    if declared_flows != [edge["field"] for edge in ledger]:
+        contradictions.append({
+            "kind": "evidence_table_flow_sequence_mismatch",
+            "declared": declared_flows,
+            "ledger": [edge["field"] for edge in ledger],
+        })
+
+    directions_by_field: dict[str, set[str]] = {}
+    ids_by_field: dict[str, str] = {}
+    for edge in ledger:
+        directions_by_field.setdefault(edge["field"], set()).add(edge["direction"])
+        match = _FLOW_ID.search(edge["field"])
+        if not match:
+            contradictions.append({
+                "kind": "flow_field_missing_product_id", "field": edge["field"],
+            })
+        else:
+            ids_by_field[edge["field"]] = match.group(1).upper()
+
+    legacy = blueprint.get("flow_directions")
+    has_ambiguous_field = any(len(value) > 1 for value in directions_by_field.values())
+    if legacy is not None:
+        if not isinstance(legacy, dict):
+            contradictions.append({"kind": "invalid_legacy_flow_directions"})
+        elif has_ambiguous_field:
+            contradictions.append({"kind": "ambiguous_legacy_flow_directions_present"})
+        else:
+            expected_legacy = {
+                field: next(iter(directions))
+                for field, directions in directions_by_field.items()
+            }
+            if legacy != expected_legacy:
+                contradictions.append({
+                    "kind": "legacy_flow_directions_mismatch",
+                    "declared": legacy, "expected": expected_legacy,
+                })
+
+    fields_by_id: dict[str, list[str]] = {}
+    for field, identifier in ids_by_field.items():
+        fields_by_id.setdefault(identifier, []).append(field)
+    known_ids = set(fields_by_id)
+    allowed = {
+        (ids_by_field[edge["field"]], edge["direction"])
+        for edge in ledger if edge["field"] in ids_by_field
+    }
+    claim_assertions: list[dict[str, Any]] = []
+    for row in rows:
+        claim = row.get("claim") or {}
+        if claim.get("claim_kind") != "internal_graph_fact":
+            continue
+        claim_id = str(claim.get("claim_id") or "")
+        asserted = _claim_flow_assertions(str(claim.get("claim_text") or ""), known_ids)
+        for identifier, direction in sorted(asserted):
+            assertion = {
+                "claim_id": claim_id, "product_id": identifier, "direction": direction,
+            }
+            claim_assertions.append(assertion)
+            if (identifier, direction) not in allowed:
+                contradictions.append({"kind": "claim_direction_not_in_blueprint", **assertion})
+
+    return {
+        "protocol": "wiki-flow-direction-consistency-v1",
+        "node_id": node_id,
+        "applicable": True,
+        "flow_ledger": ledger,
+        "claim_assertions": claim_assertions,
+        "contradictions": contradictions,
+        "contradiction_count": len(contradictions),
+        "consistent": not contradictions,
+    }
+
+
+def require_flow_direction_consistency(report: dict[str, Any]) -> None:
+    """Stop at the deterministic producer boundary on any contradiction."""
+    if report.get("contradiction_count") != 0 or report.get("consistent") is not True:
+        kinds = [str(item.get("kind") or "unknown") for item in report.get("contradictions") or []]
+        raise EditorialPatchError(
+            "flow direction contract contradictions: " + ", ".join(kinds or ["unknown"])
+        )
 
 
 def paragraph_manifest(document: dict[str, Any]) -> dict[str, str]:
@@ -61,8 +217,8 @@ _DELETE_INSTRUCTION = re.compile(
     re.IGNORECASE,
 )
 _IDENTIFIER_PATTERN = r"(?<![A-Za-z0-9])(?:A|P)\d{3}(?!\d)"
-_IDENTITY_TOKEN = re.compile(
-    rf"{_IDENTIFIER_PATTERN}\s+"
+_PRODUCT_IDENTITY_TOKEN = re.compile(
+    rf"(?<![A-Za-z0-9])P\d{{3}}(?!\d)\s+"
     rf"(?:(?![、，；。\n\"“”'‘’]|(?:和|与|及)?{_IDENTIFIER_PATTERN}\s|(?:和|与|及)全部).)+?"
     rf"(?=$|[、，；。\n\"“”'‘’]|(?:和|与|及)?{_IDENTIFIER_PATTERN}\s|(?:和|与|及)全部)"
 )
@@ -131,13 +287,22 @@ def _superseded_identifiers(instructions: str) -> set[str]:
 
 
 def _identity_tokens(text: str) -> list[str]:
-    """Extract one graph identity per token without binding prose punctuation."""
+    """Extract product labels without turning activity prose into literals.
+
+    ``Pxxx`` identifiers denote graph products and their adjacent label is a
+    canonical identity that an editorial rewrite must preserve atomically.
+    ``Axxx`` identifiers denote activities; the prose that follows describes
+    the activity and is intentionally editable.  Treating ``A019 将……`` as a
+    product-style label made semantically equivalent repairs impossible, so
+    activities contribute only their stable identifier here.
+    """
     tokens = []
-    for match in _IDENTITY_TOKEN.finditer(text):
+    for match in _PRODUCT_IDENTITY_TOKEN.finditer(text):
         token = match.group(0).strip().rstrip("和与及")
         token = _PROVENANCE_SUFFIX.sub("", token).rstrip("，,；; ")
         if token:
             tokens.append(token)
+    tokens.extend(re.findall(r"(?<![A-Za-z0-9])A\d{3}(?!\d)", text))
     return list(dict.fromkeys(tokens))
 
 
@@ -382,6 +547,7 @@ def apply_legacy_repairs(document: dict[str, Any], patch_review: dict[str, Any],
     ):
         section = next(row for row in result["sections"] if row.get("heading") == heading)
         section["paragraphs"][index:index + 1] = replacements
+    assert_core_grounding_preserved(before, result)
     after_untargeted: dict[str, str] = {}
     for section in before["sections"]:
         heading = str(section["heading"])
@@ -452,8 +618,32 @@ def normalize_legacy_repair_claim_bindings(
     counts: Counter[str] = Counter()
     if document is not None:
         counts.update(claim_uses_outside_targets(document, targets, kinds))
+    original_target_claims: dict[tuple[str, str, str], list[str]] = {}
+    if document is not None:
+        for section in document.get("sections") or []:
+            heading = str(section.get("heading") or "")
+            for index, paragraph in enumerate(section.get("paragraphs") or [], 1):
+                paragraph_id = f"p{index}"
+                if (heading, paragraph_id) not in targets:
+                    continue
+                for sentence in paragraph.get("sentences") or []:
+                    sentence_kind = str(sentence.get("claim_kind") or "")
+                    key = (heading, paragraph_id, sentence_kind)
+                    original_target_claims.setdefault(key, []).extend(
+                        str(claim_id)
+                        for claim_id in sentence.get("evidence_claim_ids") or []
+                        if kinds.get(str(claim_id)) == sentence_kind
+                    )
+        original_target_claims = {
+            key: list(dict.fromkeys(claim_ids))
+            for key, claim_ids in original_target_claims.items()
+        }
     sentences: list[tuple[dict[str, Any], list[str], bool]] = []
     for repair in result:
+        target_key = (
+            str(repair.get("section_id") or ""),
+            str(repair.get("paragraph_id") or ""),
+        )
         replacements = repair.get("replacements")
         if replacements is None:
             replacements = [repair.get("replacement") or {}]
@@ -466,6 +656,21 @@ def normalize_legacy_repair_claim_bindings(
                     ids = [claim_id for claim_id in ids if kinds[claim_id] == sentence_kind]
                 elif sentence_kind == "external_fact":
                     ids = [claim_id for claim_id in ids if claim_id in confirmed_external]
+                # A bounded rewrite may preserve the exact fact while the
+                # model accidentally drops its claim id (A019's ordered-edge
+                # rewording is the canonical example).  When the original
+                # hash-bound paragraph has exactly one same-kind provenance
+                # source, restore that binding before capacity reservation.
+                # Ambiguous targets still fail closed.
+                if sentence_kind in {"internal_graph_fact", "external_fact"} and not ids:
+                    inherited = original_target_claims.get(
+                        (*target_key, sentence_kind), []
+                    )
+                    if len(inherited) == 1 and (
+                        sentence_kind != "external_fact"
+                        or inherited[0] in confirmed_external
+                    ):
+                        ids = inherited
                 sentences.append((
                     sentence,
                     list(dict.fromkeys(ids)),
@@ -635,6 +840,35 @@ def _body_chars(document: dict[str, Any]) -> int:
     )
 
 
+def core_section_grounding(document: dict[str, Any]) -> dict[str, bool]:
+    """Return the fact-or-explicit-gap invariant for the five core sections."""
+    grounded_kinds = {"external_fact", "internal_graph_fact", "evidence_gap"}
+    result: dict[str, bool] = {}
+    for section in (document.get("sections") or [])[:5]:
+        heading = str(section.get("heading") or section.get("section_id") or "")
+        result[heading] = any(
+            sentence.get("claim_kind") in grounded_kinds
+            for paragraph in section.get("paragraphs") or []
+            for sentence in paragraph.get("sentences") or []
+        )
+    return result
+
+
+def assert_core_grounding_preserved(before: dict[str, Any], after: dict[str, Any]) -> None:
+    """Reject a local edit that destroys an already closed core section."""
+    before_state = core_section_grounding(before)
+    after_state = core_section_grounding(after)
+    regressed = sorted(
+        heading for heading, grounded in before_state.items()
+        if grounded and not after_state.get(heading, False)
+    )
+    if regressed:
+        raise EditorialPatchError(
+            "editorial repair removed the last fact-or-explicit-gap anchor from core section(s): "
+            + ", ".join(regressed)
+        )
+
+
 def validate_draft(document: dict[str, Any], blueprint: dict[str, Any]) -> None:
     if document.get("protocol") != "wiki-content-draft-v3":
         raise EditorialPatchError("draft must use wiki-content-draft-v3")
@@ -732,6 +966,7 @@ def apply_repairs(document: dict[str, Any], blueprint: dict[str, Any],
         touched.add(key)
 
     validate_draft(result, blueprint)
+    assert_core_grounding_preserved(before, result)
     after_manifest = paragraph_manifest(result)
     changed = {key for key in before_manifest if before_manifest[key] != after_manifest.get(key)}
     if changed != touched:

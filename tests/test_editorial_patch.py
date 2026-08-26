@@ -8,9 +8,11 @@ import pytest
 
 from lca_project.domains.editorial_patch import (
     EditorialPatchError, apply_legacy_repairs, apply_repairs, canonical_hash,
+    assert_core_grounding_preserved,
     claim_binding_metrics, claim_remaining_uses, legacy_paragraph_manifest,
-    normalize_legacy_repair_claim_bindings, paragraph_manifest,
-    prepare_legacy_patch_review, render_sections,
+    flow_direction_consistency_report, normalize_legacy_repair_claim_bindings,
+    paragraph_manifest, prepare_legacy_patch_review,
+    render_sections, require_flow_direction_consistency,
 )
 
 
@@ -35,6 +37,68 @@ def fixtures():
               "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
               "evidence_claim_ids": ["c3"]}]}, "preserved_claim_ids": ["c3"]}
     return blueprint, draft, review, repair
+
+
+def test_dual_role_flow_contract_agrees_with_frozen_graph_claim() -> None:
+    blueprint = {
+        "node_id": "A019", "node_type": "activity",
+        "flow_ledger": [
+            {"field": "P001 服务器, 通用计算, 2U", "direction": "in"},
+            {"field": "P066 中压电力, ICT制造用", "direction": "in"},
+            {"field": "P017 服务器/交换机/存储设备, 测试合格", "direction": "in"},
+            {"field": "P001 服务器, 通用计算, 2U", "direction": "out"},
+            {"field": "P034 共生包装废料", "direction": "out"},
+        ],
+    }
+    blueprint["evidence_tables"] = {
+        "flows": [edge["field"] for edge in blueprint["flow_ledger"]]
+    }
+    rows = [{"claim": {
+        "claim_id": "A019-16", "claim_kind": "internal_graph_fact",
+        "claim_text": "P001同时是消耗连接和生产连接；P066、P017为输入，P034为输出。",
+    }}]
+
+    report = flow_direction_consistency_report(blueprint, rows)
+
+    require_flow_direction_consistency(report)
+    assert report["contradiction_count"] == 0
+    assert [
+        row["direction"] for row in report["claim_assertions"]
+        if row["product_id"] == "P001"
+    ] == ["in", "out"]
+
+
+def test_dual_role_flow_contract_rejects_lossy_scalar_or_claim_contradiction() -> None:
+    blueprint = {
+        "node_id": "A019", "node_type": "activity",
+        "flow_ledger": [
+            {"field": "P001 reference server", "direction": "in"},
+            {"field": "P001 reference server", "direction": "out"},
+        ],
+        "flow_directions": {"P001 reference server": "out"},
+        "evidence_tables": {"flows": [
+            "P001 reference server", "P001 reference server",
+        ]},
+    }
+    report = flow_direction_consistency_report(blueprint, [])
+    assert report["contradiction_count"] == 1
+    assert report["contradictions"][0]["kind"] == "ambiguous_legacy_flow_directions_present"
+    with pytest.raises(EditorialPatchError, match="ambiguous_legacy_flow_directions_present"):
+        require_flow_direction_consistency(report)
+
+    input_only = {
+        **blueprint, "flow_ledger": [blueprint["flow_ledger"][0]],
+        "flow_directions": {"P001 reference server": "in"},
+        "evidence_tables": {"flows": ["P001 reference server"]},
+    }
+    report = flow_direction_consistency_report(input_only, [{"claim": {
+        "claim_id": "A019-16", "claim_kind": "internal_graph_fact",
+        "claim_text": "P001 is a production connection.",
+    }}])
+    assert report["contradictions"] == [{
+        "kind": "claim_direction_not_in_blueprint", "claim_id": "A019-16",
+        "product_id": "P001", "direction": "out",
+    }]
 
 
 def test_patch_changes_only_hash_bound_paragraph_and_requires_rereview() -> None:
@@ -106,7 +170,7 @@ def test_v2_review_is_hash_bound_and_only_targeted_paragraph_changes() -> None:
                    "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
                    "evidence_claim_ids": []},
                   {"text": "现场记录不足时应明确保留缺口，不能用相邻对象事实替代。",
-                   "claim_kind": "modeling_judgment", "rhetorical_role": "boundary",
+                   "claim_kind": "evidence_gap", "rhetorical_role": "boundary",
                    "evidence_claim_ids": []},
               ]}}
     before = legacy_paragraph_manifest(draft)
@@ -238,6 +302,29 @@ def test_legacy_preservation_tokens_split_ideographic_identity_lists_atomically(
     assert all(identity.split()[0] in tokens for identity in identities)
     assert not [token for token in tokens
                 if len(re.findall(r"(?<![A-Za-z0-9])[AP]\d{3}(?!\d)", token)) > 1]
+
+
+def test_activity_identifier_does_not_bind_editable_description_as_literal_token() -> None:
+    draft = {"protocol": "wiki-content-draft-v2", "node_id": "A019", "sections": [{
+        "heading": "定义与参考活动", "paragraphs": [{
+            "focus": "A019 的配置动作定义",
+            "sentences": [{
+                "text": "A019 将已装配服务器的 BIOS 参数写入、保存并确认。",
+                "claim_kind": "modeling_judgment", "rhetorical_role": "thesis",
+                "evidence_claim_ids": ["A019-2"],
+            }],
+        }],
+    }]}
+    review = {"protocol": "wiki-editorial-review-v1", "node_id": "A019",
+              "verdict": "NO_GO", "issues": [{
+                  "section": "定义与参考活动", "paragraph_index": 1,
+                  "issue_type": "unsupported_fusion", "explanation": "边界理由混写。",
+                  "repair_instruction": "拆开物质制造与固件开发边界。",
+              }]}
+
+    issue = prepare_legacy_patch_review(draft, review)["issues"][0]
+
+    assert issue["tokens_must_preserve"] == ["A019"]
 
 
 def test_legacy_correction_requires_replacement_identifier_not_superseded_identifier() -> None:
@@ -742,6 +829,37 @@ def test_legacy_patch_fails_closed_when_required_fact_binding_has_no_capacity() 
         normalize_legacy_repair_claim_bindings(repairs, rows, document)
 
 
+def test_legacy_patch_restores_unique_fact_binding_from_hash_bound_target() -> None:
+    document = {"sections": [{"heading": "投入产出与脊边对账", "paragraphs": [{
+        "sentences": [{
+            "text": "A019 图谱显示输入和输出。",
+            "claim_kind": "internal_graph_fact",
+            "evidence_claim_ids": ["A019-16"],
+        }],
+    }]}]}
+    repairs = [{
+        "issue_id": "E001", "section_id": "投入产出与脊边对账", "paragraph_id": "p1",
+        "preserved_claim_ids": [], "replacements": [{
+            "focus": "有序边台账的输入输出列示",
+            "sentences": [{
+                "text": "有序边台账列示 A019 的输入和输出。",
+                "claim_kind": "internal_graph_fact",
+                "evidence_claim_ids": [],
+            }],
+        }],
+    }]
+    rows = [{"claim": {
+        "claim_id": "A019-16", "claim_kind": "internal_graph_fact",
+        "claim_text": "节点图显示 A019 的输入和输出。",
+    }}]
+
+    normalized = normalize_legacy_repair_claim_bindings(repairs, rows, document)
+
+    sentence = normalized[0]["replacements"][0]["sentences"][0]
+    assert sentence["evidence_claim_ids"] == ["A019-16"]
+    assert normalized[0]["preserved_claim_ids"] == ["A019-16"]
+
+
 def test_a013_five_graph_fact_uses_are_rejected_with_two_slots_remaining() -> None:
     document = {"sections": [{"heading": "组成", "paragraphs": [
         {"sentences": [{"evidence_claim_ids": ["A013-16"]}]},
@@ -865,3 +983,20 @@ def test_editorial_patch_proof_metrics_report_cap_and_graph_bindings() -> None:
         "maximum_claim_use_count": 3,
         "bound_internal_graph_fact_sentences_by_claim_id": {"A039-16": 2},
     }
+
+
+def test_editorial_patch_rejects_loss_of_last_core_section_anchor() -> None:
+    before = {"sections": [
+        {"heading": f"核心{i}", "paragraphs": [{"sentences": [{
+            "text": f"事实{i}", "claim_kind": "external_fact",
+            "evidence_claim_ids": [f"c{i}"],
+        }]}]}
+        for i in range(1, 6)
+    ]}
+    after = deepcopy(before)
+    after["sections"][2]["paragraphs"][0]["sentences"][0].update({
+        "claim_kind": "modeling_judgment", "evidence_claim_ids": [],
+    })
+
+    with pytest.raises(EditorialPatchError, match="核心3"):
+        assert_core_grounding_preserved(before, after)

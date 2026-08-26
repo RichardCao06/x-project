@@ -7,11 +7,15 @@ project.  It deliberately never reads, imports, or symlinks the source
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
+import fcntl
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import shutil
+import tempfile
 from typing import Iterable
 
 
@@ -40,6 +44,7 @@ class WikiWorkspaceBuilder:
     # materialized.  Apply tasks own these paths afterwards, so a code repair
     # must never project the vendor seed over their live state.
     BOOTSTRAP_ONLY_PREFIXES = ("wiki/", "sources/")
+    COORDINATION_LOCK = ".workspace-bindings.lock"
 
     def __init__(self, vendor_root: Path | None = None) -> None:
         self.vendor_root = (vendor_root or Path(__file__).resolve().parents[3]
@@ -95,6 +100,45 @@ class WikiWorkspaceBuilder:
             "refresh_policy": self._refresh_policy(target_relative),
         }
 
+    @classmethod
+    def lock_path(cls, workspace: str | Path) -> Path:
+        """Return the cross-process lock that serializes binding refreshes.
+
+        Tasks hold a shared lock while executing against frozen bindings.
+        Control-plane refreshes take the exclusive side of the same lock, so
+        a legitimate deployment cannot be mistaken for an Agent side effect.
+        """
+        return Path(workspace).resolve() / cls.COORDINATION_LOCK
+
+    @classmethod
+    @contextmanager
+    def _exclusive_binding_lock(cls, workspace: str | Path):
+        lock = cls.lock_path(workspace)
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        with lock.open("a+b") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    @staticmethod
+    def _write_manifest_atomic(path: Path, document: dict) -> None:
+        """Replace an integrity manifest without exposing partial JSON."""
+        mode = path.stat().st_mode & 0o777 if path.exists() else 0o644
+        descriptor, temporary = tempfile.mkstemp(
+            dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
+        )
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                handle.write(json.dumps(document, ensure_ascii=False, indent=2) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.chmod(temporary, mode)
+            os.replace(temporary, path)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
+
     def _validate_destination(self, destination: Path) -> Path:
         raw_root = destination.absolute()
         if raw_root.is_symlink():
@@ -128,13 +172,14 @@ class WikiWorkspaceBuilder:
         # This is intentionally a fresh workspace-local document, not a copy
         # of an upstream journal; it establishes the immutable input boundary.
         manifest = root / "workspace-manifest.json"
-        manifest.write_text(json.dumps({
+        self._write_manifest_atomic(manifest, {
             "protocol": {"version": "wiki-workspace-v1", "kind": "input-manifest"},
             "origin": "lca-project/vendor/lca_cornerstone (frozen copy)",
             "source_checkout_access": False,
             "fixture": "wiki-phase2",
+            "generation": 1,
             "files": records,
-        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        })
         return WikiWorkspace(root=root, manifest=manifest, files=len(records))
 
     def refresh(
@@ -148,6 +193,13 @@ class WikiWorkspaceBuilder:
         untouched.
         """
         root = Path(workspace).resolve()
+        with self._exclusive_binding_lock(root):
+            return self._refresh_locked(root, vendor_paths=vendor_paths)
+
+    def _refresh_locked(
+        self, root: Path, *, vendor_paths: Iterable[str] | None = None
+    ) -> WikiWorkspace:
+        """Refresh bindings while holding the workspace's exclusive lock."""
         manifest = root / "workspace-manifest.json"
         if not manifest.is_file():
             raise WikiWorkspaceError("workspace-manifest.json is missing")
@@ -184,13 +236,22 @@ class WikiWorkspaceBuilder:
                 shutil.copyfile(source, target)
                 shutil.copystat(source, target)
             records.append(record)
-        manifest.write_text(json.dumps({
+        next_document = {
             "protocol": {"version": "wiki-workspace-v1", "kind": "input-manifest"},
             "origin": "lca-project/vendor/lca_cornerstone (frozen copy)",
             "source_checkout_access": False,
             "fixture": "wiki-phase2",
+            "generation": int(document.get("generation") or 0) + 1,
             "files": records,
-        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        }
+        # A selective refresh whose selected assets are already current must
+        # not manufacture a new binding generation or perturb an active Job.
+        comparable = dict(document)
+        comparable.pop("generation", None)
+        next_comparable = dict(next_document)
+        next_comparable.pop("generation", None)
+        if comparable != next_comparable:
+            self._write_manifest_atomic(manifest, next_document)
         return self.verify(root)
 
     def verify(self, workspace: str | Path) -> WikiWorkspace:

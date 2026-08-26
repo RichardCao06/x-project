@@ -149,3 +149,44 @@ def test_draft_pipeline_passes_policy_contract_and_mode(
     enrich_command = captured[0]
     assert enrich_command[6] == str(batch / "editorial-loop/editorial-policy-decision.json")
     assert enrich_command[7] == "reviewed"
+
+
+def test_draft_pipeline_preserves_blocked_gate_as_business_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = tmp_path / "workspace"
+    batch = workspace / "runs" / "batch"
+    output = batch / "draft-content-gate.json"
+    output.parent.mkdir(parents=True)
+    output.write_text(
+        '{"protocol":"wiki-draft-content-gate-v1","decision":"REPAIR",'
+        '"failed_requirement_ids":["source_diversity"]}',
+        encoding="utf-8",
+    )
+
+    def fake_pipeline(commands: list[list[str]], **kwargs: object) -> dict:
+        assert kwargs["blocked_codes"] == {2: "CONTENT_LOCAL_ISSUES"}
+        return {
+            "status": "blocked",
+            "failure": {
+                "code": "CONTENT_LOCAL_ISSUES",
+                "category": "business_validation",
+                "scope": "task",
+                "message": "gate returned blocked (2)",
+            },
+            "steps": [],
+        }
+
+    monkeypatch.setattr(capability_runtime, "_pipeline", fake_pipeline)
+    result = capability_runtime.wiki_batch({
+        "operation": "draft-content-pipeline",
+        "workspace": str(workspace),
+        "batch": str(batch),
+        "publication_mode": "reviewed",
+    })
+
+    assert result["status"] == "blocked"
+    assert result["failure"]["code"] == "CONTENT_LOCAL_ISSUES"
+    assert result["failure"]["gate_decision"] == "REPAIR"
+    assert result["failure"]["failed_requirement_ids"] == ["source_diversity"]
+    assert result["gate_result"]["decision"] == "REPAIR"

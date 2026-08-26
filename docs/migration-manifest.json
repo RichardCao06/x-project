@@ -116,7 +116,7 @@
     {
       "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/merge_wiki_ku.py",
       "source_sha256": "ccb3544839c99eb5850f346178780b489d7d8b981185e5f2b5ae5ba8ce2446c8",
-      "target_sha256": "a52b1f277e4de7111dc83f13314adabb6916e859bf2e6e1d5d61001e37768115",
+      "target_sha256": "c9cac06ff8831a540eed79733881fb0344720c85f19a5d571f7203e7086cef66",
       "target_path": "vendor/lca_cornerstone/scripts/merge_wiki_ku.py",
       "purpose": "deterministic domain gate or its direct dependency",
       "frozen": true
@@ -205,7 +205,7 @@
     {
       "source_path": "/Users/shujudagongren/Myspace/lca-cornerstone/scripts/wiki_source_discovery.py",
       "source_sha256": "3b3d3402ed9f1e1648506dba4a2de5c8c0adfc04314a64597dba6c10b510bdb9",
-      "target_sha256": "423c408e12111b40c6bb252e2e03723d3a4d5f5169f08eb82e8e971c98f43f43",
+      "target_sha256": "0ee0c7af7cabd6b9b7a12146bab24f072ac3d53573af72f0a6ce054a8578fea8",
       "target_path": "vendor/lca_cornerstone/scripts/wiki_source_discovery.py",
       "purpose": "deterministic domain gate or its direct dependency",
       "frozen": true

@@ -115,15 +115,21 @@ def validate_collection(collection: dict[str, Any], root: Path) -> dict[str, int
     for kind in required_kinds:
         keys = TABLE_KEYS[kind]
         rows = tables.get(kind) or []
-        seen: set[str] = set()
+        seen: set[str | tuple[str, str]] = set()
         for row in rows:
             missing = [key for key in keys if key not in row]
             if missing:
                 raise ValueError(f"{kind} row 缺字段 {missing}")
             field = str(row["field"])
-            if not field or field in seen:
-                raise ValueError(f"{kind} field 空或重复: {field}")
-            seen.add(field)
+            direction = str(row.get("direction") or "")
+            if kind == "flows" and direction not in {"in", "out"}:
+                raise ValueError(f"flows.{field} direction 非法: {direction}")
+            identity: str | tuple[str, str] = ((field, direction)
+                                               if kind == "flows" else field)
+            if not field or identity in seen:
+                raise ValueError(f"{kind} field 空或重复: {field}"
+                                 + (f"/{direction}" if kind == "flows" else ""))
+            seen.add(identity)
             if row.get("status") not in {"populated", "explicit_gap", "assessed"}:
                 raise ValueError(f"{kind}.{field} status 非法")
             gap_required = bool(collection.get("gap_provenance_required"))

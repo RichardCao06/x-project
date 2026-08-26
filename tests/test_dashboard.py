@@ -15,6 +15,7 @@ from lca_project.dashboard import DashboardService
 from lca_project.dashboard.server import DashboardHTTPServer
 from lca_project.kernel.goal_alignment.change_controller import ChangeController
 from lca_project.kernel.goal_alignment.store import AlignmentStore
+from lca_project.kernel.goal_alignment.system_repair_agent import SystemRepairAgent
 from lca_project.kernel.skills import SkillInvoker
 from lca_project.kernel.worker import WorkerLoop
 
@@ -161,6 +162,77 @@ def test_dashboard_job_detail_scopes_repair_lineage_to_requested_job(tmp_path: P
         item["candidate_id"] == first_candidate["candidate_id"]
         for item in alignment["promotion_receipts"]
     )
+
+
+def test_dashboard_projects_live_system_repair_cause_progress_and_scm(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_job(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A019"]},
+    )
+    store = AlignmentStore(dashboard.state)
+    deviation = store.deviation(
+        job_id=created["job_id"], run_id=None, goal_id="wiki_goal",
+        value={
+            "deviation_type": "research_stall", "severity": "high",
+            "evidence": {"stage": "source_diversity_gate"},
+            "summary": "critical evidence did not close",
+        },
+    )
+    candidate = ChangeController(root, dashboard.control).propose(
+        source_deviation_id=deviation["deviation_id"], target="propose_code_change",
+        risk="medium", change={"job": created["job_id"]},
+        rollback={"strategy": "discard"},
+    )
+    queued = SystemRepairAgent(root, dashboard.control).queue(
+        candidate_id=candidate["candidate_id"], source_job_id=created["job_id"],
+        source_run_id=None, request={
+            "cause_code": "DIVERSITY_REPAIR_REUSES_FAILED_BINDINGS",
+            "explanation": "New candidates were found but the failed bindings were reused.",
+            "failed_task": "source_diversity_gate",
+            "recovery_task": "research_ready",
+            "implementation_targets": ["scripts/wiki_search_gates.py"],
+            "causal_input_changes": [{
+                "target": "source bindings", "change": "replace failed bindings",
+                "expected_effect": "new evidence reaches verification",
+            }],
+            "proof_contract": [{"metric": "new_binding_count", "target": ">0"}],
+            "triage": {"risk": "medium"},
+        },
+    )
+    payload = dict(queued["payload"])
+    payload["execution"] = {
+        "attempt": 1, "owner_id": "repair-owner", "started_at": "2026-08-25T08:00:00+00:00",
+    }
+    payload["scm"] = {
+        "status": "issue_published", "issue_number": 30,
+        "issue_url": "https://example.test/issues/30", "pr_number": None,
+        "pr_url": None,
+    }
+    with dashboard.state.transaction() as conn:
+        conn.execute(
+            "UPDATE system_repair_runs SET status='coding',payload=?,updated_at=? "
+            "WHERE repair_run_id=?",
+            (json.dumps(payload), "2026-08-25T08:01:00+00:00", queued["repair_run_id"]),
+        )
+
+    trace = dashboard.job(created["job_id"])["execution_trace"]
+    repair_action = next(item for item in trace["actions"] if item["kind"] == "code_repair")
+    assert repair_action["id"] == queued["repair_run_id"]
+    assert repair_action["title"] == "DIVERSITY_REPAIR_REUSES_FAILED_BINDINGS"
+    assert repair_action["summary"].startswith("New candidates were found")
+    assert repair_action["details"]["failed_task"] == "source_diversity_gate"
+    assert repair_action["details"]["scm"]["issue_number"] == 30
+
+    activity = trace["repair_activity"]
+    assert activity["active"] is True
+    assert activity["history_count"] == 1
+    assert activity["latest"]["repair_run_id"] == queued["repair_run_id"]
+    assert activity["latest"]["cause_code"] == "DIVERSITY_REPAIR_REUSES_FAILED_BINDINGS"
+    assert activity["latest"]["scm"]["issue_url"] == "https://example.test/issues/30"
+    assert [item["state"] for item in activity["latest"]["steps"][:4]] == [
+        "done", "done", "active", "pending",
+    ]
 
 
 def test_dashboard_job_detail_bounds_each_event_stream_before_merge(tmp_path: Path) -> None:
@@ -458,6 +530,46 @@ def test_dashboard_recovers_running_campaign_without_pending_wakeup(
     assert result["status"] == "recovered"
     assert result["campaigns"] == [campaign_id]
     assert started == [campaign_id]
+
+
+def test_dashboard_recovers_legacy_failed_canary_repair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    dashboard = DashboardService(root)
+    created = dashboard.create_job(
+        "generate-node-wiki", {"industry": "ict_equipment", "nodes": ["A019"]},
+        materialize=True,
+    )
+    candidate = ChangeController(root).propose(
+        source_deviation_id="dev_dashboard_canary", target="propose_code_change",
+        risk="low", change={"diagnosis": "canary"}, rollback={"strategy": "restore"},
+    )
+    repair = SystemRepairAgent(root).queue(
+        candidate_id=candidate["candidate_id"], source_job_id=created["job_id"],
+        source_run_id=created["run_id"], request={"recovery_task": "verify"},
+    )
+    payload = dict(repair["payload"])
+    payload["validations"] = [{
+        "phase": "canary", "passed": False,
+        "new_failed_tests": ["tests/test_worker_loop.py::test_side_effect"],
+    }]
+    with dashboard.state.transaction() as conn:
+        conn.execute(
+            "UPDATE system_repair_runs SET status='failed',payload=?,last_error=? "
+            "WHERE repair_run_id=?",
+            (json.dumps(payload), "canary validation failed", repair["repair_run_id"]),
+        )
+    dispatched: list[str] = []
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.work_dispatcher.dispatch_system_repair",
+        lambda _root, repair_run_id: dispatched.append(repair_run_id) or True,
+    )
+
+    recovered = dashboard.reconcile_nonterminal_work_once()
+
+    assert recovered["repairs"] == [repair["repair_run_id"]]
+    assert dispatched == [repair["repair_run_id"]]
 
 
 def test_dashboard_worker_start_is_job_scoped_and_non_blocking(tmp_path: Path, monkeypatch) -> None:

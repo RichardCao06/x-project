@@ -53,18 +53,57 @@ def document_route_matches(route: dict[str, Any], blueprint: dict[str, Any]) -> 
     return all(value.lower() in name.lower() for value in required)
 
 
-def routed_fields(route: dict[str, Any], fields: dict[str, Any]) -> list[tuple[str, str]]:
-    selected: list[tuple[str, str]] = []
+def routed_targets(
+    route: dict[str, Any], targets: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    selected: list[dict[str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
     for target in route.get("targets", []):
         table = str(target.get("table") or "")
         exact = str(target.get("field") or "")
         contains = str(target.get("field_contains") or "")
-        for field in fields.get(table, []):
+        for logical in targets:
+            if logical["table"] != table:
+                continue
+            field = logical["field"]
             if (exact and field == exact) or (contains and contains in field):
-                pair = (table, field)
-                if pair not in selected:
-                    selected.append(pair)
+                identity = (table, field, logical.get("direction", ""))
+                if identity not in seen:
+                    seen.add(identity)
+                    selected.append(logical)
     return selected
+
+
+def normalize_evidence_tables(
+    raw_tables: dict[str, Any],
+) -> tuple[dict[str, list[str]], list[dict[str, Any]]]:
+    """Collapse exact duplicate non-flow fields, with an audit trail.
+
+    Flow identity is carried by the structured ledger and may repeat a field in
+    opposite directions.  Never collapse flow rows by field here: duplicate
+    same-direction identities must remain observable to strict validation.
+    """
+    tables: dict[str, list[str]] = {}
+    collapsed: list[dict[str, Any]] = []
+    for table, values in raw_tables.items():
+        if not isinstance(values, list):
+            raise ValueError(f"evidence table {table!r} must be a list")
+        seen: set[str] = set()
+        normalized: list[str] = []
+        for index, value in enumerate(values):
+            field = str(value or "").strip()
+            if not field:
+                raise ValueError(f"evidence table {table!r} contains an empty field")
+            if table != "flows" and field in seen:
+                collapsed.append({
+                    "table": str(table), "field": field,
+                    "duplicate_index": index, "resolution": "keep_first_exact_match",
+                })
+                continue
+            seen.add(field)
+            normalized.append(field)
+        tables[str(table)] = normalized
+    return tables, collapsed
 
 
 def external_search_term(value: Any) -> str:
@@ -97,7 +136,7 @@ def runtime_field_translation(field: str, translator: Any) -> tuple[str | None, 
 
 
 def append_query(queries: list[dict[str, Any]], *, table: str, field: str,
-                 language: str, query: str, **metadata: Any) -> None:
+                 language: str, query: str, direction: str = "", **metadata: Any) -> None:
     query = external_search_term(query)
     if not query:
         raise ValueError(f"external search query is empty for {table}.{field}")
@@ -108,34 +147,69 @@ def append_query(queries: list[dict[str, Any]], *, table: str, field: str,
     record = {"table": table, "field": field, "language": language,
               "query": query, "status": "planned",
               "query_hash": hashlib.sha256(query.encode()).hexdigest(), **metadata}
-    identity = (table, field, language, query)
-    if identity not in {(item["table"], item["field"], item["language"], item["query"])
+    if table == "flows":
+        if direction not in {"in", "out"}:
+            raise ValueError(f"flow query direction is invalid for {field}: {direction}")
+        record["direction"] = direction
+    identity = (table, field, direction if table == "flows" else "", language, query)
+    if identity not in {(item["table"], item["field"],
+                         str(item.get("direction") or "") if item["table"] == "flows" else "",
+                         item["language"], item["query"])
                         for item in queries}:
         queries.append(record)
 
 
-def reuse_executed_queries(matrix_path: Path, queries: list[dict[str, Any]]) -> int:
-    """Carry hash-identical terminal searches across deterministic rebuilds."""
-    if not matrix_path.is_file():
-        return 0
-    previous = load(matrix_path)
+def external_request_identity(row: dict[str, Any]) -> tuple[str, ...]:
+    """Identify an external request independently of its logical edge target."""
+    return (
+        str(row.get("query_hash") or ""), str(row.get("query") or ""),
+        str(row.get("language") or ""), str(row.get("document_route") or ""),
+        str(row.get("document_type") or ""),
+        json.dumps(row.get("seed_candidates") or [], ensure_ascii=False, sort_keys=True),
+    )
+
+
+def reuse_executed_queries(
+    plan_path: Path, executed_path: Path, queries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Carry only hash-bound terminal request outcomes into new logical rows."""
+    if not plan_path.is_file() or not executed_path.is_file():
+        return {"count": 0}
+    previous_plan = load(plan_path)
+    previous = load(executed_path)
     terminal = {"found", "not_found", "fetched"}
-    by_identity = {
-        (str(row.get("table")), str(row.get("field")), str(row.get("language")),
-         str(row.get("query_hash"))): row
-        for row in previous.get("queries", []) if row.get("status") in terminal
-    }
+    manifest = Path(str(previous.get("execution_manifest") or ""))
+    if (previous.get("protocol") != "wiki-table-search-executed-v2"
+            or previous.get("coverage_status") != "executed"
+            or previous.get("plan_sha256") != hashlib.sha256(plan_path.read_bytes()).hexdigest()
+            or not manifest.is_file()):
+        return {"count": 0}
+    previous_rows = previous.get("queries") or []
+    if (not isinstance(previous_rows, list)
+            or any(row.get("status") not in terminal for row in previous_rows)
+            or any(str(row.get("query_hash") or "") != hashlib.sha256(
+                str(row.get("query") or "").encode()).hexdigest() for row in previous_rows)):
+        return {"count": 0}
+    # The previous plan binding is checked above.  The parsed plan is retained
+    # here to make malformed/non-object historical inputs fail before reuse.
+    if not isinstance(previous_plan, dict):
+        return {"count": 0}
+    by_identity = {external_request_identity(row): row for row in previous_rows}
     reused = 0
+    executed_sha = hashlib.sha256(executed_path.read_bytes()).hexdigest()
     for row in queries:
-        key = (row["table"], row["field"], row["language"], row["query_hash"])
-        old = by_identity.get(key)
+        if row["query_hash"] != hashlib.sha256(row["query"].encode()).hexdigest():
+            raise ValueError(f"query hash mismatch for {row['table']}.{row['field']}")
+        old = by_identity.get(external_request_identity(row))
         if not old:
             continue
         for name in ("status", "results", "provider_attempts", "elapsed_ms"):
             if name in old:
                 row[name] = old[name]
+        row["reused_execution_sha256"] = executed_sha
         reused += 1
-    return reused
+    return {"count": reused, "executed_sha256": executed_sha,
+            "execution_manifest": str(manifest)}
 
 
 def activity_flow_direction(blueprint: dict[str, Any], field: str) -> str:
@@ -149,6 +223,50 @@ def activity_flow_direction(blueprint: dict[str, Any], field: str) -> str:
     output_names = {str(value) for value in (blueprint.get("identity_tokens") or [])[1:]}
     _, separator, product_name = field.partition(" ")
     return "out" if separator and product_name in output_names else "in"
+
+
+def activity_flow_ledger(blueprint: dict[str, Any]) -> list[dict[str, str]]:
+    """Return every activity edge without collapsing equal product labels."""
+    raw = blueprint.get("flow_ledger")
+    if raw is not None:
+        if not isinstance(raw, list):
+            raise ValueError("flow_ledger must be a list")
+        ledger: list[dict[str, str]] = []
+        for index, row in enumerate(raw):
+            if not isinstance(row, dict):
+                raise ValueError(f"flow_ledger[{index}] must be an object")
+            field = str(row.get("field") or "").strip()
+            direction = str(row.get("direction") or "")
+            if not field or direction not in {"in", "out"}:
+                raise ValueError(f"flow_ledger[{index}] has invalid field or direction")
+            ledger.append({"field": field, "direction": direction})
+        declared = [str(value or "").strip()
+                    for value in (blueprint.get("evidence_tables") or {}).get("flows", [])]
+        if declared != [row["field"] for row in ledger]:
+            raise ValueError("flow_ledger does not match evidence_tables.flows")
+        legacy = blueprint.get("flow_directions")
+        directions_by_field = {
+            field: {row["direction"] for row in ledger if row["field"] == field}
+            for field in declared
+        }
+        if legacy is not None:
+            if any(len(directions) > 1 for directions in directions_by_field.values()):
+                raise ValueError("ambiguous flow_directions cannot accompany flow_ledger")
+            expected = {
+                field: next(iter(directions))
+                for field, directions in directions_by_field.items()
+            }
+            if legacy != expected:
+                raise ValueError("flow_directions does not match flow_ledger")
+        return ledger
+    legacy_fields = [str(field) for field in
+                     (blueprint.get("evidence_tables") or {}).get("flows", [])]
+    if len(legacy_fields) != len(set(legacy_fields)):
+        raise ValueError("repeated flow fields require an occurrence-preserving flow_ledger")
+    return [
+        {"field": str(field), "direction": activity_flow_direction(blueprint, str(field))}
+        for field in legacy_fields
+    ]
 
 
 def main() -> int:
@@ -184,40 +302,54 @@ def main() -> int:
         terminology["translated_search_terms_en"] = en_aliases
         terminology["query_translation"] = translated
     translations = plan.get("field_translations") or {}
-    fields = blueprint.get("evidence_tables") or {}
+    fields, collapsed_fields = normalize_evidence_tables(
+        blueprint.get("evidence_tables") or {}
+    )
+    flow_ledger = (activity_flow_ledger(blueprint)
+                   if blueprint.get("node_type") == "activity" else [])
+    if blueprint.get("node_type") == "activity":
+        fields["flows"] = [row["field"] for row in flow_ledger]
+    targets: list[dict[str, str]] = []
+    for kind, names in fields.items():
+        if kind == "flows":
+            targets.extend({"table": kind, **edge} for edge in flow_ledger)
+        else:
+            targets.extend({"table": kind, "field": field} for field in names)
     queries = []
     runtime_translations: dict[str, str] = {}
     translation_audit: list[dict[str, Any]] = []
-    for kind, names in fields.items():
-        for field in names:
-            for language, terms in (
-                ("zh", [terminology.get("canonical_zh"), *zh_aliases]),
-                ("en", [terminology.get("canonical_en"), *en_aliases]),
-            ):
-                clean = [external_search_term(x) for x in terms if external_search_term(x)]
+    for target in targets:
+        kind, field = target["table"], target["field"]
+        direction = target.get("direction", "")
+        for language, terms in (
+            ("zh", [terminology.get("canonical_zh"), *zh_aliases]),
+            ("en", [terminology.get("canonical_en"), *en_aliases]),
+        ):
+            clean = [external_search_term(x) for x in terms if external_search_term(x)]
+            if language == "en":
+                clean = [term for term in clean if not CJK.search(term)]
+            if clean:
+                strategy = "field_term"
                 if language == "en":
-                    clean = [term for term in clean if not CJK.search(term)]
-                if clean:
-                    strategy = "field_term"
-                    if language == "en":
-                        field_term = str(translations.get(field) or "").strip()
+                    field_term = str(translations.get(field) or "").strip()
+                    if not field_term:
+                        field_term, audit = runtime_field_translation(str(field), translator)
+                        translation_audit.append({
+                            "table": kind, "field": field,
+                            **({"direction": direction} if kind == "flows" else {}),
+                            "status": "runtime_translated" if field_term else "unresolved",
+                            "method": audit.get("method"),
+                            "unmatched_fragments": audit.get("unmatched_fragments") or [],
+                        })
                         if not field_term:
-                            field_term, audit = runtime_field_translation(str(field), translator)
-                            translation_audit.append({
-                                "table": kind, "field": field,
-                                "status": "runtime_translated" if field_term else "unresolved",
-                                "method": audit.get("method"),
-                                "unmatched_fragments": audit.get("unmatched_fragments") or [],
-                            })
-                            if not field_term:
-                                continue
-                            runtime_translations[str(field)] = field_term
-                            strategy = "runtime_field_translation"
-                    else:
-                        field_term = external_search_term(field)
-                    query = f"{' OR '.join(clean)} {field_term}"
-                    append_query(queries, table=kind, field=field, language=language, query=query,
-                                 query_strategy=strategy)
+                            continue
+                        runtime_translations[str(field)] = field_term
+                        strategy = "runtime_field_translation"
+                else:
+                    field_term = external_search_term(field)
+                query = f"{' OR '.join(clean)} {field_term}"
+                append_query(queries, table=kind, field=field, language=language, query=query,
+                             direction=direction, query_strategy=strategy)
     route_ids: list[str] = []
     if args.document_routes.is_file():
         route_config = load(args.document_routes)
@@ -226,13 +358,15 @@ def main() -> int:
         for route in route_config.get("routes", []):
             if not isinstance(route, dict) or not document_route_matches(route, blueprint):
                 continue
-            targets = routed_fields(route, fields)
-            if not targets:
+            routed = routed_targets(route, targets)
+            if not routed:
                 continue
             route_id = str(route["id"]); route_ids.append(route_id)
-            for table, field in targets:
+            for target in routed:
+                table, field = target["table"], target["field"]
                 append_query(
                     queries, table=table, field=field,
+                    direction=target.get("direction", ""),
                     language=str(route.get("language") or "zh"), query=str(route["query"]),
                     query_strategy="document_type_route", document_route=route_id,
                     document_type=str(route.get("document_type") or ""),
@@ -240,7 +374,10 @@ def main() -> int:
                                      if isinstance(item, dict) and item.get("url")],
                 )
     matrix_path = args.output / "search-matrix.json"
-    reused_queries = reuse_executed_queries(matrix_path, queries)
+    reuse = reuse_executed_queries(
+        matrix_path, args.output / "search-matrix.executed.json", queries,
+    )
+    reused_queries = int(reuse["count"])
     terminal = {"found", "not_found", "fetched"}
     matrix = {"protocol": "wiki-multilingual-table-search-v1", "node_id": blueprint["node_id"],
               "terminology": terminology, "queries": queries,
@@ -250,6 +387,9 @@ def main() -> int:
               "coverage_status": ("executed" if queries and all(q.get("status") in terminal for q in queries)
                                   else "partially_reused" if reused_queries else "planned_not_executed"),
               "reused_executed_queries": reused_queries,
+              **({"reused_executed_matrix_sha256": reuse["executed_sha256"],
+                  "reused_execution_manifest": reuse["execution_manifest"]}
+                 if reused_queries else {}),
               "rule": "related terms discover candidates only; excluded terms never establish identity"}
     matrix["query_quality_metrics"] = {
         "english_field_translation_coverage": f"{sum(1 for names in fields.values() for field in names if field in translations)}/{sum(len(names) for names in fields.values())}",
@@ -331,9 +471,7 @@ def main() -> int:
         "cn_source": "",
         "pedigree": "explicit_gap_after_multilingual_search", "status": "explicit_gap",
     }
-    flows = [{"field": field,
-              "direction": activity_flow_direction(blueprint, field),
-              **activity_gap} for field in fields.get("flows", [])]
+    flows = [{**edge, **activity_gap} for edge in flow_ledger]
     emissions = [{"field": field, "cas": "—",
                   "compartment": ("air" if "空气" in field else "water" if "水" in field
                                   else "soil" if "土壤" in field else "waste"),
@@ -361,6 +499,10 @@ def main() -> int:
                                     "freeze_rule": "Only independently confirmed node-aligned facts are populated; all unsupported quantitative cells are explicit gaps."},
         "thresholds": thresholds,
         "gap_provenance_required": True,
+        "schema_normalization": {
+            "protocol": "wiki-table-schema-normalization-v1",
+            "duplicate_fields_collapsed": collapsed_fields,
+        },
         "sources": list(sources.values()), "tables": tables,
         "search_matrix_sha256": hashlib.sha256((args.output / "search-matrix.json").read_bytes()).hexdigest(),
     }

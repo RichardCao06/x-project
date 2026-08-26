@@ -200,7 +200,24 @@ def compatible_reverification(existing: dict[str, Any], replacement: dict[str, A
     right = dict(replacement)
     left.pop("excerpt_seeds", None)
     right.pop("excerpt_seeds", None)
-    return left == right and bool(replacement.get("excerpt_seeds"))
+    if left == right:
+        return bool(replacement.get("excerpt_seeds"))
+
+    # Editorial consolidation can bind an existing KU to additional frozen
+    # claims from the same source.  That legitimately enriches the locator
+    # while every identity-bearing registry field stays unchanged.  Accept
+    # only a monotonic semicolon-delimited locator superset; source URL,
+    # authority, status and verification identity must remain byte-equivalent.
+    old_locator = str(left.pop("locator", ""))
+    new_locator = str(right.pop("locator", ""))
+    old_parts = {part.strip() for part in old_locator.split(";") if part.strip()}
+    new_parts = {part.strip() for part in new_locator.split(";") if part.strip()}
+    return (
+        left == right
+        and bool(old_parts)
+        and old_parts <= new_parts
+        and bool(replacement.get("excerpt_seeds"))
+    )
 
 
 PROTOCOL_VERSION = "wiki-ku-v1"

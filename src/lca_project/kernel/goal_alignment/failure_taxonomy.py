@@ -30,7 +30,10 @@ def classify_failure(*, task_id: str, failure_code: str,
         ("terminal_semantics", ("maturity", "candidate_eligible", "false_pass", "terminal")),
         ("repair_governance", ("system_repair", "causal_input", "proof_contract", "canary")),
         ("runtime_protocol", ("capability_process", "worker_runtime", "schema", "protocol")),
-        ("infrastructure", ("temporary_io", "lease", "timeout", "network")),
+        ("infrastructure", (
+            "temporary_io", "lease", "timeout", "network", "side_effect",
+            "protected root", "workspace-manifest",
+        )),
     )
     for family, tokens in rules:
         if any(token in text for token in tokens):

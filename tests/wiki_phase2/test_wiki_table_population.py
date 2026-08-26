@@ -54,7 +54,47 @@ provenance_refs: [internal-review]
 
 <!-- CHANGELOG:START -->
 ## 修改日志
-"""
+    """
+
+
+def _activity_collection_with_flows(directions: list[str]) -> dict:
+    source = "test-source"
+    gap = {
+        "unit": "unit", "basis": "reference",
+        "int_value": "缺口：未公开", "int_source": source,
+        "cn_value": "缺口：未公开", "cn_source": source,
+        "pedigree": "explicit_gap", "status": "explicit_gap",
+    }
+    return {
+        "protocol": {"version": "wiki-table-evidence-v1", "kind": "node-table-collection"},
+        "node_id": "A019", "node_type": "activity",
+        "reference_configuration": {
+            "manufacturer": "test", "model": "test", "scope": "test", "freeze_rule": "test",
+        },
+        "sources": [{
+            "id": source, "status": "verified", "url": "https://example.test/source",
+            "locator": "fixture", "excerpt_seeds": ["fixture"], "verified_via": "fixture",
+        }],
+        "tables": {
+            "flows": [{"field": "P001 reference server", "direction": direction, **gap}
+                      for direction in directions],
+            "props": [], "params": [], "emissions": [], "indicators": [], "quality": [],
+        },
+    }
+
+
+def test_flow_validation_accepts_same_field_in_opposite_directions(tmp_path) -> None:
+    metrics = validate_collection(_activity_collection_with_flows(["in", "out"]), tmp_path)
+    assert metrics["flows_rows"] == 2
+
+
+def test_flow_validation_rejects_duplicate_same_direction_identity(tmp_path) -> None:
+    try:
+        validate_collection(_activity_collection_with_flows(["out", "out"]), tmp_path)
+    except ValueError as exc:
+        assert "P001 reference server/out" in str(exc)
+    else:
+        raise AssertionError("duplicate (field, direction) flow identity was accepted")
 
 
 def test_explicit_gap_is_not_counted_as_a_value() -> None:

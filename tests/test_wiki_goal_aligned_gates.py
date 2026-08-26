@@ -177,6 +177,41 @@ def test_semantic_closure_has_no_character_count_requirement() -> None:
     assert "body_chars" not in result["metrics"]
 
 
+def test_semantic_closure_accepts_frozen_graph_fact_for_core_reconciliation() -> None:
+    gate = load_script("gate_wiki_content_closure.py")
+    headings = ["定义", "参考", "边界", "路线", "投入产出"]
+    blueprint = {"sections": {heading: {} for heading in headings}}
+    content = {"sections": []}
+    claims = []
+    for index, heading in enumerate(headings):
+        kind = "internal_graph_fact" if heading == "投入产出" else "evidence_gap"
+        claim_ids = ["A019-16"] if kind == "internal_graph_fact" else []
+        content["sections"].append({
+            "heading": heading,
+            "paragraphs": [{"sentences": [{
+                "text": "冻结图列明该节点的投入与产出。",
+                "claim_kind": kind,
+                "evidence_claim_ids": claim_ids,
+            }]}],
+        })
+    claims.append({
+        "claim": {
+            "claim_id": "A019-16", "claim_kind": "internal_graph_fact",
+            "requirement_id": "activity.graph.reconciliation",
+        },
+        "verify": {"verdict": "NOT_FOUND"},
+    })
+
+    result = gate.evaluate(
+        blueprint, content, {"claims": claims},
+        {"decision": "PASS", "candidate_eligible": True},
+    )
+
+    assert result["decision"] == "PASS"
+    assert result["checks"]["core_sections_fact_or_explicit_gap"] is True
+    assert result["metrics"]["core_sections"]["投入产出"] is True
+
+
 def _write(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")

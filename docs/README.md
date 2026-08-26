@@ -16,6 +16,7 @@
 | 系统自我修复与目标对齐架构 | [HTML](系统自我修复与目标对齐架构.html) | [Markdown](系统自我修复与目标对齐架构.md) | Goal Contract、三层闭环、Meta Supervisor、复合动作图与效果证明合同。 |
 | Goal Contract Governance v2 | [HTML](goal-contract-governance-v2.html) | [Markdown](goal-contract-governance-v2.md) | 三合同、Capability Envelope、Goal 修正案、自治资格与受治理发布的实现边界。 |
 | 研究约束治理重设计 v1 | [HTML](research-constraint-governance-redesign-v1.html) | [HTML](research-constraint-governance-redesign-v1.html) | 区分阻断契约与质量目标，并以稳定问题契约和逐问题证据闭合替代关键词启发式。 |
+| Job 跨阶段状态一致性与自主收敛设计 v1 | [HTML](job-execution-consistency-autonomous-convergence-v1.html) | [Markdown](job-execution-consistency-autonomous-convergence-v1.md) | 定义 Job/Run/Task/Item/Campaign 原子恢复、Artifact 代际、唯一 Repair Graph、差分 Canary 与最终发布收尾。 |
 | 自治修复的受控 SCM 发布 | [HTML](system-repair-scm.html) | [Markdown](system-repair-scm.md) | 偏差 Issue、隔离分支、可追踪 commit、Draft PR、失败降级与基线一致性保护。 |
 | 自治生产平台 · 测试策略与测试用例 | [HTML](测试设计-骨架数据库自治生产平台.html) | [HTML](测试设计-骨架数据库自治生产平台.html) | 测试矩阵、优先级、Mutation、Golden、Shadow、Canary 与验收证据要求。 |
 

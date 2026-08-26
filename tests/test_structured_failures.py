@@ -113,6 +113,46 @@ def test_nomination_cache_is_bound_to_launcher_code(tmp_path: Path) -> None:
     ) is False
 
 
+def test_nomination_cache_is_bound_to_research_plan_and_source_hints(tmp_path: Path) -> None:
+    nomination = tmp_path / "nomination-runtime"
+    nomination.mkdir()
+    scout = tmp_path / "research-scout.json"
+    plan = tmp_path / "research-plan.json"
+    hints = tmp_path / "source-hints.json"
+    launcher = tmp_path / "run_wiki_nomination_capture.py"
+    scout.write_text('{"protocol":"wiki-research-scout-v1"}\n', encoding="utf-8")
+    plan.write_text('{"protocol":"wiki-research-plan-v1"}\n', encoding="utf-8")
+    hints.write_text('{"protocol":"wiki-source-hints-v1"}\n', encoding="utf-8")
+    launcher.write_text("# launcher\n", encoding="utf-8")
+    (nomination / "nomination-result.json").write_text(json.dumps({
+        "claims": [
+            {"claim_kind": "external_fact", "believed_source": f"Source {index}"}
+            for index in range(3)
+        ],
+    }), encoding="utf-8")
+    (nomination / "wiki-usage-v1.json").write_text("{}\n", encoding="utf-8")
+    (nomination / "nomination-usage.json").write_text(json.dumps({
+        "exit_code": 0, "validation_error": None,
+    }), encoding="utf-8")
+    (nomination / "nomination-invocation.json").write_text(json.dumps({
+        "research_scout": {"sha256": capability_runtime._sha256(scout)},
+        "research_plan": {"sha256": capability_runtime._sha256(plan)},
+        "source_hints": {"sha256": capability_runtime._sha256(hints)},
+        "launcher_sha256": capability_runtime._sha256(launcher),
+        "nomination_policy_version": "research-scout-source-specific-v9",
+    }), encoding="utf-8")
+
+    assert capability_runtime._nomination_cache_is_current(
+        nomination, scout, launcher, research_plan=plan, source_hints=hints,
+    ) is True
+
+    hints.write_text('{"protocol":"wiki-source-hints-v1","revision":2}\n', encoding="utf-8")
+
+    assert capability_runtime._nomination_cache_is_current(
+        nomination, scout, launcher, research_plan=plan, source_hints=hints,
+    ) is False
+
+
 def test_capability_cannot_spoof_adapter_infrastructure_failure() -> None:
     with pytest.raises(ValueError, match="adapter-owned"):
         FailureEnvelope.from_capability({"code": "PROCESS_EXIT", "message": "gate failed"})

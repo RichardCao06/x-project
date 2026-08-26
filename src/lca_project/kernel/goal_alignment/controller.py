@@ -72,7 +72,7 @@ class GoalAlignmentController:
             "SELECT d.payload FROM deviation_reports d "
             "LEFT JOIN failure_triage_runs t ON t.deviation_id=d.deviation_id "
             "WHERE d.job_id=? AND d.status='open' AND t.triage_run_id IS NULL "
-            "ORDER BY d.created_at",
+            "ORDER BY d.created_at DESC",
             (job_id,),
         )
         pending: list[Deviation] = []
@@ -525,11 +525,15 @@ class GoalAlignmentController:
                 canonical({"type": item.deviation_type, "evidence": item.evidence})
                 for item in deviations
             }
+            # Current terminal facts take precedence over older durable
+            # deviations.  The older reports remain queued behind them rather
+            # than occupying the repair channel while the newest failure goes
+            # untriaged.
             deviations = [
+                *deviations,
                 *[item for item in self._pending_agent_triage(job_id)
                   if canonical({"type": item.deviation_type,
                                 "evidence": item.evidence}) not in detected],
-                *deviations,
             ]
         records: list[dict[str, Any]] = []
         actions: list[dict[str, Any]] = [*resolved, *outcome_actions]

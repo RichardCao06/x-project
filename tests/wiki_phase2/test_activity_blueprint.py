@@ -36,6 +36,13 @@ def test_activity_blueprint_is_node_specific_and_complete() -> None:
     assert result["evidence_tables"]["flows"] == [
         "P001 board", "P002 memory", "P003 storage", "P004 power", "P005 blade server",
     ]
+    assert result["flow_ledger"] == [
+        {"field": "P001 board", "direction": "in"},
+        {"field": "P002 memory", "direction": "in"},
+        {"field": "P003 storage", "direction": "in"},
+        {"field": "P004 power", "direction": "in"},
+        {"field": "P005 blade server", "direction": "out"},
+    ]
     assert result["flow_directions"] == {
         "P001 board": "in", "P002 memory": "in", "P003 storage": "in",
         "P004 power": "in", "P005 blade server": "out",
@@ -68,7 +75,9 @@ def test_a019_coproduct_is_advisory_flow_not_hard_identity(tmp_path: Path) -> No
 
     assert regenerated["identity_tokens"] == ["A019", "服务器, 通用计算, 2U"]
     assert "共生包装废料" in regenerated["advisory_tokens"]
-    assert regenerated["flow_directions"]["P034 共生包装废料"] == "out"
+    assert {"field": "P034 共生包装废料", "direction": "out"} in regenerated[
+        "flow_ledger"
+    ]
     assert "P034 共生包装废料" in regenerated["evidence_tables"]["flows"]
     assert regenerated["evidence_tables"]["props"][0] == "参考产品身份（服务器, 通用计算, 2U）"
     assert hashlib.sha256(materialized.read_bytes()).digest() != hashlib.sha256(
@@ -90,3 +99,44 @@ def test_activity_blueprint_requires_reference_output() -> None:
 
     with pytest.raises(ValueError, match="at least one reference output"):
         module().build(graph, "A019")
+
+
+def test_activity_blueprint_preserves_same_product_in_both_directions() -> None:
+    graph = {
+        "activities": [{
+            "id": "A019", "name": "server configuration",
+            "inputs": ["reference server", "electricity"],
+            "outputs": [{"product": "reference server", "role": "reference"}],
+        }],
+        "products": [
+            {"id": "P001", "name": "reference server"},
+            {"id": "P066", "name": "electricity"},
+        ],
+    }
+
+    result = module().build(graph, "A019")
+
+    assert result["flow_ledger"] == [
+        {"field": "P001 reference server", "direction": "in"},
+        {"field": "P066 electricity", "direction": "in"},
+        {"field": "P001 reference server", "direction": "out"},
+    ]
+    assert result["evidence_tables"]["flows"] == [
+        "P001 reference server", "P066 electricity", "P001 reference server",
+    ]
+    assert "flow_directions" not in result
+
+
+def test_a019_fixture_has_five_unique_edge_identities() -> None:
+    root = Path(__file__).resolve().parents[2]
+    graph = __import__("json").loads((
+        root / "vendor/lca_cornerstone/fixtures/wiki-phase2/docs/ict_equipment-name-graph.json"
+    ).read_text(encoding="utf-8"))
+
+    ledger = module().build(graph, "A019")["flow_ledger"]
+
+    assert len(ledger) == 5
+    assert len({(row["field"], row["direction"]) for row in ledger}) == 5
+    assert [row["direction"] for row in ledger if row["field"].startswith("P001 ")] == [
+        "in", "out",
+    ]

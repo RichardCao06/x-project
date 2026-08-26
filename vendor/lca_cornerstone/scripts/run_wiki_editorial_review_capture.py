@@ -9,11 +9,53 @@ import json
 import subprocess
 from pathlib import Path
 
+from lca_project.domains.editorial_patch import (
+    EditorialPatchError,
+    flow_direction_consistency_report,
+    require_flow_direction_consistency,
+)
 from run_wiki_content_capture import DISABLED, _claims, collect_usage, validate_result
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def build_prompt(blueprint: dict, content: str, rows: list[dict], flow_report: dict) -> str:
+    graph_claims = [{
+        "claim_id": (row.get("claim") or {}).get("claim_id"),
+        "claim_kind": (row.get("claim") or {}).get("claim_kind"),
+        "claim_text": (row.get("claim") or {}).get("claim_text"),
+        # Internal graph facts deliberately skip external Search/Verify and
+        # therefore carry NOT_FOUND in the external-verdict field.  Exposing
+        # that field as a generic verdict caused the editor to reject facts
+        # that the lossless flow ledger had already verified.  Give the editor
+        # the correct authority and keep the external status out of this view.
+        "internal_validation": (
+            "VERIFIED_BY_FLOW_DIRECTION_CONSISTENCY"
+            if flow_report.get("consistent") is True
+            else "GRAPH_CONTRACT_INVALID"
+        ),
+    } for row in rows if (row.get("claim") or {}).get("claim_kind") == "internal_graph_fact"]
+    return (
+        "你是独立的中文技术百科编辑，只审稿，不改稿，不读取文件、不调用工具、不联网。"
+        "逐节逐段阅读 CONTENT。重点判断：每段是否只有一个中心；相邻句是否形成论点—证据—解释—边界/应用链；"
+        "是否把证据字段机械并排；术语是否稳定，尤其不得把同义的刀片服务器与服务器刀片虚构成两个层级；"
+        "是否存在换词重复、引用打断或为了字数堆句。不能因为结构字段齐全就判 GO。"
+        "FLOW_DIRECTION_CONSISTENCY 是确定性核验通过的有序边台账；同一 field 可分别以 in 和 out 出现，"
+        "这表示合法的双重流角色，不得据此判定 identity_drift 或 unsupported_fusion。"
+        "VERIFIED_GRAPH_CLAIMS 是与该台账预先核对过的冻结图谱声明；其中 internal_validation="
+        "VERIFIED_BY_FLOW_DIRECTION_CONSISTENCY 即为内部图谱肯定状态。内部图谱事实不进入外部 Search/Verify，"
+        "其底层 external verdict 为 NOT_FOUND 只表示外部核验不适用，绝不表示图谱事实未确认；"
+        "不得仅因该外部状态拒绝与台账一致的 internal_graph_fact。"
+        "任何一段出现类似‘A。来源 B。’且 A/B 没有清楚语义关系，必须 NO_GO。"
+        "只有所有 checks 为 true 且 issues 为空才能 verdict=GO；否则给出可直接反馈给写作 Agent 的定位和修复指令。"
+        "reviewed_sections 必须按 blueprint 顺序完整列出。输出只匹配 JSON schema。\n"
+        f"BLUEPRINT={json.dumps(blueprint, ensure_ascii=False, separators=(',', ':'))}\n"
+        f"FLOW_DIRECTION_CONSISTENCY={json.dumps(flow_report, ensure_ascii=False, separators=(',', ':'))}\n"
+        f"VERIFIED_GRAPH_CLAIMS={json.dumps(graph_claims, ensure_ascii=False, separators=(',', ':'))}\n"
+        f"CONTENT={content}"
+    )
 
 
 def main() -> int:
@@ -36,6 +78,14 @@ def main() -> int:
     blueprint = json.loads(blueprint_path.read_text(encoding="utf-8"))
     rows = _claims(verify_path, blueprint["node_id"])
     validate_result(content_path, blueprint, rows)
+    flow_report = flow_direction_consistency_report(blueprint, rows)
+    flow_report_path = out / "flow-direction-consistency.json"
+    flow_report_path.write_text(
+        json.dumps(flow_report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    # This producer-side check intentionally runs before command construction
+    # or subprocess execution, so a contradictory contract spends no review.
+    require_flow_direction_consistency(flow_report)
 
     result = out / "editorial-review.json"
     events = out / "editorial-review-events.jsonl"
@@ -47,16 +97,8 @@ def main() -> int:
     runtime_schema_doc.get("properties", {}).get("reviewed_sections", {}).pop("uniqueItems", None)
     runtime_schema.write_text(json.dumps(runtime_schema_doc, ensure_ascii=False, indent=2) + "\n",
                               encoding="utf-8")
-    prompt = (
-        "你是独立的中文技术百科编辑，只审稿，不改稿，不读取文件、不调用工具、不联网。"
-        "逐节逐段阅读 CONTENT。重点判断：每段是否只有一个中心；相邻句是否形成论点—证据—解释—边界/应用链；"
-        "是否把证据字段机械并排；术语是否稳定，尤其不得把同义的刀片服务器与服务器刀片虚构成两个层级；"
-        "是否存在换词重复、引用打断或为了字数堆句。不能因为结构字段齐全就判 GO。"
-        "任何一段出现类似‘A。来源 B。’且 A/B 没有清楚语义关系，必须 NO_GO。"
-        "只有所有 checks 为 true 且 issues 为空才能 verdict=GO；否则给出可直接反馈给写作 Agent 的定位和修复指令。"
-        "reviewed_sections 必须按 blueprint 顺序完整列出。输出只匹配 JSON schema。\n"
-        f"BLUEPRINT={json.dumps(blueprint, ensure_ascii=False, separators=(',', ':'))}\n"
-        f"CONTENT={content_path.read_text(encoding='utf-8')}"
+    prompt = build_prompt(
+        blueprint, content_path.read_text(encoding="utf-8"), rows, flow_report,
     )
     root = Path(__file__).resolve().parents[1]
     command = ["codex", "exec", "--ephemeral", "--ignore-user-config", "--ignore-rules", "-C", str(root),
@@ -71,6 +113,7 @@ def main() -> int:
         "content_sha256": sha256(content_path),
         "verify_sha256": sha256(verify_path),
         "blueprint_sha256": sha256(blueprint_path),
+        "flow_direction_consistency_sha256": sha256(flow_report_path),
         "schema_sha256": sha256(schema_path),
         "runtime_schema_sha256": sha256(runtime_schema),
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -116,7 +159,9 @@ def main() -> int:
         "verdict": review.get("verdict") if review else None,
         "usage_records": usage_rows,
         "artifacts": {"invocation_sha256": sha256(invocation), "events_sha256": sha256(events),
-                      "stderr_sha256": sha256(stderr), "result_sha256": sha256(result) if result.exists() else None},
+                      "stderr_sha256": sha256(stderr),
+                      "flow_direction_consistency_sha256": sha256(flow_report_path),
+                      "result_sha256": sha256(result) if result.exists() else None},
         "cost_usd": args.cost_usd,
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"exit_code": exit_code, "review": str(result),

@@ -399,6 +399,37 @@ def plan_coverage(prepared_path: Path, repo_root: Path = ROOT) -> dict[str, Any]
                 digest = str(target.get("new_sha256", ""))
                 if path and re.fullmatch(r"[0-9a-f]{64}", digest):
                     committed_outputs[path] = digest
+    # Table population is a second, independently gated materialization step
+    # after the content transaction.  Its candidate hash is already bound by
+    # table-population-gate.json and the apply report records the exact page
+    # hash written to the workspace.  Treat that hash as the latest authorized
+    # materialization; otherwise every successful table apply is falsely
+    # reported as content hash drift at the release gate.
+    table_report_path = batch_dir / "table-data" / "table-apply-report.json"
+    table_gate_path = batch_dir / "table-data" / "table-population-gate.json"
+    if table_report_path.is_file() and table_gate_path.is_file():
+        table_report = read_json(table_report_path)
+        table_gate = read_json(table_gate_path)
+        report_digest = str(table_report.get("page_sha256", ""))
+        gate_digest = str(table_gate.get("page_sha256", ""))
+        node_id = str(table_report.get("node_id", ""))
+        if (
+            table_report.get("protocol") == "wiki-table-apply-v1"
+            and table_report.get("status") == "applied"
+            and table_gate.get("verdict") == "GO"
+            and report_digest == gate_digest
+            and re.fullmatch(r"[0-9a-f]{64}", report_digest)
+        ):
+            manifest_node = next(
+                (entry for entry in manifest.get("nodes", [])
+                 if str(entry.get("node_id", "")) == node_id),
+                None,
+            )
+            if manifest_node is not None:
+                page_path = resolve_path(
+                    manifest_node["page"], repo_root, manifest_path.parent,
+                )
+                committed_outputs[str(page_path.resolve())] = report_digest
     golden_curation = prepared.get("golden_curation") is True
     pilot_only = bool(prepared.get("pilot_only") or manifest.get("protocol", {}).get("pilot_only"))
     upgrade_allowed = bool(prepared.get("reviewed_upgrade_allowed")) and not pilot_only

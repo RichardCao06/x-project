@@ -1557,6 +1557,165 @@ def test_system_repair_executes_canary_against_untouched_baseline(
     assert canary["baseline_equivalent"] is True
 
 
+def test_new_canary_regression_queues_bounded_causal_successor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    candidate = ChangeController(root).propose(
+        source_deviation_id="dev_canary_replan", target="propose_code_change",
+        risk="low", change={"diagnosis": "source repair"},
+        rollback={"strategy": "restore"},
+    )
+
+    def fake_agent(sandbox: Path, _: dict) -> dict:
+        source = sandbox / "src/lca_project/canary_replan.py"
+        regression = sandbox / "tests/test_canary_replan.py"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        regression.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("VALUE = 'candidate'\n", encoding="utf-8")
+        regression.write_text("def test_candidate(): assert True\n", encoding="utf-8")
+        return {
+            "summary": "candidate with a Canary regression",
+            "changed_files": [
+                "src/lca_project/canary_replan.py", "tests/test_canary_replan.py",
+            ],
+            "tests_added": ["tests/test_canary_replan.py"], "risk_notes": [],
+        }
+
+    def validator(validation_root: Path, phase: str, tests: tuple[str, ...]) -> dict:
+        if phase != "canary" or validation_root.name == "baseline":
+            return {"phase": phase, "passed": True, "exit_code": 0,
+                    "failed_tests": [], "stdout_tail": "", "stderr_tail": ""}
+        return {
+            "phase": "canary", "passed": False, "exit_code": 1,
+            "failed_tests": [
+                "tests/test_governance_runtime_integration.py::test_runtime_readiness"
+            ],
+            "stdout_tail": "assert readiness['ready'] is True", "stderr_tail": "",
+        }
+
+    dispatched: list[str] = []
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.work_dispatcher.dispatch_system_repair",
+        lambda _root, repair_run_id: dispatched.append(repair_run_id) or True,
+    )
+    agent = SystemRepairAgent(root, agent_runner=fake_agent, validator=validator)
+    queued = agent.queue(
+        candidate_id=candidate["candidate_id"], source_job_id="job_test",
+        source_run_id=None, request={"recovery_task": "source_diversity_gate"},
+    )
+
+    result = agent.execute(queued["repair_run_id"])
+
+    assert result["status"] == "replan_required"
+    replan = result["payload"]["validation_replan"]
+    assert replan["revision"] == 1
+    assert replan["new_failed_tests"] == [
+        "tests/test_governance_runtime_integration.py::test_runtime_readiness"
+    ]
+    assert dispatched == [replan["successor_repair_run_id"]]
+    successor = agent.get(replan["successor_repair_run_id"])
+    successor_request = successor["payload"]["request"]
+    assert successor["status"] == "queued"
+    assert successor_request["supersedes_repair_run_id"] == queued["repair_run_id"]
+    assert successor_request["validation_replan_revision"] == 1
+    assert successor_request["cause_code"] == "SYSTEM_REPAIR_CANARY_REGRESSION"
+    assert "tests/test_governance_runtime_integration.py" in (
+        successor_request["validation_tests"]
+    )
+    assert successor_request["causal_input_changes"][-1]["causal_input"] == (
+        "system_repair_candidate_regression"
+    )
+    assert ChangeController(root).get(candidate["candidate_id"])["status"] == "rejected"
+
+
+def test_legacy_failed_canary_is_resumed_into_successor_repair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = project_copy(tmp_path)
+    changes = ChangeController(root)
+    candidate = changes.propose(
+        source_deviation_id="dev_legacy_canary", target="propose_code_change",
+        risk="low", change={"diagnosis": "legacy"}, rollback={"strategy": "restore"},
+    )
+    agent = SystemRepairAgent(root)
+    queued = agent.queue(
+        candidate_id=candidate["candidate_id"], source_job_id="job_legacy",
+        source_run_id=None, request={"recovery_task": "verify"},
+    )
+    changes.certify(candidate["candidate_id"], phase="sandbox", suites={"golden": True})
+    changes.certify(candidate["candidate_id"], phase="shadow", suites={"mutation": True})
+    changes.certify(candidate["candidate_id"], phase="canary", suites={"regression": False})
+    payload = dict(queued["payload"])
+    payload["validations"] = [{
+        "phase": "canary", "passed": False, "exit_code": 1,
+        "failed_tests": ["tests/test_worker_loop.py::test_side_effect"],
+        "new_failed_tests": ["tests/test_worker_loop.py::test_side_effect"],
+        "baseline": {"passed": True, "exit_code": 0, "failed_tests": []},
+    }]
+    with agent.state.transaction() as conn:
+        conn.execute(
+            "UPDATE system_repair_runs SET status='failed',payload=?,last_error=? "
+            "WHERE repair_run_id=?",
+            (json.dumps(payload), "canary validation failed", queued["repair_run_id"]),
+        )
+    dispatched: list[str] = []
+    monkeypatch.setattr(
+        "lca_project.kernel.goal_alignment.work_dispatcher.dispatch_system_repair",
+        lambda _root, repair_run_id: dispatched.append(repair_run_id) or True,
+    )
+
+    recovered = agent.execute(queued["repair_run_id"])
+
+    assert recovered["status"] == "replan_required"
+    successor_id = recovered["payload"]["validation_replan"][
+        "successor_repair_run_id"
+    ]
+    assert dispatched == [successor_id]
+    assert agent.get(successor_id)["status"] == "queued"
+
+
+def test_canary_replan_stops_after_governed_budget(tmp_path: Path) -> None:
+    root = project_copy(tmp_path)
+    changes = ChangeController(root)
+    candidate = changes.propose(
+        source_deviation_id="dev_exhausted_canary", target="propose_code_change",
+        risk="low", change={"diagnosis": "exhausted"},
+        rollback={"strategy": "restore"},
+    )
+    agent = SystemRepairAgent(root)
+    queued = agent.queue(
+        candidate_id=candidate["candidate_id"], source_job_id="job_exhausted",
+        source_run_id=None, request={
+            "recovery_task": "verify",
+            "validation_replan_revision": SystemRepairAgent.MAX_VALIDATION_REPLANS,
+        },
+    )
+    changes.certify(candidate["candidate_id"], phase="sandbox", suites={"golden": True})
+    changes.certify(candidate["candidate_id"], phase="shadow", suites={"mutation": True})
+    changes.certify(candidate["candidate_id"], phase="canary", suites={"regression": False})
+    payload = dict(queued["payload"])
+    payload["validations"] = [{
+        "phase": "canary", "passed": False,
+        "new_failed_tests": ["tests/test_worker_loop.py::test_side_effect"],
+        "baseline": {"passed": True, "failed_tests": []},
+    }]
+    with agent.state.transaction() as conn:
+        conn.execute(
+            "UPDATE system_repair_runs SET status='failed',payload=?,last_error=? "
+            "WHERE repair_run_id=?",
+            (json.dumps(payload), "canary validation failed", queued["repair_run_id"]),
+        )
+
+    exhausted = agent.execute(queued["repair_run_id"])
+
+    assert exhausted["status"] == "failed"
+    assert exhausted["payload"]["validation_replan_exhausted"][
+        "max_validation_replans"
+    ] == SystemRepairAgent.MAX_VALIDATION_REPLANS
+    assert len(agent.rows(job_id="job_exhausted")) == 1
+
+
 def test_medium_risk_repair_is_prepared_then_promoted_with_minimal_approval(
     tmp_path: Path,
 ) -> None:
@@ -1844,6 +2003,69 @@ def test_system_repair_refreshes_only_existing_vendor_integrity_anchor(
     assert updated == ["scripts/tool.py"]
     assert manifest["anchor_hashes"]["scripts/tool.py"] != "old"
     assert manifest["anchor_hashes"]["scripts/other.py"] == "keep"
+
+
+def test_system_repair_discards_agent_manifest_edit_before_trusted_refresh(
+    tmp_path: Path,
+) -> None:
+    sandbox = tmp_path / "sandbox"
+    baseline = tmp_path / "baseline"
+    vendor_relative = "vendor/lca_cornerstone/scripts/tool.py"
+    manifest_relative = "docs/migration-manifest.json"
+    test_relative = "tests/test_integrity_adapter.py"
+    for root in (sandbox, baseline):
+        (root / vendor_relative).parent.mkdir(parents=True)
+        (root / manifest_relative).parent.mkdir(parents=True)
+        (root / test_relative).parent.mkdir(parents=True)
+        (root / vendor_relative).write_text("before\n", encoding="utf-8")
+        (root / test_relative).write_text("def test_before(): pass\n", encoding="utf-8")
+        (root / manifest_relative).write_text(json.dumps({
+            "assets": [{"target_path": vendor_relative, "target_sha256": "old"}],
+        }), encoding="utf-8")
+    before = SystemRepairAgent._snapshot(sandbox)
+    (sandbox / vendor_relative).write_text("after\n", encoding="utf-8")
+    (sandbox / test_relative).write_text("def test_after(): pass\n", encoding="utf-8")
+    (sandbox / manifest_relative).write_text('{"agent":"forged"}', encoding="utf-8")
+    raw_changed = SystemRepairAgent._changed_files(
+        before, SystemRepairAgent._snapshot(sandbox)
+    )
+
+    discarded = SystemRepairAgent._discard_direct_integrity_edits(
+        sandbox, baseline, raw_changed
+    )
+    agent_changed = SystemRepairAgent._changed_files(
+        before, SystemRepairAgent._snapshot(sandbox)
+    )
+    refreshed = SystemRepairAgent._refresh_integrity_anchors(
+        sandbox, before, agent_changed
+    )
+    manifest = json.loads((sandbox / manifest_relative).read_text(encoding="utf-8"))
+
+    assert discarded == [manifest_relative]
+    assert agent_changed == [test_relative, vendor_relative]
+    assert refreshed == [f"migration:{vendor_relative}"]
+    assert manifest["assets"][0]["target_sha256"] == hashlib.sha256(
+        (sandbox / vendor_relative).read_bytes()
+    ).hexdigest()
+
+
+def test_system_repair_normalises_non_authoritative_manifest_claims() -> None:
+    result = SystemRepairAgent._normalise_agent_result_integrity_claims({
+        "changed_files": [
+            "src/lca_project/fix.py", "docs/migration-manifest.json",
+        ],
+        "causal_input_changes_applied": [{
+            "target": "runtime",
+            "changed_files": [
+                "src/lca_project/fix.py", "docs/migration-manifest.json",
+            ],
+        }],
+    })
+
+    assert result["changed_files"] == ["src/lca_project/fix.py"]
+    assert result["causal_input_changes_applied"][0]["changed_files"] == [
+        "src/lca_project/fix.py"
+    ]
 
 
 def test_rejected_system_change_can_be_revised_with_audit_lineage(tmp_path: Path) -> None:
