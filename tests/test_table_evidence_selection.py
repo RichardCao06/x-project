@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 from pathlib import Path
@@ -47,6 +48,35 @@ def matrix(rows: list[dict]) -> dict:
     }]}
 
 
+def fanout_matrix(candidate: dict) -> dict:
+    shared = {
+        "language": "en", "query_hash": "f" * 64,
+        "results": [candidate],
+    }
+    return {"coverage_status": "executed", "queries": [
+        {**shared, "table": "indicators", "field": "一次装配良率"},
+        {**shared, "table": "props", "field": "参考产品单件净质量"},
+    ]}
+
+
+def fanout_collection() -> dict:
+    data = collection()
+    data["tables"]["props"] = [{
+        "field": "参考产品单件净质量", "condition": "named configuration",
+        "unit": "待来源定义", "value": "缺口：无型号级净质量", "source": "verified-fallback",
+        "pedigree": "explicit_gap", "status": "explicit_gap",
+    }]
+    return data
+
+
+def verifier_module():
+    path = ROOT / "scripts/verify_wiki_table_collection.py"
+    spec = importlib.util.spec_from_file_location("verify_wiki_table_collection", path)
+    assert spec and spec.loader
+    value = importlib.util.module_from_spec(spec); spec.loader.exec_module(value)
+    return value
+
+
 def test_authoritative_field_observation_is_promoted_as_proxy(tmp_path: Path) -> None:
     mod = module()
     candidate = result(tmp_path, url="https://example.gov/report", source_class="government_or_regulator",
@@ -89,6 +119,79 @@ def test_single_non_authoritative_candidate_remains_an_audited_gap(tmp_path: Pat
         "https://vendor.example/report"
     ]
     assert set(row["gap_evidence_by_track"]) == {"int", "cn"}
+
+
+def test_shared_result_across_logical_targets_has_complete_audit_closure(tmp_path: Path) -> None:
+    selector = module()
+    candidate = {
+        "url": "https://example.com/shared-evidence.pdf", "title": "Shared report",
+        "fetch_status": "error", "provider": "fixture",
+    }
+    search_matrix = fanout_matrix(candidate)
+
+    _, report = selector.select_evidence(fanout_collection(), search_matrix, tmp_path)
+
+    assert report["audit_closure"] == {
+        "matrix_results": 2, "candidate_audits": 2,
+        "every_result_audited_once": True,
+        "all_decisions_terminal": True,
+        "all_decisions_have_reasons": True,
+        "complete": True,
+    }
+    expected_identities = {
+        ("indicators", "一次装配良率", "en", "f" * 64,
+         "https://example.com/shared-evidence.pdf"),
+        ("props", "参考产品单件净质量", "en", "f" * 64,
+         "https://example.com/shared-evidence.pdf"),
+    }
+    assert {
+        selector.logical_result_identity(audit)
+        for audit in report["candidate_audits"]
+    } == expected_identities
+    verifier = verifier_module()
+    assert {
+        verifier.logical_result_identity(audit)
+        for audit in report["candidate_audits"]
+    } == expected_identities
+    assert verifier.every_search_result_has_one_candidate_audit(
+        search_matrix["queries"], report["candidate_audits"],
+    )
+
+
+def test_duplicate_audit_for_full_logical_identity_fails_closure(tmp_path: Path) -> None:
+    selector = module()
+    candidate = {
+        "url": "https://example.com/shared-evidence.pdf", "title": "Shared report",
+        "fetch_status": "error", "provider": "fixture",
+    }
+    search_matrix = fanout_matrix(candidate)
+    _, report = selector.select_evidence(fanout_collection(), search_matrix, tmp_path)
+    audits = [*report["candidate_audits"], copy.deepcopy(report["candidate_audits"][0])]
+
+    assert selector.candidate_audit_closure(search_matrix, audits)[
+        "every_result_audited_once"
+    ] is False
+    assert verifier_module().every_search_result_has_one_candidate_audit(
+        search_matrix["queries"], audits,
+    ) is False
+
+
+def test_missing_audit_for_full_logical_identity_fails_closure(tmp_path: Path) -> None:
+    selector = module()
+    candidate = {
+        "url": "https://example.com/shared-evidence.pdf", "title": "Shared report",
+        "fetch_status": "error", "provider": "fixture",
+    }
+    search_matrix = fanout_matrix(candidate)
+    _, report = selector.select_evidence(fanout_collection(), search_matrix, tmp_path)
+    audits = report["candidate_audits"][:-1]
+
+    assert selector.candidate_audit_closure(search_matrix, audits)[
+        "every_result_audited_once"
+    ] is False
+    assert verifier_module().every_search_result_has_one_candidate_audit(
+        search_matrix["queries"], audits,
+    ) is False
 
 
 def test_two_independent_matching_sources_are_promoted(tmp_path: Path) -> None:

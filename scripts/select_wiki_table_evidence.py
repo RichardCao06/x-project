@@ -396,6 +396,46 @@ def register_source(collection: dict[str, Any], proposal: dict[str, Any], worksp
     return sid
 
 
+def logical_result_identity(row: dict[str, Any], result: dict[str, Any] | None = None) -> tuple[str, ...]:
+    """Return the field-scoped identity of a matrix result or candidate audit."""
+    candidate = result if result is not None else row
+    return (
+        str(row.get("table") or ""),
+        str(row.get("field") or ""),
+        str(row.get("language") or ""),
+        str(row.get("query_hash") or ""),
+        str(candidate.get("url") or ""),
+    )
+
+
+def candidate_audit_closure(matrix: dict[str, Any], audits: list[dict[str, Any]]) -> dict[str, Any]:
+    result_keys = [
+        logical_result_identity(query, result)
+        for query in matrix.get("queries", []) for result in query.get("results", [])
+    ]
+    audit_keys = [logical_result_identity(audit) for audit in audits]
+    closure = {
+        "matrix_results": len(result_keys),
+        "candidate_audits": len(audit_keys),
+        "every_result_audited_once": (
+            len(result_keys) == len(audit_keys)
+            and sorted(result_keys) == sorted(audit_keys)
+            and len(audit_keys) == len(set(audit_keys))
+        ),
+        "all_decisions_terminal": all(
+            audit.get("decision") in {"accepted", "rejected"} for audit in audits
+        ),
+        "all_decisions_have_reasons": all(bool(audit.get("reasons")) for audit in audits),
+    }
+    closure["complete"] = all(
+        closure[key] for key in (
+            "every_result_audited_once", "all_decisions_terminal",
+            "all_decisions_have_reasons",
+        )
+    )
+    return closure
+
+
 def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspace: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     if matrix.get("coverage_status") != "executed":
         raise ValueError("table evidence selection requires an executed search matrix")
@@ -592,33 +632,7 @@ def select_evidence(collection: dict[str, Any], matrix: dict[str, Any], workspac
         elif audit["observations"] and "uncorroborated_public_proxy" not in audit["reasons"]:
             audit["reasons"].append("uncorroborated_public_proxy")
 
-    result_keys = [
-        (str(query.get("query_hash") or ""), str(result.get("url") or ""))
-        for query in matrix.get("queries", []) for result in query.get("results", [])
-    ]
-    audit_keys = [
-        (str(audit.get("query_hash") or ""), str(audit.get("url") or ""))
-        for audit in audits
-    ]
-    audit_closure = {
-        "matrix_results": len(result_keys),
-        "candidate_audits": len(audit_keys),
-        "every_result_audited_once": (
-            len(result_keys) == len(audit_keys)
-            and sorted(result_keys) == sorted(audit_keys)
-            and len(audit_keys) == len(set(audit_keys))
-        ),
-        "all_decisions_terminal": all(
-            audit.get("decision") in {"accepted", "rejected"} for audit in audits
-        ),
-        "all_decisions_have_reasons": all(bool(audit.get("reasons")) for audit in audits),
-    }
-    audit_closure["complete"] = all(
-        audit_closure[key] for key in (
-            "every_result_audited_once", "all_decisions_terminal",
-            "all_decisions_have_reasons",
-        )
-    )
+    audit_closure = candidate_audit_closure(matrix, audits)
 
     outcome = ("NO_ELIGIBLE_PUBLIC_DATA" if not accepted else
                "FULLY_POPULATED" if len(accepted) == len(field_reports) else "PARTIALLY_POPULATED")
