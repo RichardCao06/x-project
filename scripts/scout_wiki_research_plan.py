@@ -324,7 +324,7 @@ def main() -> int:
     candidates: list[dict[str, Any]] = []
     attempts: list[dict[str, Any]] = []
     query_audit: list[dict[str, Any]] = []
-    seen: set[str] = {
+    seen: set[str] = failed_urls | {
         str(item.get("url")) for item in previous_candidates if item.get("url")
     }
     max_per_question = 5
@@ -393,12 +393,15 @@ def main() -> int:
                     attempts.append({**attempt_base, "status": status, "results": len(hits)})
                     provider_added = 0
                     for hit in hits:
-                        url = hit.get("url")
-                        if url in seen:
+                        url = str(hit.get("url") or "").strip()
+                        url_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()
+                        if (not url or url in failed_urls or url_hash in excluded_url_hashes
+                                or url in seen):
                             continue
                         seen.add(url)
                         candidates.append({
                             **hit,
+                            "url": url,
                             "research_question": dimension,
                             "question_id": query_record["question_id"],
                             "intent_id": query_record["intent_id"],
